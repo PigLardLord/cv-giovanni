@@ -25,10 +25,15 @@ fetch('cv-data.json')
 
     const skillsList = document.getElementById('skills');
     data.skills.forEach(skill => {
-      const li = document.createElement('li');
-      li.textContent = skill;
-      skillsList.appendChild(li);
-    });
+        const li = document.createElement('li');
+      
+        const total = 5;
+        const filled = '●'.repeat(skill.level);
+        const empty = '○'.repeat(total - skill.level);
+      
+        li.innerHTML = `<strong>${skill.name}</strong>: <span class="skill-level">${filled}${empty}</span>`;
+        skillsList.appendChild(li);
+      });
 
     const langList = document.getElementById('languages');
     data.languages.forEach(lang => {

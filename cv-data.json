@@ -43,7 +43,18 @@
         "period": "2009 – 2013"
       }
     ],
-    "skills": ["Swift", "SwiftUI", "UIKit", "Combine", "Core Data", "Git", "CI/CD", "Firebase", "OAuth2", "REST APIs"],
+    "skills": [
+        { "name": "Swift", "level": 5 },
+        { "name": "SwiftUI", "level": 4 },
+        { "name": "UIKit", "level": 4 },
+        { "name": "Combine", "level": 3 },
+        { "name": "Core Data", "level": 4 },
+        { "name": "Git", "level": 4 },
+        { "name": "CI/CD", "level": 4 },
+        { "name": "Firebase", "level": 3 },
+        { "name": "OAuth2", "level": 3 },
+        { "name": "REST APIs", "level": 5 }
+    ],
     "languages": [
       { "name": "Italian", "level": "Native" },
       { "name": "English", "level": "Fluent" },
