@@ -19,6 +19,43 @@ body {
   header, section, footer {
     margin-bottom: 30px;
   }
+
+  .profile-header {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 30px;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 20px;
+  }
+  
+  #profile-pic {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: top;
+    border: 2px solid #2980b9;
+  }
+  
+  .profile-info h1 {
+    margin: 0;
+    font-size: 2em;
+  }
+  
+  .profile-info h2 {
+    margin: 4px 0;
+    font-size: 1.2em;
+    color: #2980b9;
+  }
+  
+  .profile-info p {
+    margin: 4px 0;
+  }
+  
+  .profile-info a {
+    font-weight: 500;
+  }
   
   h1 {
     font-size: 2.4em;
