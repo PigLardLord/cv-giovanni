@@ -61,14 +61,26 @@ fetch('cv-data.json')
     });
   });
 
-document.getElementById('download').addEventListener('click', () => {
-  import('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js').then(jsPDF => {
-    const { jsPDF: PDF } = jsPDF;
-    const pdf = new PDF();
-    pdf.html(document.body, {
-      callback: () => {
-        pdf.save('Giovanni_Trovato_CV.pdf');
-      }
-    });
+  document.getElementById('download').addEventListener('click', () => {
+    if (!window.html2pdf) {
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+      script.onload = () => generatePDF();
+      document.body.appendChild(script);
+    } else {
+      generatePDF();
+    }
   });
-});
+  
+  function generatePDF() {
+    const element = document.querySelector('.container');
+    const opt = {
+      margin: 0.5,
+      filename: 'Giovanni_Trovato_CV.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+  
+    html2pdf().from(element).set(opt).save();
+  }
