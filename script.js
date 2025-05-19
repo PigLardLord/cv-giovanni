@@ -75,12 +75,13 @@ fetch('cv-data.json')
   function generatePDF() {
     const element = document.querySelector('.container');
     const opt = {
-      margin: 0.5,
-      filename: 'Giovanni_Trovato_CV.pdf',
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+      margin:       [0.4, 0.4, 0.4, 0.4], // top, left, bottom, right
+      filename:     'Giovanni_Trovato_CV.pdf',
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, scrollY: 0 },
+      jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' },
+      pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
     };
   
-    html2pdf().from(element).set(opt).save();
+    html2pdf().set(opt).from(element).save();
   }
