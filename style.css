@@ -108,3 +108,9 @@ body {
   #certifications a:hover {
     text-decoration: underline;
   }
+
+  @media print {
+    .no-print {
+      display: none !important;
+    }
+  }
