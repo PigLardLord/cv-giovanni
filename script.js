@@ -31,7 +31,7 @@ fetch('cv-data.json')
         const filled = '●'.repeat(skill.level);
         const empty = '○'.repeat(total - skill.level);
       
-        li.innerHTML = `<strong>${skill.name}</strong>: <span class="skill-level">${filled}${empty}</span>`;
+        li.innerHTML = `<strong>${skill.name}:</strong> <span class="skill-level">${filled}${empty}</span>`;
         skillsList.appendChild(li);
       });
 

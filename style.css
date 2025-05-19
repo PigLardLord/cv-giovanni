@@ -65,7 +65,7 @@ body {
   }
   
   .skill-name {
-    flex: 0 0 160px;
+    flex: 0 0 120px;
     font-weight: 600;
     color: #2c3e50;
   }
