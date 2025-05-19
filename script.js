@@ -41,6 +41,24 @@ fetch('cv-data.json')
       li.textContent = `${lang.name}: ${lang.level}`;
       langList.appendChild(li);
     });
+
+    const interestContainer = document.getElementById('interests');
+    data.interests.forEach(interest => {
+      const tag = document.createElement('span');
+      tag.className = 'tag';
+      tag.textContent = interest;
+      interestContainer.appendChild(tag);
+    });
+    const certList = document.getElementById('certifications');
+    data.certifications.forEach(cert => {
+      const li = document.createElement('li');
+      if (cert.url) {
+        li.innerHTML = `<a href="${cert.url}" target="_blank"><strong>${cert.name}</strong></a> – ${cert.issuer} (${cert.year})`;
+      } else {
+        li.innerHTML = `<strong>${cert.name}</strong> – ${cert.issuer} (${cert.year})`;
+      }
+      certList.appendChild(li);
+    });
   });
 
 document.getElementById('download').addEventListener('click', () => {

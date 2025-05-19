@@ -5,29 +5,30 @@
   "email": "trovato.giovanni@gmail.com",
   "phone": "+39 329 8484 046",
   "portfolio": "https://sites.google.com/view/giovanni-trovato",
-  "profile": "Experienced iOS Developer with 7+ years creating intuitive, high-performance apps using Swift, SwiftUI, and modern Apple frameworks. Passionate about user experience, CI/CD automation, and collaborative development.",
+  "profile": "Experienced iOS Developer with 7+ years of experience building secure, high-performance mobile apps using Swift and SwiftUI. Skilled in modern Apple frameworks, CI/CD, and RESTful integrations. Passionate about clean code, mentoring, and continuous learning.",
   "experience": [
     {
       "title": "iOS Developer",
       "company": "Cortado Mobile Solutions",
-      "location": "Berlin",
+      "location": "Berlin, Germany",
       "period": "Aug 2018 – Present",
       "details": [
-        "Developed and maintained 5 iOS applications published on the App Store",
-        "Worked in agile SCRUM teams with backend, QA, and designers",
-        "Built CI/CD pipelines with GitLab, Fastlane, and Jenkins",
-        "Integrated RESTful APIs and OAuth2",
-        "Mentored junior developers"
+        "Developed and maintained iOS applications distributed via App Store and MDM.",
+        "Worked in cross-functional SCRUM teams with Backend, Web, and QA.",
+        "Implemented automated CI/CD pipelines using GitLab, Fastlane, and Jenkins.",
+        "Integrated secure authentication flows with OAuth2 / OpenID Connect.",
+        "Introduced clean architecture patterns and mentored junior developers."
       ]
     },
     {
       "title": "Mobile Developer",
       "company": "Apparound",
-      "location": "Pisa",
+      "location": "Pisa, Italy",
       "period": "Sep 2015 – Jul 2018",
       "details": [
-        "Cross-platform development (iOS + Android)",
-        "Optimized UI/UX and core modules for performance and reuse"
+        "Developed features across Android and iOS platforms in an agile setting.",
+        "Refactored legacy UI with modern design components and improved performance.",
+        "Created internal libraries to speed up development."
       ]
     }
   ],
@@ -40,24 +41,43 @@
     {
       "degree": "B.Sc. in Computer Engineering",
       "school": "University of Catania",
-      "period": "2009 – 2013"
+      "period": "2000 – 2009"
     }
   ],
   "skills": [
-      { "name": "Swift", "level": 5 },
-      { "name": "SwiftUI", "level": 4 },
-      { "name": "UIKit", "level": 4 },
-      { "name": "Combine", "level": 3 },
-      { "name": "Core Data", "level": 4 },
-      { "name": "Git", "level": 4 },
-      { "name": "CI/CD", "level": 4 },
-      { "name": "Firebase", "level": 3 },
-      { "name": "OAuth2", "level": 3 },
-      { "name": "REST APIs", "level": 5 }
+    { "name": "Swift", "level": 5 },
+    { "name": "SwiftUI", "level": 4 },
+    { "name": "UIKit", "level": 4 },
+    { "name": "Combine", "level": 4 },
+    { "name": "Core Data", "level": 4 },
+    { "name": "Git", "level": 4 },
+    { "name": "CI/CD", "level": 4 },
+    { "name": "Fastlane", "level": 4 },
+    { "name": "Firebase", "level": 3 },
+    { "name": "OAuth2", "level": 3 },
+    { "name": "REST APIs", "level": 5 }
   ],
   "languages": [
     { "name": "Italian", "level": "Native" },
     { "name": "English", "level": "Fluent" },
     { "name": "German", "level": "Basic" }
+  ],
+  "certifications": [
+    {
+      "name": "iOS Lead Essentials",
+      "issuer": "Essential Developer",
+      "year": 2024,
+      "url": "https://me.essentialdeveloper.com/achievements/cc210373-d44f-4345-aff2-a1402b5104d4"
+    }
+  ],
+  "interests": [
+    "Voice Interfaces",
+    "Robotics",
+    "iOS Architecture",
+    "Dungeons & Dragons",
+    "Manga",
+    "Gaming",
+    "Kayak",
+    "Hiking"
   ]
 }

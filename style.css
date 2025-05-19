@@ -75,3 +75,34 @@ body {
     color: #2980b9;
     letter-spacing: 2px;
   }
+
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  
+  .tag {
+    background-color: #2980b9;
+    color: white;
+    padding: 6px 12px;
+    font-size: 14px;
+    border-radius: 20px;
+    font-weight: 500;
+  }
+
+  #certifications li {
+    margin-bottom: 6px;
+    font-size: 15px;
+  }
+  
+  #certifications a {
+    color: #2c3e50;
+    text-decoration: none;
+    font-weight: 600;
+  }
+  
+  #certifications a:hover {
+    text-decoration: underline;
+  }
