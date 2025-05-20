@@ -5,7 +5,18 @@ fetch('cv-data.json')
     document.getElementById('title').textContent = data.title;
     document.getElementById('location').textContent = data.location;
     document.getElementById('contacts').innerHTML = `<strong>Email:</strong> ${data.email}<br><strong>Phone:</strong> ${data.phone}`;
-    document.getElementById('portfolio').href = data.portfolio;
+
+    const socialLinks = document.querySelector('.social-links');
+    if (data.social && socialLinks) {
+      data.social.forEach(link => {
+        const a = document.createElement('a');
+        a.href = link.url;
+        a.textContent = `${link.platform}: ${link.url}`;
+        a.target = '_blank';
+        socialLinks.appendChild(a);
+        socialLinks.appendChild(document.createElement('br'));
+      });
+    }
 
     document.getElementById('profile').textContent = data.profile;
 
@@ -82,6 +93,22 @@ fetch('cv-data.json')
       generatePDF();
     }
   });
+
+  const socialLinks = document.querySelector('.social-links');
+  if (data.social && socialLinks) {
+    data.social.forEach(link => {
+      const a = document.createElement('a');
+      a.href = link.url;
+      a.textContent = link.platform;
+      a.target = '_blank';
+      socialLinks.appendChild(a);
+
+      if (link !== data.social[data.social.length - 1]) {
+        const separator = document.createTextNode(' · ');
+        socialLinks.appendChild(separator);
+      }
+    });
+  }
   
   function generatePDF() {
     const element = document.querySelector('.container');

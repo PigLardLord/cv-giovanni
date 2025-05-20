@@ -99,6 +99,14 @@ section {
   text-decoration: underline;
 }
 
+.social-links a {
+  color: #2980b9;
+  font-weight: 500;
+  text-decoration: none;
+  font-size: 0.95rem;
+  word-break: break-word;
+}
+
 .edu-description {
   margin-top: 6px;
   font-size: 0.95rem;

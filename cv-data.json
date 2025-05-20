@@ -78,5 +78,15 @@
     "Gaming",
     "Kayak",
     "Hiking"
-  ]
+  ],
+  "social": [
+  {
+    "platform": "GitHub",
+    "url": "https://github.com/PigLardLord"
+  },
+  {
+    "platform": "LinkedIn",
+    "url": "https://www.linkedin.com/in/piglardlord/"
+  }
+]
 }
