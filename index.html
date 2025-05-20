@@ -20,10 +20,10 @@
       </div>
     </header>
     <main>
-      <section>
+      <div id="profile-block">
         <h3>👤 Profile</h3>
         <p id="profile"></p>
-      </section>
+      </div>
       <section>
         <h3>💼 Experience</h3>
         <div id="experience"></div>
@@ -36,22 +36,23 @@
         <h3>📜 Certifications</h3>
         <ul id="certifications"></ul>
       </section>
-      <div class="grid-sections">
-        <section class="left-col">
-          <h3>🛠️ Skills</h3>
-          <ul id="skills"></ul>
-        </section>
-        <section class="right-col">
-          <h3>🌐 Languages</h3>
-          <ul id="languages"></ul>
-          <h3>🎯 Interests</h3>
-          <div id="interests" class="tags"></div>
-        </section>
+      <div class="skills-group">
+        <div class="grid-sections">
+          <div class="left-col">
+            <h3>🛠️ Skills</h3>
+            <ul id="skills"></ul>
+          </div>
+          <div class="right-col">
+            <h3>🌐 Languages</h3>
+            <ul id="languages"></ul>
+            <h3>🎯 Interests</h3>
+            <div id="interests" class="tags"></div>
+          </div>
+        </div>
       </div>
     </main>
     <footer class="no-print">
-      <button id="download">📄 Download as PDF</button>
-    </footer>
+      <button id="download" onclick="window.print()">📄 Print a copy</button>    </footer>
   </div>
 </body>
 </html>
