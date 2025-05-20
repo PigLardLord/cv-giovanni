@@ -1,153 +1,211 @@
+/* Base layout and font */
 body {
-    font-family: 'Segoe UI', sans-serif;
-    background-color: #f5f7fa;
-    color: #333;
-    margin: 0;
-    padding: 0;
-  }
-  
-  .container {
-    max-width: 800px;
-    margin: auto;
-    padding: 40px 30px;
-    background: white;
-    color: black;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    font-size: 14px;
-  }
-  
-  header, section, footer {
-    margin-bottom: 30px;
-  }
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  background-color: #f8f9fb;
+  color: #2c3e50;
+  margin: 0;
+  padding: 0;
+  line-height: 1.7;
+  font-size: 16px;
+}
 
+.container {
+  max-width: 780px;
+  margin: 40px auto;
+  padding: 40px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+}
+
+/* Headings */
+h1, h2, h3 {
+  font-weight: 600;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+h1 {
+  font-size: 2.2rem;
+}
+
+h2 {
+  font-size: 1.5rem;
+  color: #2980b9;
+}
+
+h3 {
+  font-size: 1.2rem;
+  color: #34495e;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 4px;
+}
+
+/* Paragraphs and Lists */
+p, li {
+  font-size: 1rem;
+  line-height: 1.8;
+  margin-bottom: 0.6em;
+}
+
+ul {
+  padding-left: 1.4em;
+  margin-top: 0.5em;
+}
+
+/* Section spacing */
+section {
+  margin-bottom: 60px;
+}
+
+/* Profile Header */
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 30px;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 20px;
+}
+
+#profile-pic {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: top;
+  border: 2px solid #2980b9;
+}
+
+.profile-info h1 {
+  margin: 0;
+  font-size: 2em;
+}
+
+.profile-info h2 {
+  margin: 4px 0;
+  font-size: 1.2em;
+  color: #2980b9;
+}
+
+.profile-info p {
+  margin: 4px 0;
+}
+
+.profile-info a {
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: #2980b9;
+  text-decoration: underline;
+}
+
+/* Certifications */
+#certifications {
+  margin-top: 12px;
+}
+
+#certifications li {
+  margin-bottom: 6px;
+  font-size: 15px;
+}
+
+#certifications a {
+  color: #2c3e50;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+#certifications a:hover {
+  text-decoration: underline;
+}
+
+/* Skills */
+#skills {
+  padding: 0;
+  margin-top: 12px;
+}
+
+#skills li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 16px;
+  list-style: none;
+  padding: 4px 8px;
+}
+
+.skill-name {
+  flex: 0 0 120px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.skill-level {
+  font-family: monospace;
+  color: #2980b9;
+  letter-spacing: 2px;
+}
+
+/* Tags (Interests) */
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.tag {
+  background-color: #2980b9;
+  color: white;
+  padding: 6px 12px;
+  font-size: 14px;
+  border-radius: 20px;
+  font-weight: 500;
+}
+
+/* Download button */
+#download {
+  background: #2980b9;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  cursor: pointer;
+  font-size: 16px;
+  border-radius: 6px;
+}
+
+/* Hide download button in print/pdf */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* Responsive */
+@media (max-width: 600px) {
   .profile-header {
-    display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 24px;
-    margin-bottom: 30px;
-    border-bottom: 2px solid #eee;
-    padding-bottom: 20px;
-  }
-  
-  #profile-pic {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    object-fit: cover;
-    object-position: top;
-    border: 2px solid #2980b9;
-  }
-  
-  .profile-info h1 {
-    margin: 0;
-    font-size: 2em;
-  }
-  
-  .profile-info h2 {
-    margin: 4px 0;
-    font-size: 1.2em;
-    color: #2980b9;
-  }
-  
-  .profile-info p {
-    margin: 4px 0;
-  }
-  
-  .profile-info a {
-    font-weight: 500;
-  }
-  
-  h1 {
-    font-size: 2.4em;
-    color: #2c3e50;
-  }
-  
-  h2 {
-    font-size: 1.5em;
-    color: #34495e;
-    margin-top: 5px;
-  }
-  
-  h3 {
-    border-bottom: 1px solid #ddd;
-    padding-bottom: 4px;
-    color: #2980b9;
-  }
-  
-  #download {
-    background: #2980b9;
-    color: white;
-    border: none;
-    padding: 12px 20px;
-    cursor: pointer;
-    font-size: 16px;
-    border-radius: 6px;
-  }
-  
-  a {
-    color: #2980b9;
-    text-decoration: none;
+    text-align: center;
   }
 
-  #skills {
-    padding: 0;
-  }
-  
-  #skills li {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 8px;
-    font-size: 16px;
-    list-style: none;
-    padding: 4px 8px;
-  }
-  
   .skill-name {
-    flex: 0 0 120px;
-    font-weight: 600;
-    color: #2c3e50;
+    flex: 0 0 auto;
   }
-  
-  .skill-level {
-    font-family: monospace;
-    color: #2980b9;
-    letter-spacing: 2px;
-  }
+}
 
-  .tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 10px;
-  }
-  
-  .tag {
-    background-color: #2980b9;
-    color: white;
-    padding: 6px 12px;
-    font-size: 14px;
-    border-radius: 20px;
-    font-weight: 500;
-  }
+.grid-sections {
+  display: flex;
+  gap: 40px;
+  margin-top: 40px;
+  flex-wrap: wrap;
+}
 
-  #certifications li {
-    margin-bottom: 6px;
-    font-size: 15px;
-  }
-  
-  #certifications a {
-    color: #2c3e50;
-    text-decoration: none;
-    font-weight: 600;
-  }
-  
-  #certifications a:hover {
-    text-decoration: underline;
-  }
+.left-col, .right-col {
+  flex: 1 1 300px;
+}
 
-  @media print {
-    .no-print {
-      display: none !important;
-    }
-  }
+.left-col ul, .right-col ul {
+  margin-top: 12px;
+}
