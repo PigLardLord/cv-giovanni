@@ -52,11 +52,17 @@ fetch('cv-data.json')
     const certList = document.getElementById('certifications');
     data.certifications.forEach(cert => {
       const li = document.createElement('li');
+      let certHTML = '';
       if (cert.url) {
-        li.innerHTML = `<a href="${cert.url}" target="_blank"><strong>${cert.name}</strong></a> – ${cert.issuer} (${cert.year})`;
+        certHTML += `<a href="${cert.url}" target="_blank"><strong>${cert.name}</strong></a>`;
       } else {
-        li.innerHTML = `<strong>${cert.name}</strong> – ${cert.issuer} (${cert.year})`;
+        certHTML += `<strong>${cert.name}</strong>`;
       }
+      certHTML += ` – ${cert.issuer} (${cert.year})`;
+      if (cert.description) {
+        certHTML += `<br><span class="cert-description">${cert.description}</span>`;
+      }
+      li.innerHTML = certHTML;
       certList.appendChild(li);
     });
   });

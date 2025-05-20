@@ -126,6 +126,14 @@ section {
   text-decoration: underline;
 }
 
+.cert-description {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.95rem;
+  color: #555;
+  line-height: 1.6;
+}
+
 /* Skills */
 #skills {
   padding: 0;

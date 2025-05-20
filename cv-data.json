@@ -67,9 +67,10 @@
   "certifications": [
     {
       "name": "iOS Lead Essentials",
-      "issuer": "Essential Developer",
+      "issuer": "Essential Developer Academy",
       "year": 2024,
-      "url": "https://me.essentialdeveloper.com/achievements/cc210373-d44f-4345-aff2-a1402b5104d4"
+      "url": "https://academy.essentialdeveloper.com/achievements/cc210373-d44f-4345-aff2-a1402b5104d4",
+      "description": "Comprehensive training program designed to elevate iOS developers to complete senior professionals. Covered advanced topics such as modular architecture, Test-Driven Development (TDD), Clean Architecture, and effective system design. Included hands-on code challenges reviewed by senior developers, live mentoring sessions, and access to a global community of iOS professionals."
     }
   ],
   "interests": [
