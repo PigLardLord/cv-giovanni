@@ -19,7 +19,7 @@ fetch('cv-data.json')
     const eduDiv = document.getElementById('education');
     data.education.forEach(edu => {
       const section = document.createElement('div');
-      section.innerHTML = `<strong>${edu.degree}</strong><br>${edu.school} (${edu.period})`;
+      section.innerHTML = `<strong>${edu.degree}</strong><br>${edu.school} (${edu.period})<br><p class="edu-description">${edu.description}</p>`;      
       eduDiv.appendChild(section);
     });
 

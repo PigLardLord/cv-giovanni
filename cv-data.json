@@ -34,14 +34,16 @@
   ],
   "education": [
     {
-      "degree": "M.Sc. in Mobile App Development",
-      "school": "University of Pisa",
-      "period": "2014 – 2015"
+      "degree": "M.Sc. in Mobile Application Development",
+      "school": "Università degli Studi di Pisa",
+      "period": "2015",
+      "description": "Acquired skills to design, develop, deploy and maintain mobile applications for end users or for integration into complex information systems. Gained deep knowledge of the Cocoa Touch framework (iOS), Android and Windows Universal App. Technologies used included Swift, Objective-C, Java, XAML and XML."
     },
     {
       "degree": "B.Sc. in Computer Engineering",
-      "school": "University of Catania",
-      "period": "2000 – 2009"
+      "school": "Università degli Studi di Catania",
+      "period": "2009",
+      "description": "Graduated with a thesis on 'Capacitive sensors applications to silicon electrodes on a mold for RTM technology'. Designed and built a flexible physical sensor, all supporting electronics, and custom software to analyze data."
     }
   ],
   "skills": [
@@ -60,7 +62,7 @@
   "languages": [
     { "name": "Italian", "level": "Native" },
     { "name": "English", "level": "Fluent" },
-    { "name": "German", "level": "Basic" }
+    { "name": "German", "level": "Elementary" }
   ],
   "certifications": [
     {
@@ -71,9 +73,8 @@
     }
   ],
   "interests": [
-    "Voice Interfaces",
     "Robotics",
-    "iOS Architecture",
+    "Reading",
     "Dungeons & Dragons",
     "Manga",
     "Gaming",
