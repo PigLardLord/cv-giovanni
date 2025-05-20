@@ -106,6 +106,16 @@ section {
   line-height: 1.6;
 }
 
+.job-description {
+  margin-top: 8px;
+  font-size: 0.95rem;
+  color: #444;
+  line-height: 1.7;
+}
+.job-entry {
+  margin-bottom: 28px;
+}
+
 /* Certifications */
 #certifications {
   margin-top: 12px;

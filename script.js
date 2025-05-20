@@ -10,9 +10,14 @@ fetch('cv-data.json')
     document.getElementById('profile').textContent = data.profile;
 
     const expDiv = document.getElementById('experience');
-    data.experience.forEach(job => {
+    data.relevant_experience.forEach(job => {
       const section = document.createElement('div');
-      section.innerHTML = `<strong>${job.title}</strong> – ${job.company} (${job.period})<br><ul>${job.details.map(d => `<li>${d}</li>`).join('')}</ul>`;
+      section.classList.add('job-entry');
+      section.innerHTML = `
+        <strong>${job.title}</strong> at ${job.company}, ${job.location}<br>
+        <em>${job.period}</em>
+        <p class="job-description">${job.description}</p>
+      `;
       expDiv.appendChild(section);
     });
 

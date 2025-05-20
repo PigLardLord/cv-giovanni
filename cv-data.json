@@ -5,31 +5,28 @@
   "email": "trovato.giovanni@gmail.com",
   "phone": "+39 329 8484 046",
   "portfolio": "https://sites.google.com/view/giovanni-trovato",
-  "profile": "Experienced iOS Developer with 7+ years of experience building secure, high-performance mobile apps using Swift and SwiftUI. Skilled in modern Apple frameworks, CI/CD, and RESTful integrations. Passionate about clean code, mentoring, and continuous learning.",
-  "experience": [
+  "profile": "iOS Developer with over 7 years of experience designing and building robust, scalable mobile applications. Specialized in Swift, SwiftUI, and Combine, with strong expertise in integrating RESTful APIs and implementing CI/CD pipelines using tools like Fastlane and GitLab CI. I have worked in cross-functional Agile/SCRUM teams, actively contributing to user story planning and architectural decisions. I’m passionate about modular architectures, automated testing, and user-focused development — always aiming to improve code quality and development efficiency. Curious by nature, I also explore areas such as embedded systems and intelligent automation, constantly seeking to bring added value through technological innovation.",
+  "relevant_experience": [
     {
       "title": "iOS Developer",
       "company": "Cortado Mobile Solutions",
-      "location": "Berlin, Germany",
-      "period": "Aug 2018 – Present",
-      "details": [
-        "Developed and maintained iOS applications distributed via App Store and MDM.",
-        "Worked in cross-functional SCRUM teams with Backend, Web, and QA.",
-        "Implemented automated CI/CD pipelines using GitLab, Fastlane, and Jenkins.",
-        "Integrated secure authentication flows with OAuth2 / OpenID Connect.",
-        "Introduced clean architecture patterns and mentored junior developers."
-      ]
+      "location": "Berlin",
+      "period": "August 2018 – Present",
+      "description": "Worked productively with a SCRUM Team of 9 members (2 iOS, 2 Android, 3 Server, 1 Web, 1 QA) to deliver features for mobile device and portfolio management. At Cortado, I fully developed 2 apps and maintained 3 more, all published in the App Store. I implemented CI/CD tools such as Fastlane, Jenkins, and GitLab CI. I also improved existing codebases by applying clean architecture principles, increasing modularity and test coverage."
     },
     {
       "title": "Mobile Developer",
       "company": "Apparound",
       "location": "Pisa, Italy",
-      "period": "Sep 2015 – Jul 2018",
-      "details": [
-        "Developed features across Android and iOS platforms in an agile setting.",
-        "Refactored legacy UI with modern design components and improved performance.",
-        "Created internal libraries to speed up development."
-      ]
+      "period": "September 2015 – July 2018",
+      "description": "Worked as an Android and occasionally iOS developer within a SCRUM team. I contributed to the implementation of numerous features and redesigns of graphical interfaces. I designed and developed internal libraries and core components to be reused across the app. I also actively worked on improving performance and resolving long-standing bugs."
+    },
+    {
+      "title": "Android Developer (Internship)",
+      "company": "Marte 5",
+      "location": "Livorno, Italy",
+      "period": "May 2015 – August 2015",
+      "description": "Collaborated with architects, engineers, and product managers to develop Android applications with Augmented Reality features (using Vuforia and Wikitude SDKs). Ensured that mobile content met business and client specifications, delivering reliable, performance-conscious code."
     }
   ],
   "education": [
