@@ -1,10 +1,9 @@
+import { renderHeader } from './renderers/renderHeader.js';
+
 fetch('cv-data.json')
   .then(response => response.json())
   .then(data => {
-    document.getElementById('name').textContent = data.name;
-    document.getElementById('title').textContent = data.title;
-    document.getElementById('location').textContent = data.location;
-    document.getElementById('contacts').innerHTML = `<strong>Email:</strong> ${data.email}<br><strong>Phone:</strong> ${data.phone}`;
+    renderHeader(document, data);
 
     const socialLinks = document.querySelector('.social-links');
     if (data.social && socialLinks) {
