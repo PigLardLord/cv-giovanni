@@ -4,55 +4,100 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Giovanni Trovato - iOS Developer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
   <script type="module" defer src="script.js"></script>
 </head>
 <body>
   <div class="container">
     <header class="profile-header">
-      <img id="profile-pic" src="profile.png" alt="Profile picture of Giovanni Trovato" />
+      <div class="profile-image-wrapper">
+        <img id="profile-pic" src="profile.png" alt="Profile picture of Giovanni Trovato" />
+      </div>
       <div class="profile-info">
         <h1 id="name"></h1>
-        <h2 id="title"></h2>
-        <p id="location"></p>
-        <p id="contacts"></p>
-        <div class="social-links"></div>
+        <h2 id="title" class="job-title"></h2>
+        <div class="contact-info">
+          <div class="contact-item">
+            <span class="contact-icon">📍</span>
+            <span id="location"></span>
+          </div>
+          <div id="contacts" class="contact-details"></div>
+          <div class="social-links"></div>
+        </div>
       </div>
     </header>
+    
     <main>
-      <div id="profile-block">
-        <h3>👤 Profile</h3>
-        <p id="profile"></p>
-      </div>
-      <section>
-        <h3>💼 Experience</h3>
-        <div id="experience"></div>
+      <section class="profile-section">
+        <h3 class="section-title">
+          <span class="section-icon">👤</span>
+          <span>Professional Summary</span>
+        </h3>
+        <p id="profile" class="profile-text"></p>
       </section>
-      <section>
-        <h3>🎓 Education</h3>
-        <div id="education"></div>
+      
+      <section class="experience-section">
+        <h3 class="section-title">
+          <span class="section-icon">💼</span>
+          <span>Professional Experience</span>
+        </h3>
+        <div id="experience" class="experience-content"></div>
       </section>
-      <section>
-        <h3>📜 Certifications</h3>
-        <ul id="certifications"></ul>
+      
+      <section class="education-section">
+        <h3 class="section-title">
+          <span class="section-icon">🎓</span>
+          <span>Education</span>
+        </h3>
+        <div id="education" class="education-content"></div>
       </section>
-      <div class="skills-group">
-        <div class="grid-sections">
-          <div class="left-col">
-            <h3>🛠️ Skills</h3>
-            <ul id="skills"></ul>
+      
+      <section class="certifications-section">
+        <h3 class="section-title">
+          <span class="section-icon">📜</span>
+          <span>Certifications</span>
+        </h3>
+        <ul id="certifications" class="certifications-list"></ul>
+      </section>
+      
+      <div class="skills-section">
+        <div class="skills-grid">
+          <div class="skills-column">
+            <h3 class="section-title">
+              <span class="section-icon">🛠️</span>
+              <span>Technical Skills</span>
+            </h3>
+            <ul id="skills" class="skills-list"></ul>
           </div>
-          <div class="right-col">
-            <h3>🌐 Languages</h3>
-            <ul id="languages"></ul>
-            <h3>🎯 Interests</h3>
-            <div id="interests" class="tags"></div>
+          <div class="additional-column">
+            <div class="languages-subsection">
+              <h3 class="section-title">
+                <span class="section-icon">🌐</span>
+                <span>Languages</span>
+              </h3>
+              <ul id="languages" class="languages-list"></ul>
+            </div>
+            <div class="interests-subsection">
+              <h3 class="section-title">
+                <span class="section-icon">🎯</span>
+                <span>Interests</span>
+              </h3>
+              <div id="interests" class="interests-tags"></div>
+            </div>
           </div>
         </div>
       </div>
     </main>
-    <footer class="no-print">
-      <button id="download" onclick="window.print()">📄 Print a copy</button>    </footer>
+    
+    <footer class="print-footer">
+      <button id="download" class="print-button" onclick="window.print()">
+        <span class="button-icon">📄</span>
+        <span>Print CV</span>
+      </button>
+    </footer>
   </div>
 </body>
 </html>
