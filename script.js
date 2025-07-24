@@ -1,14 +1,13 @@
 import { renderHeader } from './renderers/renderHeader.js';
 import { renderSocialLinks } from './renderers/renderSocialLinks.js';
+import { renderProfile } from './renderers/renderProfile.js';
 
 fetch('cv-data.json')
   .then(response => response.json())
   .then(data => {
     renderHeader(document, data);
     renderSocialLinks(document, data);
-
-    // Render profile summary
-    document.getElementById('profile').textContent = data.profile;
+    renderProfile(document, data);
 
     // Render experience section
     const expDiv = document.getElementById('experience');
