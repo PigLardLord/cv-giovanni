@@ -1,22 +1,11 @@
 import { renderHeader } from './renderers/renderHeader.js';
+import { renderSocialLinks } from './renderers/renderSocialLinks.js';
 
 fetch('cv-data.json')
   .then(response => response.json())
   .then(data => {
     renderHeader(document, data);
-
-    // Render social links
-    const socialLinks = document.querySelector('.social-links');
-    if (data.social && socialLinks) {
-      data.social.forEach((link, index) => {
-        const a = document.createElement('a');
-        a.href = link.url;
-        a.textContent = link.platform;
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
-        socialLinks.appendChild(a);
-      });
-    }
+    renderSocialLinks(document, data);
 
     // Render profile summary
     document.getElementById('profile').textContent = data.profile;
