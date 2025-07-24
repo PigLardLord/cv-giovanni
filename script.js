@@ -1,4 +1,7 @@
-import { renderHeader } from './renderers/renderHeader.js';
+import { CVApplication } from './core/CVApplication.js';
+import { HeaderRenderer } from './renderers/HeaderRenderer.js';
+
+// Legacy function renderers (temporarily keeping for compatibility)
 import { renderSocialLinks } from './renderers/renderSocialLinks.js';
 import { renderProfile } from './renderers/renderProfile.js';
 import { renderExperience } from './renderers/renderExperience.js';
@@ -8,20 +11,30 @@ import { renderSkills } from './renderers/renderSkills.js';
 import { renderLanguages } from './renderers/renderLanguages.js';
 import { renderInterests } from './renderers/renderInterests.js';
 
-fetch('cv-data.json')
-  .then(response => response.json())
-  .then(data => {
-    renderHeader(document, data);
-    renderSocialLinks(document, data);
-    renderProfile(document, data);
-    renderExperience(document, data);
-    renderEducation(document, data);
-    renderCertifications(document, data);
-    renderSkills(document, data);
-    renderLanguages(document, data);
-    renderInterests(document, data);
-  })
-  .catch(error => {
-    console.error('Error loading CV data:', error);
-    document.body.innerHTML = '<div style="text-align: center; padding: 50px; color: #666;">Error loading CV data. Please check the console for details.</div>';
-  });
+// Legacy renderer wrapper to adapt function renderers to class interface
+class LegacyRendererAdapter {
+  constructor(renderFunction) {
+    this.renderFunction = renderFunction;
+  }
+  
+  render(root, data) {
+    this.renderFunction(root, data);
+  }
+}
+
+// Initialize application
+const app = new CVApplication();
+
+// Register renderers
+app.registerRenderer('header', new HeaderRenderer());
+app.registerRenderer('socialLinks', new LegacyRendererAdapter(renderSocialLinks));
+app.registerRenderer('profile', new LegacyRendererAdapter(renderProfile));
+app.registerRenderer('experience', new LegacyRendererAdapter(renderExperience));
+app.registerRenderer('education', new LegacyRendererAdapter(renderEducation));
+app.registerRenderer('certifications', new LegacyRendererAdapter(renderCertifications));
+app.registerRenderer('skills', new LegacyRendererAdapter(renderSkills));
+app.registerRenderer('languages', new LegacyRendererAdapter(renderLanguages));
+app.registerRenderer('interests', new LegacyRendererAdapter(renderInterests));
+
+// Start application
+app.initialize(document);
