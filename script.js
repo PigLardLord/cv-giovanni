@@ -1,6 +1,7 @@
 import { renderHeader } from './renderers/renderHeader.js';
 import { renderSocialLinks } from './renderers/renderSocialLinks.js';
 import { renderProfile } from './renderers/renderProfile.js';
+import { renderExperience } from './renderers/renderExperience.js';
 
 fetch('cv-data.json')
   .then(response => response.json())
@@ -8,23 +9,7 @@ fetch('cv-data.json')
     renderHeader(document, data);
     renderSocialLinks(document, data);
     renderProfile(document, data);
-
-    // Render experience section
-    const expDiv = document.getElementById('experience');
-    data.relevant_experience.forEach(job => {
-      const jobEntry = document.createElement('div');
-      jobEntry.classList.add('job-entry');
-      
-      jobEntry.innerHTML = `
-        <div class="job-header">
-          <span class="job-title">${job.title}</span> at 
-          <span class="job-company">${job.company}</span>, ${job.location}
-        </div>
-        <div class="job-period">${job.period}</div>
-        <p class="job-description">${job.description}</p>
-      `;
-      expDiv.appendChild(jobEntry);
-    });
+    renderExperience(document, data);
 
     // Render education section
     const eduDiv = document.getElementById('education');
