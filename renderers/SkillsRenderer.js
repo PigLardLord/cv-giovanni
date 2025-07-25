@@ -13,14 +13,26 @@ export class SkillsRenderer extends BaseRenderer {
   }
 
   createSkillItem(root, skill) {
-    const total = 5;
-    const filled = '●'.repeat(skill.level);
-    const empty = '○'.repeat(total - skill.level);
-
-    return this.createElement(root, 'li', '', `
-      <span class="skill-name">${skill.name}</span>
-      <span class="skill-level">${filled}${empty}</span>
-    `);
+    const badge = this.createElement(root, 'div', 'skill-badge');
+    
+    const skillName = this.createElement(root, 'span', 'skill-name');
+    skillName.textContent = skill.name;
+    
+    const skillLevel = this.createElement(root, 'div', 'skill-level');
+    
+    // Create skill dots
+    for (let i = 1; i <= 5; i++) {
+      const dot = this.createElement(root, 'div', 'skill-dot');
+      if (i > skill.level) {
+        dot.classList.add('empty');
+      }
+      skillLevel.appendChild(dot);
+    }
+    
+    badge.appendChild(skillName);
+    badge.appendChild(skillLevel);
+    
+    return badge;
   }
 
   validate(data) {

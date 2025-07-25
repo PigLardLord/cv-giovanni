@@ -1,0 +1,506 @@
+/* =============================================================================
+   PROFESSIONAL PRINT STYLESHEET - GIOVANNI TROVATO CV
+   Optimized for PDF generation and recruiter requirements
+   Maximum 2 pages, clean layout, high readability
+   ============================================================================= */
+
+/* =============================================================================
+   PRINT RESET & BASE STYLES
+   ============================================================================= */
+
+@page {
+  size: A4;
+  margin: 0.6in 0.5in;
+  @top-center {
+    content: none;
+  }
+  @bottom-center {
+    content: none;
+  }
+}
+
+/* Reset print-specific issues */
+* {
+  -webkit-print-color-adjust: exact !important;
+  color-adjust: exact !important;
+  print-color-adjust: exact !important;
+}
+
+body {
+  background: white !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  font-size: 11pt !important;
+  line-height: 1.4 !important;
+  color: #1f2937 !important;
+  font-family: 'Inter', Arial, sans-serif !important;
+}
+
+.container {
+  max-width: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  background: white !important;
+  margin: 0 !important;
+  padding: 0 8pt !important;
+}
+
+/* =============================================================================
+   HIDE WEB-ONLY ELEMENTS
+   ============================================================================= */
+
+.print-footer,
+.print-button {
+  display: none !important;
+}
+
+/* =============================================================================
+   HERO SECTION - PRINT OPTIMIZATION
+   ============================================================================= */
+
+.hero-section {
+  background: white !important;
+  color: #1f2937 !important;
+  padding: 0 0 16pt 0 !important;
+  margin-bottom: 16pt !important;
+  border-bottom: 2pt solid #e5e7eb !important;
+  page-break-inside: avoid !important;
+  position: relative !important;
+}
+
+.hero-section::before {
+  display: none !important;
+}
+
+.hero-content {
+  display: grid !important;
+  grid-template-columns: 2fr 1fr !important;
+  gap: 20pt !important;
+  align-items: start !important;
+}
+
+.hero-text {
+  padding-right: 8pt !important;
+}
+
+.hero-name {
+  font-size: 28pt !important;
+  font-weight: 800 !important;
+  color: #1e40af !important;
+  margin-bottom: 4pt !important;
+  line-height: 1.1 !important;
+  letter-spacing: -0.5pt !important;
+}
+
+.hero-title {
+  font-size: 14pt !important;
+  font-weight: 600 !important;
+  color: #475569 !important;
+  margin-bottom: 12pt !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5pt !important;
+}
+
+.hero-summary {
+  font-size: 10pt !important;
+  line-height: 1.5 !important;
+  color: #374151 !important;
+  margin: 0 !important;
+}
+
+.hero-sidebar {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 12pt !important;
+}
+
+.profile-image-wrapper img {
+  width: 80pt !important;
+  height: 80pt !important;
+  border-radius: 50% !important;
+  border: 2pt solid #e5e7eb !important;
+  object-fit: cover !important;
+  object-position: center top !important;
+}
+
+.contact-card {
+  background: #f8fafc !important;
+  border: 1pt solid #e5e7eb !important;
+  border-radius: 6pt !important;
+  padding: 12pt !important;
+  text-align: center !important;
+  width: 100% !important;
+}
+
+.contact-item {
+  margin-bottom: 6pt !important;
+  font-size: 9pt !important;
+  color: #374151 !important;
+}
+
+.contact-details {
+  font-size: 8pt !important;
+  line-height: 1.4 !important;
+  margin-bottom: 8pt !important;
+  color: #4b5563 !important;
+}
+
+.social-links {
+  display: flex !important;
+  gap: 4pt !important;
+  justify-content: center !important;
+  flex-wrap: wrap !important;
+}
+
+.social-links a {
+  color: #1e40af !important;
+  text-decoration: none !important;
+  padding: 2pt 6pt !important;
+  background: #e0e7ff !important;
+  border-radius: 3pt !important;
+  font-size: 7pt !important;
+  font-weight: 500 !important;
+  border: 0.5pt solid #c7d2fe !important;
+}
+
+/* =============================================================================
+   SKILLS SPOTLIGHT - PRINT OPTIMIZATION
+   ============================================================================= */
+
+.skills-spotlight {
+  background: white !important;
+  padding: 12pt 0 !important;
+  margin-bottom: 16pt !important;
+  border-bottom: 1pt solid #e5e7eb !important;
+  page-break-inside: avoid !important;
+}
+
+.spotlight-title {
+  text-align: center !important;
+  font-size: 11pt !important;
+  font-weight: 700 !important;
+  color: #374151 !important;
+  margin-bottom: 10pt !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5pt !important;
+}
+
+.skills-showcase {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 6pt !important;
+  max-width: none !important;
+  margin: 0 !important;
+}
+
+.skill-badge {
+  background: white !important;
+  border: 1pt solid #d1d5db !important;
+  border-radius: 4pt !important;
+  padding: 4pt 6pt !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  box-shadow: none !important;
+}
+
+.skill-name {
+  font-weight: 600 !important;
+  color: #1f2937 !important;
+  font-size: 9pt !important;
+}
+
+.skill-level {
+  display: flex !important;
+  gap: 1pt !important;
+}
+
+.skill-dot {
+  width: 4pt !important;
+  height: 4pt !important;
+  border-radius: 50% !important;
+  background: #1e40af !important;
+}
+
+.skill-dot.empty {
+  background: #d1d5db !important;
+}
+
+/* =============================================================================
+   MAIN CONTENT - PRINT LAYOUT
+   ============================================================================= */
+
+.main-content {
+  padding: 0 !important;
+}
+
+.content-grid {
+  display: grid !important;
+  grid-template-columns: 62% 36% !important;
+  gap: 16pt !important;
+}
+
+/* =============================================================================
+   SECTION STYLING - PRINT
+   ============================================================================= */
+
+section {
+  margin-bottom: 16pt !important;
+  page-break-inside: avoid !important;
+}
+
+.section-title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6pt !important;
+  margin-bottom: 10pt !important;
+  padding-bottom: 4pt !important;
+  border-bottom: 1pt solid #e5e7eb !important;
+}
+
+.title-accent {
+  width: 3pt !important;
+  height: 16pt !important;
+  background: #1e40af !important;
+  border-radius: 1pt !important;
+}
+
+.section-title span:last-child {
+  font-size: 11pt !important;
+  font-weight: 700 !important;
+  color: #1f2937 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.25pt !important;
+}
+
+/* =============================================================================
+   EXPERIENCE SECTION - PRINT
+   ============================================================================= */
+
+.experience-section {
+  page-break-inside: auto !important;
+}
+
+.job-entry {
+  background: white !important;
+  border: none !important;
+  border-left: 2pt solid #e5e7eb !important;
+  border-radius: 0 !important;
+  padding: 8pt 0 8pt 12pt !important;
+  margin-bottom: 12pt !important;
+  box-shadow: none !important;
+  page-break-inside: avoid !important;
+}
+
+.job-header {
+  margin-bottom: 4pt !important;
+}
+
+.job-title {
+  font-weight: 700 !important;
+  color: #1e40af !important;
+  font-size: 11pt !important;
+  display: inline !important;
+}
+
+.job-company {
+  font-weight: 600 !important;
+  color: #1f2937 !important;
+  font-size: 11pt !important;
+}
+
+.job-period {
+  font-size: 9pt !important;
+  color: #6b7280 !important;
+  font-weight: 500 !important;
+  margin-bottom: 6pt !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+}
+
+.job-description {
+  color: #374151 !important;
+  line-height: 1.4 !important;
+  margin: 0 !important;
+  font-size: 10pt !important;
+}
+
+/* =============================================================================
+   SECONDARY COLUMN - PRINT
+   ============================================================================= */
+
+.secondary-column section {
+  margin-bottom: 14pt !important;
+}
+
+/* =============================================================================
+   EDUCATION SECTION - PRINT
+   ============================================================================= */
+
+.edu-entry {
+  background: white !important;
+  border: 0.5pt solid #e5e7eb !important;
+  border-radius: 3pt !important;
+  padding: 8pt !important;
+  margin-bottom: 8pt !important;
+  page-break-inside: avoid !important;
+}
+
+.edu-degree {
+  font-weight: 700 !important;
+  color: #1e40af !important;
+  margin-bottom: 2pt !important;
+  font-size: 10pt !important;
+}
+
+.edu-school {
+  font-weight: 600 !important;
+  color: #1f2937 !important;
+  font-size: 9pt !important;
+}
+
+.edu-period {
+  color: #6b7280 !important;
+  font-size: 8pt !important;
+}
+
+.edu-description {
+  color: #374151 !important;
+  font-size: 8pt !important;
+  line-height: 1.3 !important;
+  margin-top: 4pt !important;
+  margin-bottom: 0 !important;
+}
+
+/* =============================================================================
+   CERTIFICATIONS - PRINT
+   ============================================================================= */
+
+.certifications-list {
+  list-style: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.certifications-list li {
+  background: #f8fafc !important;
+  border-radius: 3pt !important;
+  padding: 6pt !important;
+  margin-bottom: 4pt !important;
+  border-left: 2pt solid #3b82f6 !important;
+  page-break-inside: avoid !important;
+  font-size: 9pt !important;
+}
+
+.certifications-list strong {
+  color: #1e40af !important;
+  font-weight: 700 !important;
+}
+
+.certifications-list a {
+  color: #1e40af !important;
+  text-decoration: none !important;
+}
+
+.cert-description {
+  display: block !important;
+  margin-top: 2pt !important;
+  font-size: 8pt !important;
+  color: #4b5563 !important;
+  line-height: 1.3 !important;
+}
+
+/* =============================================================================
+   LANGUAGES & INTERESTS - PRINT
+   ============================================================================= */
+
+.languages-list {
+  list-style: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.languages-list li {
+  padding: 4pt 0 !important;
+  border-bottom: 0.5pt solid #f3f4f6 !important;
+  font-size: 9pt !important;
+  color: #374151 !important;
+}
+
+.languages-list li:last-child {
+  border-bottom: none !important;
+}
+
+.interests-tags {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 3pt !important;
+}
+
+.tag {
+  background: #e0e7ff !important;
+  color: #1e40af !important;
+  padding: 2pt 4pt !important;
+  border-radius: 2pt !important;
+  font-size: 8pt !important;
+  font-weight: 500 !important;
+  border: 0.5pt solid #c7d2fe !important;
+}
+
+/* =============================================================================
+   PAGE BREAK CONTROL
+   ============================================================================= */
+
+.hero-section {
+  page-break-after: avoid !important;
+}
+
+.skills-spotlight {
+  page-break-after: avoid !important;
+}
+
+.experience-section {
+  page-break-before: avoid !important;
+}
+
+.job-entry:nth-child(n+3) {
+  page-break-before: auto !important;
+}
+
+.secondary-column {
+  page-break-before: avoid !important;
+}
+
+/* Ensure content fits in 2 pages maximum */
+.main-content {
+  orphans: 2 !important;
+  widows: 2 !important;
+}
+
+/* =============================================================================
+   PRINT QUALITY ENHANCEMENTS
+   ============================================================================= */
+
+/* Ensure clean borders and text */
+h1, h2, h3, h4, h5, h6 {
+  page-break-after: avoid !important;
+}
+
+p, li {
+  orphans: 2 !important;
+  widows: 2 !important;
+}
+
+/* Remove any web-specific decorative elements */
+.hero-section::before,
+.container::before {
+  display: none !important;
+}
+
+/* Ensure consistent font rendering */
+* {
+  font-synthesis: none !important;
+  -webkit-font-smoothing: auto !important;
+  -moz-osx-font-smoothing: auto !important;
+}

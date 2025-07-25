@@ -9,7 +9,7 @@ A modern, responsive CV/resume website built with vanilla JavaScript, featuring 
 ## ✨ Features
 
 - **Responsive Design** - Optimized for desktop, tablet, and mobile viewing
-- **Print-Friendly** - Professional print layout with optimized styling
+- **Print-Optimized** - Dedicated 2-page PDF layout with recruiter-focused design
 - **Data-Driven** - Easy content updates via JSON configuration
 - **Modular Architecture** - Clean, maintainable code following SOLID principles
 - **Zero Dependencies** - Pure vanilla JavaScript with no frameworks
@@ -57,7 +57,8 @@ open index.html
 ```
 cv-giovanni/
 ├── index.html              # Main HTML template
-├── style.css              # Styling and print optimizations
+├── style.css              # Web styling and responsive design
+├── print.css              # Dedicated print/PDF optimization
 ├── script.js              # Application entry point
 ├── cv-data.json           # CV content data
 ├── profile.png            # Profile image
@@ -207,14 +208,16 @@ The CV uses a modern design system with:
 - **Subtle Shadows** - Layered depth without being distracting
 - **Responsive Images** - Profile photo optimization for all devices
 
-### Print Styling
+### Print/PDF Optimization
 
-The CV includes dedicated print styles for:
+The CV includes a dedicated `print.css` stylesheet optimized for recruiter needs:
 
-- **Page Layout** - Optimized margins and spacing for PDF generation
-- **Color Adjustments** - Print-friendly color scheme
-- **Typography** - Enhanced readability for physical printing
-- **Content Organization** - Logical page breaks and section flow
+- **2-Page Maximum** - Carefully designed to fit in exactly 2 pages
+- **A4 Format** - Standard business document size with proper margins
+- **Recruiter-Friendly Layout** - Key information prominently positioned
+- **Clean Typography** - Professional fonts and spacing for readability
+- **Smart Page Breaks** - Content sections flow logically across pages
+- **Print Color Management** - Optimized for both color and black & white printing
 
 ## 🧪 Testing
 
@@ -268,6 +271,7 @@ This CV works with any static hosting service:
 
 - `index.html`
 - `style.css`
+- `print.css`
 - `script.js`
 - `cv-data.json`
 - `profile.png`

@@ -8,86 +8,87 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="print.css" media="print" />
   <script type="module" defer src="script.js"></script>
 </head>
 <body>
   <div class="container">
-    <header class="profile-header">
-      <div class="profile-image-wrapper">
-        <img id="profile-pic" src="profile.png" alt="Profile picture of Giovanni Trovato" />
-      </div>
-      <div class="profile-info">
-        <h1 id="name"></h1>
-        <h2 id="title" class="job-title"></h2>
-        <div class="contact-info">
-          <div class="contact-item">
-            <span class="contact-icon">📍</span>
-            <span id="location"></span>
+    <!-- Hero Section with Key Info -->
+    <header class="hero-section">
+      <div class="hero-content">
+        <div class="hero-text">
+          <h1 id="name" class="hero-name"></h1>
+          <h2 id="title" class="hero-title"></h2>
+          <p id="profile" class="hero-summary"></p>
+        </div>
+        <div class="hero-sidebar">
+          <div class="profile-image-wrapper">
+            <img id="profile-pic" src="profile.png" alt="Profile picture" />
           </div>
-          <div id="contacts" class="contact-details"></div>
-          <div class="social-links"></div>
+          <div class="contact-card">
+            <div class="contact-item">
+              <span class="contact-icon">📍</span>
+              <span id="location"></span>
+            </div>
+            <div id="contacts" class="contact-details"></div>
+            <div class="social-links"></div>
+          </div>
         </div>
       </div>
     </header>
+
+    <!-- Key Skills Spotlight -->
+    <section class="skills-spotlight">
+      <h3 class="spotlight-title">Core Technologies</h3>
+      <div id="skills" class="skills-showcase"></div>
+    </section>
     
-    <main>
-      <section class="profile-section">
-        <h3 class="section-title">
-          <span class="section-icon">👤</span>
-          <span>Professional Summary</span>
-        </h3>
-        <p id="profile" class="profile-text"></p>
-      </section>
-      
-      <section class="experience-section">
-        <h3 class="section-title">
-          <span class="section-icon">💼</span>
-          <span>Professional Experience</span>
-        </h3>
-        <div id="experience" class="experience-content"></div>
-      </section>
-      
-      <section class="education-section">
-        <h3 class="section-title">
-          <span class="section-icon">🎓</span>
-          <span>Education</span>
-        </h3>
-        <div id="education" class="education-content"></div>
-      </section>
-      
-      <section class="certifications-section">
-        <h3 class="section-title">
-          <span class="section-icon">📜</span>
-          <span>Certifications</span>
-        </h3>
-        <ul id="certifications" class="certifications-list"></ul>
-      </section>
-      
-      <div class="skills-section">
-        <div class="skills-grid">
-          <div class="skills-column">
+    <main class="main-content">
+      <div class="content-grid">
+        <!-- Primary Column -->
+        <div class="primary-column">
+          <section class="experience-section">
             <h3 class="section-title">
-              <span class="section-icon">🛠️</span>
-              <span>Technical Skills</span>
+              <span class="title-accent"></span>
+              <span>Professional Experience</span>
             </h3>
-            <ul id="skills" class="skills-list"></ul>
-          </div>
-          <div class="additional-column">
-            <div class="languages-subsection">
-              <h3 class="section-title">
-                <span class="section-icon">🌐</span>
-                <span>Languages</span>
-              </h3>
-              <ul id="languages" class="languages-list"></ul>
-            </div>
-            <div class="interests-subsection">
-              <h3 class="section-title">
-                <span class="section-icon">🎯</span>
-                <span>Interests</span>
-              </h3>
-              <div id="interests" class="interests-tags"></div>
-            </div>
-          </div>
+            <div id="experience" class="experience-content"></div>
+          </section>
+          
+          <section class="certifications-section">
+            <h3 class="section-title">
+              <span class="title-accent"></span>
+              <span>Certifications</span>
+            </h3>
+            <ul id="certifications" class="certifications-list"></ul>
+          </section>
+        </div>
+        
+        <!-- Secondary Column -->
+        <div class="secondary-column">
+          <section class="education-section">
+            <h3 class="section-title">
+              <span class="title-accent"></span>
+              <span>Education</span>
+            </h3>
+            <div id="education" class="education-content"></div>
+          </section>
+          
+          <section class="languages-section">
+            <h3 class="section-title">
+              <span class="title-accent"></span>
+              <span>Languages</span>
+            </h3>
+            <ul id="languages" class="languages-list"></ul>
+          </section>
+          
+          <section class="interests-section">
+            <h3 class="section-title">
+              <span class="title-accent"></span>
+              <span>Interests</span>
+            </h3>
+            <div id="interests" class="interests-tags"></div>
+          </section>
         </div>
       </div>
     </main>
