@@ -212,19 +212,10 @@ body {
 }
 
 .skill-level {
-  display: flex !important;
-  gap: 1pt !important;
-}
-
-.skill-dot {
-  width: 4pt !important;
-  height: 4pt !important;
-  border-radius: 50% !important;
-  background: #1e40af !important;
-}
-
-.skill-dot.empty {
-  background: #d1d5db !important;
+  font-family: monospace !important;
+  font-size: 9pt !important;
+  color: #1e40af !important;
+  letter-spacing: 0.5pt !important;
 }
 
 /* =============================================================================

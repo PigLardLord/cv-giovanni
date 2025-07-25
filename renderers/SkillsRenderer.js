@@ -18,16 +18,19 @@ export class SkillsRenderer extends BaseRenderer {
     const skillName = this.createElement(root, 'span', 'skill-name');
     skillName.textContent = skill.name;
     
-    const skillLevel = this.createElement(root, 'div', 'skill-level');
+    const skillLevel = this.createElement(root, 'span', 'skill-level');
     
-    // Create skill dots
+    // Create skill level using bullet characters
+    let levelText = '';
     for (let i = 1; i <= 5; i++) {
-      const dot = this.createElement(root, 'div', 'skill-dot');
-      if (i > skill.level) {
-        dot.classList.add('empty');
+      if (i <= skill.level) {
+        levelText += '●'; // Filled bullet
+      } else {
+        levelText += '○'; // Empty bullet
       }
-      skillLevel.appendChild(dot);
+      if (i < 5) levelText += ' '; // Add space between bullets
     }
+    skillLevel.textContent = levelText;
     
     badge.appendChild(skillName);
     badge.appendChild(skillLevel);

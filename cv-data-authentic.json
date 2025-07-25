@@ -1,0 +1,95 @@
+{
+  "name": "Giovanni Trovato",
+  "title": "Senior iOS Developer",
+  "location": "Wonfurt, Bavaria, Germany",
+  "email": "trovato.giovanni@gmail.com",
+  "phone": "+39 329 8484 046",
+  "portfolio": "https://sites.google.com/view/giovanni-trovato",
+  "profile": "Senior iOS Developer with 7+ years of experience building enterprise mobile solutions and B2B applications. Specialized in Swift, SwiftUI, and modern iOS architecture, with expertise in developing secure, scalable applications for business environments. Proven track record of shipping production apps to the App Store, implementing CI/CD pipelines, and mentoring development teams. Passionate about clean architecture, automated testing, and delivering robust solutions that solve real business challenges.",
+  "relevant_experience": [
+    {
+      "title": "Senior iOS Developer",
+      "company": "Cortado Mobile Solutions",
+      "location": "Berlin",
+      "period": "August 2018 – Present (6+ years)",
+      "description": "Lead iOS development for enterprise mobile device management and printing solutions serving corporate clients worldwide. • Developed and maintain multiple production iOS apps: ezeep Blue (secure enterprise printing solution) and Cortado (MDM helper app) - both currently active on App Store • Built Teamplace collaboration app and additional enterprise tools (Teamplace later discontinued as part of strategic business pivot) • Implemented comprehensive CI/CD pipeline using Fastlane, Jenkins, and GitLab CI, streamlining deployment processes • Refactored legacy codebases applying Clean Architecture principles, significantly improving maintainability and test coverage • Collaborated with cross-functional team of 9 members (iOS, Android, Backend, Web, QA) in agile environment • Mentored junior developers and contributed to technical hiring decisions"
+    },
+    {
+      "title": "Mobile Developer",
+      "company": "Apparound",
+      "location": "Pisa, Italy", 
+      "period": "September 2015 – July 2018 (3 years)",
+      "description": "Developed B2B sales automation platform recognized in Gartner Magic Quadrant for CPQ solutions since 2018. • Built native iOS and Android apps for sales teams, achieving 5,000+ downloads and supporting offline-first architecture • Led complete UI/UX redesign of mobile applications, improving user experience for field sales representatives • Created reusable component library adopted across multiple mobile applications, reducing development time and ensuring consistency • Optimized app performance and resolved critical bugs affecting enterprise customers • Collaborated closely with product managers and UX designers in agile development cycles • Technologies: iOS (Swift, Objective-C), Android (Java), REST APIs, offline data synchronization"
+    },
+    {
+      "title": "Mobile Developer Intern",
+      "company": "Marte 5",
+      "location": "Livorno, Italy",
+      "period": "May 2015 – August 2015 (4 months)",
+      "description": "Developed innovative Augmented Reality applications for industrial clients using cutting-edge AR SDKs. • Built AR mobile applications using Vuforia and Wikitude SDKs for manufacturing and automotive industry clients • Collaborated with senior architects, engineers, and product managers in customer-focused development environment • Delivered production-ready solutions meeting strict client specifications and project deadlines • Gained hands-on experience with emerging AR technologies and industrial IoT applications • Technologies: Android SDK, Java, Vuforia AR SDK, Wikitude SDK, RESTful APIs"
+    }
+  ],
+  "education": [
+    {
+      "degree": "M.Sc. in Mobile Application Development",
+      "school": "Università degli Studi di Pisa",
+      "period": "2015",
+      "description": "Specialized graduate program focusing on mobile development across iOS (Swift, Objective-C, Cocoa Touch), Android (Java), and Windows Universal Apps. Comprehensive curriculum covering mobile architecture patterns, UI/UX design, and cross-platform development strategies."
+    },
+    {
+      "degree": "B.Sc. in Computer Engineering",
+      "school": "Università degli Studi di Catania", 
+      "period": "2009",
+      "description": "Thesis: 'Capacitive sensors applications to silicon electrodes on a mold for RTM technology' - designed and implemented IoT sensor system including custom hardware, firmware, and data analysis software. Strong foundation in algorithms, data structures, embedded systems, and software engineering principles."
+    }
+  ],
+  "skills": [
+    { "name": "Swift", "level": 5 },
+    { "name": "SwiftUI", "level": 4 },
+    { "name": "UIKit", "level": 5 },
+    { "name": "Combine", "level": 4 },
+    { "name": "Core Data", "level": 4 },
+    { "name": "Git", "level": 5 },
+    { "name": "CI/CD", "level": 4 },
+    { "name": "Fastlane", "level": 4 },
+    { "name": "REST APIs", "level": 5 },
+    { "name": "Firebase", "level": 3 },
+    { "name": "OAuth2", "level": 3 }
+  ],
+  "languages": [
+    { "name": "Italian", "level": "Native" },
+    { "name": "English", "level": "Fluent" },
+    { "name": "German", "level": "Elementary" }
+  ],
+  "certifications": [
+    {
+      "name": "iOS Lead Essentials",
+      "issuer": "Essential Developer Academy",
+      "year": 2024,
+      "url": "https://academy.essentialdeveloper.com/achievements/cc210373-d44f-4345-aff2-a1402b5104d4",
+      "description": "Advanced iOS development program covering Clean Architecture, TDD, modular design patterns, and system design. Hands-on projects reviewed by senior iOS engineers, demonstrating commitment to technical excellence and continuous learning."
+    }
+  ],
+  "interests": [
+    "iOS Architecture",
+    "Enterprise Solutions", 
+    "Robotics & IoT",
+    "Tech Mentoring",
+    "Mountain Hiking",
+    "Strategic Gaming"
+  ],
+  "social": [
+    {
+      "platform": "GitHub",
+      "url": "https://github.com/PigLardLord"
+    },
+    {
+      "platform": "LinkedIn", 
+      "url": "https://www.linkedin.com/in/piglardlord/"
+    },
+    {
+      "platform": "Web CV",
+      "url": "https://piglardlord.github.io/cv-giovanni/"
+    }
+  ]
+}

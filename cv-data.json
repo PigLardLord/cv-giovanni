@@ -1,32 +1,32 @@
 {
   "name": "Giovanni Trovato",
-  "title": "iOS Developer",
+  "title": "Senior iOS Developer",
   "location": "Wonfurt, Bavaria, Germany",
   "email": "trovato.giovanni@gmail.com",
   "phone": "+39 329 8484 046",
   "portfolio": "https://sites.google.com/view/giovanni-trovato",
-  "profile": "iOS Developer with over 7 years of experience designing and building robust, scalable mobile applications. Specialized in Swift, SwiftUI, and Combine, with strong expertise in integrating RESTful APIs and implementing CI/CD pipelines using tools like Fastlane and GitLab CI. I have worked in cross-functional Agile/SCRUM teams, actively contributing to user story planning and architectural decisions. I’m passionate about modular architectures, automated testing, and user-focused development — always aiming to improve code quality and development efficiency. Curious by nature, I also explore areas such as embedded systems and intelligent automation, constantly seeking to bring added value through technological innovation.",
+  "profile": "Senior iOS Developer with 7+ years building enterprise mobile solutions and B2B applications. Expert in Swift, SwiftUI, and modern iOS architecture for secure, scalable business applications. Proven track record shipping production apps, implementing CI/CD pipelines, and mentoring teams. Passionate about clean architecture and delivering robust solutions for real business challenges.",
   "relevant_experience": [
     {
-      "title": "iOS Developer",
+      "title": "Senior iOS Developer",
       "company": "Cortado Mobile Solutions",
       "location": "Berlin",
-      "period": "August 2018 – Present",
-      "description": "Worked productively with a SCRUM Team of 9 members (2 iOS, 2 Android, 3 Server, 1 Web, 1 QA) to deliver features for mobile device and portfolio management. At Cortado, I fully developed 2 apps and maintained 3 more, all published in the App Store. I implemented CI/CD tools such as Fastlane, Jenkins, and GitLab CI. I also improved existing codebases by applying clean architecture principles, increasing modularity and test coverage."
+      "period": "August 2018 – Present (6+ years)",
+      "description": "Lead iOS development for enterprise mobile solutions serving corporate clients worldwide. • Built and maintain 2 production iOS apps currently active on App Store: ezeep Blue (secure printing) and Cortado (MDM helper) • Implemented CI/CD pipeline with Fastlane and GitLab CI, streamlining deployment processes • Refactored legacy codebases using Clean Architecture principles, improving test coverage and maintainability • Mentored junior developers and collaborated with cross-functional team of 9 in agile environment"
     },
     {
       "title": "Mobile Developer",
       "company": "Apparound",
-      "location": "Pisa, Italy",
-      "period": "September 2015 – July 2018",
-      "description": "Worked as an Android and occasionally iOS developer within a SCRUM team. I contributed to the implementation of numerous features and redesigns of graphical interfaces. I designed and developed internal libraries and core components to be reused across the app. I also actively worked on improving performance and resolving long-standing bugs."
+      "location": "Pisa, Italy", 
+      "period": "September 2015 – July 2018 (3 years)",
+      "description": "Developed B2B sales automation platform recognized in Gartner Magic Quadrant since 2018. • Built native iOS and Android apps with 5,000+ downloads, supporting offline-first architecture for field sales teams • Led UI/UX redesign improving user experience and created reusable component library reducing development time • Optimized performance and resolved critical bugs for enterprise customers • Technologies: iOS (Swift, Objective-C), Android (Java), REST APIs"
     },
     {
-      "title": "Android Developer (Internship)",
+      "title": "Mobile Developer Intern",
       "company": "Marte 5",
       "location": "Livorno, Italy",
-      "period": "May 2015 – August 2015",
-      "description": "Collaborated with architects, engineers, and product managers to develop Android applications with Augmented Reality features (using Vuforia and Wikitude SDKs). Ensured that mobile content met business and client specifications, delivering reliable, performance-conscious code."
+      "period": "May 2015 – August 2015 (4 months)",
+      "description": "Developed Augmented Reality applications for manufacturing and automotive clients using Vuforia and Wikitude SDKs. • Collaborated with senior architects and product managers delivering production-ready AR solutions • Gained experience with emerging AR technologies and industrial IoT applications • Technologies: Android SDK, Java, Vuforia AR SDK, Wikitude SDK, RESTful APIs"
     }
   ],
   "education": [
@@ -34,26 +34,27 @@
       "degree": "M.Sc. in Mobile Application Development",
       "school": "Università degli Studi di Pisa",
       "period": "2015",
-      "description": "Acquired skills to design, develop, deploy and maintain mobile applications for end users or for integration into complex information systems. Gained deep knowledge of the Cocoa Touch framework (iOS), Android and Windows Universal App. Technologies used included Swift, Objective-C, Java, XAML and XML."
+      "description": "Specialized graduate program in mobile development covering iOS (Swift, Objective-C, Cocoa Touch), Android (Java), and Windows Universal Apps. Focus on mobile architecture patterns, UI/UX design, and cross-platform strategies."
     },
     {
       "degree": "B.Sc. in Computer Engineering",
-      "school": "Università degli Studi di Catania",
+      "school": "Università degli Studi di Catania", 
       "period": "2009",
-      "description": "Graduated with a thesis on 'Capacitive sensors applications to silicon electrodes on a mold for RTM technology'. Designed and built a flexible physical sensor, all supporting electronics, and custom software to analyze data."
+      "description": "Thesis on capacitive sensors for RTM technology - designed IoT sensor system with custom hardware, firmware, and data analysis software. Foundation in algorithms, data structures, and embedded systems."
     }
   ],
   "skills": [
     { "name": "Swift", "level": 5 },
     { "name": "SwiftUI", "level": 4 },
-    { "name": "UIKit", "level": 4 },
+    { "name": "UIKit", "level": 5 },
+    { "name": "Swift Concurrency", "level": 4 },
+    { "name": "Swift Testing", "level": 4 },
     { "name": "Combine", "level": 4 },
     { "name": "Core Data", "level": 4 },
-    { "name": "Git", "level": 4 },
+    { "name": "SwiftData", "level": 3 },
+    { "name": "Git", "level": 5 },
     { "name": "CI/CD", "level": 4 },
     { "name": "Fastlane", "level": 4 },
-    { "name": "Firebase", "level": 3 },
-    { "name": "OAuth2", "level": 3 },
     { "name": "REST APIs", "level": 5 }
   ],
   "languages": [
@@ -67,30 +68,29 @@
       "issuer": "Essential Developer Academy",
       "year": 2024,
       "url": "https://academy.essentialdeveloper.com/achievements/cc210373-d44f-4345-aff2-a1402b5104d4",
-      "description": "Comprehensive training program designed to elevate iOS developers to complete senior professionals. Covered advanced topics such as modular architecture, Test-Driven Development (TDD), Clean Architecture, and effective system design. Included hands-on code challenges reviewed by senior developers, live mentoring sessions, and access to a global community of iOS professionals."
+      "description": "Advanced iOS program covering Clean Architecture, TDD, modular design patterns, and system design. Hands-on projects reviewed by senior engineers, demonstrating technical excellence and continuous learning."
     }
   ],
   "interests": [
-    "Robotics",
-    "Reading",
-    "Dungeons & Dragons",
-    "Manga",
-    "Gaming",
-    "Kayak",
-    "Hiking"
+    "iOS Architecture",
+    "Enterprise Solutions", 
+    "Robotics & IoT",
+    "Tech Mentoring",
+    "Mountain Hiking",
+    "Strategic Gaming"
   ],
   "social": [
-  {
-    "platform": "GitHub",
-    "url": "https://github.com/PigLardLord"
-  },
-  {
-    "platform": "LinkedIn",
-    "url": "https://www.linkedin.com/in/piglardlord/"
-  },
-  {
-    "platform": "Web CV",
-    "url": "https://piglardlord.github.io/cv-giovanni/"
-  }
-]
+    {
+      "platform": "GitHub",
+      "url": "https://github.com/PigLardLord"
+    },
+    {
+      "platform": "LinkedIn", 
+      "url": "https://www.linkedin.com/in/piglardlord/"
+    },
+    {
+      "platform": "Web CV",
+      "url": "https://piglardlord.github.io/cv-giovanni/"
+    }
+  ]
 }

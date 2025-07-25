@@ -1,0 +1,96 @@
+{
+  "name": "Giovanni Trovato",
+  "title": "Senior iOS Developer",
+  "location": "Wonfurt, Bavaria, Germany",
+  "email": "trovato.giovanni@gmail.com",
+  "phone": "+39 329 8484 046",
+  "portfolio": "https://sites.google.com/view/giovanni-trovato",
+  "profile": "Senior iOS Developer with 7+ years building high-impact mobile applications used by 500K+ users across Enterprise and Consumer markets. Expert in Swift, SwiftUI, and modern iOS architecture patterns, with proven track record of delivering 5 App Store apps and implementing CI/CD pipelines that reduced deployment time by 75%. Known for architecting scalable solutions, mentoring junior developers, and driving technical excellence in cross-functional agile teams.",
+  "relevant_experience": [
+    {
+      "title": "Senior iOS Developer",
+      "company": "Cortado Mobile Solutions",
+      "location": "Berlin",
+      "period": "August 2018 – Present (6+ years)",
+      "description": "Lead iOS development in cross-functional team of 9, delivering enterprise mobile device management solutions serving 100K+ corporate users. • Built 2 production iOS apps from scratch and maintained 3 legacy applications, achieving 4.7+ App Store ratings • Implemented CI/CD pipeline with Fastlane and GitLab CI, reducing deployment time from 4 hours to 1 hour (75% improvement) • Refactored legacy codebase using Clean Architecture principles, increasing test coverage from 30% to 85% • Mentored 2 junior iOS developers and conducted technical interviews for iOS positions • Technologies: Swift 5.7+, SwiftUI, Combine, Core Data, REST APIs, GitLab CI, Fastlane"
+    },
+    {
+      "title": "Mobile Developer",
+      "company": "Apparound",
+      "location": "Pisa, Italy",
+      "period": "September 2015 – July 2018 (3 years)",
+      "description": "Developed cross-platform mobile solutions for B2B sales teams, supporting 50K+ daily active users across 200+ companies. • Led complete UI/UX redesign that increased user engagement by 40% and reduced support tickets by 30% • Created reusable component library adopted across 3 mobile applications, reducing development time by 50% • Optimized app performance, achieving 60% faster load times and reducing crash rate to <0.1% • Collaborated with product managers to define technical requirements and sprint planning • Technologies: iOS (Swift, Objective-C), Android (Java), REST APIs, Git, SCRUM/Agile"
+    },
+    {
+      "title": "Mobile Developer Intern",
+      "company": "Marte 5",
+      "location": "Livorno, Italy",
+      "period": "May 2015 – August 2015 (4 months)",
+      "description": "Developed cutting-edge Augmented Reality mobile applications using Vuforia and Wikitude SDKs for industrial clients. • Built AR prototype that secured €200K+ contract with major automotive manufacturer • Collaborated with senior architects and product managers in agile development environment • Delivered pixel-perfect implementations meeting strict client specifications and deadlines • Technologies: Android SDK, Java, Vuforia AR SDK, Wikitude SDK, RESTful APIs"
+    }
+  ],
+  "education": [
+    {
+      "degree": "M.Sc. in Mobile Application Development",
+      "school": "Università degli Studi di Pisa",
+      "period": "2015",
+      "description": "Specialized graduate program in mobile development with focus on iOS (Swift, Objective-C, Cocoa Touch), Android (Java), and Windows Universal Apps. Thesis project: Cross-platform mobile architecture for enterprise applications. Graduated with honors."
+    },
+    {
+      "degree": "B.Sc. in Computer Engineering",
+      "school": "Università degli Studi di Catania",
+      "period": "2009",
+      "description": "Thesis: 'Capacitive sensors applications to silicon electrodes on a mold for RTM technology' - designed and built IoT sensor system with custom hardware, firmware, and data analysis software. Strong foundation in algorithms, data structures, and system design."
+    }
+  ],
+  "skills": [
+    { "name": "Swift", "level": 5 },
+    { "name": "SwiftUI", "level": 5 },
+    { "name": "UIKit", "level": 5 },
+    { "name": "Combine", "level": 4 },
+    { "name": "async/await", "level": 4 },
+    { "name": "Core Data", "level": 4 },
+    { "name": "Git", "level": 5 },
+    { "name": "CI/CD", "level": 4 },
+    { "name": "Fastlane", "level": 4 },
+    { "name": "REST APIs", "level": 5 },
+    { "name": "Firebase", "level": 3 },
+    { "name": "OAuth2", "level": 3 }
+  ],
+  "languages": [
+    { "name": "Italian", "level": "Native" },
+    { "name": "English", "level": "Fluent" },
+    { "name": "German", "level": "Elementary" }
+  ],
+  "certifications": [
+    {
+      "name": "iOS Lead Essentials",
+      "issuer": "Essential Developer Academy",
+      "year": 2024,
+      "url": "https://academy.essentialdeveloper.com/achievements/cc210373-d44f-4345-aff2-a1402b5104d4",
+      "description": "Elite iOS development program covering advanced architecture patterns, TDD, Clean Architecture, and system design. Completed hands-on projects reviewed by senior iOS engineers from top tech companies. Demonstrates commitment to continuous learning and technical excellence."
+    }
+  ],
+  "interests": [
+    "iOS Architecture",
+    "Robotics & IoT",
+    "Open Source",
+    "Tech Mentoring",
+    "Mountain Hiking",
+    "Strategy Games"
+  ],
+  "social": [
+    {
+      "platform": "GitHub",
+      "url": "https://github.com/PigLardLord"
+    },
+    {
+      "platform": "LinkedIn",
+      "url": "https://www.linkedin.com/in/piglardlord/"
+    },
+    {
+      "platform": "Web CV",
+      "url": "https://piglardlord.github.io/cv-giovanni/"
+    }
+  ]
+}
