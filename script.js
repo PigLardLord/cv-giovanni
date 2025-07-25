@@ -1,40 +1,27 @@
 import { CVApplication } from './core/CVApplication.js';
 import { HeaderRenderer } from './renderers/HeaderRenderer.js';
-
-// Legacy function renderers (temporarily keeping for compatibility)
-import { renderSocialLinks } from './renderers/renderSocialLinks.js';
-import { renderProfile } from './renderers/renderProfile.js';
-import { renderExperience } from './renderers/renderExperience.js';
-import { renderEducation } from './renderers/renderEducation.js';
-import { renderCertifications } from './renderers/renderCertifications.js';
-import { renderSkills } from './renderers/renderSkills.js';
-import { renderLanguages } from './renderers/renderLanguages.js';
-import { renderInterests } from './renderers/renderInterests.js';
-
-// Legacy renderer wrapper to adapt function renderers to class interface
-class LegacyRendererAdapter {
-  constructor(renderFunction) {
-    this.renderFunction = renderFunction;
-  }
-  
-  render(root, data) {
-    this.renderFunction(root, data);
-  }
-}
+import { ProfileRenderer } from './renderers/ProfileRenderer.js';
+import { ExperienceRenderer } from './renderers/ExperienceRenderer.js';
+import { EducationRenderer } from './renderers/EducationRenderer.js';
+import { SkillsRenderer } from './renderers/SkillsRenderer.js';
+import { LanguagesRenderer } from './renderers/LanguagesRenderer.js';
+import { CertificationsRenderer } from './renderers/CertificationsRenderer.js';
+import { SocialLinksRenderer } from './renderers/SocialLinksRenderer.js';
+import { InterestsRenderer } from './renderers/InterestsRenderer.js';
 
 // Initialize application
 const app = new CVApplication();
 
-// Register renderers
+// Register all renderers
 app.registerRenderer('header', new HeaderRenderer());
-app.registerRenderer('socialLinks', new LegacyRendererAdapter(renderSocialLinks));
-app.registerRenderer('profile', new LegacyRendererAdapter(renderProfile));
-app.registerRenderer('experience', new LegacyRendererAdapter(renderExperience));
-app.registerRenderer('education', new LegacyRendererAdapter(renderEducation));
-app.registerRenderer('certifications', new LegacyRendererAdapter(renderCertifications));
-app.registerRenderer('skills', new LegacyRendererAdapter(renderSkills));
-app.registerRenderer('languages', new LegacyRendererAdapter(renderLanguages));
-app.registerRenderer('interests', new LegacyRendererAdapter(renderInterests));
+app.registerRenderer('socialLinks', new SocialLinksRenderer());
+app.registerRenderer('profile', new ProfileRenderer());
+app.registerRenderer('experience', new ExperienceRenderer());
+app.registerRenderer('education', new EducationRenderer());
+app.registerRenderer('certifications', new CertificationsRenderer());
+app.registerRenderer('skills', new SkillsRenderer());
+app.registerRenderer('languages', new LanguagesRenderer());
+app.registerRenderer('interests', new InterestsRenderer());
 
 // Start application
 app.initialize(document);

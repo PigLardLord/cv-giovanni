@@ -1,8 +1,9 @@
-import { renderSocialLinks } from '../renderers/renderSocialLinks.js';
+import { SocialLinksRenderer } from '../renderers/SocialLinksRenderer.js';
 import { JSDOM } from 'jsdom';
 
-describe('renderSocialLinks', () => {
+describe('SocialLinksRenderer', () => {
   let document;
+  let renderer;
 
   beforeEach(() => {
     const dom = new JSDOM(`
@@ -14,6 +15,7 @@ describe('renderSocialLinks', () => {
       </html>
     `);
     document = dom.window.document;
+    renderer = new SocialLinksRenderer();
   });
 
   test('renders social links correctly', () => {
@@ -24,7 +26,7 @@ describe('renderSocialLinks', () => {
       ]
     };
 
-    renderSocialLinks(document, data);
+    renderer.render(document, data);
 
     const socialLinksContainer = document.querySelector('.social-links');
     const links = socialLinksContainer.querySelectorAll('a');
@@ -45,22 +47,22 @@ describe('renderSocialLinks', () => {
     const data = { social: [{ platform: 'GitHub', url: 'https://github.com/user' }] };
     
     expect(() => {
-      renderSocialLinks(docWithoutContainer, data);
+      renderer.render(docWithoutContainer, data);
     }).not.toThrow();
   });
 
   test('handles missing social data gracefully', () => {
     expect(() => {
-      renderSocialLinks(document, {});
+      renderer.render(document, {});
     }).not.toThrow();
     
     expect(() => {
-      renderSocialLinks(document, { social: null });
+      renderer.render(document, { social: null });
     }).not.toThrow();
   });
 
   test('handles empty social data array', () => {
-    renderSocialLinks(document, { social: [] });
+    renderer.render(document, { social: [] });
     
     const socialLinksContainer = document.querySelector('.social-links');
     const links = socialLinksContainer.querySelectorAll('a');
