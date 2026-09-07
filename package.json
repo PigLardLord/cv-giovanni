@@ -13,5 +13,9 @@
   "devDependencies": {
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0"
+  },
+  "dependencies": {
+    "i18next": "^26.4.2",
+    "i18next-http-backend": "^4.0.2"
   }
 }
