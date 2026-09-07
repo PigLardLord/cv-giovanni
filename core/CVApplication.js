@@ -6,9 +6,12 @@ import { RendererContainer } from './RendererContainer.js';
  * Follows Single Responsibility Principle (SRP) and Dependency Inversion Principle (DIP)
  */
 export class CVApplication {
-  constructor(dataLoader = new DataLoader(), rendererContainer = new RendererContainer()) {
+  constructor(dataLoader = new DataLoader(), rendererContainer = new RendererContainer(),
+              documentLocalizer = null, i18n = null) {
     this.dataLoader = dataLoader;
     this.rendererContainer = rendererContainer;
+    this.documentLocalizer = documentLocalizer;
+    this.i18n = i18n;
     this.isInitialized = false;
   }
 
@@ -28,8 +31,12 @@ export class CVApplication {
   async initialize(root) {
     try {
       const data = await this.dataLoader.loadCVData();
+      this.currentData = data;
+      this.root = root;
+      if (this.documentLocalizer) this.documentLocalizer.apply(root, data);
       this.rendererContainer.renderAll(root, data);
       this.isInitialized = true;
+      return data;
     } catch (error) {
       this.handleError(root, error);
     }
@@ -42,11 +49,15 @@ export class CVApplication {
    */
   handleError(root, error) {
     console.error('CV Application Error:', error);
+    const title = this.i18n ? this.i18n.t('errors.loadingTitle') : 'Error loading CV';
+    const hint = this.i18n
+      ? this.i18n.t('errors.loadingHint')
+      : 'Please check the console for more details.';
     root.body.innerHTML = `
       <div style="text-align: center; padding: 50px; color: #666;">
-        <h2>Error Loading CV</h2>
+        <h2>${title}</h2>
         <p>${error.message}</p>
-        <p>Please check the console for more details.</p>
+        <p>${hint}</p>
       </div>
     `;
   }

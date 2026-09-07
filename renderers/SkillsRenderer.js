@@ -1,6 +1,11 @@
 import { BaseRenderer } from './BaseRenderer.js';
 
 export class SkillsRenderer extends BaseRenderer {
+  constructor(i18n = null) {
+    super();
+    this.i18n = i18n;
+  }
+
   render(root, data) {
     if (!this.validate(data)) return;
 
@@ -31,6 +36,9 @@ export class SkillsRenderer extends BaseRenderer {
       if (i < 5) levelText += ' '; // Add space between bullets
     }
     skillLevel.textContent = levelText;
+    skillLevel.setAttribute('aria-label', this.i18n
+      ? this.i18n.t('skills.level', { ns: 'cv', level: skill.level, maximum: 5 })
+      : `${skill.level} out of 5`);
     
     badge.appendChild(skillName);
     badge.appendChild(skillLevel);
