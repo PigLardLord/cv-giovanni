@@ -1,0 +1,9 @@
+{
+  "meta": { "title": "{{name}} – Curriculum Vitae" },
+  "actions": { "print": "Print / Save as PDF" },
+  "accessibility": { "profilePhoto": "Portrait of {{name}}" },
+  "errors": {
+    "loadingTitle": "Error loading CV",
+    "loadingHint": "Please check the console for more details."
+  }
+}

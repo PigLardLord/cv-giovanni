@@ -1,0 +1,9 @@
+{
+  "meta": { "title": "{{name}} – Lebenslauf" },
+  "actions": { "print": "Drucken / als PDF speichern" },
+  "accessibility": { "profilePhoto": "Porträt von {{name}}" },
+  "errors": {
+    "loadingTitle": "Lebenslauf konnte nicht geladen werden",
+    "loadingHint": "Weitere Informationen finden Sie in der Konsole."
+  }
+}

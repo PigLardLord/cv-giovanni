@@ -1,0 +1,11 @@
+{
+  "sections": {
+    "skills": "Core Technologies",
+    "experience": "Professional Experience",
+    "education": "Education",
+    "languages": "Languages",
+    "certifications": "Certifications",
+    "interests": "Interests"
+  },
+  "skills": { "level": "{{level}} out of {{maximum}}" }
+}

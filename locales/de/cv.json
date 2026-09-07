@@ -1,0 +1,11 @@
+{
+  "sections": {
+    "skills": "Kernkompetenzen",
+    "experience": "Berufserfahrung",
+    "education": "Ausbildung",
+    "languages": "Sprachen",
+    "certifications": "Zertifizierungen",
+    "interests": "Interessen"
+  },
+  "skills": { "level": "{{level}} von {{maximum}}" }
+}
