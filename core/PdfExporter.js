@@ -17,6 +17,12 @@ export class PdfExporter {
     return `giovanni-trovato-${profile}-${locale}-${layout}${suffix}.pdf`;
   }
 
+  /** The name the recruiter's inbox receives: the person and the role, no build vocabulary. */
+  downloadName({ name = '', title = '' } = {}) {
+    const words = `${name} ${title} CV`.replace(/[^A-Za-z0-9 ]+/g, ' ').trim().split(/\s+/);
+    return `${words.join('-')}.pdf`;
+  }
+
   filePath(options = {}) {
     return `generated/${this.filename(options)}`;
   }
@@ -46,23 +52,24 @@ export class PdfExporter {
         job.summary ? { text: job.summary, margin: [0, 3, 0, 3] } : null,
         ...(job.highlights?.length ? [{ ul: job.highlights, margin: [12, 2, 0, 0] }] : [])
       ].filter(Boolean),
-      margin: [0, 0, 0, 11]
+      margin: [0, 0, 0, 9]
     }));
     const education = model.education.map((item) => ({ stack: [
       { text: item.degree, bold: true, color: theme.primary },
-      { text: `${item.school} · ${item.period}` },
-      { text: item.description, style: 'meta', margin: [0, 2, 0, 7] }
+      { text: `${item.school} · ${item.period}`, margin: [0, 0, 0, 7] },
+      ...(item.description ? [{ text: item.description, style: 'meta', margin: [0, 2, 0, 7] }] : [])
     ] }));
     const languages = model.languages.map((item) => ({
       text: [{ text: `${item.name}: `, bold: true }, item.level], margin: [0, 0, 0, 4]
     }));
     const certifications = model.certifications.map((item) => ({ stack: [
-      { text: `${item.name} — ${item.issuer} (${item.year})`, bold: true, color: theme.primary },
+      { text: `${item.name} — ${item.issuer} (${item.year})`, bold: true, color: theme.primary,
+        ...(item.url ? { link: item.url } : {}) },
       { text: item.description, margin: [0, 2, 0, 6] }
     ] }));
-    const links = model.identity.social.map((item) => `${item.platform}: ${item.url}`);
-    if (model.identity.portfolio && !links.some((link) => link.includes(model.identity.portfolio))) {
-      links.push(`${t('cv:contacts.portfolio')}: ${model.identity.portfolio}`);
+    const links = model.identity.social.map((item) => ({ label: item.platform, url: item.url }));
+    if (model.identity.portfolio && !links.some((link) => link.url === model.identity.portfolio)) {
+      links.push({ label: t('cv:contacts.portfolio'), url: model.identity.portfolio });
     }
     const header = this.createHeader(model, theme, links);
     const profile = { text: model.profile, margin: [0, 8, 0, 3] };
@@ -71,11 +78,13 @@ export class PdfExporter {
       stack: [section('cv:sections.skills'), { stack: skillRows, fillColor: theme.soft, margin: [8, 6, 8, 4] }]
     }];
     const experience = [section('cv:sections.experience'), ...jobs];
-    const supporting = [{ columns: [
-      { width: '52%', stack: [section('cv:sections.education'), ...education] },
-      { width: '4%', text: '' },
-      { width: '44%', stack: [section('cv:sections.languages'), ...languages] }
-    ] }, section('cv:sections.certifications'), ...certifications];
+    // Stacked, never columned: a parser walks the page, so two sections sharing a horizontal
+    // band emerge interleaved and the record boundaries a structured reader looks for are lost.
+    const supporting = [
+      section('cv:sections.education'), ...education,
+      section('cv:sections.languages'), ...languages,
+      section('cv:sections.certifications'), ...certifications
+    ];
     const impact = model.careerHighlights.length ? [
       section('cv:sections.selectedImpact'),
       { columns: model.careerHighlights.map((text) => ({ text, bold: true, fillColor: theme.soft, margin: [7, 7, 7, 7] })), columnGap: 7 }
@@ -89,7 +98,7 @@ export class PdfExporter {
     const typography = this.designSystem.resolve(theme);
     return {
       pageSize: { width: format.width, height: format.height },
-      pageMargins: [40, 34, 40, 34],
+      pageMargins: [64, 28, 64, 28],
       info: { title: `${model.identity.name} — ${model.identity.title}`, author: model.identity.name },
       ...typography,
       content: layouts[layout] || layouts.spotlight
@@ -105,11 +114,20 @@ export class PdfExporter {
       stack: [
         { text: model.identity.name, style: 'name', color: inverted ? '#FFFFFF' : theme.primary },
         { text: model.identity.title, style: 'role', color: inverted ? '#FFFFFF' : theme.accent },
-        { text: model.identity.subtitle, margin: [0, 3, 0, 0] },
-        { text: `${model.identity.location} · ${model.identity.email} · ${model.identity.phone}`, fontSize: 8, margin: [0, 4, 0, 0] },
-        { text: links.join(' · '), fontSize: 7.2, margin: [0, 2, 0, 0] },
-        { text: model.identity.availability, fontSize: 7.2, margin: [0, 2, 0, 0] }
+        ...(model.identity.subtitle ? [{ text: model.identity.subtitle, margin: [0, 3, 0, 0] }] : []),
+        { text: `${model.identity.location} · ${model.identity.email} · ${model.identity.phone}`, fontSize: 9, margin: [0, 4, 0, 0] },
+        { text: this.linkLine(links, inverted, theme), fontSize: 9, margin: [0, 2, 0, 0] },
+        ...(model.identity.availability ? [{ text: model.identity.availability, fontSize: 9, margin: [0, 2, 0, 0] }] : [])
       ]
     }]] }, layout: 'noBorders' };
+  }
+
+  /** The links as annotations. A printed URL is unusable; an unlinked one is worse than absent. */
+  linkLine(links, inverted, theme) {
+    return links.flatMap((link, index) => [
+      ...(index ? [{ text: ' · ' }] : []),
+      { text: link.label, link: link.url, decoration: 'underline',
+        color: inverted ? '#FFFFFF' : theme.accent }
+    ]);
   }
 }
