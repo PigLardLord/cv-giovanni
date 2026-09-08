@@ -4,6 +4,7 @@ import { RendererContainer } from './core/RendererContainer.js';
 import { LocaleResolver } from './core/LocaleResolver.js';
 import { I18nService } from './core/I18nService.js';
 import { DocumentLocalizer } from './core/DocumentLocalizer.js';
+import { ProfileResolver } from './core/ProfileResolver.js';
 import { HeaderRenderer } from './renderers/HeaderRenderer.js';
 import { ProfileRenderer } from './renderers/ProfileRenderer.js';
 import { ExperienceRenderer } from './renderers/ExperienceRenderer.js';
@@ -22,8 +23,19 @@ const locale = resolver.resolve({
 });
 const i18n = await new I18nService().initialize(locale);
 const localizer = new DocumentLocalizer(i18n);
+let profileSelection;
+try {
+  profileSelection = await new ProfileResolver().resolveRequested({
+    search: location.search,
+    locale
+  });
+} catch (error) {
+  localizer.apply(document);
+  new CVApplication(undefined, undefined, localizer, i18n).handleError(document, error);
+  throw error;
+}
 const app = new CVApplication(
-  new DataLoader(), new RendererContainer(), localizer, i18n
+  new DataLoader(profileSelection.dataUrl), new RendererContainer(), localizer, i18n
 );
 
 // Register all renderers
@@ -42,3 +54,4 @@ app.initialize(document);
 
 window.cvApp = app;
 window.cvI18n = i18n;
+window.cvSelection = profileSelection;
