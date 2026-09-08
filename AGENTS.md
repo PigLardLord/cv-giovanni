@@ -28,3 +28,90 @@ The skills section must give a recruiter an immediate overview without turning a
 - A reader can understand every level without guessing what a dot means.
 - Removing CSS, icons, or graphical markers does not remove skill names or proficiency meaning.
 - The CV does not claim precision that the underlying self-assessment cannot justify.
+
+## The loop's role system
+
+The ticket-loop skill defers to the project's own role system where one exists: *"If the project
+defines its own role system (`AGENTS.md` with role cards, agents in `.claude/agents/`), that
+wins."* This section is that system. It extends the per-ticket pipeline; it does not replace it.
+
+The manifest's `agents.roster` is deliberately left empty. Nothing in the plugin reads it — not
+the preflight, not `ticketctl`, not the reviewer script — so filling it would look like
+configuration and do nothing. The roles below are the real ones.
+
+### The two roles
+
+- **`cv-reviewer`** — judges the *product*, adversarially, in seven passes. Read-only: it has no
+  Write or Edit, and it reports rather than repairs.
+- **`cv-composer`** — proposes layout and copy from material handed to it. It writes nothing at
+  all, files included: it drafts, and someone else commits or files.
+
+They are the product counterpart of the loop's existing code review, not a replacement for it.
+A ticket can pass `codex-cli` on the diff and still ship a CV that dies in a text extractor.
+
+### When the product review runs
+
+Extend step 7 with a product review whenever the ticket's diff touches what the CV says or how
+it renders: `profiles/`, `locales/`, `renderers/`, `index.html`, `style.css`, `layouts.css`,
+`print.css`, `core/PdfExporter.js`, `adapters/PdfDesignSystem.js`, `adapters/LayoutThemeRegistry.js`.
+
+A ticket touching only build tooling, scripts or tests does not need it — say that it was
+skipped and why, rather than skipping it silently.
+
+The review runs on the **rendered artefact**, not the diff. Run `npm run build:pdf` first;
+`cv-reviewer` needs a PDF to extract text from, and a review of the source that never looked at
+the output is not a product review.
+
+### The default review target
+
+`cv-reviewer` refuses to review without a target, by design. Unless the ticket names another:
+
+- **Role** — the `title` field of `profiles/general/en.json`.
+- **Variant** — `general × en`, the first production target in `docs/ROADMAP.md`.
+- **Jurisdiction** — Germany, English-language application. Use German conventions when
+  reviewing the `de` variant.
+
+When the ticket names a different target, the ticket wins and the review says which target it
+used.
+
+### Disposition — what the verdict becomes
+
+This is the rule that keeps the loop from either ignoring the review or drowning in it.
+
+| Verdict finding | Disposition |
+|---|---|
+| **Blocking** or **Major**, inside the ticket's scope | Correct it on the open ticket, same branch, **before the merge gate**. Never open a ticket for work this branch was already meant to do. |
+| **Blocking**, outside the ticket's scope | New ticket, `priority:critical`, and say so at the merge gate so the person deciding knows what is still broken. |
+| **Major** or **Minor**, outside the ticket's scope | New ticket. Never widen the open branch — that is how a two-file change becomes a twelve-file review nobody reads. |
+| **Minor**, inside scope | Fix it if it is cheap and covered by the existing tests; otherwise a new ticket. |
+| **Observation** | Never a ticket. It goes in the change-request body. |
+
+For a correction on the open ticket, `cv-composer` receives the finding and returns the
+replacement copy or the layout parameters. The implementer applies them under TDD like any other
+change, and the regression gate runs again before the review is considered answered.
+
+### Filing the follow-up
+
+`cv-composer` **drafts** the ticket. The lead **files** it, through
+`$CLAUDE_PLUGIN_ROOT/bin/ticketctl` and never through a composed shell command — a ticket body
+carrying a finding's quoted text is external input, and a `$(...)` inside it would execute.
+
+A drafted ticket carries:
+
+- A title naming the failure, not the fix.
+- The finding verbatim: what happens, where, and the quoted evidence.
+- The proposed correction, as copy or as layout parameters — never as code.
+- Acceptance criteria taken from the finding's **Prevention** line, so the ticket closes against
+  the rule and not against an opinion.
+- The component label, and `status:backlog` unless it is being started immediately.
+- No auto-closing keywords: `board.never_autoclose` is set.
+
+Filing or reopening a ticket changes the tracker, so it sits behind the loop's ordinary
+`gated` autonomy: propose the ticket, show it, and let a person say go.
+
+### Prevention rules become tests where they can
+
+When a finding's prevention rule is mechanically checkable, the follow-up ticket should add the
+check rather than the reminder. `scripts/audit-pdfs.mjs` already scores every variant on format,
+page count, required text, reading order, absence of raster images, clean page starts and
+measured grayscale — an eighth check there outlives any number of review comments.

@@ -46,6 +46,7 @@
     "roster": {},
     "plugin_agents": []
   },
+  "_agents": "Left empty on purpose: nothing in the plugin reads roster or plugin_agents, so filling them would look configured and do nothing. This project's role system is in AGENTS.md, which the loop skill defers to.",
   "loop": {
     "autonomy": "gated",
     "concurrency": "sequential",
