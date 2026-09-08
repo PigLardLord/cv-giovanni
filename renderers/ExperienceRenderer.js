@@ -19,14 +19,27 @@ export class ExperienceRenderer extends BaseRenderer {
 
   createJobEntry(root, job) {
     const at = this.i18n ? this.i18n.t('experience.at', { ns: 'cv' }) : 'at';
-    return this.createElement(root, 'div', 'job-entry', `
+    const entry = this.createElement(root, 'div', 'job-entry', `
       <div class="job-header">
         <span class="job-title">${job.title}</span> ${at}
         <span class="job-company">${job.company}</span>, ${job.location}
       </div>
       <div class="job-period">${job.period}</div>
-      <p class="job-description">${job.description}</p>
+      ${job.summary ? `<p class="job-summary">${job.summary}</p>` : ''}
+      ${job.description ? `<p class="job-description">${job.description}</p>` : ''}
     `);
+
+    if (Array.isArray(job.highlights) && job.highlights.length > 0) {
+      const list = this.createElement(root, 'ul', 'job-highlights');
+      job.highlights.forEach((highlight) => {
+        const item = this.createElement(root, 'li');
+        item.textContent = highlight;
+        list.appendChild(item);
+      });
+      entry.appendChild(list);
+    }
+
+    return entry;
   }
 
   validate(data) {

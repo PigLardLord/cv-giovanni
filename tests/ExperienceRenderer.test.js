@@ -66,4 +66,23 @@ describe('ExperienceRenderer', () => {
     const jobEntries = experienceDiv.querySelectorAll('.job-entry');
     expect(jobEntries).toHaveLength(0);
   });
+
+  test('renders structured summaries and achievement bullets', () => {
+    renderer.render(document, {
+      relevant_experience: [{
+        title: 'Senior Engineer',
+        company: 'Acme',
+        location: 'Berlin',
+        period: '2020–2026',
+        summary: 'Enterprise mobile platform.',
+        highlights: ['Improved test coverage.', 'Automated releases.']
+      }]
+    });
+
+    expect(document.querySelector('.job-summary').textContent)
+      .toBe('Enterprise mobile platform.');
+    expect([...document.querySelectorAll('.job-highlights li')].map((item) => item.textContent))
+      .toEqual(['Improved test coverage.', 'Automated releases.']);
+    expect(document.querySelector('.job-description')).toBeNull();
+  });
 });
