@@ -218,7 +218,10 @@ body[data-layout='technical'] .hero-section {
 }
 
 body[data-layout='technical'] .hero-content {
-  grid-template-columns: 1fr auto;
+  /* `auto` takes max-content and is greedy: the contact card plus the portrait measured 669px
+     and `1fr` — a fraction of what REMAINS — collapsed to 164, so the name wrapped and the
+     summary ran two words to the line. The sidebar needs a ceiling, not free rein. */
+  grid-template-columns: minmax(0, 1fr) minmax(205px, 320px);
 }
 
 body[data-layout='technical'] .hero-summary {
