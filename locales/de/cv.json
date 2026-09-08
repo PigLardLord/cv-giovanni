@@ -7,5 +7,6 @@
     "certifications": "Zertifizierungen",
     "interests": "Interessen"
   },
-  "experience": { "at": "bei" }
+  "experience": { "at": "bei" },
+  "contacts": { "email": "E-Mail", "phone": "Telefon" }
 }

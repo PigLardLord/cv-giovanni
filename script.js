@@ -39,7 +39,7 @@ const app = new CVApplication(
 );
 
 // Register all renderers
-app.registerRenderer('header', new HeaderRenderer());
+app.registerRenderer('header', new HeaderRenderer(i18n));
 app.registerRenderer('socialLinks', new SocialLinksRenderer());
 app.registerRenderer('profile', new ProfileRenderer());
 app.registerRenderer('experience', new ExperienceRenderer(i18n));

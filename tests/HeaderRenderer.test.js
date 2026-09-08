@@ -12,6 +12,8 @@ describe('HeaderRenderer', () => {
         <body>
           <div id="name"></div>
           <div id="title"></div>
+          <div id="subtitle" hidden></div>
+          <div id="availability" hidden></div>
           <div id="location"></div>
           <div id="contacts"></div>
         </body>
@@ -51,5 +53,28 @@ describe('HeaderRenderer', () => {
     expect(() => {
       renderer.render(emptyDoc, { name: 'John' });
     }).not.toThrow();
+  });
+
+  test('renders optional subtitle and availability when provided', () => {
+    renderer.render(document, {
+      name: 'John Doe',
+      subtitle: 'iOS · Android · CI/CD',
+      availability: 'Available immediately'
+    });
+
+    expect(document.getElementById('subtitle').textContent).toBe('iOS · Android · CI/CD');
+    expect(document.getElementById('subtitle').hidden).toBe(false);
+    expect(document.getElementById('availability').textContent).toBe('Available immediately');
+    expect(document.getElementById('availability').hidden).toBe(false);
+  });
+
+  test('localizes contact labels', () => {
+    const localized = new HeaderRenderer({
+      t: (key) => ({ 'contacts.email': 'E-Mail', 'contacts.phone': 'Telefon' })[key]
+    });
+    localized.render(document, { name: 'John', email: 'john@example.com', phone: '123' });
+
+    expect(document.getElementById('contacts').textContent).toContain('E-Mail:');
+    expect(document.getElementById('contacts').textContent).toContain('Telefon:');
   });
 });

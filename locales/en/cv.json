@@ -7,5 +7,6 @@
     "certifications": "Certifications",
     "interests": "Interests"
   },
-  "experience": { "at": "at" }
+  "experience": { "at": "at" },
+  "contacts": { "email": "Email", "phone": "Phone" }
 }
