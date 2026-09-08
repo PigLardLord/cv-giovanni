@@ -139,3 +139,35 @@ accessible-enough floor, not accessibility.
 Closing this needs a renderer that emits tagged output, or a post-processing step that builds the
 tree from the layout. Either is a separate piece of work, and the choice belongs to whoever picks
 it up. Until then, do not report the PDFs as accessible.
+
+## The PDF's design system
+
+Settled, and not to be undone by someone reclaiming space:
+
+- **A section rail.** Section labels sit in a 116pt left rail beside their block, not above it.
+  A single-line label beside a wrapping block is the one side-by-side shape a text extractor
+  handles; two blocks that both wrap interleave. The rail must therefore never be narrowed to
+  the point where a label wraps — widen it before letting that happen, and remember the German
+  labels are longer.
+- **No letter-spacing on the labels.** At 1pt of tracking, `pdftotext` reads the gaps as spaces
+  and "Professional Experience" extracts as "P ro fe s s i o n a l  E x p e r i e n c e". The
+  weight of a real Bold carries the label; tracking is not needed and is not safe.
+- **Inter, vendored.** `vendor/fonts/inter/` with its OFL licence, embedded and subset at
+  generation. pdfmake's stock family maps `bold` to Roboto Medium 500, so a document that leans
+  on weight for hierarchy could not have any. A missing font file is a hard error, never a
+  silent fall back to Roboto.
+- **Colour has a role or it does not ship.** Every token in the palette states what it marks and
+  carries a grey equivalent, so the monochrome variant degrades rather than breaks. The previous
+  palette rendered on **zero glyphs** — the inverted header forced every foreground to white and
+  `classic`'s accent was byte-identical to its muted grey — and no audit check could see it,
+  because a colour that never renders breaks nothing.
+- **Only the role's identity is unbreakable.** Title, employer, dates and summary travel
+  together so no reader meets a bare heading; achievements flow, each individually unbreakable
+  so no page opens mid-sentence. Holding the first achievement in the head too was tried and
+  wasted more space than the guarantee was worth.
+- **The body takes what the paper gives.** Side margins are fixed at 46pt and the measure
+  follows: 377pt on A4, 394pt on LETTER. Measured on the artefact, the longest body line runs
+  81 characters on A4 and 87 on LETTER, against the 80 of WCAG 1.4.8 — A4 sits at the ceiling,
+  LETTER above it. That is the price of two pages at 9.3pt, and it is a deliberate trade: the
+  previous layout ran to about 100. Buying the margin back means cutting content, which is the
+  candidate's call.

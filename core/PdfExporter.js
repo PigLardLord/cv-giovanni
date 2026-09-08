@@ -37,7 +37,11 @@ export class PdfExporter {
     // The rail: a single-line label beside a wrapping block. That shape is the one the parser
     // handles — the label glues to the block's first line and nothing interleaves — so the
     // section headings can leave the vertical flow without lying to an extractor.
-    const RAIL = 116, GUTTER = 14, BODY = 373;
+    // Side margins are fixed; the body takes whatever the paper gives. LETTER is wider than A4,
+    // so it gets a slightly longer line instead of a wider margin — the alternative was throwing
+    // its extra width away and paying for it with a third page.
+    const RAIL = 116, GUTTER = 10, SIDE = 46;
+    const BODY = format.width - 2 * SIDE - RAIL - GUTTER;
     const railed = (key, blocks, gap = 6) => ({
       columns: [
         { width: RAIL, text: t(key), style: 'section', alignment: 'right' },
@@ -53,34 +57,32 @@ export class PdfExporter {
         { text: this.unbreakableList(group.items.map((item) => item.name)), width: 257 }
       ],
       columnGap: 10,
-      margin: [0, 0, 0, 6]
+      margin: [0, 0, 0, 3]
     }));
-    // The rule is "a role is never split from its first achievement, and no page opens
-    // mid-sentence" — not "a role is atomic". Atomic meant a twenty-line entry jumped the page
-    // whole and left a third of the previous one blank. The head travels with its first
-    // achievement; the rest may flow, and each achievement is a complete sentence.
+    // What must never split is the role's identity: title, employer, dates and the summary
+    // travel together, so a reader turning the page never meets a bare heading. The
+    // achievements below may flow, and each is individually unbreakable so no page opens
+    // mid-sentence. Holding the first achievement in the head too was tried: it made the head
+    // tall enough to jump the page whole, wasting more space than the guarantee was worth.
     const jobs = model.experience.map((job) => ({
       stack: [
         { unbreakable: true, stack: [
           { text: job.title, style: 'itemTitle' },
           { text: `${job.company} · ${job.location}`, style: 'employer' },
           { text: job.period, style: 'meta' },
-          job.summary ? { text: this.unbreakableText(job.summary), margin: [0, 3, 0, 3] } : null,
-          ...(job.highlights?.length
-            ? [{ ul: [{ text: this.unbreakableText(job.highlights[0]) }], margin: [12, 3, 0, 0] }]
-            : [])
+          job.summary ? { text: this.unbreakableText(job.summary), margin: [0, 3, 0, 3] } : null
         ].filter(Boolean) },
-        ...(job.highlights?.length > 1
-          ? [{ ul: job.highlights.slice(1).map((line) => (
+        ...(job.highlights?.length
+          ? [{ ul: job.highlights.map((line) => (
                { text: this.unbreakableText(line), unbreakable: true })),
                margin: [12, 0, 0, 0] }]
           : [])
       ],
-      margin: [0, 0, 0, 12]
+      margin: [0, 0, 0, 6]
     }));
     const education = model.education.map((item) => ({ stack: [
       { text: item.degree, bold: true, color: theme.ink },
-      { text: `${item.school} · ${item.period}`, style: 'meta', margin: [0, 0, 0, 12] },
+      { text: `${item.school} · ${item.period}`, style: 'meta', margin: [0, 0, 0, 6] },
       ...(item.description ? [{ text: item.description, style: 'meta', margin: [0, 3, 0, 12] }] : [])
     ] }));
     const languages = model.languages.map((item) => ({
@@ -113,7 +115,7 @@ export class PdfExporter {
           { width: 347, text, bold: true, color: theme.ink }
         ],
         columnGap: 8,
-        margin: [0, 0, 0, 6]
+        margin: [0, 0, 0, 3]
       })))] : [];
     const layouts = {
       classic: [header, profile, ...experience, ...skills, ...supporting],
@@ -127,7 +129,7 @@ export class PdfExporter {
       // 503pt of content (rail + gutter + body) on every paper size, so line breaks and
       // pagination stay comparable; the extra width of LETTER goes into the margin, and 40pt
       // top and bottom clears the 12mm a printer can clip.
-      pageMargins: [(format.width - 503) / 2, 40, (format.width - 503) / 2, 40],
+      pageMargins: [SIDE, 40, SIDE, 40],
       info: { title: `${model.identity.name} — ${model.identity.title}`, author: model.identity.name },
       ...typography,
       content: layouts[layout] || layouts.spotlight

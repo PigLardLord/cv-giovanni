@@ -19,7 +19,29 @@ const i18n = {
   }
 };
 
-pdfMake.addVirtualFileSystem(pdfFonts);
+// Inter, vendored under vendor/fonts/inter with its OFL licence. pdfmake's stock family maps
+// `bold` to Roboto Medium 500, so a document that leans on weight for hierarchy could not have
+// any. A missing file is an error, never a silent fall back to Roboto: a document that quietly
+// ships in the wrong typeface looks like a decision nobody made.
+const fontDir = new URL('../vendor/fonts/inter/', import.meta.url);
+const face = async (file) => {
+  try {
+    return (await readFile(new URL(file, fontDir))).toString('base64');
+  } catch (error) {
+    throw new Error(`Missing embedded font ${file} — run the vendoring step before generating.`);
+  }
+};
+pdfMake.addVirtualFileSystem({
+  ...pdfFonts,
+  'Inter-Regular.ttf': await face('Inter-Regular.ttf'),
+  'Inter-Bold.ttf': await face('Inter-Bold.ttf')
+});
+pdfMake.fonts = {
+  Inter: {
+    normal: 'Inter-Regular.ttf', bold: 'Inter-Bold.ttf',
+    italics: 'Inter-Regular.ttf', bolditalics: 'Inter-Bold.ttf'
+  }
+};
 const composer = new PdfExporter(null, i18n);
 const renderer = new PdfMakeRenderer(pdfMake);
 const releaseService = new PdfGenerationService({

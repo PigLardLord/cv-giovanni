@@ -26,7 +26,7 @@ const MONO_THEME = {
 };
 
 export class LayoutThemeRegistry {
-  constructor(signal = 'ember') {
+  constructor(signal = 'glacier') {
     this.signal = SIGNALS[signal] ? signal : 'ember';
   }
 
