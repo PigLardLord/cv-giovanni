@@ -7,7 +7,7 @@
   "phone": "+39 329 8484 046",
   "availability": "EU citizen · unrestricted German work authorization · available immediately",
   "portfolio": "https://sites.google.com/view/giovanni-trovato",
-  "profile": "Senior mobile engineer with more than 11 years of experience building native iOS and Android products, including eight years in enterprise mobility and device management. Technical owner of an iOS MDM client for six years, serving hundreds of corporate customers and tens of thousands of managed devices. Strong in Swift, SwiftUI, Kotlin, Jetpack Compose, automated testing, CI/CD, code signing and production releases.",
+  "profile": "Senior mobile and platform engineer with 11+ years delivering native iOS and Android products, including eight years in enterprise mobility and device management. Owns the app lifecycle end to end — architecture, code and security review, automated quality, CI/CD, signing, store delivery and platform certification. Six years as technical owner of an iOS MDM client used by hundreds of corporate customers across tens of thousands of managed devices, with direct technical coordination across product, QA, Apple and Google.",
   "relevant_experience": [
     {
       "title": "Mobile Software Engineer / Technical Owner, iOS & Android",
@@ -17,10 +17,10 @@
       "summary": "Enterprise mobility and device management (MDM, secure printing) in a mobile team of 3–7 engineers.",
       "highlights": [
         "Expanded the Android test suite to ~4,800 tests and raised UI-test coverage from 15% to 82%, while cutting CI test runtime by 75% (32 to 8 minutes) to give the team same-hour merge feedback.",
-        "Technical owner of the Cortado MDM iOS client for six years from its first commit — owned architecture, release decisions and code review across the mobile team, coordinating delivery with product, QA and backend.",
-        "Led annual iOS compatibility work and adoption of Dynamic Island, Live Activities, Siri and App Intents; also led the Swift 6 concurrency and iOS 26 migrations while retaining support for older devices.",
-        "Migrated the Android device-management client from XML layouts to Jetpack Compose across nearly every screen, including kiosk mode, adding unit tests alongside each migrated screen.",
-        "Owned the GitLab CI/CD and Fastlane pipelines for both platforms — pipeline design, GitLab runners, certificates and provisioning profiles, automated versioning, TestFlight and Play Store staged rollout — and automated iOS signing end to end, removing a recurring manual release blocker."
+        "Technical owner of the Cortado MDM iOS client for six years from its first commit — owned architecture, release decisions and code review, coordinating delivery with product, QA and backend while mentoring mobile colleagues.",
+        "Led annual iOS compatibility and platform beta validation, including Swift 6 concurrency and iOS 26 migrations; coordinated directly with Apple on App Review while adopting Dynamic Island, Live Activities, Siri and App Intents without dropping older-device support.",
+        "Migrated nearly every Android screen from XML to Jetpack Compose, including kiosk mode, adding unit tests throughout; also managed Android Enterprise Partner Program certifications and worked directly with Google on platform issues.",
+        "Owned delivery and security across both platforms: code and vulnerability reviews, GitLab CI/CD and Fastlane, signing and provisioning, security scans and SBOM generation, TestFlight and Play Store staged rollout."
       ]
     },
     {
@@ -175,6 +175,10 @@
         {
           "name": "SBOM / Dependency-Track",
           "level": null
+        },
+        {
+          "name": "security scanning & vulnerability review",
+          "level": null
         }
       ]
     },
@@ -211,6 +215,10 @@
         },
         {
           "name": "AI-assisted engineering",
+          "level": null
+        },
+        {
+          "name": "technical mentoring",
           "level": null
         }
       ]
