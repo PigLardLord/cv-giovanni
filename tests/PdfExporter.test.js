@@ -124,8 +124,12 @@ describe('PdfExporter — what has to survive extraction and assistive reading',
     expect(offenders).toEqual([]);
   });
 
-  test('marks up the document so assistive software gets a structure tree', () => {
-    expect(build('spotlight').tagged).toBe(true);
+  test('does not claim a structure tree it cannot populate', () => {
+    // pdfmake 0.2.20 writes the tagged FLAG but never builds the tree: `Tagged: yes` over an
+    // empty /StructTreeRoot tells assistive software that structure exists when none does,
+    // which is worse than an honest `Tagged: no`. Setting it again is only correct alongside
+    // a renderer that emits marked content — see the capability gap recorded in AGENTS.md.
+    expect(build('spotlight').tagged).toBeUndefined();
   });
 
   test('keeps every technology name unbreakable, so none loses its hyphen', () => {

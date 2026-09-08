@@ -100,7 +100,6 @@ export class PdfExporter {
     const typography = this.designSystem.resolve(theme);
     return {
       pageSize: { width: format.width, height: format.height },
-      tagged: true,
       pageMargins: [64, 28, 64, 28],
       info: { title: `${model.identity.name} — ${model.identity.title}`, author: model.identity.name },
       ...typography,

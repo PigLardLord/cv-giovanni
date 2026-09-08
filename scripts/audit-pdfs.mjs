@@ -44,7 +44,9 @@ for (const filename of pdfFiles) {
   const pages = Number(info.match(/Pages:\s+(\d+)/)?.[1]);
   const pageTwo = pages > 1 ? execFileSync('pdftotext', ['-f', '2', '-l', '2', path, '-'], { encoding: 'utf8' }) : '';
   const pageTwoStart = pageTwo.split('\n').map((line) => line.trim()).find(Boolean) || '';
-  const isMonochrome = filename.includes('-monochrome-');
+  // The suffix is '-monochrome.pdf': matching '-monochrome-' matched nothing, so the
+  // grayscale check never ran and every variant reported a guarantee nobody verified.
+  const isMonochrome = filename.includes('-monochrome');
   const order = [profile.name, profile.title, labels.experience].map((term) => extracted.indexOf(term));
   const checks = {
     format: sizeOk,

@@ -115,3 +115,27 @@ When a finding's prevention rule is mechanically checkable, the follow-up ticket
 check rather than the reminder. `scripts/audit-pdfs.mjs` already scores every variant on format,
 page count, required text, reading order, absence of raster images, clean page starts and
 measured grayscale — an eighth check there outlives any number of review comments.
+
+## Known limitation — the PDF carries no structure tree
+
+The generated PDFs report `Tagged: no`, and that is deliberate.
+
+Assistive software navigates a PDF through a structure tree: headings, paragraphs, lists and a
+declared reading order. pdfmake 0.2.20 writes the tagged *flag* — `/Marked true` — but never
+builds the tree behind it: `/StructTreeRoot` comes out with no `/K` children, `/Nums []`,
+`/ParentTreeNextKey 0`, and the content streams hold no marked-content sequences. `structType` on
+a node changes nothing. There is no tagging API in the version's interface, README or changelog;
+the strings come from the bundled pdfkit, which pdfmake does not drive.
+
+Setting the flag anyway was tried and reverted. `Tagged: yes` over an empty tree tells a screen
+reader that structure exists when none does, which is worse than an honest `Tagged: no` — the
+reader stops looking. A test in `tests/PdfExporter.test.js` now fails if the flag returns without
+a renderer that emits marked content.
+
+What the document does provide: a clean text layer, no raster text, extraction order matching
+visual order, real link annotations, a 9pt type floor and measured AA contrast. That is the
+accessible-enough floor, not accessibility.
+
+Closing this needs a renderer that emits tagged output, or a post-processing step that builds the
+tree from the layout. Either is a separate piece of work, and the choice belongs to whoever picks
+it up. Until then, do not report the PDFs as accessible.
