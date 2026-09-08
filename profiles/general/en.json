@@ -10,7 +10,7 @@
   "profile": "Senior iOS engineer with 11+ years in native mobile and six years owning an enterprise MDM client from architecture to production. Delivered software used across tens of thousands of managed devices, with measurable improvements in automated quality and release speed. Brings Android depth, security review, CI/CD ownership and direct platform coordination with Apple and Google.",
   "career_highlights": [
     "6 years owning an enterprise iOS MDM client from its first commit",
-    "~4,800 Android tests, 82% UI coverage, 75% faster CI feedback",
+    "~4,800 Android tests, 82% of app screens UI-tested, 75% faster CI",
     "MDM clients in production across tens of thousands of managed devices"
   ],
   "relevant_experience": [
@@ -21,7 +21,7 @@
       "period": "August 2018 – Present",
       "summary": "Enterprise mobility and device management (MDM, secure printing) in a mobile team of 3–7 engineers.",
       "highlights": [
-        "Expanded the Android test suite to ~4,800 tests and raised UI-test coverage from 15% to 82%, while cutting CI test runtime by 75% (32 to 8 minutes) to give the team same-hour merge feedback.",
+        "Expanded the Android test suite to ~4,800 tests and raised UI-test coverage of the app's screens from 15% to 82%, while cutting CI test runtime by 75% (32 to 8 minutes) to give the team same-hour merge feedback.",
         "Technical owner of the Cortado MDM iOS client for six years from its first commit — owned architecture, release decisions and code review, coordinating delivery with product, QA and backend while mentoring mobile colleagues.",
         "Led annual iOS compatibility and platform beta validation, including Swift 6 concurrency and iOS 26 migrations; coordinated directly with Apple on App Review while adopting Dynamic Island, Live Activities, Siri and App Intents without dropping support for older devices.",
         "Migrated nearly every Android screen from XML to Jetpack Compose, including kiosk mode, adding unit tests throughout; also managed Android Enterprise Partner Program certifications and worked directly with Google on platform issues.",
