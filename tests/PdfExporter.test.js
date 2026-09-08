@@ -49,6 +49,11 @@ describe('PdfExporter — what has to survive extraction and assistive reading',
     portfolio: 'https://portfolio.example',
     social: [{ platform: 'GitHub', url: 'https://github.com/example' }],
     profile: 'Profile', skills: [], relevant_experience: [],
+    career_highlights: [
+      '6 years owning an enterprise iOS MDM client from its first commit',
+      '~4,800 Android tests, 82% UI coverage, 75% faster CI feedback',
+      'MDM clients in production across tens of thousands of managed devices'
+    ],
     education: [{ degree: 'M.Sc.', school: 'Pisa', period: '2013 - 2015', description: 'Mobile' }],
     languages: [{ name: 'Italian', level: 'Native' }],
     certifications: [{ name: 'iOS Lead Essentials', issuer: 'Academy', year: 2024,
@@ -106,6 +111,42 @@ describe('PdfExporter — what has to survive extraction and assistive reading',
     const carriers = [...walk(definition.content)].filter((node) => 'text' in node);
     expect(carriers.length).toBeGreaterThan(0);
     expect(carriers.filter((node) => node.text === undefined || node.text === '')).toEqual([]);
+  });
+
+  test.each(layouts)('%s never puts two wrapping blocks in one column row', (layout) => {
+    // Interleaving needs two columns that BOTH wrap: a parser walks the band and alternates
+    // their lines. One long entry beside a short label is safe, which is why the skills rows
+    // survive and the impact cards did not.
+    const wraps = (node) => typeof node.text === 'string' && node.text.length > 40;
+    const offenders = [...walk(build(layout).content)]
+      .filter((node) => Array.isArray(node.columns))
+      .filter((node) => node.columns.filter((entry) => wraps(entry)).length > 1);
+    expect(offenders).toEqual([]);
+  });
+
+  test('marks up the document so assistive software gets a structure tree', () => {
+    expect(build('spotlight').tagged).toBe(true);
+  });
+
+  test('keeps every technology name unbreakable, so none loses its hyphen', () => {
+    const named = { ...rich, skills: [{ category: 'iOS', items: [
+      { name: 'Objective-C' }, { name: 'Dependency-Track' }, { name: 'AI-assisted engineering' }
+    ] }] };
+    const definition = new PdfExporter(null, { t: (key) => key }).buildDocument(named, 'classic');
+    const names = [...walk(definition.content)].filter((node) => node.noWrap);
+    expect(names.map((node) => node.text)).toEqual(
+      expect.arrayContaining(['Objective-C', 'Dependency-Track', 'AI-assisted engineering'])
+    );
+  });
+
+  test('protects hyphenated compounds inside body copy, not only in the skills list', () => {
+    const withBullet = { ...rich, relevant_experience: [{
+      title: 'Engineer', company: 'C', location: 'L', period: '2018 - 2026',
+      highlights: ['Resolved defects across iOS (Swift, Objective-C) and Android.']
+    }] };
+    const definition = new PdfExporter(null, { t: (key) => key }).buildDocument(withBullet, 'classic');
+    const protectedRuns = [...walk(definition.content)].filter((node) => node.noWrap).map((node) => node.text);
+    expect(protectedRuns).toContain('Objective-C)');
   });
 
   test('leaves a measure narrow enough to read', () => {

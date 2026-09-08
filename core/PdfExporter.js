@@ -38,7 +38,7 @@ export class PdfExporter {
     const skillRows = model.skills.map((group) => ({
       columns: [
         { text: group.category, bold: true, color: theme.primary, width: 105 },
-        { text: group.items.map((item) => item.name).join(', '), width: '*' }
+        { text: this.unbreakableList(group.items.map((item) => item.name)), width: '*' }
       ],
       columnGap: 8,
       margin: [0, 0, 0, 5]
@@ -49,8 +49,10 @@ export class PdfExporter {
         { text: job.title, style: 'itemTitle' },
         { text: `${job.company} · ${job.location}`, bold: true },
         { text: job.period, style: 'meta' },
-        job.summary ? { text: job.summary, margin: [0, 3, 0, 3] } : null,
-        ...(job.highlights?.length ? [{ ul: job.highlights, margin: [12, 2, 0, 0] }] : [])
+        job.summary ? { text: this.unbreakableText(job.summary), margin: [0, 3, 0, 3] } : null,
+        ...(job.highlights?.length
+          ? [{ ul: job.highlights.map((line) => ({ text: this.unbreakableText(line) })), margin: [12, 2, 0, 0] }]
+          : [])
       ].filter(Boolean),
       margin: [0, 0, 0, 9]
     }));
@@ -87,7 +89,7 @@ export class PdfExporter {
     ];
     const impact = model.careerHighlights.length ? [
       section('cv:sections.selectedImpact'),
-      { columns: model.careerHighlights.map((text) => ({ text, bold: true, fillColor: theme.soft, margin: [7, 7, 7, 7] })), columnGap: 7 }
+      { stack: model.careerHighlights.map((text) => ({ text, bold: true, fillColor: theme.soft, margin: [7, 5, 7, 5] })) }
     ] : [];
     const layouts = {
       classic: [header, profile, ...experience, ...skills, ...supporting],
@@ -98,6 +100,7 @@ export class PdfExporter {
     const typography = this.designSystem.resolve(theme);
     return {
       pageSize: { width: format.width, height: format.height },
+      tagged: true,
       pageMargins: [64, 28, 64, 28],
       info: { title: `${model.identity.name} — ${model.identity.title}`, author: model.identity.name },
       ...typography,
@@ -120,6 +123,31 @@ export class PdfExporter {
         ...(model.identity.availability ? [{ text: model.identity.availability, fontSize: 9, margin: [0, 2, 0, 0] }] : [])
       ]
     }]] }, layout: 'noBorders' };
+  }
+
+  /**
+   * Body copy with every hyphenated compound held together.
+   *
+   * pdfmake breaks a line at an existing hyphen, and plain text extraction then rejoins the two
+   * halves without it — `Objective-C` arrives as `ObjectiveC`, which no search for the canonical
+   * spelling will find. Only the compounds become their own nodes; the prose between them stays
+   * one run, so the document does not turn into a node per word.
+   * @param {string} text - Copy as the data wrote it
+   * @returns {string|Array} The copy, unchanged when it holds no compound
+   */
+  unbreakableText(text) {
+    if (typeof text !== 'string') return text;
+    const parts = text.split(/(\S+-\S+)/g).filter((part) => part !== '');
+    if (!parts.some((part) => /\S+-\S+/.test(part))) return text;
+    return parts.map((part) => /\S+-\S+/.test(part) ? { text: part, noWrap: true } : { text: part });
+  }
+
+  /** Names that must never break: a wrap on the hyphen extracts `Objective-C` as `ObjectiveC`. */
+  unbreakableList(names, separator = ', ') {
+    return names.flatMap((name, index) => [
+      ...(index ? [{ text: separator }] : []),
+      { text: name, noWrap: true }
+    ]);
   }
 
   /** The links as annotations. A printed URL is unusable; an unlinked one is worse than absent. */
