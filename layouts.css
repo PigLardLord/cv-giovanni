@@ -1,0 +1,324 @@
+/* Three presentation strategies over the same semantic CV document. */
+
+.layout-switcher {
+  display: flex;
+  justify-content: center;
+  gap: 0.35rem;
+  max-width: 900px;
+  margin: 0 auto 0.75rem;
+  padding: 0.3rem;
+  border: 1px solid #dbe3ef;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 4px 16px rgb(15 23 42 / 0.08);
+}
+
+.layout-switcher a {
+  flex: 1;
+  padding: 0.55rem 0.8rem;
+  border-radius: 999px;
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+}
+
+.layout-switcher a[aria-current='page'] {
+  background: #0f172a;
+  color: #fff;
+}
+
+/* Classic ATS: restrained, linear, and deliberately close to a document. */
+body[data-layout='classic'] {
+  --primary-color: #172033;
+  --primary-light: #334155;
+  --primary-dark: #0f172a;
+  --accent-color: #64748b;
+  background: #eef1f5;
+}
+
+body[data-layout='classic'] .container {
+  max-width: 820px;
+  border-radius: 2px;
+  box-shadow: 0 8px 30px rgb(15 23 42 / 0.09);
+}
+
+body[data-layout='classic'] .hero-section {
+  padding: 2.4rem 2.6rem 1.5rem;
+  background: #fff;
+  color: var(--text-primary);
+  border-top: 6px solid #172033;
+  border-bottom: 1px solid var(--border-color);
+}
+
+body[data-layout='classic'] .hero-section::before,
+body[data-layout='classic'] .profile-image-wrapper {
+  display: none;
+}
+
+body[data-layout='classic'] .hero-content {
+  display: block;
+}
+
+body[data-layout='classic'] .hero-name {
+  margin-bottom: 0.2rem;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 2.35rem;
+  font-weight: 700;
+}
+
+body[data-layout='classic'] .hero-title {
+  margin-bottom: 0.8rem;
+  color: #334155;
+  font-size: 1rem;
+}
+
+body[data-layout='classic'] .hero-subtitle,
+body[data-layout='classic'] .hero-summary,
+body[data-layout='classic'] .hero-availability {
+  color: var(--text-secondary);
+  max-width: none;
+}
+
+body[data-layout='classic'] .hero-sidebar {
+  align-items: stretch;
+}
+
+body[data-layout='classic'] .contact-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding: 0.7rem 0;
+  border: 0;
+  border-top: 1px solid var(--border-color);
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  text-align: left;
+}
+
+body[data-layout='classic'] .contact-details,
+body[data-layout='classic'] .contact-item {
+  margin: 0;
+}
+
+body[data-layout='classic'] .social-links {
+  margin-left: auto;
+}
+
+body[data-layout='classic'] .social-links a {
+  padding: 0;
+  background: transparent;
+  color: var(--primary-color);
+}
+
+body[data-layout='classic'] .skills-spotlight {
+  padding: 1.25rem 2.6rem;
+  background: #fff;
+}
+
+body[data-layout='classic'] .spotlight-title {
+  margin-bottom: 0.65rem;
+  color: var(--text-primary);
+  text-align: left;
+}
+
+body[data-layout='classic'] .main-content {
+  padding: 1.5rem 2.6rem 2.6rem;
+}
+
+body[data-layout='classic'] .content-grid {
+  display: block;
+}
+
+body[data-layout='classic'] .secondary-column {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+}
+
+body[data-layout='classic'] .job-entry,
+body[data-layout='classic'] .edu-entry {
+  padding: 0 0 0.9rem;
+  border: 0;
+  border-radius: 0;
+  background: #fff;
+  box-shadow: none;
+}
+
+/* Impact Spotlight: editorial hierarchy and a compact, memorable opening. */
+body[data-layout='spotlight'] {
+  --primary-color: #183153;
+  --primary-light: #2f6f8f;
+  --primary-dark: #10243e;
+  --accent-color: #d49b45;
+  --accent-light: #f4d7a6;
+}
+
+body[data-layout='spotlight'] .hero-section {
+  padding: 2.25rem 2.5rem;
+  background: linear-gradient(118deg, #10243e 0%, #183153 62%, #245271 100%);
+}
+
+body[data-layout='spotlight'] .hero-name {
+  font-size: 2.7rem;
+}
+
+body[data-layout='spotlight'] .hero-title {
+  color: #f4d7a6;
+}
+
+body[data-layout='spotlight'] .skills-spotlight {
+  position: relative;
+  padding: 1.4rem 2.5rem;
+  background: #fbf7ef;
+  border-bottom-color: #eadfcf;
+}
+
+body[data-layout='spotlight'] .spotlight-title {
+  margin-bottom: 0.8rem;
+  color: #725226;
+  text-align: left;
+}
+
+body[data-layout='spotlight'] .skills-showcase {
+  max-width: none;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 1.6rem;
+}
+
+body[data-layout='spotlight'] .job-entry {
+  background: #fff;
+  border: 1px solid #e7ebf0;
+  border-left: 4px solid var(--accent-color);
+}
+
+/* Technical Profile: dense evidence column plus an engineering-oriented rail. */
+body[data-layout='technical'] {
+  --primary-color: #075e54;
+  --primary-light: #16877a;
+  --primary-dark: #064e46;
+  --accent-color: #0d9488;
+  --accent-light: #99f6e4;
+  background: #e9efee;
+}
+
+body[data-layout='technical'] .container {
+  display: grid;
+  grid-template-columns: 245px minmax(0, 1fr);
+  max-width: 940px;
+}
+
+body[data-layout='technical'] .hero-section {
+  grid-column: 1 / -1;
+  padding: 2rem 2.35rem;
+  background: #103d3a;
+}
+
+body[data-layout='technical'] .hero-content {
+  grid-template-columns: 1fr auto;
+}
+
+body[data-layout='technical'] .hero-summary {
+  max-width: 650px;
+}
+
+body[data-layout='technical'] .hero-sidebar {
+  flex-direction: row-reverse;
+}
+
+body[data-layout='technical'] .profile-image-wrapper img {
+  width: 92px;
+  height: 92px;
+}
+
+body[data-layout='technical'] .contact-card {
+  min-width: 205px;
+  padding: 0.8rem;
+}
+
+body[data-layout='technical'] .skills-spotlight {
+  grid-column: 1;
+  padding: 1.7rem 1.35rem;
+  background: #eff8f6;
+  border-right: 1px solid #d4e6e2;
+}
+
+body[data-layout='technical'] .spotlight-title {
+  text-align: left;
+}
+
+body[data-layout='technical'] .skill-group {
+  display: block;
+  margin-bottom: 1rem;
+}
+
+body[data-layout='technical'] .skill-category {
+  display: block;
+  margin-bottom: 0.2rem;
+  color: #075e54;
+}
+
+body[data-layout='technical'] .skill-list {
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+body[data-layout='technical'] .main-content {
+  grid-column: 2;
+  padding: 1.8rem 2rem;
+}
+
+body[data-layout='technical'] .content-grid {
+  display: block;
+}
+
+body[data-layout='technical'] .secondary-column {
+  display: grid;
+  grid-template-columns: 1.25fr 0.8fr 1fr;
+  gap: 1rem;
+}
+
+body[data-layout='technical'] .job-entry {
+  position: relative;
+  padding: 0 0 1.3rem 1.35rem;
+  border: 0;
+  border-left: 2px solid #b7d5d0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+body[data-layout='technical'] .job-entry::before {
+  content: '';
+  position: absolute;
+  top: 0.35rem;
+  left: -6px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #0d9488;
+}
+
+body[data-layout='technical'] .print-footer {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 768px) {
+  .layout-switcher { border-radius: 14px; }
+  body[data-layout='classic'] .secondary-column,
+  body[data-layout='spotlight'] .skills-showcase,
+  body[data-layout='technical'] .secondary-column {
+    grid-template-columns: 1fr;
+  }
+  body[data-layout='technical'] .container { display: block; }
+  body[data-layout='technical'] .hero-sidebar { flex-direction: column; }
+  body[data-layout='classic'] .contact-card { display: block; }
+  body[data-layout='classic'] .social-links { justify-content: flex-start; margin-top: 0.5rem; }
+}
+
+@media print {
+  .layout-switcher { display: none !important; }
+}

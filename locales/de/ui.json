@@ -1,7 +1,15 @@
 {
   "meta": { "title": "{{name}} – Lebenslauf" },
   "actions": { "print": "Drucken / als PDF speichern" },
-  "accessibility": { "profilePhoto": "Porträt von {{name}}" },
+  "layouts": {
+    "classic": "Klassisch ATS",
+    "spotlight": "Wirkung im Fokus",
+    "technical": "Technisches Profil"
+  },
+  "accessibility": {
+    "profilePhoto": "Porträt von {{name}}",
+    "layoutSwitcher": "Lebenslauf-Layout auswählen"
+  },
   "errors": {
     "loadingTitle": "Lebenslauf konnte nicht geladen werden",
     "loadingHint": "Weitere Informationen finden Sie in der Konsole."

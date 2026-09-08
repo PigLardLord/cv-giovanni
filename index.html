@@ -8,10 +8,16 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="layouts.css" />
   <link rel="stylesheet" href="print.css" media="print" />
-  <script type="module" defer src="script.js?v=20260907-i18n1"></script>
+  <script type="module" defer src="script.js?v=20260908-layouts1"></script>
 </head>
 <body>
+  <nav class="layout-switcher" aria-label="CV layout" data-i18n-attr="aria-label:accessibility.layoutSwitcher">
+    <a data-layout-link="classic" data-i18n="layouts.classic">Classic ATS</a>
+    <a data-layout-link="spotlight" data-i18n="layouts.spotlight">Impact Spotlight</a>
+    <a data-layout-link="technical" data-i18n="layouts.technical">Technical Profile</a>
+  </nav>
   <div class="container">
     <!-- Hero Section with Key Info -->
     <header class="hero-section">

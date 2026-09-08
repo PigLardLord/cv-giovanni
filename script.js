@@ -5,6 +5,7 @@ import { LocaleResolver } from './core/LocaleResolver.js';
 import { I18nService } from './core/I18nService.js';
 import { DocumentLocalizer } from './core/DocumentLocalizer.js';
 import { ProfileResolver } from './core/ProfileResolver.js';
+import { LayoutResolver } from './core/LayoutResolver.js';
 import { HeaderRenderer } from './renderers/HeaderRenderer.js';
 import { ProfileRenderer } from './renderers/ProfileRenderer.js';
 import { ExperienceRenderer } from './renderers/ExperienceRenderer.js';
@@ -23,6 +24,17 @@ const locale = resolver.resolve({
 });
 const i18n = await new I18nService().initialize(locale);
 const localizer = new DocumentLocalizer(i18n);
+const layout = new LayoutResolver().resolve(location.search);
+document.body.dataset.layout = layout;
+document.querySelectorAll('[data-layout-link]').forEach((link) => {
+  const targetLayout = link.dataset.layoutLink;
+  const url = new URL(location.href);
+  url.searchParams.set('layout', targetLayout);
+  link.href = url.href;
+  if (targetLayout === layout) {
+    link.setAttribute('aria-current', 'page');
+  }
+});
 let profileSelection;
 try {
   profileSelection = await new ProfileResolver().resolveRequested({
@@ -55,3 +67,4 @@ app.initialize(document);
 window.cvApp = app;
 window.cvI18n = i18n;
 window.cvSelection = profileSelection;
+window.cvLayout = layout;

@@ -1,7 +1,15 @@
 {
   "meta": { "title": "{{name}} – Curriculum Vitae" },
   "actions": { "print": "Print / Save as PDF" },
-  "accessibility": { "profilePhoto": "Portrait of {{name}}" },
+  "layouts": {
+    "classic": "Classic ATS",
+    "spotlight": "Impact Spotlight",
+    "technical": "Technical Profile"
+  },
+  "accessibility": {
+    "profilePhoto": "Portrait of {{name}}",
+    "layoutSwitcher": "Choose CV layout"
+  },
   "errors": {
     "loadingTitle": "Error loading CV",
     "loadingHint": "Please check the console for more details."
