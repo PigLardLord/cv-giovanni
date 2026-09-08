@@ -11,7 +11,11 @@ export class DocumentLocalizer {
     root.title = this.i18n.t('meta.title', { name: data.name || '' });
 
     root.querySelectorAll('[data-i18n]').forEach((element) => {
-      element.textContent = this.i18n.t(element.dataset.i18n);
+      const key = element.dataset.i18n;
+      const translation = this.i18n.t(key);
+      if (translation !== key || !element.textContent.trim()) {
+        element.textContent = translation;
+      }
     });
 
     root.querySelectorAll('[data-i18n-attr]').forEach((element) => {

@@ -21,4 +21,15 @@ describe('DocumentLocalizer', () => {
     expect(document.querySelector('h2').textContent).toBe('Berufserfahrung');
     expect(document.querySelector('img').alt).toBe('Porträt von Giovanni Trovato');
   });
+
+  test('keeps authored fallback text when a catalog key is unavailable', () => {
+    const document = new JSDOM(`<!doctype html><html><body>
+      <a data-i18n="layouts.classic">Classic ATS</a>
+    </body></html>`).window.document;
+    const i18n = { language: 'en', t: (key) => key };
+
+    new DocumentLocalizer(i18n).apply(document);
+
+    expect(document.querySelector('a').textContent).toBe('Classic ATS');
+  });
 });
