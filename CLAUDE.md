@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+The project's instructions are in @AGENTS.md — read and follow them.
+
 ## Project Overview
 
 This is a static CV/resume website built with vanilla HTML, CSS, and JavaScript. The CV content is driven by JSON data and rendered dynamically into the DOM using modular JavaScript renderers.

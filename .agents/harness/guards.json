@@ -1,0 +1,16 @@
+{
+  "_comment": "Policy for this project. Version it. Review the branches: the default branch is not necessarily the one to protect.",
+  "protected": [
+    "^main$",
+    "^release/.+$"
+  ],
+  "noncode": [
+    "^(CLAUDE|AGENTS)\\.md$",
+    "(^|/)\\.gitignore$",
+    "^\\.claude/",
+    "^\\.agents/",
+    "^\\.githooks/",
+    "^docs/",
+    "\\.md$"
+  ]
+}

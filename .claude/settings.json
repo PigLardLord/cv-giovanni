@@ -1,0 +1,7 @@
+{
+  "enabledPlugins": {
+    "ticket-loop@harness": true,
+    "git-guards@harness": true,
+    "agent-protocols@harness": true
+  }
+}

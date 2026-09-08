@@ -1,0 +1,59 @@
+{
+  "_comment": "The shape of THIS project. Version it: whoever works here must use the same providers. Credentials do NOT belong here \u2014 they are the plugin's userConfig, per user.",
+  "providers": {
+    "tracker": "github",
+    "vcs": "github"
+  },
+  "board": {
+    "states": {
+      "start": "status:in-progress",
+      "in_review": "status:in-review",
+      "testing": "status:testing",
+      "done": "status:done"
+    },
+    "backlog_label": "status:backlog",
+    "never_autoclose": true,
+    "_sync": "Optional. A secondary view (a board, a dashboard) to realign after every state change. It is NOT the source of truth \u2014 the tracker is. If this command fails the loop SAYS SO and carries on: a stale view is an annoyance, a stalled loop is a blocker.",
+    "sync": null,
+    "sync_requires": []
+  },
+  "vcs": {
+    "base_branch": "main",
+    "branch_prefixes": {
+      "feature": "feat",
+      "bug": "fix",
+      "chore": "chore"
+    },
+    "branch_pattern": "{prefix}/{ticket}-{slug}"
+  },
+  "build": {
+    "test_fast": "npm test",
+    "test_all": "npm test && npm run verify:pdf",
+    "lint": "",
+    "build": "",
+    "_tiers": "Optional, and only needed when part of the gate CANNOT run everywhere. A gate that skips a tier silently reads as green: that is how a defect survives for months. Declare every conditional tier here; preflight reports which are available and which are not, and the loop must name the missing ones at the regression gate instead of calling a partial run green.",
+    "tiers": []
+  },
+  "stack": null,
+  "_stack": "Default profile, relative to the repository root (e.g. .agents/harness/stacks/swift-spm.md). An absolute path into a home directory makes the manifest useless on another machine and for anyone else. Needed only when the roster uses the generic role agents.",
+  "stacks_by_component": {
+    "component::typescript-node": ".agents/harness/stacks/typescript-node.md"
+  },
+  "_stacks_by_component": "Optional, for a multi-stack repo. Maps the label identifying a part of the product to the profile the role agents receive. A value of `null` means: no stack, and therefore no implementer role to spawn \u2014 the case for prose and schemas. A ticket without that label does not enter the loop: ask for it rather than guessing.",
+  "component_label_prefix": "component::",
+  "agents": {
+    "mode": "single",
+    "roster": {},
+    "plugin_agents": []
+  },
+  "loop": {
+    "autonomy": "gated",
+    "concurrency": "sequential",
+    "priority_order": [
+      "priority:critical",
+      "priority:high",
+      "priority:medium",
+      "priority:low"
+    ]
+  }
+}
