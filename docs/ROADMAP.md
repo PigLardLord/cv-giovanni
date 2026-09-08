@@ -22,16 +22,21 @@ content has been reviewed; the application must never silently mix languages.
 
 ## M0 — Preserve the previous work
 
-Status: safely stored in Git stash
-`wip/pre-localization-cv-2026-update-2026-09-07`.
+Status: done. The pre-localization stash has been classified and dropped, and
+the stale `cv-main-preview` worktree metadata has been pruned.
 
-- Inventory the stashed 2026 profile, pagination, layouts and experiments.
-- Restore only coherent groups, one commit at a time.
-- Exclude generated diagnostics and obsolete prototypes.
-- Repair or remove the stale `cv-main-preview` worktree metadata.
+What survived it:
 
-Done when: the stash has been fully classified and no valuable work remains
-only in a working tree.
+- Inline separators, empty-section handling and the seven renderers they touch
+  are on this branch, in `feat: bind inline separators and hide empty sections`.
+  The separator is a real element because Chromium collapses CSS-generated
+  whitespace when it lays out a page, welding adjacent items together in the PDF.
+- The position-based pagination engine is on `archive/print-pagination-engine`,
+  with its stress fixtures, its verification script and its plan. It is kept as
+  a record rather than as working code: the two suites asserting the superseded
+  `print.css` contract are excluded from that branch's Jest run.
+- Diagnostics, spikes, the design board, the hidden admin panel prototype, the
+  earlier profile variants and the generated PDFs were discarded.
 
 ## M1 — Standard localization foundation
 
@@ -57,7 +62,8 @@ catalog parity is tested, and both browser and PDF have been reviewed.
 
 ## M3 — Recruiter-ready English general profile
 
-- Recover and review the stashed 2026 content.
+- Review the English content in `profiles/general/en.json`; the stashed
+  2026 variant was discarded in M0.
 - Reduce the Cortado role to four or five strongest achievements.
 - Keep only evidence-backed metrics.
 - Simplify the technology inventory and remove rating dots.
@@ -71,7 +77,8 @@ passes an ATS text-extraction check.
 - `classic-ats`: restrained, monochrome and extraction-safe.
 - `modern`: stronger hierarchy and identity without sacrificing ATS.
 - Fix duplicate skill presentations before adding further designs.
-- Restore and complete the stashed position-based pagination work.
+- Restore and complete the position-based pagination work from
+  `archive/print-pagination-engine`.
 
 Done when: both layouts pass stress profiles and generate reviewed A4 PDFs.
 
@@ -84,7 +91,8 @@ Done when: both layouts pass stress profiles and generate reviewed A4 PDFs.
 
 ## M6 — Reliable generation and release
 
-- Replace the hidden admin panel with a small local settings interface.
+- Add a small local settings interface; the hidden admin panel prototype was
+  discarded in M0.
 - Generate deterministic filenames from profile, locale and layout.
 - Add CI for tests, catalog parity, static assets and PDF smoke generation.
 - Document GitHub Pages deployment and the release checklist.
