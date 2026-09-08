@@ -1,0 +1,358 @@
+/* =============================================================================
+   LAYOUT: CLASSIC — print
+   The printed look this CV had on main, restored from that stylesheet's own
+   print values rather than from its screen ones.
+
+   The distinction matters and I got it wrong first: on screen the hero is a
+   blue gradient band with white text, but *in print* main deliberately dropped
+   it — white background, blue name, grey rule underneath. Copying the screen
+   theme produced a page that never existed on paper.
+
+   Loaded after print.css, so the @page geometry, the fragmentation rules and
+   the measured per-page footers all still apply. This file restores the
+   appearance only.
+   ============================================================================= */
+
+/* -----------------------------------------------------------------------------
+   IDENTITY — centred name, portrait right, contacts in a card
+   -------------------------------------------------------------------------- */
+
+.hero-section {
+  background: white !important;
+  color: #1f2937 !important;
+  padding: 0 0 16pt 0 !important;
+  margin-bottom: 16pt !important;
+  border-bottom: 2pt solid #e5e7eb !important;
+  break-inside: avoid !important;
+  page-break-inside: avoid !important;
+}
+
+.hero-section::before { display: none !important; }
+
+.hero-content {
+  display: grid !important;
+  grid-template-columns: 2fr 1fr !important;
+  gap: 20pt !important;
+  align-items: start !important;
+}
+
+.hero-text {
+  padding-right: 8pt !important;
+  text-align: center !important;
+}
+
+.hero-name {
+  font-size: 28pt !important;
+  font-weight: 800 !important;
+  color: #1e40af !important;
+  margin-bottom: 4pt !important;
+  line-height: 1.1 !important;
+  letter-spacing: -0.5pt !important;
+}
+
+.hero-title {
+  font-size: 14pt !important;
+  font-weight: 600 !important;
+  color: #475569 !important;
+  margin-bottom: 8pt !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5pt !important;
+}
+
+.hero-subtitle {
+  font-size: 10pt !important;
+  color: #4b5563 !important;
+  margin-bottom: 8pt !important;
+}
+
+/* The identity block is a card in this layout, so the contact rows and the
+   availability line sit inside it rather than running under the name. */
+#contacts,
+.social-links,
+.hero-availability {
+  background: #f8fafc !important;
+  border-left: 1pt solid #e5e7eb !important;
+  border-right: 1pt solid #e5e7eb !important;
+  padding: 4pt 10pt !important;
+  margin: 0 !important;
+  text-align: center !important;
+  font-size: 8.5pt !important;
+  line-height: 1.45 !important;
+  color: #4b5563 !important;
+}
+
+#contacts {
+  border-top: 1pt solid #e5e7eb !important;
+  border-radius: 6pt 6pt 0 0 !important;
+  padding-top: 8pt !important;
+}
+
+.hero-availability {
+  border-bottom: 1pt solid #e5e7eb !important;
+  border-radius: 0 0 6pt 6pt !important;
+  padding-bottom: 8pt !important;
+  font-size: 8pt !important;
+  color: #6b7280 !important;
+}
+
+/* Social links as the small tinted chips of the original. */
+.social-links a {
+  color: #1e40af !important;
+  text-decoration: none !important;
+  padding: 2pt 6pt !important;
+  background: #e0e7ff !important;
+  border: 0.5pt solid #c7d2fe !important;
+  border-radius: 3pt !important;
+  font-size: 7pt !important;
+  font-weight: 500 !important;
+}
+
+.social-links .inline-separator { display: none !important; }
+
+.profile-image-wrapper img {
+  width: 80pt !important;
+  height: 80pt !important;
+  border-radius: 50% !important;
+  border: 2pt solid #e5e7eb !important;
+  object-fit: cover !important;
+  object-position: center top !important;
+}
+
+/* -----------------------------------------------------------------------------
+   SKILLS — the 3-column grid of rated badges
+   -------------------------------------------------------------------------- */
+
+/* This layout shows the ratings; the compact run belongs to the ATS layout. */
+.skill-list,
+.skill-separator { display: none !important; }
+
+.skills-section {
+  background: white !important;
+  padding: 12pt 0 !important;
+  margin-bottom: 16pt !important;
+  border: none !important;
+  border-bottom: 1pt solid #e5e7eb !important;
+  /* 34 badges are taller than the space left on page one, and the base
+     stylesheet's `break-inside: avoid` moves the whole block rather than
+     splitting it — which empties the page it was meant to fill. The groups
+     inside stay unbreakable, so a category never splits mid-row. */
+  break-inside: auto !important;
+  page-break-inside: auto !important;
+}
+
+.skills-section .section-title {
+  justify-content: center !important;
+  border-bottom: none !important;
+  margin-bottom: 10pt !important;
+}
+
+.skills-section .section-title span:last-child {
+  font-size: 11pt !important;
+  font-weight: 700 !important;
+  color: #374151 !important;
+  letter-spacing: 0.5pt !important;
+}
+
+.skill-group { margin-bottom: 8pt !important; break-inside: avoid !important; }
+
+.skill-category {
+  display: block !important;
+  font-size: 8pt !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.4pt !important;
+  color: #6b7280 !important;
+  margin-bottom: 4pt !important;
+}
+
+.skill-badges {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 6pt !important;
+}
+
+.skill-badge {
+  background: white !important;
+  border: 1pt solid #d1d5db !important;
+  border-radius: 4pt !important;
+  padding: 4pt 6pt !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 4pt !important;
+  break-inside: avoid !important;
+}
+
+/* An unrated skill keeps its badge but states nothing about proficiency. */
+.skill-badge--unrated { border-style: dashed !important; }
+
+.skill-name {
+  font-weight: 600 !important;
+  color: #1f2937 !important;
+  font-size: 9pt !important;
+}
+
+.skill-level {
+  font-family: monospace !important;
+  font-size: 9pt !important;
+  color: #1e40af !important;
+  letter-spacing: 0.5pt !important;
+  white-space: nowrap !important;
+}
+
+/* -----------------------------------------------------------------------------
+   BODY — 62% / 36%, the original split
+
+   The column that carries Professional Experience is the *float*, and the
+   short sections beside it stay in normal flow. That inversion is the whole
+   fix, and it follows from one rule: a float is never moved up. Its top edge
+   is its static position, so a float declared after Experience in the source
+   can only ever start below it — which is why floating the sidebar right put
+   it on a sheet of its own, and why nothing about the width or the clearing
+   was ever going to rescue that arrangement.
+
+   Float Experience instead and the relationship reverses. The float leaves the
+   flow, so Education — the next element in source order — takes the block
+   position Experience would have had, at the top of the body, and an inset of
+   64% moves it clear of the float into the right-hand column. Languages and
+   Interests stack under it in the same flow. Certifications is floated too and
+   cleared, so it drops below Experience rather than beside it: left column,
+   under the jobs, exactly where the printed original had it.
+
+   Grid cannot do this without the wrapper divs the ATS markup dropped. With
+   one item per section Chromium auto-places each into a row of its own, so
+   Education sits beside the *whole* of Experience and the short sections are
+   pushed past it; pinning them with explicit `grid-row` only makes the rows
+   taller than a page, and a grid row is monolithic — it moves whole to the
+   next sheet and leaves the current one white. Floats have no such unit. They
+   fragment page by page like any other block, which is what lets Experience
+   run over a page boundary while the sidebar beside it does not.
+
+   The percentages are of the 168mm text column: 62% + 2% gutter + 36%.
+   -------------------------------------------------------------------------- */
+
+.main-content {
+  display: block !important;
+  padding: 0 !important;
+}
+
+/* The floats are the body's own columns, so the body has to contain them:
+   without this its height stops at the end of the flow and the last page of a
+   long Experience falls outside anything the paginator can measure. */
+.main-content::after {
+  content: '' !important;
+  display: block !important;
+  clear: both !important;
+}
+
+/* Full measure, above the columns and unaffected by them. */
+.profile-section,
+.skills-section {
+  clear: both !important;
+  float: none !important;
+  width: auto !important;
+  margin-left: 0 !important;
+}
+
+/* LEFT COLUMN — the tall one. `clear: left` is what stacks Certifications
+   under Experience instead of letting it slide up beside the sidebar. */
+.experience-section,
+.certifications-section {
+  float: left !important;
+  clear: left !important;
+  width: 62% !important;
+  margin-right: 2% !important;
+}
+
+/* RIGHT COLUMN — normal flow, inset past the float. These keep their own
+   block position, which is the top of the body, so they start level with
+   Experience rather than after it. */
+.education-section,
+.languages-section,
+.interests-section {
+  float: none !important;
+  clear: none !important;
+  width: auto !important;
+  margin-left: 64% !important;
+}
+
+/* A section the renderer left empty is `hidden`; it must not still reserve a
+   float slot or a cleared line in the column it belonged to. */
+.main-content section[hidden] {
+  display: none !important;
+  float: none !important;
+}
+
+.section-title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6pt !important;
+  margin-bottom: 10pt !important;
+  padding-bottom: 4pt !important;
+  border-bottom: 1pt solid #e5e7eb !important;
+}
+
+/* The blue tick before each heading: the template has no element for it, so
+   the rule draws it rather than the markup carrying it. */
+.main-content .section-title::before {
+  content: '' !important;
+  display: inline-block !important;
+  width: 3pt !important;
+  height: 16pt !important;
+  background: #1e40af !important;
+  border-radius: 1pt !important;
+  flex: 0 0 auto !important;
+}
+
+.section-title span:last-child {
+  font-size: 11pt !important;
+  font-weight: 700 !important;
+  color: #1f2937 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.25pt !important;
+}
+
+.job-entry {
+  background: white !important;
+  border: none !important;
+  border-left: 2pt solid #e5e7eb !important;
+  border-radius: 0 !important;
+  padding: 8pt 0 8pt 12pt !important;
+  margin-bottom: 12pt !important;
+}
+
+.job-title {
+  font-weight: 700 !important;
+  color: #1e40af !important;
+  font-size: 11pt !important;
+}
+
+.job-company {
+  font-weight: 600 !important;
+  color: #1f2937 !important;
+  font-size: 11pt !important;
+}
+
+.job-period {
+  font-size: 9pt !important;
+  color: #6b7280 !important;
+  font-weight: 500 !important;
+  margin-bottom: 6pt !important;
+}
+
+.job-summary,
+.job-highlights li {
+  color: #374151 !important;
+  line-height: 1.4 !important;
+  font-size: 10pt !important;
+}
+
+/* The sidebar entries were cards in this layout. */
+.education-section .edu-entry,
+.certifications-section li {
+  border: 1pt solid #e5e7eb !important;
+  border-radius: 4pt !important;
+  padding: 8pt !important;
+  margin-bottom: 8pt !important;
+  break-inside: avoid !important;
+}

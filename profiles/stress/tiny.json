@@ -1,0 +1,80 @@
+{
+  "name": "Giovanni Trovato",
+  "title": "Senior Mobile / Platform Engineer",
+  "subtitle": "iOS · Android · CI/CD · Mobile Device Management",
+  "location": "Bad Liebenstein, Thuringia, Germany",
+  "email": "trovato.giovanni@gmail.com",
+  "phone": "+39 329 8484 046",
+  "availability": "EU citizen · unrestricted German work authorization · available immediately; released from duties following an operational redundancy (employment contract ends November 2026)",
+  "portfolio": "https://sites.google.com/view/giovanni-trovato",
+  "profile": "Senior mobile engineer with more than 11 years of experience building native iOS and Android products, including eight years in enterprise mobility and device management. Technical owner of an iOS MDM client for six years, serving hundreds of corporate customers and tens of thousands of managed devices. Strong in Swift, SwiftUI, Kotlin, Jetpack Compose, automated testing, CI/CD, code signing and production releases.",
+  "relevant_experience": [
+    {
+      "title": "Mobile Software Engineer / Technical Owner, iOS & Android",
+      "company": "Cortado Mobile Solutions",
+      "location": "Berlin (remote)",
+      "period": "August 2018 – November 2026",
+      "summary": "Enterprise mobility and device management (MDM, secure printing) in a mobile team of 3–7 engineers.",
+      "highlights": [
+        "Expanded the Android test suite to ~4,800 tests and raised UI-test coverage from 15% to 82%, while cutting CI test runtime by 75% (32 to 8 minutes) to give the team same-hour merge feedback."
+      ]
+    }
+  ],
+  "education": [
+    {
+      "degree": "M.Sc. Mobile Application Development",
+      "school": "Università degli Studi di Pisa",
+      "period": "2015",
+      "description": "Mobile architecture patterns and cross-platform development (iOS, Android)."
+    }
+  ],
+  "skills": [
+    {
+      "category": "iOS",
+      "items": [
+        {
+          "name": "Swift",
+          "level": 5
+        },
+        {
+          "name": "SwiftUI",
+          "level": 4
+        },
+        {
+          "name": "UIKit",
+          "level": 5
+        }
+      ]
+    }
+  ],
+  "languages": [
+    {
+      "name": "Italian",
+      "level": "Native"
+    },
+    {
+      "name": "English",
+      "level": "C1 — professional working proficiency"
+    },
+    {
+      "name": "German",
+      "level": "A2 — currently studying"
+    }
+  ],
+  "certifications": [],
+  "interests": [],
+  "social": [
+    {
+      "platform": "GitHub",
+      "url": "https://github.com/PigLardLord"
+    },
+    {
+      "platform": "LinkedIn",
+      "url": "https://www.linkedin.com/in/piglardlord/"
+    },
+    {
+      "platform": "Web CV",
+      "url": "https://piglardlord.github.io/cv-giovanni/"
+    }
+  ]
+}

@@ -1,0 +1,246 @@
+/* =============================================================================
+   LAYOUT: CLASSIC — screen
+   The look this CV had before the ATS restructure: dark blue hero, cyan accent,
+   bordered cards, rated skill badges, two columns.
+
+   It is a *layout*, not a fork: it styles the same DOM the same renderers
+   produce, from the same profile. Where the ATS layout hides the skill badges
+   and shows the compact run, this one does the opposite — the data carries
+   both, the layout picks.
+
+   Loaded on top of style.css, so it only needs to state the differences.
+   ============================================================================= */
+
+:root {
+  /* The original palette, restored verbatim from main. */
+  --primary-color: #1e40af;
+  --primary-light: #3b82f6;
+  --primary-dark: #1e3a8a;
+  --accent-color: #06b6d4;
+  --accent-light: #67e8f9;
+  --bg-accent: #f0f9ff;
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+/* -----------------------------------------------------------------------------
+   IDENTITY — the blue hero band
+   -------------------------------------------------------------------------- */
+
+.hero-section {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  color: var(--text-white);
+  padding: var(--space-2xl) var(--space-xl);
+  position: relative;
+  overflow: hidden;
+  border-bottom: none;
+}
+
+.hero-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+  border-radius: 50%;
+  transform: translate(50%, -50%);
+}
+
+.hero-content {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--space-xl);
+  align-items: start;
+}
+
+.hero-text {
+  position: relative;
+  z-index: 2;
+}
+
+.hero-name {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--text-white);
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  margin-bottom: var(--space-sm);
+}
+
+.hero-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--accent-light);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-sm);
+}
+
+.hero-subtitle,
+.hero-availability {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.contact-block,
+.contact-line {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.contact-block a,
+.social-links a {
+  color: var(--text-white);
+}
+
+.profile-image-wrapper img {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center top;
+  border: 4px solid rgba(255, 255, 255, 0.2);
+  box-shadow: var(--shadow-lg);
+}
+
+/* -----------------------------------------------------------------------------
+   SKILLS — the spotlight band with rated badges
+   -------------------------------------------------------------------------- */
+
+.skills-section {
+  background: var(--bg-accent);
+  padding: var(--space-xl);
+  border-bottom: 1px solid var(--border-color);
+  margin: 0 calc(-1 * var(--space-xl));
+}
+
+.skills-section .section-title {
+  justify-content: center;
+  border-bottom: none;
+}
+
+/* The compact run is what the ATS layout shows; here the badges carry it.
+   The separator that joins the label to the run is a bare text node and
+   cannot be selected, so the label becomes a block and swallows it. */
+.skill-list,
+.skill-separator { display: none; }
+
+.skill-group {
+  margin-bottom: var(--space-lg);
+}
+
+.skill-category {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: var(--space-sm);
+}
+
+.skill-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.skill-badge {
+  background: var(--bg-primary);
+  border: 2px solid var(--primary-light);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xs) var(--space-md);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Unrated skills keep the badge but lose the emphasis: the border says
+   "this is a skill", the dots would say "this is how good I am at it". */
+.skill-badge--unrated {
+  border-color: var(--border-color);
+}
+
+.skill-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.skill-level {
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--primary-light);
+  letter-spacing: 1px;
+}
+
+/* -----------------------------------------------------------------------------
+   BODY — two columns
+   -------------------------------------------------------------------------- */
+
+/* The DOM order is the ATS reading order and must not change, so the columns
+   are built without moving markup — and not with a grid. Auto-placement gives
+   every section a row of its own, so Education sits beside the whole of
+   Experience and Languages, Certifications and Interests are stranded in the
+   rows below it, each opposite a hole. Floating the *left* column instead puts
+   the short sections back at the top of the right one, because a float leaves
+   the flow and the section after it keeps the block position it would have had.
+   Same rule as the print layout; see layouts/classic/print.css. */
+
+.main-content {
+  padding: var(--space-xl);
+  display: block;
+}
+
+.main-content::after {
+  content: '';
+  display: block;
+  clear: both;
+}
+
+.profile-section,
+.skills-section {
+  clear: both;
+  float: none;
+  width: auto;
+  margin-left: 0;
+}
+
+.experience-section,
+.certifications-section {
+  float: left;
+  clear: left;
+  width: 62%;
+  margin-right: 2%;
+}
+
+.education-section,
+.languages-section,
+.interests-section {
+  float: none;
+  width: auto;
+  margin-left: 64%;
+}
+
+.section-title {
+  border-bottom: 2px solid var(--border-light);
+  padding-bottom: var(--space-sm);
+}
+
+.section-title span:last-child {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.job-entry {
+  border-left: 3px solid var(--border-light);
+  padding-left: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.job-title {
+  color: var(--primary-color);
+}
