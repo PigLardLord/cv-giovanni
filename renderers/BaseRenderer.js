@@ -1,4 +1,5 @@
 import { Renderer } from '../interfaces/Renderer.js';
+import { createSeparatorElement } from './inlineSeparator.js';
 
 /**
  * Base renderer with common DOM manipulation utilities
@@ -56,9 +57,9 @@ export class BaseRenderer extends Renderer {
    */
   renderItems(container, items, itemRenderer) {
     if (!container || !Array.isArray(items)) return;
-    
-    items.forEach(item => {
-      const element = itemRenderer(item);
+
+    items.forEach((item, index) => {
+      const element = itemRenderer(item, index);
       if (element) {
         container.appendChild(element);
       }
@@ -80,6 +81,43 @@ export class BaseRenderer extends Renderer {
     link.target = '_blank';
     link.rel = 'noopener noreferrer';
     return link;
+  }
+
+  /**
+   * Append nodes to a container, joined by a real separator element.
+   *
+   * @param {Document} root - DOM root
+   * @param {Element} container - Container to append into
+   * @param {Element[]} nodes - Nodes to join
+   */
+  appendSeparated(root, container, nodes) {
+    nodes.forEach((node, index) => {
+      if (index > 0) {
+        container.appendChild(createSeparatorElement(root));
+      }
+      container.appendChild(node);
+    });
+  }
+
+  /**
+   * Show or hide the section that owns a container.
+   *
+   * The section headings and their accent rules live in the static template, so
+   * an empty data set would otherwise leave a heading, a rule and a block of
+   * reserved space behind. Toggling `hidden` rather than removing the node
+   * keeps the section reusable when data is swapped back in.
+   * @param {Element} container - Element the renderer fills
+   * @param {boolean} hasContent - Whether anything was rendered
+   */
+  setSectionVisibility(container, hasContent) {
+    const section = container && container.closest ? container.closest('section') : null;
+    if (!section) return;
+
+    if (hasContent) {
+      section.removeAttribute('hidden');
+    } else {
+      section.setAttribute('hidden', '');
+    }
   }
 
   /**

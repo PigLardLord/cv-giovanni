@@ -2,12 +2,14 @@ import { BaseRenderer } from './BaseRenderer.js';
 
 export class CertificationsRenderer extends BaseRenderer {
   render(root, data) {
-    if (!this.validate(data)) return;
-
     const container = this.getElement(root, 'certifications');
     if (!container) return;
 
-    this.renderItems(container, data.certifications, (cert) => 
+    const certifications = this.validate(data) ? data.certifications.filter(Boolean) : [];
+    this.setSectionVisibility(container, certifications.length > 0);
+    if (certifications.length === 0) return;
+
+    this.renderItems(container, certifications, (cert) =>
       this.createCertificationItem(root, cert)
     );
   }
@@ -26,8 +28,9 @@ export class CertificationsRenderer extends BaseRenderer {
     
     content += ` – ${cert.issuer} (${cert.year})`;
     
-    if (cert.description) {
-      content += `<span class="cert-description">${cert.description}</span>`;
+    const description = typeof cert.description === 'string' ? cert.description.trim() : '';
+    if (description) {
+      content += `<span class="cert-description">${description}</span>`;
     }
     
     li.innerHTML = content;

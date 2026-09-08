@@ -3,7 +3,7 @@
  * Follows Single Responsibility Principle (SRP)
  */
 export class DataLoader {
-  constructor(dataUrl = 'cv-data.json') {
+  constructor(dataUrl = 'profiles/giovanni-2026.json') {
     this.dataUrl = dataUrl;
   }
 

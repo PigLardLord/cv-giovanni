@@ -2,12 +2,14 @@ import { BaseRenderer } from './BaseRenderer.js';
 
 export class LanguagesRenderer extends BaseRenderer {
   render(root, data) {
-    if (!this.validate(data)) return;
-
     const container = this.getElement(root, 'languages');
     if (!container) return;
 
-    this.renderItems(container, data.languages, (language) => 
+    const languages = this.validate(data) ? data.languages.filter(Boolean) : [];
+    this.setSectionVisibility(container, languages.length > 0);
+    if (languages.length === 0) return;
+
+    this.renderItems(container, languages, (language) =>
       this.createLanguageItem(root, language)
     );
   }
