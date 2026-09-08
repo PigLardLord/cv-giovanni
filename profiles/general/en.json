@@ -5,25 +5,25 @@
   "location": "Bad Liebenstein, Thuringia, Germany",
   "email": "trovato.giovanni@gmail.com",
   "phone": "+39 329 8484 046",
-  "availability": "EU citizen · unrestricted German work authorization · available immediately",
+  "availability": "EU citizen · unrestricted German work authorisation",
   "portfolio": "https://sites.google.com/view/giovanni-trovato",
   "profile": "Senior iOS engineer with 11+ years in native mobile and six years owning an enterprise MDM client from architecture to production. Delivered software used across tens of thousands of managed devices, with measurable improvements in automated quality and release speed. Brings Android depth, security review, CI/CD ownership and direct platform coordination with Apple and Google.",
   "career_highlights": [
     "6 years owning an enterprise iOS MDM client from its first commit",
-    "~4,800 automated tests, 82% UI coverage and 75% faster CI feedback",
-    "End-to-end delivery app lifecycle ownership across Apple and Google ecosystems"
+    "~4,800 Android tests, 82% UI coverage, 75% faster CI feedback",
+    "MDM clients in production across tens of thousands of managed devices"
   ],
   "relevant_experience": [
     {
       "title": "Mobile Software Engineer / Technical Owner, iOS & Android",
       "company": "Cortado Mobile Solutions",
       "location": "Berlin (remote)",
-      "period": "August 2018 – Present (employment ending November 2026)",
+      "period": "August 2018 – Present",
       "summary": "Enterprise mobility and device management (MDM, secure printing) in a mobile team of 3–7 engineers.",
       "highlights": [
         "Expanded the Android test suite to ~4,800 tests and raised UI-test coverage from 15% to 82%, while cutting CI test runtime by 75% (32 to 8 minutes) to give the team same-hour merge feedback.",
         "Technical owner of the Cortado MDM iOS client for six years from its first commit — owned architecture, release decisions and code review, coordinating delivery with product, QA and backend while mentoring mobile colleagues.",
-        "Led annual iOS compatibility and platform beta validation, including Swift 6 concurrency and iOS 26 migrations; coordinated directly with Apple on App Review while adopting Dynamic Island, Live Activities, Siri and App Intents without dropping older-device support.",
+        "Led annual iOS compatibility and platform beta validation, including Swift 6 concurrency and iOS 26 migrations; coordinated directly with Apple on App Review while adopting Dynamic Island, Live Activities, Siri and App Intents without dropping support for older devices.",
         "Migrated nearly every Android screen from XML to Jetpack Compose, including kiosk mode, adding unit tests throughout; also managed Android Enterprise Partner Program certifications and worked directly with Google on platform issues.",
         "Owned delivery and security across both platforms: code and vulnerability reviews, GitLab CI/CD and Fastlane, signing and provisioning, security scans and SBOM generation, TestFlight and Play Store staged rollout."
       ]
@@ -53,14 +53,12 @@
     {
       "degree": "M.Sc. Mobile Application Development",
       "school": "Università degli Studi di Pisa",
-      "period": "2015",
-      "description": "Mobile architecture patterns and cross-platform development (iOS, Android)."
+      "period": "2015"
     },
     {
       "degree": "B.Sc. Computer Engineering",
       "school": "Università degli Studi di Catania",
-      "period": "2009",
-      "description": "Thesis on a capacitive sensor system — custom hardware, firmware and analysis software."
+      "period": "2009"
     }
   ],
   "skills": [
@@ -68,36 +66,28 @@
       "category": "iOS",
       "items": [
         {
-          "name": "Swift",
-          "level": 5
+          "name": "Swift"
         },
         {
-          "name": "SwiftUI",
-          "level": 4
+          "name": "SwiftUI"
         },
         {
-          "name": "UIKit",
-          "level": 5
+          "name": "UIKit"
         },
         {
-          "name": "Swift Concurrency",
-          "level": 4
+          "name": "Swift Concurrency"
         },
         {
-          "name": "XCTest / XCUITest",
-          "level": null
+          "name": "XCTest / XCUITest"
         },
         {
-          "name": "App Intents",
-          "level": null
+          "name": "App Intents"
         },
         {
-          "name": "Live Activities",
-          "level": null
+          "name": "Live Activities"
         },
         {
-          "name": "Swift Package Manager (SPM)",
-          "level": null
+          "name": "Swift Package Manager (SPM)"
         }
       ]
     },
@@ -105,40 +95,31 @@
       "category": "Android",
       "items": [
         {
-          "name": "Kotlin",
-          "level": null
+          "name": "Kotlin"
         },
         {
-          "name": "Jetpack Compose",
-          "level": null
+          "name": "Jetpack Compose"
         },
         {
-          "name": "Android Enterprise",
-          "level": null
+          "name": "Android Enterprise"
         },
         {
-          "name": "Mobile Device Management (MDM)",
-          "level": null
+          "name": "Mobile Device Management (MDM)"
         },
         {
-          "name": "DevicePolicyManager",
-          "level": null
+          "name": "DevicePolicyManager"
         },
         {
-          "name": "JUnit",
-          "level": null
+          "name": "JUnit"
         },
         {
-          "name": "Robolectric",
-          "level": null
+          "name": "Robolectric"
         },
         {
-          "name": "Gradle",
-          "level": null
+          "name": "Gradle"
         },
         {
-          "name": "Hilt",
-          "level": null
+          "name": "Hilt"
         }
       ]
     },
@@ -146,44 +127,34 @@
       "category": "Delivery & platform",
       "items": [
         {
-          "name": "GitLab CI/CD",
-          "level": null
+          "name": "GitLab CI/CD"
         },
         {
-          "name": "Fastlane",
-          "level": 4
+          "name": "Fastlane"
         },
         {
-          "name": "code signing & provisioning",
-          "level": null
+          "name": "code signing & provisioning"
         },
         {
-          "name": "TestFlight",
-          "level": null
+          "name": "TestFlight"
         },
         {
-          "name": "App Store Connect",
-          "level": null
+          "name": "App Store Connect"
         },
         {
-          "name": "Google Play Console",
-          "level": null
+          "name": "Google Play Console"
         },
         {
-          "name": "staged rollout",
-          "level": null
+          "name": "staged rollout"
         },
         {
-          "name": "release management",
-          "level": null
+          "name": "release management"
         },
         {
-          "name": "SBOM / Dependency-Track",
-          "level": null
+          "name": "SBOM / Dependency-Track"
         },
         {
-          "name": "security scanning & vulnerability review",
-          "level": null
+          "name": "security scanning & vulnerability review"
         }
       ]
     },
@@ -191,40 +162,31 @@
       "category": "Architecture & practices",
       "items": [
         {
-          "name": "Clean Architecture",
-          "level": null
+          "name": "Clean Architecture"
         },
         {
-          "name": "MVVM",
-          "level": null
+          "name": "MVVM"
         },
         {
-          "name": "modularisation",
-          "level": null
+          "name": "modularisation"
         },
         {
-          "name": "REST APIs",
-          "level": 5
+          "name": "REST APIs"
         },
         {
-          "name": "TDD",
-          "level": null
+          "name": "TDD"
         },
         {
-          "name": "code review",
-          "level": null
+          "name": "code review"
         },
         {
-          "name": "Git",
-          "level": 5
+          "name": "Git"
         },
         {
-          "name": "AI-assisted engineering",
-          "level": null
+          "name": "AI‑assisted engineering"
         },
         {
-          "name": "technical mentoring",
-          "level": null
+          "name": "technical mentoring"
         }
       ]
     }
@@ -249,7 +211,7 @@
       "issuer": "Essential Developer Academy",
       "year": 2024,
       "url": "https://academy.essentialdeveloper.com/achievements/cc210373-d44f-4345-aff2-a1402b5104d4",
-      "description": "Advanced iOS program covering Clean Architecture, TDD, modular design patterns, and system design. Hands-on projects reviewed by senior engineers, demonstrating technical excellence and continuous learning."
+      "description": "Advanced iOS programme: Clean Architecture, TDD, modular design and system design."
     }
   ],
   "interests": [
