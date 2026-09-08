@@ -1,19 +1,24 @@
 {
   "name": "Giovanni Trovato",
-  "title": "Senior Mobile / Platform Engineer",
-  "subtitle": "iOS · Android · CI/CD · Mobile Device Management",
+  "title": "Senior iOS Engineer / Mobile Platform Owner",
+  "subtitle": "Swift · SwiftUI · Enterprise Mobility · CI/CD",
   "location": "Bad Liebenstein, Thuringia, Germany",
   "email": "trovato.giovanni@gmail.com",
   "phone": "+39 329 8484 046",
   "availability": "EU citizen · unrestricted German work authorization · available immediately",
   "portfolio": "https://sites.google.com/view/giovanni-trovato",
-  "profile": "Senior mobile and platform engineer with 11+ years delivering native iOS and Android products, including eight years in enterprise mobility and device management. Owns the app lifecycle end to end — architecture, code and security review, automated quality, CI/CD, signing, store delivery and platform certification. Six years as technical owner of an iOS MDM client used by hundreds of corporate customers across tens of thousands of managed devices, with direct technical coordination across product, QA, Apple and Google.",
+  "profile": "Senior iOS engineer with 11+ years in native mobile and six years owning an enterprise MDM client from architecture to production. Delivered software used across tens of thousands of managed devices, with measurable improvements in automated quality and release speed. Brings Android depth, security review, CI/CD ownership and direct platform coordination with Apple and Google.",
+  "career_highlights": [
+    "6 years owning an enterprise iOS MDM client from its first commit",
+    "~4,800 automated tests, 82% UI coverage and 75% faster CI feedback",
+    "End-to-end delivery app lifecycle ownership across Apple and Google ecosystems"
+  ],
   "relevant_experience": [
     {
       "title": "Mobile Software Engineer / Technical Owner, iOS & Android",
       "company": "Cortado Mobile Solutions",
       "location": "Berlin (remote)",
-      "period": "August 2018 – November 2026",
+      "period": "August 2018 – Present (employment ending November 2026)",
       "summary": "Enterprise mobility and device management (MDM, secure printing) in a mobile team of 3–7 engineers.",
       "highlights": [
         "Expanded the Android test suite to ~4,800 tests and raised UI-test coverage from 15% to 82%, while cutting CI test runtime by 75% (32 to 8 minutes) to give the team same-hour merge feedback.",
