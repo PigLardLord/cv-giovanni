@@ -31,12 +31,12 @@ export class SkillsRenderer extends BaseRenderer {
     const element = this.createElement(root, 'div', 'skill-group');
     if (group.category) {
       const category = this.createElement(root, 'strong', 'skill-category');
-      category.textContent = `${group.category}:`;
+      category.textContent = group.category;
       element.appendChild(category);
     }
 
     const names = this.createElement(root, 'span', 'skill-list');
-    names.textContent = group.names.join(', ');
+    this.appendNamed(root, names, group.names, 'skill');
     element.appendChild(names);
     return element;
   }

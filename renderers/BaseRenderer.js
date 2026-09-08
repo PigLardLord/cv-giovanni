@@ -121,6 +121,30 @@ export class BaseRenderer extends Renderer {
   }
 
   /**
+   * A list of names as individual elements, joined by real separator text.
+   *
+   * The separators are text nodes, not CSS: `textContent` still reads "Swift, SwiftUI", so
+   * copy/paste and any parser see the list the way the data wrote it. A layout that wants
+   * chips or pills hides `.<kind>-sep` and styles `.<kind>-chip` — the punctuation goes and
+   * the meaning stays, which is the rule `AGENTS.md` sets for every visual device here.
+   * @param {Document} root - DOM root
+   * @param {Element} container - element to fill
+   * @param {string[]} names - the names, already trimmed
+   * @param {string} kind - class prefix, e.g. 'skill' or 'interest'
+   * @param {string} separator - what sits between two names
+   */
+  appendNamed(root, container, names, kind, separator = ', ') {
+    names.forEach((name, index) => {
+      if (index > 0) {
+        container.appendChild(this.createElement(root, 'span', `${kind}-sep`, separator));
+      }
+      const chip = this.createElement(root, 'span', `${kind}-chip`);
+      chip.textContent = name;
+      container.appendChild(chip);
+    });
+  }
+
+  /**
    * Validate that required data fields exist
    * @param {Object} data - Data object
    * @param {string[]} fields - Required field names

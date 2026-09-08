@@ -10,7 +10,7 @@ export class InterestsRenderer extends BaseRenderer {
     if (interests.length === 0) return;
 
     const line = this.createElement(root, 'span', 'interests-line');
-    line.textContent = interests.join(', ');
+    this.appendNamed(root, line, interests, 'interest');
     container.appendChild(line);
   }
 

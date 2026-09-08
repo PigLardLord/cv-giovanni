@@ -748,4 +748,33 @@ body[data-layout='classic'] .hero-name {
       background: var(--t-blue-deep);
     }
   }
+
+  /* --- Chips ------------------------------------------------------------------------------- */
+  /* The renderers now emit one element per name with a real separator text node between them.
+     Hiding the separator turns a comma list into a field of small shapes without touching what
+     anyone reads back: `textContent` still says "Swift, SwiftUI", so copy/paste and any parser
+     see the list exactly as the data wrote it. This is inside @media screen on purpose — print
+     keeps the commas and drops the shapes, which is what a printed list wants. */
+  body[data-layout='technical'] .skill-list,
+  body[data-layout='technical'] .interests-line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+
+  body[data-layout='technical'] .skill-sep,
+  body[data-layout='technical'] .interest-sep {
+    display: none;
+  }
+
+  body[data-layout='technical'] .skill-chip,
+  body[data-layout='technical'] .interest-chip {
+    padding: 0.2rem 0.5rem;
+    border-radius: 5px;
+    background: var(--t-blue-tint);
+    color: var(--t-blue);
+    font-size: 0.78rem;
+    font-weight: 500;
+    line-height: 1.35;
+  }
 }
