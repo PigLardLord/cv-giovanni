@@ -278,3 +278,474 @@ body[data-layout='classic'] .hero-name {
 .job-entry + .job-entry {
   margin-top: var(--space-lg);
 }
+
+/* =============================================================================
+   Technical Profile — the skin.
+   The arrangement (the grid, the rail's width, what sits where) is in layouts.css. Everything
+   that colours, lifts or sets type for this layout is here, after the shared masthead rules
+   above, which it deliberately overrides: technical wears neither the ink masthead nor the serif
+   name. It is the one layout on a saturated ground. The masthead and a full-height rail form a
+   single field of blue, and every unit of content — a skill category, a role, a degree, the
+   contact details — is a white card lifted off it, so the page is a rhythm of one shape at two
+   scales: rail cards at 8px with a hairline shadow, evidence cards at 10px with a blue spine.
+   The blue has two duties and two values: #1a44c4 is the text blue (7.9:1 on white, 6.9:1 on the
+   tint) for titles, degrees and links; #3b82f6 is 3.7:1 and marks geometry only — spines, bars,
+   markers — never a word. Screen-only, like the arrangement: print.css already prints in blue.
+   ========================================================================================== */
+@media screen {
+  body[data-layout='technical'] {
+    --t-ink: #0f1b33;
+    --t-body: #33415a;
+    --t-muted: #55657f;
+    --t-blue: #1a44c4;
+    --t-blue-bright: #3b82f6;
+    --t-blue-deep: #1e40af;
+    --t-blue-tint: #e8f0fe;
+    --t-ground: #f3f6fb;
+    --t-line: #dbe4f3;
+    --t-shadow: 0 1px 2px rgb(15 27 51 / 0.06), 0 10px 24px -14px rgb(30 64 175 / 0.45);
+    --t-shadow-deep: 0 1px 2px rgb(15 27 51 / 0.05), 0 14px 30px -14px rgb(30 64 175 / 0.5);
+
+    --text-primary: var(--t-ink);
+    --text-secondary: var(--t-body);
+    --text-muted: var(--t-muted);
+    --primary-color: var(--t-blue);
+    --primary-dark: var(--t-blue-deep);
+    --primary-light: var(--t-blue-bright);
+    --accent-color: var(--t-blue);
+    --accent-light: #dbeafe;
+    --border-color: var(--t-line);
+    --border-light: #eaf0f9;
+    --bg-secondary: var(--t-ground);
+    --bg-accent: var(--t-blue-tint);
+    background: #dde5f0;
+  }
+
+  body[data-layout='technical'] .layout-switcher a[aria-current='page'] {
+    background: var(--t-blue-deep);
+  }
+
+  /* The rail is painted on the container, not on the sections in it, so it runs the full height
+     whichever column is longer. A hard stop at the rail's width; no gradient across it. */
+  body[data-layout='technical'] .container {
+    background: linear-gradient(
+      90deg,
+      var(--t-blue-deep) 0,
+      var(--t-blue-deep) var(--rail-width),
+      var(--t-ground) var(--rail-width)
+    );
+    box-shadow: 0 30px 50px -30px rgb(15 27 51 / 0.5), 0 0 0 1px rgb(15 27 51 / 0.05);
+  }
+
+  /* --- Masthead ------------------------------------------------------------------------- */
+  body[data-layout='technical'] .hero-section {
+    color: #fff;
+    background: linear-gradient(112deg, #14328a 0%, #1e40af 58%, #1d4bcc 100%);
+    border-bottom: 0;
+  }
+
+  /* A slanted lighter panel behind the badge: the one diagonal on the page, hard-edged. */
+  body[data-layout='technical'] .hero-section::before {
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: auto;
+    width: 40%;
+    height: auto;
+    background: rgb(255 255 255 / 0.06);
+    clip-path: polygon(22% 0, 100% 0, 100% 100%, 0 100%);
+  }
+
+  body[data-layout='technical'] .hero-name {
+    margin-bottom: 0.5rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 2.9rem;
+    font-weight: 700;
+    line-height: 1.02;
+    letter-spacing: -0.03em;
+    color: #fff;
+  }
+
+  /* The role line keeps the case the data wrote: the base uppercases it, and "Senior iOS
+     Engineer" must not reach an iOS hiring manager as "SENIOR IOS ENGINEER". */
+  body[data-layout='technical'] .hero-title {
+    margin-bottom: 0.55rem;
+    color: #dbeafe;
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    text-transform: none;
+  }
+
+  body[data-layout='technical'] .hero-subtitle {
+    margin: 0 0 1rem;
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 500;
+    letter-spacing: 0;
+  }
+
+  body[data-layout='technical'] .hero-summary {
+    color: rgb(255 255 255 / 0.92);
+    font-size: 0.97rem;
+    line-height: 1.65;
+  }
+
+  /* Work authorisation is the first thing a German recruiter checks on a foreign CV: it gets a
+     badge, not a footnote. */
+  body[data-layout='technical'] .hero-availability {
+    display: inline-block;
+    margin-top: 1.15rem;
+    padding: 0.32rem 0.7rem;
+    border: 1px solid rgb(255 255 255 / 0.4);
+    border-radius: 6px;
+    background: rgb(255 255 255 / 0.1);
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+
+  body[data-layout='technical'] .hero-availability[hidden] {
+    display: none;
+  }
+
+  /* The badge: the portrait sits half over the top edge of a white card that holds the contact
+     details, the way a photo sits on an ID. */
+  body[data-layout='technical'] .profile-image-wrapper img {
+    border: 4px solid #fff;
+    box-shadow: 0 10px 22px -8px rgb(4 12 40 / 0.6);
+  }
+
+  body[data-layout='technical'] .contact-card {
+    border: 0;
+    border-radius: 12px;
+    background: #fff;
+    backdrop-filter: none;
+    box-shadow: 0 22px 40px -18px rgb(4 12 40 / 0.65);
+    color: var(--t-body);
+    text-align: center;
+  }
+
+  body[data-layout='technical'] .contact-item {
+    margin-bottom: 0.5rem;
+    color: var(--t-ink);
+    font-size: 0.86rem;
+    font-weight: 500;
+  }
+
+  body[data-layout='technical'] .contact-details {
+    margin-bottom: 0.85rem;
+    color: var(--t-body);
+    font-size: 0.84rem;
+    line-height: 1.6;
+  }
+
+  body[data-layout='technical'] .contact-details strong {
+    color: var(--t-ink);
+  }
+
+  body[data-layout='technical'] .social-links {
+    padding-top: 0.8rem;
+    border-top: 1px solid var(--t-line);
+  }
+
+  body[data-layout='technical'] .hero-section .contact-card a,
+  body[data-layout='technical'] .social-links a {
+    padding: 0;
+    background: transparent;
+    color: var(--t-blue);
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-decoration-color: rgb(26 68 196 / 0.35);
+    text-underline-offset: 3px;
+  }
+
+  body[data-layout='technical'] .hero-section .contact-card a:hover,
+  body[data-layout='technical'] .social-links a:hover {
+    background: transparent;
+    color: var(--t-blue);
+    text-decoration-color: currentColor;
+    transform: none;
+  }
+
+  /* --- The rail --------------------------------------------------------------------------- */
+  body[data-layout='technical'] .skills-spotlight {
+    background: transparent;
+    border: 0;
+  }
+
+  body[data-layout='technical'] .spotlight-title,
+  body[data-layout='technical'] .secondary-column .section-title span:last-child {
+    color: #fff;
+  }
+
+  body[data-layout='technical'] .spotlight-title {
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-align: left;
+  }
+
+  /* The bar beside every section label. In the rail it is light blue on deep blue; in the
+     evidence column bright blue on the pale ground. Same mark, two grounds. */
+  body[data-layout='technical'] .spotlight-title::before,
+  body[data-layout='technical'] .title-accent {
+    content: '';
+    display: block;
+    flex: none;
+    width: 4px;
+    height: 15px;
+    border-radius: 2px;
+    background: #93c5fd;
+  }
+
+  body[data-layout='technical'] .primary-column .title-accent {
+    background: var(--t-blue-bright);
+  }
+
+  body[data-layout='technical'] .section-title {
+    border-bottom: 0;
+  }
+
+  body[data-layout='technical'] .section-title span:last-child {
+    font-size: 0.76rem;
+    letter-spacing: 0.1em;
+    color: var(--t-ink);
+  }
+
+  body[data-layout='technical'] .primary-column .section-title span:last-child {
+    font-size: 0.84rem;
+  }
+
+  /* One card per skill category: the category is the card's header strip, the list its body.
+     Categories keep the case the data wrote — "iOS" must never be uppercased into "IOS". */
+  body[data-layout='technical'] .skill-group {
+    overflow: hidden;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: var(--t-shadow);
+    font-size: 0.84rem;
+  }
+
+  body[data-layout='technical'] .skill-category {
+    padding: 0.5rem 0.9rem;
+    border-bottom: 1px solid var(--t-line);
+    background: var(--t-blue-tint);
+    color: var(--t-blue);
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+
+  body[data-layout='technical'] .skill-list {
+    padding: 0.6rem 0.9rem 0.7rem;
+    color: var(--t-body);
+    line-height: 1.5;
+  }
+
+  body[data-layout='technical'] .edu-entry {
+    padding: 0.8rem 0.95rem 0.85rem;
+    border: 0;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: var(--t-shadow);
+  }
+
+  body[data-layout='technical'] .edu-entry:hover {
+    border-color: transparent;
+    box-shadow: var(--t-shadow);
+  }
+
+  body[data-layout='technical'] .edu-degree {
+    margin-bottom: 0.25rem;
+    color: var(--t-blue);
+    font-size: 0.9rem;
+    line-height: 1.35;
+  }
+
+  body[data-layout='technical'] .edu-school {
+    color: var(--t-ink);
+    font-size: 0.82rem;
+  }
+
+  body[data-layout='technical'] .edu-period {
+    color: var(--t-muted);
+    font-size: 0.8rem;
+  }
+
+  body[data-layout='technical'] .languages-list {
+    overflow: hidden;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: var(--t-shadow);
+  }
+
+  body[data-layout='technical'] .languages-list li {
+    padding: 0.55rem 0.95rem;
+    border-bottom: 1px solid var(--t-line);
+    color: var(--t-body);
+    font-size: 0.84rem;
+    line-height: 1.45;
+  }
+
+  body[data-layout='technical'] .languages-list li:last-child {
+    border-bottom: 0;
+  }
+
+  body[data-layout='technical'] .languages-list strong {
+    color: var(--t-ink);
+  }
+
+  body[data-layout='technical'] .interests-tags {
+    padding: 0.65rem 0.95rem 0.7rem;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: var(--t-shadow);
+    color: var(--t-body);
+    font-size: 0.84rem;
+    line-height: 1.5;
+  }
+
+  /* --- The evidence ------------------------------------------------------------------------ */
+  /* A role is a white card with a blue spine. The current role carries the deep blue and a
+     slightly larger title: it is the strongest evidence on the page and is read first. A
+     document does not react to the pointer, so the base hover lift is switched off. */
+  body[data-layout='technical'] .job-entry {
+    padding: 1.1rem 1.3rem 1.15rem 1.35rem;
+    border: 0;
+    border-left: 4px solid var(--t-blue-bright);
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: var(--t-shadow-deep);
+  }
+
+  body[data-layout='technical'] .job-entry:hover {
+    border-left-color: var(--t-blue-bright);
+    box-shadow: var(--t-shadow-deep);
+    transform: none;
+  }
+
+  body[data-layout='technical'] .job-entry:first-child,
+  body[data-layout='technical'] .job-entry:first-child:hover {
+    border-left-color: var(--t-blue-deep);
+  }
+
+  body[data-layout='technical'] .job-header {
+    color: var(--t-body);
+    font-size: 0.92rem;
+    line-height: 1.45;
+  }
+
+  body[data-layout='technical'] .job-title {
+    color: var(--t-blue);
+    font-size: 1.06rem;
+  }
+
+  body[data-layout='technical'] .job-entry:first-child .job-title {
+    font-size: 1.14rem;
+  }
+
+  body[data-layout='technical'] .job-company {
+    color: var(--t-ink);
+  }
+
+  /* The dates as a stamp: tabular figures so the years line up from card to card. */
+  body[data-layout='technical'] .job-period {
+    display: inline-block;
+    margin: 0.5rem 0 0.65rem;
+    padding: 0.18rem 0.6rem;
+    border-radius: 999px;
+    background: var(--t-blue-tint);
+    color: var(--t-blue);
+    font-size: 0.72rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.05em;
+  }
+
+  body[data-layout='technical'] .job-summary {
+    margin: 0;
+    color: var(--t-ink);
+    font-size: 0.92rem;
+    font-weight: 500;
+  }
+
+  body[data-layout='technical'] .job-description {
+    font-size: 0.92rem;
+  }
+
+  body[data-layout='technical'] .job-highlights {
+    margin: 0.55rem 0 0 1.1rem;
+    color: var(--t-body);
+    font-size: 0.9rem;
+    line-height: 1.55;
+  }
+
+  body[data-layout='technical'] .job-highlights li {
+    margin-bottom: 0.35rem;
+    padding-left: 0.15rem;
+  }
+
+  body[data-layout='technical'] .job-highlights li::marker {
+    color: var(--t-blue-bright);
+  }
+
+  body[data-layout='technical'] .certifications-list li {
+    padding: 0.9rem 1.15rem 0.95rem;
+    border-left: 4px solid var(--t-blue-bright);
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: var(--t-shadow-deep);
+    color: var(--t-body);
+    font-size: 0.92rem;
+  }
+
+  body[data-layout='technical'] .certifications-list strong,
+  body[data-layout='technical'] .certifications-list a {
+    color: var(--t-blue);
+  }
+
+  body[data-layout='technical'] .cert-description {
+    color: var(--t-body);
+    font-size: 0.86rem;
+  }
+
+  /* --- Footer and focus --------------------------------------------------------------------- */
+  body[data-layout='technical'] .print-footer {
+    padding: 1.2rem;
+    border-top: 1px solid var(--t-line);
+    background: #fff;
+  }
+
+  body[data-layout='technical'] .print-button {
+    background: var(--t-blue-deep);
+    box-shadow: 0 10px 20px -10px rgb(30 64 175 / 0.7);
+  }
+
+  body[data-layout='technical'] .print-button-secondary {
+    border-color: var(--t-line);
+    background: #fff;
+    color: var(--t-blue);
+  }
+
+  body[data-layout='technical'] a:focus-visible,
+  body[data-layout='technical'] button:focus-visible {
+    outline: 2px solid var(--t-blue-bright);
+    outline-offset: 2px;
+  }
+
+  /* On a narrow screen the container is one column and the rail becomes two blue bands, so the
+     sections paint their own ground and the container goes plain. */
+  @media (max-width: 768px) {
+    body[data-layout='technical'] .container {
+      background: var(--t-ground);
+    }
+
+    body[data-layout='technical'] .skills-spotlight,
+    body[data-layout='technical'] .secondary-column {
+      background: var(--t-blue-deep);
+    }
+  }
+}

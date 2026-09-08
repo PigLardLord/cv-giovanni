@@ -195,118 +195,211 @@ body[data-layout='spotlight'] .job-entry {
   border-left: 4px solid var(--accent-color);
 }
 
-/* Technical Profile: dense evidence column plus an engineering-oriented rail. */
+/* Technical Profile: the stack leads. A rail down the left carries the skills and, beneath them,
+   education, languages and interests; the evidence — experience and certifications — runs beside
+   it for the full height, so the rail never runs out before the page does. This block is the
+   arrangement only. The rail's colour, the cards and the type live in design-glacier.css under
+   "Technical Profile — the skin": that file loads after this one and has to, because it overrides
+   the shared masthead rules it defines above. Everything here is screen-only: on paper print.css
+   lays the base DOM out on its own two-column grid, and a `display: contents` or a grid area
+   leaking into it would break that. */
 body[data-layout='technical'] {
-  --primary-color: #075e54;
-  --primary-light: #16877a;
-  --primary-dark: #064e46;
-  --accent-color: #0d9488;
-  --accent-light: #99f6e4;
-  background: #e9efee;
+  --rail-width: 284px;
 }
 
-body[data-layout='technical'] .container {
-  display: grid;
-  grid-template-columns: 245px minmax(0, 1fr);
-  max-width: 940px;
+@media screen {
+  body[data-layout='technical'] .container {
+    display: grid;
+    grid-template-columns: var(--rail-width) minmax(0, 1fr);
+    /* Row 3 is flexible so the evidence column, which spans rows 2 and 3, grows it and not row 2:
+       with two auto rows the surplus is shared out and a gap opens between skills and education. */
+    grid-template-rows: auto auto 1fr auto;
+    grid-template-areas:
+      'hero hero'
+      'skills evidence'
+      'aside evidence'
+      'footer footer';
+    max-width: 984px;
+  }
+
+  body[data-layout='technical'] .hero-section {
+    grid-area: hero;
+  }
+
+  body[data-layout='technical'] .skills-spotlight {
+    grid-area: skills;
+    padding: 1.6rem 1.15rem 0.35rem;
+  }
+
+  /* `main` and `.content-grid` step out of the box tree so their two columns can take places in
+     the container's grid: the secondary column joins the rail under the skills, the primary
+     column stands beside both. Chrome, Firefox and Safari all keep the `main` landmark in the
+     accessibility tree through `display: contents`; it is buttons and lists that lose semantics. */
+  body[data-layout='technical'] .main-content,
+  body[data-layout='technical'] .content-grid {
+    display: contents;
+  }
+
+  body[data-layout='technical'] .primary-column {
+    grid-area: evidence;
+    padding: 1.75rem 2.1rem 2.2rem;
+  }
+
+  body[data-layout='technical'] .secondary-column {
+    grid-area: aside;
+    display: block;
+    padding: 0.45rem 1.15rem 1.6rem;
+  }
+
+  body[data-layout='technical'] .print-footer {
+    grid-area: footer;
+  }
+
+  /* The masthead: identity left, a badge card right. The sidebar column has a fixed width so the
+     name never wraps to make room for it. */
+  body[data-layout='technical'] .hero-section {
+    padding: 2.4rem 2.5rem 2.2rem;
+  }
+
+  body[data-layout='technical'] .hero-content {
+    grid-template-columns: minmax(0, 1fr) 292px;
+    gap: 2.6rem;
+    align-items: start;
+  }
+
+  body[data-layout='technical'] .hero-summary {
+    max-width: 60ch;
+  }
+
+  body[data-layout='technical'] .hero-sidebar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+  }
+
+  body[data-layout='technical'] .profile-image-wrapper {
+    position: relative;
+    z-index: 1;
+    align-self: center;
+    margin-bottom: -54px;
+  }
+
+  body[data-layout='technical'] .profile-image-wrapper img {
+    width: 108px;
+    height: 108px;
+  }
+
+  body[data-layout='technical'] .contact-card {
+    width: 100%;
+    padding: 4.1rem 1.25rem 1.2rem;
+  }
+
+  /* Each address on its own line: three readable URLs and two separators do not fit one. */
+  body[data-layout='technical'] .social-links {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  body[data-layout='technical'] .social-links .inline-separator {
+    display: none;
+  }
+
+  /* The skills: one block per category, stacked. */
+  body[data-layout='technical'] .skills-showcase {
+    display: grid;
+    gap: 0.7rem;
+    max-width: none;
+    margin: 0;
+  }
+
+  body[data-layout='technical'] .skill-group {
+    display: block;
+  }
+
+  body[data-layout='technical'] .skill-category,
+  body[data-layout='technical'] .skill-list {
+    display: block;
+    flex: none;
+  }
+
+  /* Section rhythm inside each column: tighter than the base's 3rem, which was set for a
+     two-column page with room to spare. */
+  body[data-layout='technical'] section {
+    margin-bottom: 0;
+  }
+
+  body[data-layout='technical'] .primary-column > section + section {
+    margin-top: 2rem;
+  }
+
+  body[data-layout='technical'] .secondary-column > section + section {
+    margin-top: 1.5rem;
+  }
+
+  body[data-layout='technical'] .section-title,
+  body[data-layout='technical'] .spotlight-title {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.9rem;
+    padding-bottom: 0;
+  }
+
+  body[data-layout='technical'] .job-entry + .job-entry {
+    margin-top: 1rem;
+  }
+
+  body[data-layout='technical'] .edu-entry {
+    margin-bottom: 0.7rem;
+  }
+
+  body[data-layout='technical'] .edu-entry:last-child {
+    margin-bottom: 0;
+  }
+
+  body[data-layout='technical'] .interests-tags {
+    display: block;
+  }
 }
 
-body[data-layout='technical'] .hero-section {
-  grid-column: 1 / -1;
-  padding: 2rem 2.35rem;
-  background: #103d3a;
-}
+@media screen and (max-width: 768px) {
+  body[data-layout='technical'] .container {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    grid-template-areas:
+      'hero'
+      'skills'
+      'evidence'
+      'aside'
+      'footer';
+  }
 
-body[data-layout='technical'] .hero-content {
-  /* `auto` takes max-content and is greedy: the contact card plus the portrait measured 669px
-     and `1fr` — a fraction of what REMAINS — collapsed to 164, so the name wrapped and the
-     summary ran two words to the line. The sidebar needs a ceiling, not free rein. */
-  grid-template-columns: minmax(0, 1fr) minmax(205px, 320px);
-}
+  body[data-layout='technical'] .hero-content {
+    grid-template-columns: minmax(0, 1fr);
+  }
 
-body[data-layout='technical'] .hero-summary {
-  max-width: 650px;
-}
+  body[data-layout='technical'] .hero-sidebar {
+    align-items: center;
+  }
 
-body[data-layout='technical'] .hero-sidebar {
-  flex-direction: row-reverse;
-}
+  body[data-layout='technical'] .contact-card {
+    max-width: 320px;
+  }
 
-body[data-layout='technical'] .profile-image-wrapper img {
-  width: 92px;
-  height: 92px;
-}
+  body[data-layout='technical'] .skills-spotlight,
+  body[data-layout='technical'] .secondary-column {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
 
-body[data-layout='technical'] .contact-card {
-  min-width: 205px;
-  padding: 0.8rem;
-}
+  body[data-layout='technical'] .secondary-column {
+    padding-top: 1.4rem;
+  }
 
-body[data-layout='technical'] .skills-spotlight {
-  grid-column: 1;
-  padding: 1.7rem 1.35rem;
-  background: #eff8f6;
-  border-right: 1px solid #d4e6e2;
-}
-
-body[data-layout='technical'] .spotlight-title {
-  text-align: left;
-}
-
-body[data-layout='technical'] .skill-group {
-  display: block;
-  margin-bottom: 1rem;
-}
-
-body[data-layout='technical'] .skill-category {
-  display: block;
-  margin-bottom: 0.2rem;
-  color: #075e54;
-}
-
-body[data-layout='technical'] .skill-list {
-  font-size: 0.82rem;
-  line-height: 1.45;
-}
-
-body[data-layout='technical'] .main-content {
-  grid-column: 2;
-  padding: 1.8rem 2rem;
-}
-
-body[data-layout='technical'] .content-grid {
-  display: block;
-}
-
-body[data-layout='technical'] .secondary-column {
-  display: grid;
-  grid-template-columns: 1.25fr 0.8fr 1fr;
-  gap: 1rem;
-}
-
-body[data-layout='technical'] .job-entry {
-  position: relative;
-  padding: 0 0 1.3rem 1.35rem;
-  border: 0;
-  border-left: 2px solid #b7d5d0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-}
-
-body[data-layout='technical'] .job-entry::before {
-  content: '';
-  position: absolute;
-  top: 0.35rem;
-  left: -6px;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #0d9488;
-}
-
-body[data-layout='technical'] .print-footer {
-  grid-column: 1 / -1;
+  body[data-layout='technical'] .primary-column {
+    padding: 1.5rem 1.25rem 1.75rem;
+  }
 }
 
 @media (max-width: 768px) {
@@ -316,8 +409,6 @@ body[data-layout='technical'] .print-footer {
   body[data-layout='technical'] .secondary-column {
     grid-template-columns: 1fr;
   }
-  body[data-layout='technical'] .container { display: block; }
-  body[data-layout='technical'] .hero-sidebar { flex-direction: column; }
   body[data-layout='classic'] .contact-card { display: block; }
   body[data-layout='classic'] .social-links { justify-content: flex-start; margin-top: 0.5rem; }
 }
