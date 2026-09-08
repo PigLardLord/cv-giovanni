@@ -45,7 +45,7 @@ app.registerRenderer('profile', new ProfileRenderer());
 app.registerRenderer('experience', new ExperienceRenderer(i18n));
 app.registerRenderer('education', new EducationRenderer());
 app.registerRenderer('certifications', new CertificationsRenderer());
-app.registerRenderer('skills', new SkillsRenderer(i18n));
+app.registerRenderer('skills', new SkillsRenderer());
 app.registerRenderer('languages', new LanguagesRenderer());
 app.registerRenderer('interests', new InterestsRenderer());
 

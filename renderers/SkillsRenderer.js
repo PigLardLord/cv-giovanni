@@ -1,49 +1,44 @@
 import { BaseRenderer } from './BaseRenderer.js';
 
 export class SkillsRenderer extends BaseRenderer {
-  constructor(i18n = null) {
-    super();
-    this.i18n = i18n;
-  }
-
   render(root, data) {
     if (!this.validate(data)) return;
 
     const container = this.getElement(root, 'skills');
     if (!container) return;
 
-    this.renderItems(container, data.skills, (skill) => 
-      this.createSkillItem(root, skill)
+    this.renderItems(container, this.toGroups(data.skills), (group) =>
+      this.createSkillGroup(root, group)
     );
   }
 
-  createSkillItem(root, skill) {
-    const badge = this.createElement(root, 'div', 'skill-badge');
-    
-    const skillName = this.createElement(root, 'span', 'skill-name');
-    skillName.textContent = skill.name;
-    
-    const skillLevel = this.createElement(root, 'span', 'skill-level');
-    
-    // Create skill level using bullet characters
-    let levelText = '';
-    for (let i = 1; i <= 5; i++) {
-      if (i <= skill.level) {
-        levelText += '●'; // Filled bullet
-      } else {
-        levelText += '○'; // Empty bullet
-      }
-      if (i < 5) levelText += ' '; // Add space between bullets
+  toGroups(skills) {
+    const grouped = skills.some((entry) => entry && Array.isArray(entry.items));
+    if (grouped) {
+      return skills.filter((entry) => entry && Array.isArray(entry.items)).map((entry) => ({
+        category: entry.category || '',
+        names: entry.items.map((item) => item && item.name).filter(Boolean)
+      })).filter((group) => group.names.length > 0);
     }
-    skillLevel.textContent = levelText;
-    skillLevel.setAttribute('aria-label', this.i18n
-      ? this.i18n.t('skills.level', { ns: 'cv', level: skill.level, maximum: 5 })
-      : `${skill.level} out of 5`);
-    
-    badge.appendChild(skillName);
-    badge.appendChild(skillLevel);
-    
-    return badge;
+
+    return [{
+      category: '',
+      names: skills.map((skill) => skill && skill.name).filter(Boolean)
+    }];
+  }
+
+  createSkillGroup(root, group) {
+    const element = this.createElement(root, 'div', 'skill-group');
+    if (group.category) {
+      const category = this.createElement(root, 'strong', 'skill-category');
+      category.textContent = `${group.category}:`;
+      element.appendChild(category);
+    }
+
+    const names = this.createElement(root, 'span', 'skill-list');
+    names.textContent = group.names.join(', ');
+    element.appendChild(names);
+    return element;
   }
 
   validate(data) {

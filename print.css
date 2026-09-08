@@ -188,34 +188,26 @@ body {
 
 .skills-showcase {
   display: grid !important;
-  grid-template-columns: repeat(3, 1fr) !important;
-  gap: 6pt !important;
+  grid-template-columns: 1fr !important;
+  gap: 3pt !important;
   max-width: none !important;
   margin: 0 !important;
 }
 
-.skill-badge {
-  background: white !important;
-  border: 1pt solid #d1d5db !important;
-  border-radius: 4pt !important;
-  padding: 4pt 6pt !important;
+.skill-group {
   display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  box-shadow: none !important;
+  gap: 5pt !important;
+  font-size: 8.5pt !important;
+  line-height: 1.35 !important;
 }
 
-.skill-name {
-  font-weight: 600 !important;
-  color: #1f2937 !important;
-  font-size: 9pt !important;
+.skill-category {
+  flex: 0 0 88pt !important;
+  color: #1e3a8a !important;
 }
 
-.skill-level {
-  font-family: monospace !important;
-  font-size: 9pt !important;
-  color: #1e40af !important;
-  letter-spacing: 0.5pt !important;
+.skill-list {
+  color: #374151 !important;
 }
 
 /* =============================================================================

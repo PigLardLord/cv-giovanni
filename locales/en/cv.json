@@ -7,6 +7,5 @@
     "certifications": "Certifications",
     "interests": "Interests"
   },
-  "skills": { "level": "{{level}} out of {{maximum}}" },
   "experience": { "at": "at" }
 }
