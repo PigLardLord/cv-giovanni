@@ -78,8 +78,17 @@ const pdfExporter = new PdfExporter(null, i18n);
 const pdfOptions = { profile: profileSelection.profile, locale, layout };
 const downloadLink = document.getElementById('download-pdf');
 if (downloadLink) {
-  downloadLink.href = pdfExporter.filePath(pdfOptions);
-  downloadLink.download = pdfExporter.downloadName(currentData);
+  const released = await fetch('generated/manifest.json')
+    .then((response) => (response.ok ? response.json() : null))
+    .then((manifest) => manifest?.released)
+    .catch(() => null);
+  if (pdfExporter.isAvailable(released, pdfOptions)) {
+    downloadLink.href = pdfExporter.filePath(pdfOptions);
+    downloadLink.download = pdfExporter.downloadName(currentData);
+  } else {
+    // No file for this profile, locale and layout: a hidden button beats one that 404s.
+    downloadLink.hidden = true;
+  }
 }
 document.getElementById('print-browser')?.addEventListener('click', () => window.print());
 

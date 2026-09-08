@@ -159,6 +159,26 @@ describe('PdfExporter — what has to survive extraction and assistive reading',
     expect(protectedRuns).toContain('Objective-C)');
   });
 
+  test('offers a download only for a combination that was actually generated', () => {
+    // The link used to be built from the naming rule alone, so it pointed at a file whenever
+    // the rule could name one. Today the German profile fails earlier and hides the bug; the
+    // day profiles/general/de.json lands, the page renders and the button 404s in silence.
+    const exporter = new PdfExporter(null, { t: (key) => key });
+    const generated = ['giovanni-trovato-general-en-spotlight.pdf', 'giovanni-trovato-general-en-classic.pdf'];
+    expect(exporter.isAvailable(generated, { profile: 'general', locale: 'en', layout: 'spotlight' })).toBe(true);
+    expect(exporter.isAvailable(generated, { profile: 'general', locale: 'de', layout: 'spotlight' })).toBe(false);
+    expect(exporter.isAvailable(generated, { profile: 'general', locale: 'en', layout: 'technical' })).toBe(false);
+  });
+
+  test('treats a missing or unreadable manifest as nothing being available', () => {
+    // A manifest that failed to load must not read as "everything is there": the page would
+    // offer every download and 404 on all of them.
+    const exporter = new PdfExporter(null, { t: (key) => key });
+    expect(exporter.isAvailable(undefined, { locale: 'en', layout: 'spotlight' })).toBe(false);
+    expect(exporter.isAvailable([], { locale: 'en', layout: 'spotlight' })).toBe(false);
+    expect(exporter.isAvailable('not a list', { locale: 'en', layout: 'spotlight' })).toBe(false);
+  });
+
   test('leaves a measure narrow enough to read', () => {
     // The measure is now the body column, not the page minus its margins: convention and
     // readability work put the comfortable band at 50-75 characters and WCAG 1.4.8 sets 80 as

@@ -25,6 +25,18 @@ export class PdfExporter {
     return `${words.join('-')}.pdf`;
   }
 
+  /**
+   * Whether a download exists for this combination.
+   *
+   * The naming rule can name a file for any combination; only the generator knows which it
+   * actually wrote. An absent or malformed manifest means nothing is available — the honest
+   * reading, because the alternative offers every download and fails on all of them.
+   * @param {string[]} generated - filenames the generator reported
+   */
+  isAvailable(generated, options = {}) {
+    return Array.isArray(generated) && generated.includes(this.filename(options));
+  }
+
   filePath(options = {}) {
     return `generated/${this.filename(options)}`;
   }

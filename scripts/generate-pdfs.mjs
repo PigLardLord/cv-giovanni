@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import pdfMake from 'pdfmake/build/pdfmake.js';
 import pdfFonts from 'pdfmake/build/vfs_fonts.js';
 import { PdfExporter } from '../core/PdfExporter.js';
@@ -55,8 +55,13 @@ const qaService = new PdfGenerationService({
   writer: new NodeDirectoryWriter(new URL('../generated/qa/', import.meta.url))
 });
 
+// What the page is allowed to offer. The naming rule can name a file for any combination;
+// only this loop knows which ones exist, so it says so rather than leaving the page to guess.
+const released = [];
+
 for (const layout of layouts) {
   const result = await releaseService.generate(data, { profile, locale, layout });
+  released.push(result.filename);
   console.log(`generated/${result.filename}`);
   for (const pageSize of ['A4', 'LETTER']) {
     for (const colorMode of ['color', 'monochrome']) {
@@ -65,3 +70,7 @@ for (const layout of layouts) {
     }
   }
 }
+
+await writeFile(new URL('../generated/manifest.json', import.meta.url),
+  `${JSON.stringify({ released }, null, 2)}\n`);
+console.log(`generated/manifest.json — ${released.length} downloads`);
