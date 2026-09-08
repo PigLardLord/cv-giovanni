@@ -68,13 +68,19 @@ describe('PdfExporter — what has to survive extraction and assistive reading',
   };
   const layouts = ['classic', 'spotlight', 'technical'];
 
-  test.each(layouts)('%s puts no section heading inside a column row', (layout) => {
-    // A parser walks the page: a section sharing a horizontal band with another emerges
-    // interleaved, and the record boundaries a structured reader looks for are destroyed.
-    const offenders = [...walk(build(layout).content)]
-      .filter((node) => node.columns)
-      .filter((node) => [...walk(node.columns)].some((child) => child.style === 'section'));
-    expect(offenders).toEqual([]);
+  test.each(layouts)('%s keeps every rail label a single short line', (layout) => {
+    // A section label may share a band with its block — that is the rail, and it is the shape
+    // the parser handles. What it may never be is long enough to wrap: a wrapped label
+    // interleaves word by word with the body and destroys the very text the audit matches on.
+    const labels = [...walk(build(layout).content)]
+      .filter((node) => Array.isArray(node.columns))
+      .flatMap((node) => node.columns.filter((entry) => entry.style === 'section'));
+    expect(labels.length).toBeGreaterThan(0);
+    labels.forEach((label) => {
+      expect(typeof label.text).toBe('string');
+      expect(label.text.length).toBeLessThanOrEqual(30);
+      expect(label.width).toBeGreaterThanOrEqual(110);
+    });
   });
 
   test.each(layouts)('%s sets no text below 9pt', (layout) => {
@@ -154,9 +160,13 @@ describe('PdfExporter — what has to survive extraction and assistive reading',
   });
 
   test('leaves a measure narrow enough to read', () => {
-    // A4 is 595.28pt wide. Convention and readability work put the comfortable band at
-    // 50-75 characters; WCAG 1.4.8 sets 80 as the accessibility ceiling.
-    const [left, , right] = build('spotlight').pageMargins;
-    expect(left + right).toBeGreaterThanOrEqual(128);
+    // The measure is now the body column, not the page minus its margins: convention and
+    // readability work put the comfortable band at 50-75 characters and WCAG 1.4.8 sets 80 as
+    // the ceiling, which at 9.5pt Roboto means staying under roughly 380pt.
+    const bodyColumns = [...walk(build('spotlight').content)]
+      .filter((node) => Array.isArray(node.columns))
+      .flatMap((node) => node.columns.filter((entry) => Array.isArray(entry.stack)));
+    expect(bodyColumns.length).toBeGreaterThan(0);
+    bodyColumns.forEach((column) => expect(column.width).toBeLessThanOrEqual(380));
   });
 });

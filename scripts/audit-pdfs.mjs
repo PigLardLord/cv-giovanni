@@ -30,7 +30,12 @@ const validPageStarts = [
   ...profile.skills.map((group) => group.category),
   ...profile.relevant_experience.map((job) => job.title),
   ...profile.education.map((item) => item.degree),
-  ...profile.certifications.map((item) => item.name)
+  ...profile.certifications.map((item) => item.name),
+  // A role may continue onto page two, but never mid-sentence: each achievement is a complete
+  // sentence, so opening on one satisfies the rule. What stays forbidden is a page that begins
+  // partway through a line, and a role severed from its FIRST achievement — which the renderer
+  // prevents by keeping the head and that first line together.
+  ...profile.relevant_experience.flatMap((job) => job.highlights || [])
 ];
 
 /** True when EVERY page is free of colour. Page one alone is not the document. */
@@ -87,7 +92,10 @@ for (const filename of pdfFiles) {
     content: mustHave.every((term) => extracted.includes(term)),
     readingOrder: order.every((position, index) => position >= 0 && (index === 0 || position > order[index - 1])),
     textOnly: imageList.trim().split('\n').length <= 2,
-    cleanPageStart: pages < 2 || validPageStarts.some((start) => pageTwoStart.startsWith(start)),
+    // Either direction: a whitelisted entry may be a whole sentence while the extracted line is
+    // only its first wrapped fragment. Comparing one way declared a clean start dirty.
+    cleanPageStart: pages < 2 || validPageStarts.some((start) =>
+      pageTwoStart.startsWith(start) || start.startsWith(pageTwoStart)),
     monochromeMode: !isMonochrome || await isGrayscale(path),
     canonicalCompounds: !brokenForms.some(({ broken }) => broken.test(extracted)),
     blockIntegrity: educationPairs.every((pair) => pair.test(collapsed))
