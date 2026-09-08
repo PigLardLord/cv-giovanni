@@ -1,6 +1,6 @@
 {
   "meta": { "title": "{{name}} – Curriculum Vitae" },
-  "actions": { "print": "Print / Save as PDF" },
+  "actions": { "downloadPdf": "Download PDF", "print": "Browser print" },
   "layouts": {
     "classic": "Classic ATS",
     "spotlight": "Impact Spotlight",

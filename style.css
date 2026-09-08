@@ -515,6 +515,16 @@ section {
   text-align: center;
   background: var(--bg-secondary);
   border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: center;
+  gap: var(--space-sm);
+}
+
+.print-button-secondary {
+  background: var(--bg-primary);
+  color: var(--primary-color);
+  border: 1px solid var(--border-color);
+  box-shadow: none;
 }
 
 .print-button {
@@ -531,6 +541,7 @@ section {
   gap: var(--space-sm);
   transition: all 0.2s ease;
   box-shadow: var(--shadow-sm);
+  text-decoration: none;
 }
 
 .print-button:hover {

@@ -6,6 +6,7 @@ import { I18nService } from './core/I18nService.js';
 import { DocumentLocalizer } from './core/DocumentLocalizer.js';
 import { ProfileResolver } from './core/ProfileResolver.js';
 import { LayoutResolver } from './core/LayoutResolver.js';
+import { PdfExporter } from './core/PdfExporter.js';
 import { HeaderRenderer } from './renderers/HeaderRenderer.js';
 import { ProfileRenderer } from './renderers/ProfileRenderer.js';
 import { ExperienceRenderer } from './renderers/ExperienceRenderer.js';
@@ -39,6 +40,12 @@ document.querySelectorAll('[data-layout-link]').forEach((link) => {
     link.setAttribute('aria-current', 'page');
   }
 });
+document.querySelectorAll('[data-i18n^="actions."]').forEach((element) => {
+  const key = element.dataset.i18n;
+  const translatedLabel = i18n.t(key);
+  if (translatedLabel !== key) element.textContent = translatedLabel;
+  element.removeAttribute('data-i18n');
+});
 let profileSelection;
 try {
   profileSelection = await new ProfileResolver().resolveRequested({
@@ -66,9 +73,18 @@ app.registerRenderer('languages', new LanguagesRenderer());
 app.registerRenderer('interests', new InterestsRenderer());
 
 // Start application
-app.initialize(document);
+const currentData = await app.initialize(document);
+const pdfExporter = new PdfExporter(null, i18n);
+const pdfOptions = { profile: profileSelection.profile, locale, layout };
+const downloadLink = document.getElementById('download-pdf');
+if (downloadLink) {
+  downloadLink.href = pdfExporter.filePath(pdfOptions);
+  downloadLink.download = pdfExporter.downloadName(currentData);
+}
+document.getElementById('print-browser')?.addEventListener('click', () => window.print());
 
 window.cvApp = app;
 window.cvI18n = i18n;
 window.cvSelection = profileSelection;
 window.cvLayout = layout;
+window.cvPdfExporter = pdfExporter;

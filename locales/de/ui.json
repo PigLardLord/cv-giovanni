@@ -1,6 +1,6 @@
 {
   "meta": { "title": "{{name}} – Lebenslauf" },
-  "actions": { "print": "Drucken / als PDF speichern" },
+  "actions": { "downloadPdf": "PDF herunterladen", "print": "Browserdruck" },
   "layouts": {
     "classic": "Klassisch ATS",
     "spotlight": "Wirkung im Fokus",
