@@ -5,7 +5,7 @@
   "location": "Bad Liebenstein, Thuringia, Germany",
   "email": "trovato.giovanni@gmail.com",
   "phone": "+39 329 8484 046",
-  "availability": "EU citizen · unrestricted German work authorization · available immediately; released from duties following an operational redundancy (employment contract ends November 2026)",
+  "availability": "EU citizen · unrestricted German work authorization · available immediately",
   "portfolio": "https://sites.google.com/view/giovanni-trovato",
   "profile": "Senior mobile engineer with more than 11 years of experience building native iOS and Android products, including eight years in enterprise mobility and device management. Technical owner of an iOS MDM client for six years, serving hundreds of corporate customers and tens of thousands of managed devices. Strong in Swift, SwiftUI, Kotlin, Jetpack Compose, automated testing, CI/CD, code signing and production releases.",
   "relevant_experience": [
@@ -20,10 +20,7 @@
         "Technical owner of the Cortado MDM iOS client for six years from its first commit — owned architecture, release decisions and code review across the mobile team, coordinating delivery with product, QA and backend.",
         "Led annual iOS compatibility work and adoption of Dynamic Island, Live Activities, Siri and App Intents; also led the Swift 6 concurrency and iOS 26 migrations while retaining support for older devices.",
         "Migrated the Android device-management client from XML layouts to Jetpack Compose across nearly every screen, including kiosk mode, adding unit tests alongside each migrated screen.",
-        "Owned the GitLab CI/CD and Fastlane pipelines for both platforms — pipeline design, GitLab runners, certificates and provisioning profiles, automated versioning, TestFlight and Play Store staged rollout — and automated iOS signing end to end, removing a recurring manual release blocker.",
-        "Built the shared mobile test and build infrastructure: Robolectric unit-test harness needing no emulator, reusable ViewModel test infrastructure, a coverage dashboard, and SBOM generation wired into CI for supply-chain compliance.",
-        "Standardised AI-assisted planning, test generation and code-review workflows across three mobile repositories, packaging shared guidance so the whole team could use them consistently.",
-        "Delivered the iOS print and share extensions for ezeep MobilePrint and the admin-portal authentication layer with Google Sign-In; then expanded into Android ownership within months, maintaining uninterrupted delivery across both platforms."
+        "Owned the GitLab CI/CD and Fastlane pipelines for both platforms — pipeline design, GitLab runners, certificates and provisioning profiles, automated versioning, TestFlight and Play Store staged rollout — and automated iOS signing end to end, removing a recurring manual release blocker."
       ]
     },
     {
