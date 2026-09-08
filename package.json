@@ -5,7 +5,10 @@
   "main": "script.js",
   "type": "module",
   "scripts": {
-    "test": "node --experimental-vm-modules node_modules/.bin/jest"
+    "test": "node --experimental-vm-modules node_modules/.bin/jest",
+    "build:pdf": "node scripts/generate-pdfs.mjs",
+    "audit:pdf": "node scripts/audit-pdfs.mjs",
+    "verify:pdf": "npm run build:pdf && npm run audit:pdf"
   },
   "keywords": [],
   "author": "",
@@ -16,6 +19,7 @@
   },
   "dependencies": {
     "i18next": "^26.4.2",
-    "i18next-http-backend": "^4.0.2"
+    "i18next-http-backend": "^4.0.2",
+    "pdfmake": "^0.2.20"
   }
 }
