@@ -4,17 +4,17 @@ Generated variants: 12
 
 | File | Pages | Score |
 |---|---:|---:|
-| giovanni-trovato-general-en-classic-a4-color.pdf | 2 | 7/7 |
-| giovanni-trovato-general-en-classic-a4-monochrome.pdf | 2 | 7/7 |
-| giovanni-trovato-general-en-classic-letter-color.pdf | 2 | 7/7 |
-| giovanni-trovato-general-en-classic-letter-monochrome.pdf | 2 | 7/7 |
-| giovanni-trovato-general-en-spotlight-a4-color.pdf | 2 | 7/7 |
-| giovanni-trovato-general-en-spotlight-a4-monochrome.pdf | 2 | 7/7 |
-| giovanni-trovato-general-en-spotlight-letter-color.pdf | 2 | 7/7 |
-| giovanni-trovato-general-en-spotlight-letter-monochrome.pdf | 2 | 7/7 |
-| giovanni-trovato-general-en-technical-a4-color.pdf | 2 | 7/7 |
-| giovanni-trovato-general-en-technical-a4-monochrome.pdf | 2 | 7/7 |
-| giovanni-trovato-general-en-technical-letter-color.pdf | 2 | 7/7 |
-| giovanni-trovato-general-en-technical-letter-monochrome.pdf | 2 | 7/7 |
+| giovanni-trovato-general-en-classic-a4-color.pdf | 2 | 9/9 |
+| giovanni-trovato-general-en-classic-a4-monochrome.pdf | 2 | 9/9 |
+| giovanni-trovato-general-en-classic-letter-color.pdf | 2 | 9/9 |
+| giovanni-trovato-general-en-classic-letter-monochrome.pdf | 2 | 9/9 |
+| giovanni-trovato-general-en-spotlight-a4-color.pdf | 2 | 9/9 |
+| giovanni-trovato-general-en-spotlight-a4-monochrome.pdf | 2 | 9/9 |
+| giovanni-trovato-general-en-spotlight-letter-color.pdf | 2 | 9/9 |
+| giovanni-trovato-general-en-spotlight-letter-monochrome.pdf | 2 | 9/9 |
+| giovanni-trovato-general-en-technical-a4-color.pdf | 2 | 9/9 |
+| giovanni-trovato-general-en-technical-a4-monochrome.pdf | 2 | 9/9 |
+| giovanni-trovato-general-en-technical-letter-color.pdf | 2 | 9/9 |
+| giovanni-trovato-general-en-technical-letter-monochrome.pdf | 2 | 9/9 |
 
-Checks: exact format, maximum two pages, required ATS text, reading order, no raster images, clean page starts, and measured grayscale output.
+Checks: exact format, maximum two pages, required ATS text, reading order, no raster images, clean page starts, measured grayscale output, canonical compound spelling, and block integrity in extraction.

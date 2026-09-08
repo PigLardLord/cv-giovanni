@@ -8,6 +8,21 @@ const profile = JSON.parse(await readFile(new URL('../profiles/general/en.json',
 const cvMessages = JSON.parse(await readFile(new URL('../locales/en/cv.json', import.meta.url)));
 const labels = cvMessages.sections;
 const mustHave = [profile.name, profile.title, profile.email, labels.experience, labels.skills, 'Cortado Mobile Solutions', 'Swift', 'CI/CD', labels.education, labels.languages];
+const escapeForRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const strings = (node) => typeof node === 'string' ? [node]
+  : node && typeof node === 'object' ? Object.values(node).flatMap(strings) : [];
+// Every hyphenated compound the data writes. pdfmake breaks a line at an existing hyphen and
+// plain extraction rejoins the halves without it, so `Objective-C` arrives as `ObjectiveC` —
+// invisible on the page, and unfindable by anyone searching the canonical spelling.
+const compounds = [...new Set(strings(profile).flatMap((text) =>
+  text.match(/[A-Za-z0-9]+-[A-Za-z0-9]+/g) || []))];
+const brokenForms = compounds.map((compound) => ({
+  compound, broken: new RegExp(`\\b${escapeForRegExp(compound.replace(/-/g, ''))}\\b`)
+}));
+// A degree and its institution must stay adjacent: when two sections share a horizontal band a
+// parser interleaves them, and the record boundaries a structured reader looks for are destroyed.
+const educationPairs = profile.education.map((item) =>
+  new RegExp(`${escapeForRegExp(item.degree)}\\s+${escapeForRegExp(`${item.school} · ${item.period}`)}`));
 const pdfFiles = (await readdir(qaUrl)).filter((name) => name.endsWith('.pdf')).sort();
 const rows = [];
 const validPageStarts = [
@@ -40,6 +55,17 @@ async function isGrayscale(path) {
   return grayscale;
 }
 
+/** Each highlight whole, and in the order the data wrote them. Columned, they interleave. */
+function highlightsIntact(collapsed) {
+  let cursor = -1;
+  return (profile.career_highlights || []).every((highlight) => {
+    const at = collapsed.indexOf(highlight.replace(/\s+/g, ' '), cursor + 1);
+    if (at < 0) return false;
+    cursor = at;
+    return true;
+  });
+}
+
 for (const filename of pdfFiles) {
   const path = new URL(filename, qaUrl).pathname;
   const info = execFileSync('pdfinfo', [path], { encoding: 'utf8' });
@@ -50,6 +76,7 @@ for (const filename of pdfFiles) {
   const pages = Number(info.match(/Pages:\s+(\d+)/)?.[1]);
   const pageTwo = pages > 1 ? execFileSync('pdftotext', ['-f', '2', '-l', '2', path, '-'], { encoding: 'utf8' }) : '';
   const pageTwoStart = pageTwo.split('\n').map((line) => line.trim()).find(Boolean) || '';
+  const collapsed = extracted.replace(/\s+/g, ' ');
   // The suffix is '-monochrome.pdf': matching '-monochrome-' matched nothing, so the
   // grayscale check never ran and every variant reported a guarantee nobody verified.
   const isMonochrome = filename.includes('-monochrome');
@@ -61,7 +88,10 @@ for (const filename of pdfFiles) {
     readingOrder: order.every((position, index) => position >= 0 && (index === 0 || position > order[index - 1])),
     textOnly: imageList.trim().split('\n').length <= 2,
     cleanPageStart: pages < 2 || validPageStarts.some((start) => pageTwoStart.startsWith(start)),
-    monochromeMode: !isMonochrome || await isGrayscale(path)
+    monochromeMode: !isMonochrome || await isGrayscale(path),
+    canonicalCompounds: !brokenForms.some(({ broken }) => broken.test(extracted)),
+    blockIntegrity: educationPairs.every((pair) => pair.test(collapsed))
+      && (!extracted.includes(labels.selectedImpact) || highlightsIntact(collapsed))
   };
   const passed = Object.values(checks).filter(Boolean).length;
   rows.push({ filename, pages, score: `${passed}/${Object.keys(checks).length}`, checks });
@@ -72,7 +102,7 @@ const report = [
   '# PDF quality matrix', '', `Generated variants: ${rows.length}`, '',
   '| File | Pages | Score |', '|---|---:|---:|',
   ...rows.map((row) => `| ${row.filename} | ${row.pages} | ${row.score} |`), '',
-  'Checks: exact format, maximum two pages, required ATS text, reading order, no raster images, clean page starts, and measured grayscale output.'
+  'Checks: exact format, maximum two pages, required ATS text, reading order, no raster images, clean page starts, measured grayscale output, canonical compound spelling, and block integrity in extraction.'
 ].join('\n');
 
 await writeFile(new URL('../docs/PDF_AUDIT.md', import.meta.url), `${report}\n`);
