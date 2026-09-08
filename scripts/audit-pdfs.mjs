@@ -18,19 +18,25 @@ const validPageStarts = [
   ...profile.certifications.map((item) => item.name)
 ];
 
+/** True when EVERY page is free of colour. Page one alone is not the document. */
 async function isGrayscale(path) {
   const directory = await mkdtemp(join(tmpdir(), 'mycv-mono-'));
   const prefix = join(directory, 'page');
-  execFileSync('pdftoppm', ['-f', '1', '-l', '1', '-r', '24', '-singlefile', path, prefix]);
-  const ppmPath = `${prefix}.ppm`;
-  const bytes = await readFile(ppmPath);
-  const marker = Buffer.from('\n255\n');
-  const headerEnd = bytes.indexOf(marker) + marker.length;
-  let grayscale = headerEnd >= marker.length;
-  for (let index = headerEnd; grayscale && index + 2 < bytes.length; index += 3) {
-    grayscale = bytes[index] === bytes[index + 1] && bytes[index + 1] === bytes[index + 2];
+  execFileSync('pdftoppm', ['-r', '24', path, prefix]);
+  const pages = (await readdir(directory)).filter((name) => name.endsWith('.ppm')).sort();
+  if (!pages.length) return false;
+  let grayscale = true;
+  for (const page of pages) {
+    const ppmPath = join(directory, page);
+    const bytes = await readFile(ppmPath);
+    const marker = Buffer.from('\n255\n');
+    const headerEnd = bytes.indexOf(marker) + marker.length;
+    if (headerEnd < marker.length) grayscale = false;
+    for (let index = headerEnd; grayscale && index + 2 < bytes.length; index += 3) {
+      grayscale = bytes[index] === bytes[index + 1] && bytes[index + 1] === bytes[index + 2];
+    }
+    await unlink(ppmPath);
   }
-  await unlink(ppmPath);
   return grayscale;
 }
 
