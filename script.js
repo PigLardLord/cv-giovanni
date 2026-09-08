@@ -28,6 +28,10 @@ const layout = new LayoutResolver().resolve(location.search);
 document.body.dataset.layout = layout;
 document.querySelectorAll('[data-layout-link]').forEach((link) => {
   const targetLayout = link.dataset.layoutLink;
+  const labelKey = `layouts.${targetLayout}`;
+  const translatedLabel = i18n.t(labelKey);
+  if (translatedLabel !== labelKey) link.textContent = translatedLabel;
+  link.removeAttribute('data-i18n');
   const url = new URL(location.href);
   url.searchParams.set('layout', targetLayout);
   link.href = url.href;
