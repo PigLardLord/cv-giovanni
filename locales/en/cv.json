@@ -1,6 +1,7 @@
 {
   "sections": {
     "skills": "Core Technologies",
+    "selectedImpact": "Selected Impact",
     "experience": "Professional Experience",
     "education": "Education",
     "languages": "Languages",
@@ -8,5 +9,5 @@
     "interests": "Interests"
   },
   "experience": { "at": "at" },
-  "contacts": { "email": "Email", "phone": "Phone" }
+  "contacts": { "email": "Email", "phone": "Phone", "portfolio": "Portfolio" }
 }
