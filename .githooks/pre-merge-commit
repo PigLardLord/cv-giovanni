@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Blocks merges that create a commit on a protected branch.
+set -u
+. "$(dirname "$0")/_policy.sh"
+BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null)"
+is_protected "$BRANCH" || exit 0
+refuse "Merge on protected branch '$BRANCH'" \
+  "Do not land changes by merging locally." \
+  "Push a feature branch and open a change request." \
+  "To advance '$BRANCH' read-only: git pull --ff-only"
