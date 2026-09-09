@@ -141,6 +141,31 @@ A drafted ticket carries:
 Filing or reopening a ticket changes the tracker, so it sits behind the loop's ordinary
 `gated` autonomy: propose the ticket, show it, and let a person say go.
 
+### A problem you found is a ticket, not a sentence
+
+Whatever you were doing when you found it. This is the rule the disposition table above already
+implies and that this project kept breaking: six real defects — unrendered career figures, a
+measure past the WCAG ceiling, a hardcoded name in the naming rule, a section bypassing the
+domain model, a letter dated from a full address, and a board setting every commit contradicts —
+were each found, stated in a chat message, and lost when the session ended. They are issues 32 to
+38 now, and they should have been issues the day they were seen.
+
+So:
+
+- **File it when you find it**, before deciding whether it is worth doing. Filing costs a minute
+  and is reversible; a finding that lives in a message is gone.
+- **Do not widen the branch to fix it.** The disposition table decides: in scope and cheap, fix it
+  here; anything else is a new ticket. A two-file change that becomes twelve is a change nobody
+  reviews.
+- **Write what happens, where, and quoted** — the same bar the reviewer is held to. A ticket
+  without evidence is an opinion with a number.
+- **Say what you did wrong, when it was yours.** Half of 32–38 came from this loop's own work.
+  A ticket that hides its origin is a ticket somebody re-litigates.
+
+The finished work is then judged by an **external auditor**, not by the loop that produced it.
+That is the point of filing rather than fixing quietly: an auditor can read a ticket and a diff,
+and cannot read a message that was never written down.
+
 ### Prevention rules become tests where they can
 
 When a finding's prevention rule is mechanically checkable, the follow-up ticket should add the
