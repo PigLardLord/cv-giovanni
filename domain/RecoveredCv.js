@@ -52,6 +52,9 @@ export class RecoveredCv {
    * detectable without knowing anything about the layout that caused it.
    */
   get roleOrderMonotonic() {
+    // A document with no roles has no chronology to run one way. `[].every()` is true, and
+    // awarding points for it would pay a failed parse for the career it did not recover.
+    if (!this.experience.length) return false;
     const starts = this.experience
       .map((role) => role.period?.start)
       .filter(Boolean)
