@@ -1,0 +1,23 @@
+Giovanni Trovato
+Senior iOS Engineer
+trovato.giovanni@gmail.com
+
+Core Technologies
+
+iOS
+
+Swift, SwiftUI, UIKit
+
+Architecture &
+
+Clean Architecture, MVVM, modularisation
+
+practices
+
+TDD, code review, Git
+
+Professional Experience
+
+Mobile Software Engineer
+Cortado Mobile Solutions · Berlin
+August 2018 – Present

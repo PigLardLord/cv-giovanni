@@ -1,0 +1,109 @@
+Giovanni Trovato
+Senior iOS Engineer / Mobile Platform Owner
+Swift · SwiftUI · Enterprise Mobility · CI/CD
+Bad Liebenstein, Thuringia, Germany · trovato.giovanni@gmail.com · +39 329 8484 046
+github.com/PigLardLord · linkedin.com/in/piglardlord · piglardlord.github.io/cv-giovanni ·
+sites.google.com/view/giovanni-trovato
+EU citizen · unrestricted German work authorisation
+
+Senior iOS engineer with 11+ years in native mobile and six years owning an
+enterprise MDM client from architecture to production. Delivered software used
+across tens of thousands of managed devices, with measurable improvements in
+automated quality and release speed. Brings Android depth, security review, CI/CD
+ownership and direct platform coordination with Apple and Google.
+
+Professional Experience
+
+Mobile Software Engineer / Technical Owner, iOS & Android
+Cortado Mobile Solutions · Berlin (remote)
+August 2018 – Present
+
+Enterprise mobility and device management (MDM, secure printing) in a mobile team
+of 3–7 engineers.
+Expanded the Android test suite to ~4,800 tests and raised UI-test coverage of
+the app's screens from 15% to 82%, while cutting CI test runtime by 75% (32 to
+8 minutes) to give the team same-hour merge feedback.
+Technical owner of the Cortado MDM iOS client for six years from its first
+commit — owned architecture, release decisions and code review, coordinating
+delivery with product, QA and backend while mentoring mobile colleagues.
+Led annual iOS compatibility and platform beta validation, including Swift 6
+concurrency and iOS 26 migrations; coordinated directly with Apple on App
+Review while adopting Dynamic Island, Live Activities, Siri and App Intents
+without dropping support for older devices.
+Migrated nearly every Android screen from XML to Jetpack Compose, including
+kiosk mode, adding unit tests throughout; also managed Android Enterprise
+Partner Program certifications and worked directly with Google on platform
+issues.
+Owned delivery and security across both platforms: code and vulnerability
+reviews, GitLab CI/CD and Fastlane, signing and provisioning, security scans
+and SBOM generation, TestFlight and Play Store staged rollout.
+
+Mobile Developer
+Apparound · Pisa, Italy
+September 2015 – July 2018 (3 years)
+
+B2B sales-automation platform for enterprise field sales teams.
+Built native iOS and Android features with an offline-first architecture, keeping
+field sales teams productive without connectivity.
+
+Created a reusable UI component library and led a UI/UX redesign of the mobile
+clients, reducing duplicate implementation work across new screens.
+Resolved production defects and performance issues for enterprise customers
+across iOS (Swift, Objective-C) and Android (Java) with REST back ends.
+
+Mobile Developer Intern
+Marte 5 · Livorno, Italy
+May 2015 – August 2015 (4 months)
+
+Built production Android augmented-reality applications for manufacturing and
+automotive clients using Java, Vuforia and Wikitude.
+
+Core Technologies
+
+iOS
+
+Swift, SwiftUI, UIKit, Swift Concurrency,
+XCTest / XCUITest, App Intents, Live Activities,
+Swift Package Manager (SPM)
+
+Android
+
+Kotlin, Jetpack Compose, Android Enterprise,
+Mobile Device Management (MDM),
+DevicePolicyManager, JUnit, Robolectric, Gradle, Hilt
+
+Delivery & platform
+
+GitLab CI/CD, Fastlane, code signing & provisioning,
+TestFlight, App Store Connect, Google Play Console,
+staged rollout, release management,
+SBOM / Dependency-Track,
+security scanning & vulnerability review
+
+Architecture & practices
+
+Clean Architecture, MVVM, modularisation,
+REST APIs, TDD, code review, Git,
+AI-assisted engineering, technical mentoring
+
+Education
+
+M.Sc. Mobile Application Development
+Università degli Studi di Pisa · 2015
+
+B.Sc. Computer Engineering
+Università degli Studi di Catania · 2009
+
+Languages
+
+Italian: Native
+English: C1 — professional working proficiency
+German: A2 — currently studying
+
+Certifications
+
+iOS Lead Essentials — Essential Developer Academy (2024)
+Advanced iOS programme: Clean Architecture, TDD, modular design and system
+design.
+
+

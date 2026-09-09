@@ -78,7 +78,11 @@ export class DateRange {
     const body = trailingMatch ? raw.slice(0, trailingMatch.index).trim() : raw;
 
     const sinceMatch = new RegExp(`^(?:${SINCE.join('|')})\\s+(.*)$`, 'i').exec(body);
-    const parts = sinceMatch ? [sinceMatch[1], 'present'] : body.split(SEPARATOR);
+    // A single point is a range of one: a CV that writes `2015` or `May 2015` as a period
+    // means that year, or that month. Refusing it would drop the role rather than the date,
+    // and a missing role is a bigger lie than a short one.
+    const split = body.split(SEPARATOR);
+    const parts = sinceMatch ? [sinceMatch[1], 'present'] : (split.length === 1 ? [body, body] : split);
     if (parts.length !== 2) return null;
 
     const start = DateRange.point(parts[0]);

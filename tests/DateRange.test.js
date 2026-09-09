@@ -58,6 +58,13 @@ describe('DateRange.parse', () => {
     }
   });
 
+  // A CV that writes `2015` as a period means that year. Refusing it would drop the role.
+  test('a single point is a range of one', () => {
+    expect(parse('2015').start).toEqual({ year: 2015, month: null });
+    expect(parse('2015').end).toEqual({ year: 2015, month: null });
+    expect(parse('May 2015').months).toBe(1);
+  });
+
   test('keeps the text it was given', () => {
     expect(parse('  August 2018 – Present  ').raw).toBe('August 2018 – Present');
   });
