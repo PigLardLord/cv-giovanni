@@ -1,0 +1,11 @@
+{
+  "defaultProfile": "general",
+  "profiles": {
+    "general": {
+      "locales": {
+        "en": "profiles/general/en.json"
+      }
+    }
+  },
+  "layouts": ["nerd", "spotlight", "technical"]
+}

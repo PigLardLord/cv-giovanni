@@ -1,0 +1,13 @@
+{
+  "sections": {
+    "skills": "Kernkompetenzen",
+    "selectedImpact": "Ausgewählte Erfolge",
+    "experience": "Berufserfahrung",
+    "education": "Ausbildung",
+    "languages": "Sprachen",
+    "certifications": "Zertifizierungen",
+    "interests": "Interessen"
+  },
+  "experience": { "at": "bei" },
+  "contacts": { "email": "E-Mail", "phone": "Telefon", "portfolio": "Portfolio" }
+}

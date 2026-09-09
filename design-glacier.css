@@ -1,0 +1,2043 @@
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif&family=JetBrains+Mono:wght@400;500;700&display=swap');
+/* =============================================================================
+   Glacier — the design system the PDF already uses, brought to the web.
+   Loaded last on purpose: it overrides tokens rather than rewriting style.css,
+   so it can be removed with one <link> and nothing else changes.
+   ============================================================================= */
+
+/* The typeface is NOT self-hosted here, and that is deliberate. index.html already loads Inter
+   from Google Fonts in woff2 at five weights; the TTFs vendored for the PDF are ~400KB each and
+   carry only 400 and 700, so self-hosting them would make the page four times heavier and
+   poorer. It does leave the site depending on a CDN, which is at odds with vendoring i18next —
+   a real inconsistency, worth closing with a woff2 subset when there is a tool to make one.
+   What matters for the design: the heaviest weight actually served is 700, so nothing may ask
+   for 800 and receive a synthesised bold. */
+
+:root {
+  /* Every colour states what it marks. `signal` is text-weight and clears 4.5:1
+     on white; `signal-bright` marks geometry only — bars, rules, ticks. */
+  --ink: #14161a;
+  --body-ink: #2b2f36;
+  --muted-ink: #475569;
+  --signal: #0e7490;
+  --signal-bright: #0891b2;
+  --soft-ink: #f4f4f5;
+
+  --text-primary: var(--ink);
+  --text-secondary: var(--body-ink);
+  --text-muted: var(--muted-ink);
+  --text-light: #8b949e;
+
+  --primary-color: var(--ink);
+  --primary-dark: #0b0d10;
+  --primary-light: var(--signal-bright);
+  --accent-color: var(--signal);
+  --accent-light: #7dd3e8;
+
+  --bg-secondary: var(--soft-ink);
+  --bg-accent: #ecfeff;
+  --border-color: #e4e4e7;
+  --border-light: #f1f1f3;
+}
+
+/* One masthead for all three layouts: ink, with the signal arriving as a band
+   rather than as a tint of the background. The old gradients were three
+   different corporate blues and greens doing the same job three ways. */
+body[data-layout='spotlight'] .hero-section,
+body[data-layout='technical'] .hero-section {
+  background: var(--ink);
+  border-bottom: 3px solid var(--signal-bright);
+}
+
+/* Nerd Mode is not in this list: it carries no masthead of its own — no ground, no rule, no
+   border — and dresses itself entirely in its own block at the foot of this file. */
+
+/* The decorative white blob in the corner was the only "dynamism" the hero had.
+   A hard-edged mark reads as a decision; a soft glow reads as a default. */
+.hero-section::before {
+  width: 116px;
+  height: 3px;
+  border-radius: 0;
+  background: var(--signal-bright);
+  top: auto;
+  right: auto;
+  bottom: 0;
+  left: 0;
+  transform: none;
+}
+
+/* Scale, not weight, carries the identity — and 700 is the heaviest face that
+   actually ships, so nothing may ask for 800 and get a synthesised one. */
+.hero-name,
+body[data-layout='spotlight'] .hero-name {
+  font-size: 3rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+.hero-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--accent-light);
+  letter-spacing: 0.08em;
+}
+
+/* Section labels: the rail's job on the web, where nothing has to survive a
+   parser. Weight and a bright mark, no border running the full width. */
+.section-title {
+  border-bottom: 1px solid var(--border-color);
+  gap: 0.6rem;
+}
+
+.title-accent {
+  width: 3px;
+  height: 18px;
+  border-radius: 0;
+  background: var(--signal-bright);
+}
+
+.section-title span:last-child {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+}
+
+.spotlight-title {
+  color: var(--ink);
+  letter-spacing: 0.06em;
+}
+
+/* Links wear the signal and keep their underline: colour never carries meaning
+   on its own, here or in the PDF. */
+.contact-card a,
+.social-links a,
+a[href^='http'] {
+  color: var(--signal);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+/* The hover used to lift to #0891B2, which is 3.7:1 on white — below the 4.5:1 a link needs,
+   and a misuse of the token: the bright signal marks geometry, never text. The hover now
+   thickens the underline and holds the colour. */
+.contact-card a:hover,
+.social-links a:hover,
+a[href^='http']:hover {
+  color: var(--signal);
+  text-decoration-thickness: 2px;
+}
+
+.hero-section a,
+.hero-section .contact-card a {
+  color: var(--accent-light);
+}
+
+/* -----------------------------------------------------------------------------
+   The per-layout palettes. Each layout redefined the tokens with its own hard
+   hexes — navy and ochre, slate, and a teal-green — so three documents wore
+   three different corporate schemes. One palette now, and the layouts differ by
+   arrangement, which is what a layout is.
+   -------------------------------------------------------------------------- */
+body[data-layout='spotlight'],
+body[data-layout='technical'] {
+  --primary-color: var(--ink);
+  --primary-light: var(--signal-bright);
+  --primary-dark: #0b0d10;
+  --accent-color: var(--signal);
+  --accent-light: #7dd3e8;
+  background: #eef1f3;
+}
+
+body[data-layout='spotlight'] .hero-title,
+body[data-layout='technical'] .hero-title {
+  color: var(--accent-light);
+}
+
+/* The band under the masthead: a neutral shelf, not a second brand colour. */
+body[data-layout='spotlight'] .skills-spotlight,
+body[data-layout='technical'] .skills-spotlight {
+  background: var(--soft-ink);
+  border-bottom-color: var(--border-color);
+  border-right-color: var(--border-color);
+}
+
+body[data-layout='spotlight'] .spotlight-title,
+body[data-layout='technical'] .spotlight-title {
+  color: var(--ink);
+}
+
+/* A job entry is marked by the signal on its edge — the one place the accent
+   earns real estate in the body of the document. */
+body[data-layout='spotlight'] .job-entry,
+body[data-layout='technical'] .job-entry {
+  border-left-color: var(--signal-bright);
+}
+
+/* The failure state. It used to be three inline styles inside CVApplication; the markup now
+   comes from renderers/ErrorRenderer.js and the look lives here, like every other section. */
+.cv-error {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 64px 32px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.cv-error__title {
+  margin: 0 0 12px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.cv-error__message {
+  margin: 0 0 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9rem;
+  color: var(--signal);
+}
+
+.cv-error__hint {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+/* =============================================================================
+   From the canvas: the identity carried by scale and a display face, and a
+   rhythm that stops every section weighing the same.
+   ============================================================================= */
+
+/* Instrument Serif is loaded at the top of this file: an @import is only honoured before
+   every other rule, so a late one is silently ignored and the name quietly stays Inter. */
+
+.hero-name,
+body[data-layout='spotlight'] .hero-name,
+body[data-layout='technical'] .hero-name {
+  font-family: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+  font-weight: 400;
+  font-size: 3.6rem;
+  line-height: 0.98;
+  letter-spacing: -0.015em;
+}
+
+/* The role line reads as a standing label, not as a second headline. */
+.hero-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  margin-bottom: var(--space-md);
+}
+
+/* Section labels: small, tracked, over a signal rule that stops at the label rather than
+   ruling the full width. The old 2px border ran edge to edge and made six identical bands. */
+.section-title {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  border-bottom: 2px solid var(--signal-bright);
+  padding-bottom: 5px;
+  margin-bottom: var(--space-lg);
+}
+
+.section-title span:last-child {
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+}
+
+/* The accent block became the rule; a second mark beside it is one mark too many. */
+.title-accent {
+  display: none;
+}
+
+/* Rhythm: sections no longer share one spacing value with everything inside them. */
+.primary-column > section + section,
+.secondary-column > section + section {
+  margin-top: var(--space-2xl);
+}
+
+.job-entry + .job-entry {
+  margin-top: var(--space-lg);
+}
+
+/* =============================================================================
+   Technical Profile — the skin.
+   The arrangement (the grid, the rail's width, what sits where) is in layouts.css. Everything
+   that colours, lifts or sets type for this layout is here, after the shared masthead rules
+   above, which it deliberately overrides: technical wears neither the ink masthead nor the serif
+   name. It is the one layout on a saturated ground. The masthead and a full-height rail form a
+   single field of blue, and every unit of content — a skill category, a role, a degree, the
+   contact details — is a white card lifted off it, so the page is a rhythm of one shape at two
+   scales: rail cards at 8px with a hairline shadow, evidence cards at 10px with a blue spine.
+   The blue has two duties and two values: #1a44c4 is the text blue (7.9:1 on white, 6.9:1 on the
+   tint) for titles, degrees and links; #3b82f6 is 3.7:1 and marks geometry only — spines, bars,
+   markers — never a word. Screen-only, like the arrangement: print.css already prints in blue.
+   ========================================================================================== */
+@media screen {
+  body[data-layout='technical'] {
+    --t-ink: #0f1b33;
+    --t-body: #33415a;
+    --t-muted: #55657f;
+    --t-blue: #1a44c4;
+    --t-blue-bright: #3b82f6;
+    --t-blue-deep: #1e40af;
+    --t-blue-tint: #e8f0fe;
+    --t-ground: #f3f6fb;
+    --t-line: #dbe4f3;
+    --t-shadow: 0 1px 2px rgb(15 27 51 / 0.06), 0 10px 24px -14px rgb(30 64 175 / 0.45);
+    --t-shadow-deep: 0 1px 2px rgb(15 27 51 / 0.05), 0 14px 30px -14px rgb(30 64 175 / 0.5);
+
+    --text-primary: var(--t-ink);
+    --text-secondary: var(--t-body);
+    --text-muted: var(--t-muted);
+    --primary-color: var(--t-blue);
+    --primary-dark: var(--t-blue-deep);
+    --primary-light: var(--t-blue-bright);
+    --accent-color: var(--t-blue);
+    --accent-light: #dbeafe;
+    --border-color: var(--t-line);
+    --border-light: #eaf0f9;
+    --bg-secondary: var(--t-ground);
+    --bg-accent: var(--t-blue-tint);
+    background: #dde5f0;
+  }
+
+  body[data-layout='technical'] .layout-switcher a[aria-current='page'] {
+    background: var(--t-blue-deep);
+  }
+
+  /* The rail is painted on the container, not on the sections in it, so it runs the full height
+     whichever column is longer. A hard stop at the rail's width; no gradient across it. */
+  body[data-layout='technical'] .container {
+    background: linear-gradient(
+      90deg,
+      var(--t-blue-deep) 0,
+      var(--t-blue-deep) var(--rail-width),
+      var(--t-ground) var(--rail-width)
+    );
+    box-shadow: 0 30px 50px -30px rgb(15 27 51 / 0.5), 0 0 0 1px rgb(15 27 51 / 0.05);
+  }
+
+  /* --- Masthead ------------------------------------------------------------------------- */
+  body[data-layout='technical'] .hero-section {
+    color: #fff;
+    background: linear-gradient(112deg, #14328a 0%, #1e40af 58%, #1d4bcc 100%);
+    border-bottom: 0;
+  }
+
+  /* A slanted lighter panel behind the badge: the one diagonal on the page, hard-edged. */
+  body[data-layout='technical'] .hero-section::before {
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: auto;
+    width: 40%;
+    height: auto;
+    background: rgb(255 255 255 / 0.06);
+    clip-path: polygon(22% 0, 100% 0, 100% 100%, 0 100%);
+  }
+
+  body[data-layout='technical'] .hero-name {
+    margin-bottom: 0.5rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 2.9rem;
+    font-weight: 700;
+    line-height: 1.02;
+    letter-spacing: -0.03em;
+    color: #fff;
+  }
+
+  /* The role line keeps the case the data wrote: the base uppercases it, and "Senior iOS
+     Engineer" must not reach an iOS hiring manager as "SENIOR IOS ENGINEER". */
+  body[data-layout='technical'] .hero-title {
+    margin-bottom: 0.55rem;
+    color: #dbeafe;
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    text-transform: none;
+  }
+
+  body[data-layout='technical'] .hero-subtitle {
+    margin: 0 0 1rem;
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 500;
+    letter-spacing: 0;
+  }
+
+  body[data-layout='technical'] .hero-summary {
+    color: rgb(255 255 255 / 0.92);
+    font-size: 0.97rem;
+    line-height: 1.65;
+  }
+
+  /* Work authorisation is the first thing a German recruiter checks on a foreign CV: it gets a
+     badge, not a footnote. */
+  body[data-layout='technical'] .hero-availability {
+    display: inline-block;
+    margin-top: 1.15rem;
+    padding: 0.32rem 0.7rem;
+    border: 1px solid rgb(255 255 255 / 0.4);
+    border-radius: 6px;
+    background: rgb(255 255 255 / 0.1);
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+
+  body[data-layout='technical'] .hero-availability[hidden] {
+    display: none;
+  }
+
+  /* The badge: the portrait sits half over the top edge of a white card that holds the contact
+     details, the way a photo sits on an ID. */
+  body[data-layout='technical'] .profile-image-wrapper img {
+    border: 4px solid #fff;
+    box-shadow: 0 10px 22px -8px rgb(4 12 40 / 0.6);
+  }
+
+  body[data-layout='technical'] .contact-card {
+    border: 0;
+    border-radius: 12px;
+    background: #fff;
+    backdrop-filter: none;
+    box-shadow: 0 22px 40px -18px rgb(4 12 40 / 0.65);
+    color: var(--t-body);
+    text-align: center;
+  }
+
+  body[data-layout='technical'] .contact-item {
+    margin-bottom: 0.5rem;
+    color: var(--t-ink);
+    font-size: 0.86rem;
+    font-weight: 500;
+  }
+
+  body[data-layout='technical'] .contact-details {
+    margin-bottom: 0.85rem;
+    color: var(--t-body);
+    font-size: 0.84rem;
+    line-height: 1.6;
+  }
+
+  body[data-layout='technical'] .contact-details strong {
+    color: var(--t-ink);
+  }
+
+  body[data-layout='technical'] .social-links {
+    padding-top: 0.8rem;
+    border-top: 1px solid var(--t-line);
+  }
+
+  body[data-layout='technical'] .hero-section .contact-card a,
+  body[data-layout='technical'] .social-links a {
+    padding: 0;
+    background: transparent;
+    color: var(--t-blue);
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-decoration-color: rgb(26 68 196 / 0.35);
+    text-underline-offset: 3px;
+  }
+
+  body[data-layout='technical'] .hero-section .contact-card a:hover,
+  body[data-layout='technical'] .social-links a:hover {
+    background: transparent;
+    color: var(--t-blue);
+    text-decoration-color: currentColor;
+    transform: none;
+  }
+
+  /* --- The rail --------------------------------------------------------------------------- */
+  body[data-layout='technical'] .skills-spotlight {
+    background: transparent;
+    border: 0;
+  }
+
+  body[data-layout='technical'] .spotlight-title,
+  body[data-layout='technical'] .secondary-column .section-title span:last-child {
+    color: #fff;
+  }
+
+  body[data-layout='technical'] .spotlight-title {
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-align: left;
+  }
+
+  /* The bar beside every section label. In the rail it is light blue on deep blue; in the
+     evidence column bright blue on the pale ground. Same mark, two grounds. */
+  body[data-layout='technical'] .spotlight-title::before,
+  body[data-layout='technical'] .title-accent {
+    content: '';
+    display: block;
+    flex: none;
+    width: 4px;
+    height: 15px;
+    border-radius: 2px;
+    background: #93c5fd;
+  }
+
+  body[data-layout='technical'] .primary-column .title-accent {
+    background: var(--t-blue-bright);
+  }
+
+  body[data-layout='technical'] .section-title {
+    border-bottom: 0;
+  }
+
+  body[data-layout='technical'] .section-title span:last-child {
+    font-size: 0.76rem;
+    letter-spacing: 0.1em;
+    color: var(--t-ink);
+  }
+
+  body[data-layout='technical'] .primary-column .section-title span:last-child {
+    font-size: 0.84rem;
+  }
+
+  /* One card per skill category: the category is the card's header strip, the list its body.
+     Categories keep the case the data wrote — "iOS" must never be uppercased into "IOS". */
+  body[data-layout='technical'] .skill-group {
+    overflow: hidden;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: var(--t-shadow);
+    font-size: 0.84rem;
+  }
+
+  body[data-layout='technical'] .skill-category {
+    padding: 0.5rem 0.9rem;
+    border-bottom: 1px solid var(--t-line);
+    background: var(--t-blue-tint);
+    color: var(--t-blue);
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+
+  body[data-layout='technical'] .skill-list {
+    padding: 0.6rem 0.9rem 0.7rem;
+    color: var(--t-body);
+    line-height: 1.5;
+  }
+
+  body[data-layout='technical'] .edu-entry {
+    padding: 0.8rem 0.95rem 0.85rem;
+    border: 0;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: var(--t-shadow);
+  }
+
+  body[data-layout='technical'] .edu-entry:hover {
+    border-color: transparent;
+    box-shadow: var(--t-shadow);
+  }
+
+  body[data-layout='technical'] .edu-degree {
+    margin-bottom: 0.25rem;
+    color: var(--t-blue);
+    font-size: 0.9rem;
+    line-height: 1.35;
+  }
+
+  body[data-layout='technical'] .edu-school {
+    color: var(--t-ink);
+    font-size: 0.82rem;
+  }
+
+  body[data-layout='technical'] .edu-period {
+    color: var(--t-muted);
+    font-size: 0.8rem;
+  }
+
+  body[data-layout='technical'] .languages-list {
+    overflow: hidden;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: var(--t-shadow);
+  }
+
+  body[data-layout='technical'] .languages-list li {
+    padding: 0.55rem 0.95rem;
+    border-bottom: 1px solid var(--t-line);
+    color: var(--t-body);
+    font-size: 0.84rem;
+    line-height: 1.45;
+  }
+
+  body[data-layout='technical'] .languages-list li:last-child {
+    border-bottom: 0;
+  }
+
+  body[data-layout='technical'] .languages-list strong {
+    color: var(--t-ink);
+  }
+
+  body[data-layout='technical'] .interests-tags {
+    padding: 0.65rem 0.95rem 0.7rem;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: var(--t-shadow);
+    color: var(--t-body);
+    font-size: 0.84rem;
+    line-height: 1.5;
+  }
+
+  /* --- The evidence ------------------------------------------------------------------------ */
+  /* A role is a white card with a blue spine. The current role carries the deep blue and a
+     slightly larger title: it is the strongest evidence on the page and is read first. A
+     document does not react to the pointer, so the base hover lift is switched off. */
+  body[data-layout='technical'] .job-entry {
+    padding: 1.1rem 1.3rem 1.15rem 1.35rem;
+    border: 0;
+    border-left: 4px solid var(--t-blue-bright);
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: var(--t-shadow-deep);
+  }
+
+  body[data-layout='technical'] .job-entry:hover {
+    border-left-color: var(--t-blue-bright);
+    box-shadow: var(--t-shadow-deep);
+    transform: none;
+  }
+
+  body[data-layout='technical'] .job-entry:first-child,
+  body[data-layout='technical'] .job-entry:first-child:hover {
+    border-left-color: var(--t-blue-deep);
+  }
+
+  body[data-layout='technical'] .job-header {
+    color: var(--t-body);
+    font-size: 0.92rem;
+    line-height: 1.45;
+  }
+
+  body[data-layout='technical'] .job-title {
+    color: var(--t-blue);
+    font-size: 1.06rem;
+  }
+
+  body[data-layout='technical'] .job-entry:first-child .job-title {
+    font-size: 1.14rem;
+  }
+
+  body[data-layout='technical'] .job-company {
+    color: var(--t-ink);
+  }
+
+  /* The dates as a stamp: tabular figures so the years line up from card to card. */
+  body[data-layout='technical'] .job-period {
+    display: inline-block;
+    margin: 0.5rem 0 0.65rem;
+    padding: 0.18rem 0.6rem;
+    border-radius: 999px;
+    background: var(--t-blue-tint);
+    color: var(--t-blue);
+    font-size: 0.72rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.05em;
+  }
+
+  body[data-layout='technical'] .job-summary {
+    margin: 0;
+    color: var(--t-ink);
+    font-size: 0.92rem;
+    font-weight: 500;
+  }
+
+  body[data-layout='technical'] .job-description {
+    font-size: 0.92rem;
+  }
+
+  body[data-layout='technical'] .job-highlights {
+    margin: 0.55rem 0 0 1.1rem;
+    color: var(--t-body);
+    font-size: 0.9rem;
+    line-height: 1.55;
+  }
+
+  body[data-layout='technical'] .job-highlights li {
+    margin-bottom: 0.35rem;
+    padding-left: 0.15rem;
+  }
+
+  body[data-layout='technical'] .job-highlights li::marker {
+    color: var(--t-blue-bright);
+  }
+
+  body[data-layout='technical'] .certifications-list li {
+    padding: 0.9rem 1.15rem 0.95rem;
+    border-left: 4px solid var(--t-blue-bright);
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: var(--t-shadow-deep);
+    color: var(--t-body);
+    font-size: 0.92rem;
+  }
+
+  body[data-layout='technical'] .certifications-list strong,
+  body[data-layout='technical'] .certifications-list a {
+    color: var(--t-blue);
+  }
+
+  body[data-layout='technical'] .cert-description {
+    color: var(--t-body);
+    font-size: 0.86rem;
+  }
+
+  /* --- Footer and focus --------------------------------------------------------------------- */
+  body[data-layout='technical'] .print-footer {
+    padding: 1.2rem;
+    border-top: 1px solid var(--t-line);
+    background: #fff;
+  }
+
+  body[data-layout='technical'] .print-button {
+    background: var(--t-blue-deep);
+    box-shadow: 0 10px 20px -10px rgb(30 64 175 / 0.7);
+  }
+
+  body[data-layout='technical'] .print-button-secondary {
+    border-color: var(--t-line);
+    background: #fff;
+    color: var(--t-blue);
+  }
+
+  body[data-layout='technical'] a:focus-visible,
+  body[data-layout='technical'] button:focus-visible {
+    outline: 2px solid var(--t-blue-bright);
+    outline-offset: 2px;
+  }
+
+  /* On a narrow screen the container is one column and the rail becomes two blue bands, so the
+     sections paint their own ground and the container goes plain. */
+  @media (max-width: 768px) {
+    body[data-layout='technical'] .container {
+      background: var(--t-ground);
+    }
+
+    body[data-layout='technical'] .skills-spotlight,
+    body[data-layout='technical'] .secondary-column {
+      background: var(--t-blue-deep);
+    }
+  }
+
+  /* --- Chips ------------------------------------------------------------------------------- */
+  /* The renderers now emit one element per name with a real separator text node between them.
+     Hiding the separator turns a comma list into a field of small shapes without touching what
+     anyone reads back: `textContent` still says "Swift, SwiftUI", so copy/paste and any parser
+     see the list exactly as the data wrote it. This is inside @media screen on purpose — print
+     keeps the commas and drops the shapes, which is what a printed list wants. */
+  body[data-layout='technical'] .skill-list,
+  body[data-layout='technical'] .interests-line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+
+  body[data-layout='technical'] .skill-sep,
+  body[data-layout='technical'] .interest-sep {
+    display: none;
+  }
+
+  body[data-layout='technical'] .skill-chip,
+  body[data-layout='technical'] .interest-chip {
+    padding: 0.2rem 0.5rem;
+    border-radius: 5px;
+    background: var(--t-blue-tint);
+    color: var(--t-blue);
+    font-size: 0.78rem;
+    font-weight: 500;
+    line-height: 1.35;
+  }
+}
+
+/* =============================================================================
+   Impact Spotlight — the skin.
+   The arrangement (the masthead grid, the strip, the timeline's gutter) is in layouts.css. This
+   block colours it, and it deliberately overrides the shared masthead rules earlier in this file
+   — the ink ground, the serif name at 3.6rem, the signal-blue rule under the section labels —
+   which still name `spotlight` in their selectors and are simply out-cascaded here.
+
+   The direction: the story leads, so the page is a warm magazine profile rather than a stack.
+   One saturated band — a terracotta masthead — over warm paper; the portrait on the left with a
+   hard amber offset shadow, the way a photo is pasted on a page; section headings in the display
+   serif, in the case the data wrote; skills as white pills in labelled rows on cream; the
+   experience hung off a timeline whose spine fades from the present into the past.
+
+   Colour has a role, and every text colour is measured, not estimated:
+   `--e-ember` (#b8431b) is the text ember — 5.4:1 on white, 5.1:1 on the cream band — for
+   employers, datelines, links and the skills labels; `--e-ember-deep` is the masthead's dark end
+   and the interest pills' text on their tint; `--e-ember-bright` (3.3:1) and `--e-amber` (2.0:1)
+   mark geometry only — the spine, the dots, the credential spines, the portrait's shadow — and
+   never a word. White on the masthead runs 5.4:1 at its lightest stop and 8.4:1 at its darkest.
+   Screen-only, like the arrangement: print.css already prints in blue on white.
+   ========================================================================================== */
+@media screen {
+  body[data-layout='spotlight'] {
+    --e-ink: #24160f;
+    --e-body: #40302a;
+    --e-muted: #6f5f56;
+    --e-ember: #b8431b;
+    --e-ember-deep: #8a2f0f;
+    --e-ember-bright: #e8641f;
+    --e-amber: #f2a516;
+    --e-tint: #fbe9df;
+    --e-cream: #fbf4ea;
+    --e-line: #eddccd;
+    --e-shadow: 0 1px 2px rgb(74 32 12 / 0.05), 0 14px 30px -16px rgb(120 56 20 / 0.38);
+
+    --text-primary: var(--e-ink);
+    --text-secondary: var(--e-body);
+    --text-muted: var(--e-muted);
+    --primary-color: var(--e-ember);
+    --primary-dark: var(--e-ember-deep);
+    --primary-light: var(--e-ember-bright);
+    --accent-color: var(--e-ember);
+    --accent-light: #ffd9c2;
+    --border-color: var(--e-line);
+    --border-light: #f5ebe0;
+    --bg-secondary: var(--e-cream);
+    --bg-accent: var(--e-tint);
+    background: #efe6db;
+  }
+
+  /* The switcher's links carry http hrefs, so the shared link rule would paint them teal. */
+  body[data-layout='spotlight'] .layout-switcher a {
+    color: var(--e-ember);
+  }
+
+  body[data-layout='spotlight'] .layout-switcher a[aria-current='page'] {
+    background: var(--e-ember-deep);
+    color: #fff;
+  }
+
+  body[data-layout='spotlight'] .container {
+    background: #fff;
+    box-shadow: 0 30px 60px -30px rgb(80 40 20 / 0.45), 0 0 0 1px rgb(80 40 20 / 0.06);
+  }
+
+  /* --- Masthead ------------------------------------------------------------------------- */
+  body[data-layout='spotlight'] .hero-section {
+    color: #fff;
+    background: linear-gradient(118deg, #8a2f0f 0%, #a83c14 52%, #b8431b 100%);
+    border-bottom: 0;
+  }
+
+  /* The spotlight itself: a hard-edged disc of light behind the portrait, and a darker one
+     falling off the opposite corner. Discs, not glows — an edge reads as a decision. */
+  body[data-layout='spotlight'] .hero-section::before {
+    top: -150px;
+    right: auto;
+    bottom: auto;
+    left: -110px;
+    width: 440px;
+    height: 440px;
+    border-radius: 50%;
+    background: rgb(255 255 255 / 0.08);
+    transform: none;
+  }
+
+  body[data-layout='spotlight'] .hero-section::after {
+    content: '';
+    position: absolute;
+    z-index: 0;
+    right: -120px;
+    bottom: -220px;
+    width: 420px;
+    height: 420px;
+    border-radius: 50%;
+    background: rgb(40 10 0 / 0.16);
+  }
+
+  body[data-layout='spotlight'] .hero-content {
+    position: relative;
+    z-index: 1;
+  }
+
+  body[data-layout='spotlight'] .hero-name {
+    margin-bottom: 0.4rem;
+    font-family: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+    font-size: 4rem;
+    font-weight: 400;
+    line-height: 0.98;
+    letter-spacing: -0.01em;
+    color: #fff;
+  }
+
+  /* The role line keeps the case the data wrote: "Senior iOS Engineer" must not reach an iOS
+     hiring manager as "SENIOR IOS ENGINEER". */
+  body[data-layout='spotlight'] .hero-title {
+    margin-bottom: 0.45rem;
+    color: #fff;
+    font-size: 1.15rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  /* White, not a peach tint: measured against the lightest stop under the light disc, a tint
+     of #ffe4d3 came out at 3.9:1. Weight and size separate it from the role line above. */
+  body[data-layout='spotlight'] .hero-subtitle {
+    margin: 0 0 1.1rem;
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+  }
+
+  body[data-layout='spotlight'] .hero-summary {
+    color: #fff;
+    font-size: 1.04rem;
+    line-height: 1.7;
+  }
+
+  /* Work authorisation is the first thing a German recruiter checks on a foreign CV. */
+  body[data-layout='spotlight'] .hero-availability {
+    display: inline-block;
+    margin-top: 1.15rem;
+    padding: 0.32rem 0.75rem;
+    border: 1px solid rgb(255 255 255 / 0.45);
+    border-radius: 999px;
+    background: rgb(40 10 0 / 0.18);
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+
+  body[data-layout='spotlight'] .hero-availability[hidden] {
+    display: none;
+  }
+
+  /* The portrait: a white-rimmed disc with a hard amber shadow, pasted on the page. */
+  body[data-layout='spotlight'] .profile-image-wrapper img {
+    width: 168px;
+    height: 168px;
+    border: 5px solid #fff;
+    box-shadow: 10px 10px 0 var(--e-amber);
+  }
+
+  /* The strip: white text over the masthead, the three links as white pills. */
+  body[data-layout='spotlight'] .contact-card {
+    padding: 1.15rem 0 0;
+    border: 0;
+    border-top: 1px solid rgb(255 255 255 / 0.3);
+    border-radius: 0;
+    background: transparent;
+    backdrop-filter: none;
+    color: #fff;
+  }
+
+  body[data-layout='spotlight'] .contact-item {
+    font-size: 0.86rem;
+    font-weight: 500;
+  }
+
+  body[data-layout='spotlight'] .contact-details {
+    font-size: 0.86rem;
+    line-height: 1.5;
+  }
+
+  body[data-layout='spotlight'] .contact-details strong {
+    color: #fff;
+  }
+
+  body[data-layout='spotlight'] .hero-section .contact-card a,
+  body[data-layout='spotlight'] .social-links a {
+    padding: 0.28rem 0.72rem;
+    border-radius: 999px;
+    background: #fff;
+    color: var(--e-ember);
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-decoration: none;
+    box-shadow: 0 2px 6px -2px rgb(40 10 0 / 0.4);
+  }
+
+  body[data-layout='spotlight'] .hero-section .contact-card a:hover,
+  body[data-layout='spotlight'] .social-links a:hover {
+    background: #fff;
+    color: var(--e-ember-deep);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    transform: none;
+  }
+
+  /* --- Section headings: the display serif, sentence case, a short ember dash before -------- */
+  body[data-layout='spotlight'] .spotlight-title,
+  body[data-layout='spotlight'] .section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0;
+    border-bottom: 0;
+    text-align: left;
+  }
+
+  body[data-layout='spotlight'] .spotlight-title,
+  body[data-layout='spotlight'] .section-title span:last-child {
+    color: var(--e-ink);
+    font-family: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+    font-size: 1.6rem;
+    font-weight: 400;
+    line-height: 1.1;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  body[data-layout='spotlight'] .spotlight-title::before,
+  body[data-layout='spotlight'] .title-accent {
+    content: '';
+    display: block;
+    flex: none;
+    width: 26px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--e-ember-bright);
+  }
+
+  /* --- The skills band ------------------------------------------------------------------- */
+  body[data-layout='spotlight'] .skills-spotlight {
+    background: var(--e-cream);
+    border-bottom: 1px solid var(--e-line);
+  }
+
+  body[data-layout='spotlight'] .spotlight-title {
+    margin-bottom: 0.5rem;
+  }
+
+  body[data-layout='spotlight'] .skill-group + .skill-group {
+    border-top: 1px solid var(--e-line);
+  }
+
+  /* Categories keep the case the data wrote — "iOS" must never be uppercased into "IOS". */
+  body[data-layout='spotlight'] .skill-category {
+    padding-top: 0.34rem;
+    color: var(--e-ember);
+    font-size: 0.82rem;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+
+  body[data-layout='spotlight'] .skill-chip {
+    padding: 0.28rem 0.7rem;
+    border: 1px solid var(--e-line);
+    border-radius: 999px;
+    background: #fff;
+    color: var(--e-body);
+    font-size: 0.8rem;
+    font-weight: 500;
+    line-height: 1.35;
+    box-shadow: 0 1px 2px rgb(74 32 12 / 0.06);
+  }
+
+  /* --- The timeline ----------------------------------------------------------------------- */
+  /* The spine: bright at the present, fading into the past. */
+  body[data-layout='spotlight'] .experience-content::before {
+    content: '';
+    position: absolute;
+    top: 18px;
+    bottom: 22px;
+    left: 8px;
+    width: 3px;
+    border-radius: 2px;
+    background: linear-gradient(180deg, var(--e-ember-bright) 0%, var(--e-line) 85%);
+  }
+
+  /* A role is a white card hung off the spine by a dot. No spine of its own: the timeline is
+     the mark. A document does not react to the pointer, so the base hover lift is off. */
+  body[data-layout='spotlight'] .job-entry {
+    margin-bottom: 0;
+    padding: 1.15rem 1.35rem 1.25rem;
+    border: 1px solid var(--e-line);
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: var(--e-shadow);
+  }
+
+  body[data-layout='spotlight'] .job-entry:hover {
+    border-color: var(--e-line);
+    box-shadow: var(--e-shadow);
+    transform: none;
+  }
+
+  body[data-layout='spotlight'] .job-entry + .job-entry {
+    margin-top: 1.15rem;
+  }
+
+  body[data-layout='spotlight'] .job-entry::before {
+    content: '';
+    position: absolute;
+    top: 1.3rem;
+    left: -32px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--e-ember-bright);
+    box-shadow: 0 0 0 4px #fff;
+  }
+
+  /* The current role is the strongest evidence on the page: its dot carries the spotlight. */
+  body[data-layout='spotlight'] .job-entry:first-child::before {
+    background: var(--e-ember);
+    box-shadow: 0 0 0 4px #fff, 0 0 0 8px rgb(232 100 31 / 0.25);
+  }
+
+  body[data-layout='spotlight'] .job-period {
+    margin: 0 0 0.5rem;
+    color: var(--e-ember);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  body[data-layout='spotlight'] .job-header {
+    margin-bottom: 0.4rem;
+    color: var(--e-body);
+    font-size: 0.92rem;
+    line-height: 1.45;
+  }
+
+  body[data-layout='spotlight'] .job-title {
+    color: var(--e-ink);
+    font-size: 1.12rem;
+  }
+
+  body[data-layout='spotlight'] .job-entry:first-child .job-title {
+    font-size: 1.2rem;
+  }
+
+  body[data-layout='spotlight'] .job-company {
+    color: var(--e-ember);
+    font-weight: 700;
+  }
+
+  body[data-layout='spotlight'] .job-summary {
+    margin: 0;
+    color: var(--e-ink);
+    font-size: 0.93rem;
+    font-weight: 500;
+  }
+
+  body[data-layout='spotlight'] .job-description {
+    font-size: 0.92rem;
+  }
+
+  body[data-layout='spotlight'] .job-highlights {
+    margin: 0.6rem 0 0 1.1rem;
+    color: var(--e-body);
+    font-size: 0.9rem;
+    line-height: 1.58;
+  }
+
+  body[data-layout='spotlight'] .job-highlights li {
+    margin-bottom: 0.38rem;
+    padding-left: 0.15rem;
+  }
+
+  body[data-layout='spotlight'] .job-highlights li::marker {
+    color: var(--e-ember-bright);
+  }
+
+  /* --- Credentials: white cards with an amber spine ---------------------------------------- */
+  body[data-layout='spotlight'] .certifications-list li {
+    padding: 1rem 1.2rem 1.05rem;
+    border: 1px solid var(--e-line);
+    border-left: 4px solid var(--e-amber);
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: var(--e-shadow);
+    color: var(--e-body);
+    font-size: 0.92rem;
+  }
+
+  body[data-layout='spotlight'] .certifications-list strong,
+  body[data-layout='spotlight'] .certifications-list a {
+    color: var(--e-ember);
+  }
+
+  body[data-layout='spotlight'] .cert-description {
+    color: var(--e-body);
+    font-size: 0.86rem;
+  }
+
+  body[data-layout='spotlight'] .edu-entry {
+    margin-bottom: 0.8rem;
+    padding: 0.9rem 1rem 0.95rem;
+    border: 1px solid var(--e-line);
+    border-left: 4px solid var(--e-amber);
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: var(--e-shadow);
+  }
+
+  body[data-layout='spotlight'] .edu-entry:last-child {
+    margin-bottom: 0;
+  }
+
+  body[data-layout='spotlight'] .edu-entry:hover {
+    border-color: var(--e-line);
+    border-left-color: var(--e-amber);
+    box-shadow: var(--e-shadow);
+  }
+
+  body[data-layout='spotlight'] .edu-degree {
+    margin-bottom: 0.25rem;
+    color: var(--e-ink);
+    font-size: 0.95rem;
+    line-height: 1.35;
+  }
+
+  body[data-layout='spotlight'] .edu-school {
+    color: var(--e-body);
+    font-size: 0.85rem;
+  }
+
+  body[data-layout='spotlight'] .edu-period {
+    color: var(--e-muted);
+    font-size: 0.8rem;
+  }
+
+  /* --- Languages and interests -------------------------------------------------------------- */
+  body[data-layout='spotlight'] .languages-list {
+    overflow: hidden;
+    border: 1px solid var(--e-line);
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: var(--e-shadow);
+  }
+
+  body[data-layout='spotlight'] .languages-list li {
+    padding: 0.6rem 0.95rem;
+    border-bottom: 1px solid var(--e-line);
+    color: var(--e-body);
+    font-size: 0.86rem;
+    line-height: 1.45;
+  }
+
+  body[data-layout='spotlight'] .languages-list li:last-child {
+    border-bottom: 0;
+  }
+
+  body[data-layout='spotlight'] .languages-list strong {
+    color: var(--e-ink);
+  }
+
+  /* Interest pills carry a name and nothing else: no score hides in them. */
+  body[data-layout='spotlight'] .interest-chip {
+    padding: 0.3rem 0.75rem;
+    border-radius: 999px;
+    background: var(--e-tint);
+    color: var(--e-ember-deep);
+    font-size: 0.8rem;
+    font-weight: 600;
+    line-height: 1.35;
+  }
+
+  /* --- Footer and focus --------------------------------------------------------------------- */
+  body[data-layout='spotlight'] .print-footer {
+    padding: 1.3rem;
+    border-top: 1px solid var(--e-line);
+    background: var(--e-cream);
+  }
+
+  body[data-layout='spotlight'] .print-button {
+    background: linear-gradient(135deg, var(--e-ember), var(--e-ember-deep));
+    box-shadow: 0 10px 20px -10px rgb(184 67 27 / 0.7);
+  }
+
+  body[data-layout='spotlight'] .print-button-secondary {
+    border-color: var(--e-line);
+    background: #fff;
+    color: var(--e-ember);
+  }
+
+  body[data-layout='spotlight'] a:focus-visible,
+  body[data-layout='spotlight'] button:focus-visible {
+    outline: 2px solid var(--e-ember-bright);
+    outline-offset: 2px;
+  }
+
+  /* On a narrow screen the discs would crowd the centred portrait; the darker one goes. */
+  @media (max-width: 768px) {
+    body[data-layout='spotlight'] .hero-section::after {
+      display: none;
+    }
+
+    body[data-layout='spotlight'] .hero-name {
+      font-size: 2.9rem;
+    }
+
+    body[data-layout='spotlight'] .profile-image-wrapper img {
+      width: 136px;
+      height: 136px;
+      box-shadow: 8px 8px 0 var(--e-amber);
+    }
+  }
+}
+
+/* =============================================================================
+   Nerd Mode — the skin. "Graphite".
+   The arrangement (the 178pt rail, the masthead grid, the credentials band) is in layouts.css.
+   This block dresses it, and it deliberately overrides the shared rules earlier in this file —
+   the serif name, the signal-blue rule under the section labels, the teal link colour — which
+   no longer name `nerd` in their selectors but still reach it through their bare-class halves.
+
+   The direction: one sheet of anthracite, edge to edge, and nothing lifted off it. No card, no
+   panel, no gradient, no second surface — structure is drawn with hairlines and with a fixed
+   monospace column, never with a fill. The page is achromatic except in one place.
+
+   Colour has a role, and every text tone is measured against #14161A rather than estimated:
+   `--g-ink` #ECEEF1 (15.6:1) names and titles, `--g-body` #B9C0C9 (9.9:1) every sentence,
+   `--g-muted` #9AA3AE (7.1:1) summaries and the contact rail, `--g-dim` #7D8792 (5.0:1) dates,
+   small labels and separators — and #7D8792 is the floor: nothing below it may carry a word,
+   including a separator glyph and a 10px label. `--g-rule` #282D35 and `--g-rule-soft` #1F242B
+   are hairlines and never text. `--g-signal` #C8F169 (14.0:1) marks the present tense and only
+   that: the role line, the section index, the current role's tick and employer, the skill
+   category labels, and the download button's border. A seventh use would make it decoration.
+
+   Screen-only, like the arrangement and like the other two skins: on paper print.css prints the
+   base DOM in ink on white, and a dark page that printed dark would be a defect.
+   ========================================================================================== */
+@media screen {
+  body[data-layout='nerd'] {
+    --g-bg: #14161a;
+    --g-ink: #eceef1;
+    --g-body: #b9c0c9;
+    --g-muted: #9aa3ae;
+    --g-dim: #7d8792;
+    --g-signal: #c8f169;
+    --g-rule: #282d35;
+    --g-rule-soft: #1f242b;
+    --g-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+    /* The shared tokens are remapped rather than fought: every base rule that reaches for a
+       border, a muted text or a secondary ground now lands inside this palette. */
+    --text-primary: var(--g-ink);
+    --text-secondary: var(--g-body);
+    --text-muted: var(--g-muted);
+    --text-light: var(--g-dim);
+    --text-white: var(--g-ink);
+    --primary-color: var(--g-ink);
+    --primary-dark: var(--g-ink);
+    --primary-light: var(--g-rule);
+    --accent-color: var(--g-signal);
+    --accent-light: var(--g-signal);
+    --border-color: var(--g-rule);
+    --border-light: var(--g-rule-soft);
+    --bg-primary: var(--g-bg);
+    --bg-secondary: transparent;
+    --bg-accent: transparent;
+
+    background: var(--g-bg);
+    color: var(--g-body);
+  }
+
+  body[data-layout='nerd'] .container {
+    background: var(--g-bg);
+  }
+
+  /* --- The top strip ------------------------------------------------------------------------ */
+  body[data-layout='nerd'] .layout-switcher {
+    border: 0;
+    border-bottom: 1px solid var(--g-rule);
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  body[data-layout='nerd'] .layout-switcher a {
+    border-radius: 0;
+    color: var(--g-dim);
+    font-family: var(--g-mono);
+    font-size: 10.5px;
+    font-weight: 400;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  body[data-layout='nerd'] .layout-switcher a:hover {
+    color: var(--g-body);
+  }
+
+  body[data-layout='nerd'] .layout-switcher a[aria-current='page'] {
+    background: transparent;
+    color: var(--g-signal);
+  }
+
+  /* --- The masthead ------------------------------------------------------------------------- */
+  /* No ground and no border: the name sits on the same anthracite as the rest of the page, and
+     one hairline over the contact rail is all that separates the masthead from what follows. */
+  body[data-layout='nerd'] .hero-section {
+    background: transparent;
+    border: 0;
+    color: var(--g-body);
+  }
+
+  body[data-layout='nerd'] .hero-section::before {
+    content: none;
+  }
+
+  body[data-layout='nerd'] .hero-name {
+    margin: 0;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 58px;
+    font-weight: 700;
+    line-height: 1.02;
+    letter-spacing: -0.035em;
+    color: var(--g-ink);
+  }
+
+  /* The role line is the present tense, so it carries the signal. It keeps the case the data
+     wrote: "Senior iOS Engineer" must not reach an iOS hiring manager as "SENIOR IOS ENGINEER". */
+  body[data-layout='nerd'] .hero-title {
+    margin: 16px 0 0;
+    font-family: var(--g-mono);
+    font-size: 12.5px;
+    font-weight: 500;
+    line-height: 1.7;
+    letter-spacing: 0.2em;
+    text-transform: none;
+    color: var(--g-signal);
+  }
+
+  body[data-layout='nerd'] .hero-subtitle {
+    margin: 14px 0 0;
+    font-family: var(--g-mono);
+    font-size: 11.5px;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    color: var(--g-muted);
+  }
+
+  body[data-layout='nerd'] .hero-summary {
+    margin: 26px 0 0;
+    max-width: 74ch;
+    font-size: 15.5px;
+    line-height: 1.68;
+    color: var(--g-body);
+  }
+
+  /* Work authorisation is the first thing a German recruiter checks on a foreign CV; here it is
+     a fact in the metadata voice, not a badge — this layout has no shapes to put it in. */
+  body[data-layout='nerd'] .hero-availability {
+    margin: 22px 0 0;
+    font-family: var(--g-mono);
+    font-size: 11px;
+    line-height: 1.6;
+    letter-spacing: 0.04em;
+    color: var(--g-dim);
+  }
+
+  body[data-layout='nerd'] .hero-availability[hidden] {
+    display: none;
+  }
+
+  /* The portrait is a fact about the applicant, not the hero of the page: square, desaturated,
+     held by a hairline. Grayscale also keeps the promise that one colour appears on this page. */
+  body[data-layout='nerd'] .profile-image-wrapper img {
+    width: 104px;
+    height: 104px;
+    border: 1px solid var(--g-rule);
+    border-radius: 0;
+    box-shadow: none;
+    filter: grayscale(1) contrast(1.06) brightness(0.94);
+  }
+
+  /* The contact rail: one hairline above it, monospace across it, the addresses divided from the
+     location by a rule rather than by a glyph this DOM does not have. */
+  body[data-layout='nerd'] .contact-card {
+    padding: 18px 0 0;
+    border: 0;
+    border-top: 1px solid var(--g-rule);
+    border-radius: 0;
+    background: transparent;
+    backdrop-filter: none;
+    color: var(--g-muted);
+    text-align: left;
+  }
+
+  /* A colour emoji would be the second chromatic thing on the page, and it says nothing the
+     address beside it does not. The location text is untouched. */
+  body[data-layout='nerd'] .contact-icon {
+    display: none;
+  }
+
+  body[data-layout='nerd'] .contact-item,
+  body[data-layout='nerd'] .contact-details,
+  body[data-layout='nerd'] .social-links a {
+    font-family: var(--g-mono);
+    font-size: 11.5px;
+    line-height: 1.7;
+    letter-spacing: 0.04em;
+    color: var(--g-muted);
+  }
+
+  body[data-layout='nerd'] .contact-details {
+    padding-left: 22px;
+    border-left: 1px solid var(--g-rule);
+  }
+
+  body[data-layout='nerd'] .contact-details strong {
+    font-weight: 500;
+    color: var(--g-dim);
+  }
+
+  /* Three readable addresses and two separators need a line of their own: a rail that wraps by
+     accident reads as a mistake. */
+  body[data-layout='nerd'] .social-links {
+    flex-basis: 100%;
+    justify-content: flex-start;
+    margin-top: 2px;
+  }
+
+  body[data-layout='nerd'] .contact-card a,
+  body[data-layout='nerd'] .social-links a {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--g-body);
+    font-weight: 400;
+    text-decoration: none;
+    box-shadow: none;
+  }
+
+  body[data-layout='nerd'] .contact-card a:hover,
+  body[data-layout='nerd'] .social-links a:hover {
+    background: transparent;
+    color: var(--g-signal);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    transform: none;
+  }
+
+  body[data-layout='nerd'] .inline-separator {
+    padding: 0 10px;
+    color: var(--g-dim);
+  }
+
+  /* --- The section heads --------------------------------------------------------------------- */
+  body[data-layout='nerd'] .spotlight-title,
+  body[data-layout='nerd'] .section-title {
+    border: 0;
+    text-align: left;
+  }
+
+  body[data-layout='nerd'] .spotlight-title::before,
+  body[data-layout='nerd'] .section-title::before {
+    font-family: var(--g-mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    color: var(--g-signal);
+  }
+
+  body[data-layout='nerd'] .spotlight-title::after,
+  body[data-layout='nerd'] .section-title::after {
+    background: var(--g-rule);
+  }
+
+  body[data-layout='nerd'] .spotlight-title,
+  body[data-layout='nerd'] .section-title span:last-child {
+    font-family: var(--g-mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--g-ink);
+  }
+
+  /* The four short sections at the foot of the page are columns of one band, so their heads are
+     column labels: the same number, word and rule, one step quieter. */
+  body[data-layout='nerd'] .certifications-section .section-title,
+  body[data-layout='nerd'] .education-section .section-title,
+  body[data-layout='nerd'] .languages-section .section-title,
+  body[data-layout='nerd'] .interests-section .section-title {
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  body[data-layout='nerd'] .certifications-section .section-title::before,
+  body[data-layout='nerd'] .education-section .section-title::before,
+  body[data-layout='nerd'] .languages-section .section-title::before,
+  body[data-layout='nerd'] .interests-section .section-title::before {
+    font-size: 10px;
+  }
+
+  body[data-layout='nerd'] .certifications-section .section-title span:last-child,
+  body[data-layout='nerd'] .education-section .section-title span:last-child,
+  body[data-layout='nerd'] .languages-section .section-title span:last-child,
+  body[data-layout='nerd'] .interests-section .section-title span:last-child {
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    color: var(--g-dim);
+  }
+
+  body[data-layout='nerd'] .certifications-section .section-title::after,
+  body[data-layout='nerd'] .education-section .section-title::after,
+  body[data-layout='nerd'] .languages-section .section-title::after,
+  body[data-layout='nerd'] .interests-section .section-title::after {
+    background: var(--g-rule-soft);
+  }
+
+  /* --- 01 The skills table -------------------------------------------------------------------- */
+  body[data-layout='nerd'] .skills-spotlight {
+    background: transparent;
+    border: 0;
+  }
+
+  body[data-layout='nerd'] .skills-showcase {
+    border-top: 1px solid var(--g-rule-soft);
+  }
+
+  body[data-layout='nerd'] .skill-group {
+    border-bottom: 1px solid var(--g-rule-soft);
+  }
+
+  /* The category holds the rail. It keeps the case the data wrote — "iOS" must never be
+     uppercased into "IOS" — so the monospace, the tracking and the signal do the work that
+     uppercasing would have done. */
+  body[data-layout='nerd'] .skill-category {
+    padding-top: 3px;
+    font-family: var(--g-mono);
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.6;
+    letter-spacing: 0.14em;
+    text-transform: none;
+    color: var(--g-signal);
+  }
+
+  body[data-layout='nerd'] .skill-list {
+    font-size: 14px;
+    line-height: 1.75;
+    color: var(--g-ink);
+  }
+
+  /* --- 02 The experience ---------------------------------------------------------------------- */
+  body[data-layout='nerd'] .job-entry {
+    background: transparent;
+  }
+
+  body[data-layout='nerd'] .job-entry + .job-entry {
+    border-top: 1px solid var(--g-rule-soft);
+  }
+
+  /* A document does not react to the pointer: the base lift is off. */
+  body[data-layout='nerd'] .job-entry:hover {
+    border-left-color: transparent;
+    box-shadow: none;
+    transform: none;
+  }
+
+  /* The dates hold the rail so the career can be scanned vertically without reading a word.
+     Tabular figures keep the years in the same place from role to role. */
+  body[data-layout='nerd'] .job-period {
+    margin: 0;
+    font-family: var(--g-mono);
+    font-size: 11.5px;
+    font-weight: 400;
+    line-height: 1.7;
+    letter-spacing: 0.06em;
+    font-variant-numeric: tabular-nums;
+    color: var(--g-body);
+  }
+
+  /* The signal tick: the one mark that says which of these three is now, and it appears nowhere
+     else on the page. */
+  body[data-layout='nerd'] .experience-content > .job-entry:first-child .job-period {
+    color: var(--g-ink);
+  }
+
+  body[data-layout='nerd'] .experience-content > .job-entry:first-child .job-period::before {
+    content: '';
+    display: block;
+    width: 22px;
+    height: 2px;
+    margin-bottom: 14px;
+    background: var(--g-signal);
+  }
+
+  body[data-layout='nerd'] .job-header {
+    margin: 0;
+    font-family: var(--g-mono);
+    font-size: 11.5px;
+    line-height: 1.7;
+    letter-spacing: 0.04em;
+    color: var(--g-dim);
+  }
+
+  /* The title takes its own line; the employer and the place follow it in the metadata voice. */
+  body[data-layout='nerd'] .job-title {
+    display: block;
+    margin-bottom: 7px;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 19px;
+    font-weight: 600;
+    line-height: 1.35;
+    letter-spacing: -0.012em;
+    color: var(--g-ink);
+  }
+
+  body[data-layout='nerd'] .job-company {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0;
+    color: var(--g-body);
+  }
+
+  body[data-layout='nerd'] .experience-content > .job-entry:first-child .job-company {
+    color: var(--g-signal);
+  }
+
+  body[data-layout='nerd'] .job-summary {
+    margin: 12px 0 0;
+    max-width: 74ch;
+    font-size: 13.5px;
+    font-weight: 400;
+    line-height: 1.68;
+    color: var(--g-muted);
+  }
+
+  body[data-layout='nerd'] .job-description {
+    margin: 12px 0 0;
+    max-width: 74ch;
+    font-size: 14.5px;
+    line-height: 1.68;
+    color: var(--g-body);
+  }
+
+  /* An em dash instead of a disc, drawn as a list marker rather than as generated content: a
+     marker is not part of the text a reader copies, and the achievements come out of the page
+     as the data wrote them. */
+  body[data-layout='nerd'] .job-highlights {
+    list-style: '—';
+    padding-left: 18px;
+    color: var(--g-body);
+  }
+
+  body[data-layout='nerd'] .job-highlights li {
+    margin-bottom: 11px;
+    max-width: 74ch;
+    font-size: 14.5px;
+    line-height: 1.68;
+  }
+
+  body[data-layout='nerd'] .job-highlights li:last-child {
+    margin-bottom: 0;
+  }
+
+  /* The no-break space is the marker's gutter: `::marker` takes no width or padding, and a
+     plain space after the dash would be collapsed away. */
+  body[data-layout='nerd'] .job-highlights li::marker {
+    content: '—\00a0';
+    font-family: var(--g-mono);
+    font-size: 13px;
+    color: var(--g-dim);
+  }
+
+  /* --- 03-06 The credentials band --------------------------------------------------------------- */
+  /* Four columns of one band, divided by vertical hairlines and closed by a horizontal one top
+     and bottom. Nothing in it is a card. */
+  body[data-layout='nerd'] .certifications-section,
+  body[data-layout='nerd'] .education-section,
+  body[data-layout='nerd'] .languages-section,
+  body[data-layout='nerd'] .interests-section {
+    border-top: 1px solid var(--g-rule);
+    border-bottom: 1px solid var(--g-rule);
+  }
+
+  body[data-layout='nerd'] .certifications-section,
+  body[data-layout='nerd'] .education-section,
+  body[data-layout='nerd'] .languages-section {
+    border-right: 1px solid var(--g-rule-soft);
+  }
+
+  /* The certification: its name in the page's voice, the issuer and the year in the metadata
+     voice. The signal stays out of it — it belongs to the present tense, and a 2024 award is
+     evidence, not now. */
+  body[data-layout='nerd'] .certifications-list li {
+    background: transparent;
+    font-family: var(--g-mono);
+    font-size: 10.5px;
+    line-height: 1.7;
+    letter-spacing: 0.04em;
+    color: var(--g-muted);
+  }
+
+  body[data-layout='nerd'] .certifications-list strong {
+    display: block;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: 0;
+    color: var(--g-ink);
+  }
+
+  body[data-layout='nerd'] .certifications-list a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  body[data-layout='nerd'] .certifications-list a:hover strong {
+    color: var(--g-signal);
+  }
+
+  body[data-layout='nerd'] .cert-description {
+    margin-top: 10px;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 12.5px;
+    letter-spacing: 0;
+    line-height: 1.6;
+    color: var(--g-muted);
+  }
+
+  body[data-layout='nerd'] .edu-entry {
+    background: transparent;
+  }
+
+  body[data-layout='nerd'] .edu-entry:hover {
+    border-color: transparent;
+    box-shadow: none;
+  }
+
+  body[data-layout='nerd'] .edu-degree {
+    margin: 0 0 5px;
+    font-size: 13.5px;
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--g-ink);
+  }
+
+  body[data-layout='nerd'] .edu-school,
+  body[data-layout='nerd'] .edu-period {
+    font-family: var(--g-mono);
+    font-size: 10.5px;
+    font-weight: 400;
+    line-height: 1.7;
+    letter-spacing: 0.04em;
+    color: var(--g-muted);
+  }
+
+  body[data-layout='nerd'] .edu-description {
+    margin-top: 8px;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--g-muted);
+  }
+
+  /* A language is a name and a CEFR level, both as text: no dot, no bar, nothing to decode. */
+  body[data-layout='nerd'] .languages-list li {
+    font-family: var(--g-mono);
+    font-size: 10.5px;
+    line-height: 1.7;
+    letter-spacing: 0.04em;
+    color: var(--g-muted);
+  }
+
+  body[data-layout='nerd'] .languages-list strong {
+    display: block;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 13.5px;
+    font-weight: 600;
+    letter-spacing: 0;
+    color: var(--g-ink);
+  }
+
+  body[data-layout='nerd'] .interests-line {
+    font-size: 13.5px;
+    line-height: 1.9;
+    color: var(--g-body);
+  }
+
+  /* --- The separators -------------------------------------------------------------------------- */
+  /* The renderers emit one element per name with a real separator text node between them, and
+     that text node is what a parser, a screen reader and the clipboard read: `#skills` still says
+     "Swift, SwiftUI, UIKit", and a selection of the list still comes out comma-separated —
+     measured, not assumed. The comma is set at zero size and a dim slash is drawn in its place,
+     so the page reads as a slash-separated list while the document still reads as a comma-
+     separated one. Print keeps the commas: this is inside @media screen.
+
+     The slash is drawn by ::before and not ::after on purpose. The separator's own text is
+     ", " — a comma and a space — and that space is the only place the line may break. Drawn
+     after it, the slash was pushed onto the next line and eleven of them began a line; drawn
+     before it, the slash stays welded to the name it follows and the break falls after it. */
+  body[data-layout='nerd'] .skill-sep,
+  body[data-layout='nerd'] .interest-sep {
+    font-size: 0;
+    letter-spacing: 0;
+  }
+
+  body[data-layout='nerd'] .skill-sep::before,
+  body[data-layout='nerd'] .interest-sep::before {
+    content: '/';
+    font-family: var(--g-mono);
+    font-size: 12.5px;
+    font-weight: 400;
+    color: var(--g-dim);
+    padding: 0 0.42em;
+  }
+
+  /* --- The footer and focus ---------------------------------------------------------------------- */
+  body[data-layout='nerd'] .print-footer {
+    background: transparent;
+    border: 0;
+  }
+
+  body[data-layout='nerd'] .print-footer::after {
+    background: var(--g-rule-soft);
+  }
+
+  /* The download button is the page's one call to action, so it is the last place the signal is
+     spent — as a border, not as a fill: this layout paints no surfaces.
+
+     The base puts `transition: all .2s ease` on this button, and the layout is chosen by a
+     script that sets `data-layout` after the document parses: measured, first paint lands about
+     80ms into that transition, so the button was painting halfway between the base's white
+     14.4px/600 pill and this one. Nothing on a document should be moving while it is read. */
+  body[data-layout='nerd'] .print-button {
+    transition: none;
+    padding: 12px 22px;
+    border: 1px solid var(--g-signal);
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    color: var(--g-signal);
+    font-family: var(--g-mono);
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  body[data-layout='nerd'] .print-button:hover {
+    box-shadow: none;
+    transform: none;
+    background: transparent;
+  }
+
+  body[data-layout='nerd'] .print-button-secondary {
+    border-color: var(--g-rule);
+    color: var(--g-muted);
+  }
+
+  body[data-layout='nerd'] .print-button-secondary:hover {
+    border-color: var(--g-dim);
+    color: var(--g-body);
+  }
+
+  body[data-layout='nerd'] .button-icon {
+    font-family: var(--g-mono);
+  }
+
+  body[data-layout='nerd'] a:focus-visible,
+  body[data-layout='nerd'] button:focus-visible {
+    outline: 2px solid var(--g-signal);
+    outline-offset: 3px;
+  }
+
+  /* --- 390px ------------------------------------------------------------------------------------- */
+  @media (max-width: 768px) {
+    body[data-layout='nerd'] .hero-name {
+      font-size: 36px;
+      letter-spacing: -0.032em;
+    }
+
+    body[data-layout='nerd'] .hero-title {
+      margin-top: 14px;
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      line-height: 1.8;
+    }
+
+    body[data-layout='nerd'] .hero-summary {
+      margin-top: 22px;
+      font-size: 14px;
+      line-height: 1.66;
+    }
+
+    body[data-layout='nerd'] .profile-image-wrapper img {
+      width: 72px;
+      height: 72px;
+    }
+
+    /* Stacked, the rail's dividing rule would fall across a line start. */
+    body[data-layout='nerd'] .contact-details {
+      padding-left: 0;
+      border-left: 0;
+    }
+
+    /* Three addresses cannot share a 342px line, and a wrap left the decorative middot
+       stranded at a line's end where it reads as a typo. One address per line, and the
+       separators — `aria-hidden`, carrying no meaning — go with the line that needed them.
+       Print keeps them: this is inside @media screen. */
+    body[data-layout='nerd'] .social-links {
+      flex-basis: auto;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+      margin-top: 6px;
+    }
+
+    body[data-layout='nerd'] .social-links .inline-separator {
+      display: none;
+    }
+
+    body[data-layout='nerd'] .job-title {
+      font-size: 17px;
+    }
+
+    body[data-layout='nerd'] .job-period {
+      margin-bottom: 10px;
+      font-size: 10.5px;
+      letter-spacing: 0.1em;
+    }
+
+    /* The tick keeps its place above the dateline; it just has less room over it. */
+    body[data-layout='nerd'] .experience-content > .job-entry:first-child .job-period::before {
+      margin-bottom: 12px;
+    }
+
+    body[data-layout='nerd'] .job-highlights li,
+    body[data-layout='nerd'] .job-description {
+      font-size: 14px;
+      line-height: 1.66;
+    }
+
+    /* One column: the vertical dividers go and the horizontal ones become the band's rows. */
+    body[data-layout='nerd'] .certifications-section,
+    body[data-layout='nerd'] .education-section,
+    body[data-layout='nerd'] .languages-section {
+      border-right: 0;
+      border-bottom: 0;
+    }
+
+    body[data-layout='nerd'] .education-section,
+    body[data-layout='nerd'] .languages-section,
+    body[data-layout='nerd'] .interests-section {
+      border-top: 1px solid var(--g-rule-soft);
+    }
+
+    body[data-layout='nerd'] .print-button {
+      justify-content: center;
+      padding: 13px;
+      font-size: 10.5px;
+    }
+  }
+}

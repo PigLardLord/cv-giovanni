@@ -1,0 +1,971 @@
+/* Three presentation strategies over the same semantic CV document. */
+
+.layout-switcher {
+  display: flex;
+  justify-content: center;
+  gap: 0.35rem;
+  max-width: 900px;
+  margin: 0 auto 0.75rem;
+  padding: 0.3rem;
+  border: 1px solid #dbe3ef;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 4px 16px rgb(15 23 42 / 0.08);
+}
+
+.layout-switcher a {
+  flex: 1;
+  padding: 0.55rem 0.8rem;
+  border-radius: 999px;
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+}
+
+.layout-switcher a[aria-current='page'] {
+  background: #0f172a;
+  color: #fff;
+}
+
+/* Nerd Mode — the arrangement.
+   A single sheet of anthracite with nothing on it but rules. There is no card, no panel and no
+   second surface, so the page has no edge of its own: what organises it is a fixed 178px
+   monospace column down the left — dates beside a role, a category beside its skills — and a
+   hairline wherever two things must be told apart. This block is the arrangement only; the
+   colour, the type and the hairlines themselves live in design-glacier.css under "Nerd Mode —
+   the skin", which loads after this file and has to, because it overrides the shared masthead
+   and section rules that file defines above.
+
+   Screen-only, like spotlight and technical: on paper print.css lays the base DOM out on its own
+   two-column grid, and a `display: contents` or a grid placement leaking into it would break
+   that. The paper layout gets its own, deliberately smaller treatment at the foot of print.css. */
+@media screen {
+  /* The measure and the gutter, in one place: the section paddings, the masthead and the footer
+     all hang off them, and the credentials band divides the measure into four. */
+  body[data-layout='nerd'] {
+    --g-measure: 1100px;
+    --g-gutter: 76px;
+    --g-rail: 178px;
+    --g-rail-gap: 24px;
+  }
+
+  /* The body's own padding goes so the ground reaches the window on every side. Nothing is
+     lifted off it: the container is the same anthracite, with no radius, shadow or border. */
+  body[data-layout='nerd'] {
+    padding: 0;
+  }
+
+  body[data-layout='nerd'] .container {
+    max-width: var(--g-measure);
+    border-radius: 0;
+    box-shadow: none;
+    overflow: visible;
+    counter-reset: nerd-section;
+  }
+
+  /* The switcher stops being a floating pill and becomes the sheet's top strip, aligned to the
+     same gutter as everything below it. */
+  body[data-layout='nerd'] .layout-switcher {
+    max-width: var(--g-measure);
+    justify-content: flex-start;
+    gap: 0;
+    margin: 0 auto;
+    padding: 20px var(--g-gutter);
+  }
+
+  body[data-layout='nerd'] .layout-switcher a {
+    flex: none;
+    padding: 6px 18px 6px 0;
+    text-align: left;
+  }
+
+  /* --- The masthead ------------------------------------------------------------------------ */
+  /* Identity left, portrait right, the contact rail across the foot of both. The sidebar steps
+     out of the box tree so the portrait and the rail can take their own places, the same
+     technique spotlight uses. */
+  body[data-layout='nerd'] .hero-section {
+    padding: 66px var(--g-gutter) 0;
+  }
+
+  body[data-layout='nerd'] .hero-content {
+    grid-template-columns: minmax(0, 1fr) 104px;
+    grid-template-areas:
+      'text portrait'
+      'contact contact';
+    column-gap: 40px;
+    row-gap: 34px;
+    align-items: start;
+  }
+
+  body[data-layout='nerd'] .hero-sidebar {
+    display: contents;
+  }
+
+  body[data-layout='nerd'] .hero-text {
+    grid-area: text;
+  }
+
+  body[data-layout='nerd'] .profile-image-wrapper {
+    grid-area: portrait;
+  }
+
+  body[data-layout='nerd'] .contact-card {
+    grid-area: contact;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 10px 22px;
+  }
+
+  body[data-layout='nerd'] .contact-item,
+  body[data-layout='nerd'] .contact-details {
+    margin: 0;
+  }
+
+  /* The template breaks the two addresses onto two lines with a <br>; the rail wants one line.
+     Print keeps the break: this rule is screen-only, like everything in this block. */
+  body[data-layout='nerd'] .contact-details br {
+    display: none;
+  }
+
+  body[data-layout='nerd'] .contact-details strong:nth-of-type(2) {
+    margin-left: 18px;
+  }
+
+  body[data-layout='nerd'] .social-links {
+    gap: 0;
+  }
+
+  /* --- The section heads -------------------------------------------------------------------- */
+  /* A number, a word, and a rule that runs to the margin. The number is a counter, so it comes
+     from the stylesheet and never from the DOM: nothing a parser reads back changes. A section
+     the renderers hide carries `display: none` and does not increment, so an empty section
+     leaves no gap in the numbering. */
+  body[data-layout='nerd'] .spotlight-title,
+  body[data-layout='nerd'] .section-title {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 0 0 26px;
+    padding: 0;
+    counter-increment: nerd-section;
+  }
+
+  body[data-layout='nerd'] .spotlight-title::before,
+  body[data-layout='nerd'] .section-title::before {
+    content: counter(nerd-section, decimal-leading-zero);
+    flex: none;
+  }
+
+  body[data-layout='nerd'] .spotlight-title::after,
+  body[data-layout='nerd'] .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+  }
+
+  /* --- 01 The skills table ------------------------------------------------------------------ */
+  /* A ruled table: the category holds the rail, the names run as text beside it. Pills belong to
+     technical; nothing here is boxed. */
+  body[data-layout='nerd'] .skills-spotlight {
+    padding: 60px var(--g-gutter) 0;
+  }
+
+  body[data-layout='nerd'] .skills-showcase {
+    display: block;
+    max-width: none;
+    margin: 0;
+  }
+
+  body[data-layout='nerd'] .skill-group {
+    display: grid;
+    grid-template-columns: var(--g-rail) minmax(0, 1fr);
+    gap: 0 var(--g-rail-gap);
+    align-items: start;
+    padding: 15px 0;
+  }
+
+  body[data-layout='nerd'] .skill-category,
+  body[data-layout='nerd'] .skill-list {
+    display: block;
+    flex: none;
+  }
+
+  /* --- 02 The experience -------------------------------------------------------------------- */
+  body[data-layout='nerd'] .main-content {
+    padding: 60px var(--g-gutter) 0;
+  }
+
+  /* Both columns step out of the box tree so their five sections can take places in one grid:
+     the experience spans the full measure, and the four short sections that follow it become the
+     credentials band beneath. The DOM order is untouched — a parser still reads experience,
+     certifications, education, languages, interests. */
+  /* The band's four columns stretch to the tallest of them, so the rule that closes the band
+     runs straight across and the dividers between the columns reach it. Left to `start` each
+     column ended at its own last line and the band came out as a staircase. */
+  body[data-layout='nerd'] .content-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 62px 0;
+    align-items: stretch;
+  }
+
+  body[data-layout='nerd'] .primary-column,
+  body[data-layout='nerd'] .secondary-column {
+    display: contents;
+  }
+
+  body[data-layout='nerd'] .experience-section {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  body[data-layout='nerd'] .certifications-section {
+    grid-column: 1;
+    grid-row: 2;
+    padding: 26px 26px 30px 0;
+  }
+
+  body[data-layout='nerd'] .education-section {
+    grid-column: 2;
+    grid-row: 2;
+    padding: 26px;
+  }
+
+  body[data-layout='nerd'] .languages-section {
+    grid-column: 3;
+    grid-row: 2;
+    padding: 26px;
+  }
+
+  body[data-layout='nerd'] .interests-section {
+    grid-column: 4;
+    grid-row: 2;
+    padding: 26px 0 30px 26px;
+  }
+
+  /* The grid's gaps are the rhythm; the base margins would double them. */
+  body[data-layout='nerd'] section,
+  body[data-layout='nerd'] .primary-column > section + section,
+  body[data-layout='nerd'] .secondary-column > section + section {
+    margin: 0;
+  }
+
+  /* A role: its dates hold the rail, everything else runs in the column beside them. The DOM
+     keeps the title first, so a screen reader and a parser meet the role before the period. */
+  body[data-layout='nerd'] .job-entry {
+    display: grid;
+    grid-template-columns: var(--g-rail) minmax(0, 1fr);
+    column-gap: var(--g-rail-gap);
+    row-gap: 0;
+    align-items: start;
+    padding: 0 0 38px;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  body[data-layout='nerd'] .job-entry > * {
+    grid-column: 2;
+  }
+
+  body[data-layout='nerd'] .job-period {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  body[data-layout='nerd'] .job-header {
+    grid-row: 1;
+  }
+
+  body[data-layout='nerd'] .job-entry + .job-entry {
+    margin: 0;
+    padding-top: 34px;
+  }
+
+  body[data-layout='nerd'] .experience-content > .job-entry:last-child {
+    padding-bottom: 0;
+  }
+
+  body[data-layout='nerd'] .job-highlights {
+    margin: 18px 0 0;
+    padding: 0;
+  }
+
+  /* --- 03-06 The credentials band ------------------------------------------------------------ */
+  body[data-layout='nerd'] .edu-entry {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  body[data-layout='nerd'] .edu-entry + .edu-entry {
+    margin-top: 16px;
+  }
+
+  body[data-layout='nerd'] .certifications-list li {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+  }
+
+  body[data-layout='nerd'] .certifications-list li + li {
+    margin-top: 16px;
+  }
+
+  body[data-layout='nerd'] .languages-list li {
+    padding: 0;
+    border: 0;
+  }
+
+  body[data-layout='nerd'] .languages-list li + li {
+    margin-top: 12px;
+  }
+
+  body[data-layout='nerd'] .interests-tags {
+    display: block;
+  }
+
+  /* --- The footer ---------------------------------------------------------------------------- */
+  body[data-layout='nerd'] .print-footer {
+    justify-content: flex-start;
+    align-items: center;
+    gap: 14px;
+    padding: 40px var(--g-gutter) 74px;
+  }
+
+  /* The rule that closes the sheet, drawn in the space the two buttons leave. */
+  body[data-layout='nerd'] .print-footer::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+  }
+}
+
+/* Nerd Mode at 390px: the rail has nowhere to go, so it unstacks. Dates rise above their role,
+   categories above their skills, and the four-column band becomes four ruled rows. */
+@media screen and (max-width: 768px) {
+  body[data-layout='nerd'] {
+    --g-gutter: 24px;
+  }
+
+  body[data-layout='nerd'] .layout-switcher {
+    flex-wrap: wrap;
+    gap: 0 4px;
+    padding: 14px var(--g-gutter);
+  }
+
+  body[data-layout='nerd'] .hero-section {
+    padding: 40px var(--g-gutter) 0;
+  }
+
+  body[data-layout='nerd'] .hero-content {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'portrait'
+      'text'
+      'contact';
+    row-gap: 22px;
+    text-align: left;
+  }
+
+  body[data-layout='nerd'] .contact-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  /* Narrow screens get the template's line break back: "Phone:" stranded at a line's end with
+     its number on the next reads as a mistake. */
+  body[data-layout='nerd'] .contact-details br {
+    display: inline;
+  }
+
+  body[data-layout='nerd'] .contact-details strong:nth-of-type(2) {
+    margin-left: 0;
+  }
+
+  body[data-layout='nerd'] .skills-spotlight,
+  body[data-layout='nerd'] .main-content {
+    padding: 44px var(--g-gutter) 0;
+  }
+
+  body[data-layout='nerd'] .skill-group {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 7px;
+    padding: 14px 0;
+  }
+
+  /* One column, and the band becomes four ruled rows that must sit flush against each other:
+     the grid gap goes and the experience carries the distance to the band on its own margin. */
+  body[data-layout='nerd'] .content-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  body[data-layout='nerd'] .experience-section {
+    margin-bottom: 44px;
+  }
+
+  body[data-layout='nerd'] .experience-section,
+  body[data-layout='nerd'] .certifications-section,
+  body[data-layout='nerd'] .education-section,
+  body[data-layout='nerd'] .languages-section,
+  body[data-layout='nerd'] .interests-section {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  body[data-layout='nerd'] .certifications-section,
+  body[data-layout='nerd'] .education-section,
+  body[data-layout='nerd'] .languages-section,
+  body[data-layout='nerd'] .interests-section {
+    padding: 20px 0;
+  }
+
+  body[data-layout='nerd'] .job-entry {
+    grid-template-columns: minmax(0, 1fr);
+    padding-bottom: 30px;
+  }
+
+  body[data-layout='nerd'] .job-entry > * {
+    grid-column: 1;
+  }
+
+  body[data-layout='nerd'] .job-period {
+    grid-row: 1;
+  }
+
+  body[data-layout='nerd'] .job-header {
+    grid-row: 2;
+  }
+
+  body[data-layout='nerd'] .job-entry + .job-entry {
+    padding-top: 26px;
+  }
+
+  body[data-layout='nerd'] .print-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 36px var(--g-gutter) 48px;
+  }
+
+  body[data-layout='nerd'] .print-footer::after {
+    display: none;
+  }
+}
+
+/* Impact Spotlight: the story leads. The masthead opens like a magazine profile — the portrait
+   on the left, the name and the summary beside it, the contact details demoted to a strip along
+   the masthead's foot — and the experience hangs off a timeline. This block is the arrangement
+   only. The colour, the cards, the timeline's dots and the type live in design-glacier.css under
+   "Impact Spotlight — the skin": that file loads after this one and has to, because it overrides
+   the shared masthead rules it defines above. Everything here is screen-only, like technical: on
+   paper print.css lays the base DOM out on its own grid, and a `display: contents` or a flex
+   `order` leaking into it would break that. */
+@media screen {
+  body[data-layout='spotlight'] .container {
+    max-width: 960px;
+  }
+
+  /* --- The masthead ---------------------------------------------------------------------- */
+  body[data-layout='spotlight'] .hero-section {
+    padding: 2.6rem 2.6rem 1.5rem;
+  }
+
+  body[data-layout='spotlight'] .hero-content {
+    grid-template-columns: 172px minmax(0, 1fr);
+    grid-template-areas:
+      'portrait text'
+      'contact contact';
+    column-gap: 2.3rem;
+    row-gap: 1.6rem;
+    align-items: start;
+  }
+
+  /* The sidebar steps out of the box tree so the portrait and the contact card can take their
+     own places in the masthead grid: the portrait beside the text, the card beneath both. */
+  body[data-layout='spotlight'] .hero-sidebar {
+    display: contents;
+  }
+
+  body[data-layout='spotlight'] .profile-image-wrapper {
+    grid-area: portrait;
+    justify-self: start;
+  }
+
+  body[data-layout='spotlight'] .hero-text {
+    grid-area: text;
+  }
+
+  body[data-layout='spotlight'] .hero-summary {
+    max-width: 64ch;
+  }
+
+  /* The contact card becomes a strip: location, addresses and links on one line. */
+  body[data-layout='spotlight'] .contact-card {
+    grid-area: contact;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1.4rem;
+    text-align: left;
+  }
+
+  body[data-layout='spotlight'] .contact-item,
+  body[data-layout='spotlight'] .contact-details {
+    margin: 0;
+  }
+
+  /* The template breaks the two addresses onto two lines with a <br>; the strip wants one.
+     Print keeps the break: this rule is screen-only. */
+  body[data-layout='spotlight'] .contact-details br {
+    display: none;
+  }
+
+  body[data-layout='spotlight'] .contact-details strong:nth-of-type(2) {
+    margin-left: 1.1rem;
+  }
+
+  /* The three links take a row of their own, under the addresses: all six items on one line
+     would need 1050px, and a strip that wraps by accident reads as a mistake. */
+  body[data-layout='spotlight'] .social-links {
+    flex-basis: 100%;
+    justify-content: flex-start;
+    gap: 0.45rem;
+  }
+
+  body[data-layout='spotlight'] .social-links .inline-separator {
+    display: none;
+  }
+
+  /* --- The skills band: one row per category, label left, names as chips ------------------ */
+  body[data-layout='spotlight'] .skills-spotlight {
+    padding: 1.5rem 2.6rem 1.7rem;
+  }
+
+  body[data-layout='spotlight'] .skills-showcase {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    max-width: none;
+    margin: 0;
+  }
+
+  body[data-layout='spotlight'] .skill-group {
+    display: grid;
+    grid-template-columns: 148px minmax(0, 1fr);
+    gap: 0.5rem 1rem;
+    align-items: start;
+    padding: 0.62rem 0;
+  }
+
+  body[data-layout='spotlight'] .skill-category {
+    flex: none;
+  }
+
+  /* The renderers emit one element per name with a real separator text node between them.
+     Hiding the separator turns the comma list into a field of pills without touching what
+     anyone reads back: `textContent` still says "Swift, SwiftUI". Print keeps the commas. */
+  body[data-layout='spotlight'] .skill-list,
+  body[data-layout='spotlight'] .interests-line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  body[data-layout='spotlight'] .skill-sep,
+  body[data-layout='spotlight'] .interest-sep {
+    display: none;
+  }
+
+  /* --- The body ----------------------------------------------------------------------------- */
+  body[data-layout='spotlight'] .main-content {
+    padding: 2.2rem 2.6rem 2.6rem;
+  }
+
+  /* The two columns step out of the box tree so the sections can take places in one grid: the
+     story — the experience — runs down the left for the full height; the credentials and the
+     personal notes stack on the right, the certification among them. The DOM keeps
+     certifications after experience, so a parser and a screen reader read the evidence first.
+     The last row is flexible so the experience grows it, not the gaps between the right-hand
+     sections. */
+  body[data-layout='spotlight'] .content-grid {
+    grid-template-columns: minmax(0, 1fr) 264px;
+    grid-template-rows: repeat(4, auto) 1fr;
+    gap: 2rem 2.4rem;
+    align-items: start;
+  }
+
+  body[data-layout='spotlight'] .primary-column,
+  body[data-layout='spotlight'] .secondary-column {
+    display: contents;
+  }
+
+  body[data-layout='spotlight'] .experience-section {
+    grid-column: 1;
+    grid-row: 1 / -1;
+  }
+
+  body[data-layout='spotlight'] .education-section {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  body[data-layout='spotlight'] .languages-section {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  body[data-layout='spotlight'] .interests-section {
+    grid-column: 2;
+    grid-row: 3;
+  }
+
+  body[data-layout='spotlight'] .certifications-section {
+    grid-column: 2;
+    grid-row: 4;
+  }
+
+  /* The timeline: a spine down the left of the experience, each role hung off it. The padding
+     is the spine's room; the spine and the dot on each role are drawn by the skin. */
+  body[data-layout='spotlight'] .experience-content {
+    position: relative;
+    padding-left: 34px;
+  }
+
+  body[data-layout='spotlight'] .job-entry {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* The dateline reads first, above the role, the way a magazine dates a story. The DOM keeps
+     the role first, so a screen reader and a parser still meet the title before the period. */
+  body[data-layout='spotlight'] .job-period {
+    order: -1;
+  }
+
+  /* The grid's row gap is the rhythm between sections; the base margins would double it. */
+  body[data-layout='spotlight'] section,
+  body[data-layout='spotlight'] .primary-column > section + section,
+  body[data-layout='spotlight'] .secondary-column > section + section {
+    margin: 0;
+  }
+
+  body[data-layout='spotlight'] .interests-tags {
+    display: block;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  body[data-layout='spotlight'] .hero-section {
+    padding: 2rem 1.4rem 1.4rem;
+  }
+
+  body[data-layout='spotlight'] .hero-content {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'portrait'
+      'text'
+      'contact';
+    row-gap: 1.2rem;
+  }
+
+  body[data-layout='spotlight'] .profile-image-wrapper {
+    justify-self: center;
+  }
+
+  body[data-layout='spotlight'] .hero-summary {
+    margin-inline: auto;
+  }
+
+  body[data-layout='spotlight'] .contact-card {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  /* Narrow screens get the template's line break back: "Phone:" stranded at a line's end with
+     its number on the next reads as a mistake. */
+  body[data-layout='spotlight'] .contact-details br {
+    display: inline;
+  }
+
+  body[data-layout='spotlight'] .contact-details strong:nth-of-type(2) {
+    margin-left: 0;
+  }
+
+  body[data-layout='spotlight'] .social-links {
+    justify-content: center;
+  }
+
+  body[data-layout='spotlight'] .skills-spotlight,
+  body[data-layout='spotlight'] .main-content {
+    padding-left: 1.4rem;
+    padding-right: 1.4rem;
+  }
+
+  body[data-layout='spotlight'] .skill-group {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.35rem;
+    padding: 0.7rem 0;
+  }
+
+  body[data-layout='spotlight'] .content-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    gap: 2rem;
+  }
+
+  body[data-layout='spotlight'] .experience-section,
+  body[data-layout='spotlight'] .education-section,
+  body[data-layout='spotlight'] .languages-section,
+  body[data-layout='spotlight'] .interests-section,
+  body[data-layout='spotlight'] .certifications-section {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  body[data-layout='spotlight'] .experience-content {
+    padding-left: 26px;
+  }
+}
+
+/* Technical Profile: the stack leads. A rail down the left carries the skills and, beneath them,
+   education, languages and interests; the evidence — experience and certifications — runs beside
+   it for the full height, so the rail never runs out before the page does. This block is the
+   arrangement only. The rail's colour, the cards and the type live in design-glacier.css under
+   "Technical Profile — the skin": that file loads after this one and has to, because it overrides
+   the shared masthead rules it defines above. Everything here is screen-only: on paper print.css
+   lays the base DOM out on its own two-column grid, and a `display: contents` or a grid area
+   leaking into it would break that. */
+/* The rail's share of the page, not a fixed width, and it is the one number that balances the two
+   columns. Nothing in this layout can equalise them by moving content: a grid area is a rectangle
+   and the two columns share their row lines, so anything lifted out of the rail lands level with
+   the rail's foot rather than under the certifications, and the pale hole only narrows. The rail's
+   width is the lever that moves both sides at once — widening it gives the skill chips and the
+   degree lines a longer measure, so the rail loses height, and it shortens the evidence column's
+   measure, so that gains it. At a fixed 284px the rail ran 366px past the evidence from 1024px
+   up and the evidence ran 267px past the rail at 769px. At 35% the worst residual anywhere from
+   769px to 2560px is 53px, and the longest body line in the evidence column comes down from a
+   measured 82 characters to 74, under the 80 of WCAG 1.4.8 rather than over it.
+
+   A percentage and not a clamp: `--rail-width` is also the hard colour stop in the container's
+   gradient in design-glacier.css, and that gradient's box and this grid's content box are the same
+   rectangle only while the container has no side padding. A percentage resolves against both
+   identically, so the seam and the column line stay on the same pixel at every width. */
+body[data-layout='technical'] {
+  --rail-width: 35%;
+}
+
+@media screen {
+  body[data-layout='technical'] .container {
+    display: grid;
+    grid-template-columns: var(--rail-width) minmax(0, 1fr);
+    /* Row 3 is flexible so the evidence column, which spans rows 2 and 3, grows it and not row 2:
+       with two auto rows the surplus is shared out and a gap opens between skills and education. */
+    grid-template-rows: auto auto 1fr auto;
+    grid-template-areas:
+      'hero hero'
+      'skills evidence'
+      'aside evidence'
+      'footer footer';
+    max-width: 984px;
+  }
+
+  body[data-layout='technical'] .hero-section {
+    grid-area: hero;
+  }
+
+  body[data-layout='technical'] .skills-spotlight {
+    grid-area: skills;
+    padding: 1.6rem 1.15rem 0.35rem;
+  }
+
+  /* `main` and `.content-grid` step out of the box tree so their two columns can take places in
+     the container's grid: the secondary column joins the rail under the skills, the primary
+     column stands beside both. Chrome, Firefox and Safari all keep the `main` landmark in the
+     accessibility tree through `display: contents`; it is buttons and lists that lose semantics. */
+  body[data-layout='technical'] .main-content,
+  body[data-layout='technical'] .content-grid {
+    display: contents;
+  }
+
+  body[data-layout='technical'] .primary-column {
+    grid-area: evidence;
+    padding: 1.75rem 2.1rem 2.2rem;
+  }
+
+  body[data-layout='technical'] .secondary-column {
+    grid-area: aside;
+    display: block;
+    padding: 0.45rem 1.15rem 1.6rem;
+  }
+
+  body[data-layout='technical'] .print-footer {
+    grid-area: footer;
+  }
+
+  /* The masthead: identity left, a badge card right. The sidebar column has a fixed width so the
+     name never wraps to make room for it. */
+  body[data-layout='technical'] .hero-section {
+    padding: 2.4rem 2.5rem 2.2rem;
+  }
+
+  body[data-layout='technical'] .hero-content {
+    grid-template-columns: minmax(0, 1fr) 292px;
+    gap: 2.6rem;
+    align-items: start;
+  }
+
+  body[data-layout='technical'] .hero-summary {
+    max-width: 60ch;
+  }
+
+  body[data-layout='technical'] .hero-sidebar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+  }
+
+  body[data-layout='technical'] .profile-image-wrapper {
+    position: relative;
+    z-index: 1;
+    align-self: center;
+    margin-bottom: -54px;
+  }
+
+  body[data-layout='technical'] .profile-image-wrapper img {
+    width: 108px;
+    height: 108px;
+  }
+
+  body[data-layout='technical'] .contact-card {
+    width: 100%;
+    padding: 4.1rem 1.25rem 1.2rem;
+  }
+
+  /* Each address on its own line: three readable URLs and two separators do not fit one. */
+  body[data-layout='technical'] .social-links {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  body[data-layout='technical'] .social-links .inline-separator {
+    display: none;
+  }
+
+  /* The skills: one block per category, stacked. */
+  body[data-layout='technical'] .skills-showcase {
+    display: grid;
+    gap: 0.7rem;
+    max-width: none;
+    margin: 0;
+  }
+
+  body[data-layout='technical'] .skill-group {
+    display: block;
+  }
+
+  body[data-layout='technical'] .skill-category,
+  body[data-layout='technical'] .skill-list {
+    display: block;
+    flex: none;
+  }
+
+  /* Section rhythm inside each column: tighter than the base's 3rem, which was set for a
+     two-column page with room to spare. */
+  body[data-layout='technical'] section {
+    margin-bottom: 0;
+  }
+
+  body[data-layout='technical'] .primary-column > section + section {
+    margin-top: 2rem;
+  }
+
+  body[data-layout='technical'] .secondary-column > section + section {
+    margin-top: 1.5rem;
+  }
+
+  body[data-layout='technical'] .section-title,
+  body[data-layout='technical'] .spotlight-title {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.9rem;
+    padding-bottom: 0;
+  }
+
+  body[data-layout='technical'] .job-entry + .job-entry {
+    margin-top: 1rem;
+  }
+
+  body[data-layout='technical'] .edu-entry {
+    margin-bottom: 0.7rem;
+  }
+
+  body[data-layout='technical'] .edu-entry:last-child {
+    margin-bottom: 0;
+  }
+
+  body[data-layout='technical'] .interests-tags {
+    display: block;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  body[data-layout='technical'] .container {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    grid-template-areas:
+      'hero'
+      'skills'
+      'evidence'
+      'aside'
+      'footer';
+  }
+
+  body[data-layout='technical'] .hero-content {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body[data-layout='technical'] .hero-sidebar {
+    align-items: center;
+  }
+
+  body[data-layout='technical'] .contact-card {
+    max-width: 320px;
+  }
+
+  body[data-layout='technical'] .skills-spotlight,
+  body[data-layout='technical'] .secondary-column {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+
+  body[data-layout='technical'] .secondary-column {
+    padding-top: 1.4rem;
+  }
+
+  body[data-layout='technical'] .primary-column {
+    padding: 1.5rem 1.25rem 1.75rem;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .layout-switcher { border-radius: 14px; }
+  body[data-layout='spotlight'] .skills-showcase,
+  body[data-layout='technical'] .secondary-column {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media print {
+  .layout-switcher { display: none !important; }
+}

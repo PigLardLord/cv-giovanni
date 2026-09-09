@@ -1,14 +1,19 @@
 import { DataLoader } from './DataLoader.js';
 import { RendererContainer } from './RendererContainer.js';
+import { ErrorRenderer } from '../renderers/ErrorRenderer.js';
 
 /**
  * Main CV Application Controller
  * Follows Single Responsibility Principle (SRP) and Dependency Inversion Principle (DIP)
  */
 export class CVApplication {
-  constructor(dataLoader = new DataLoader(), rendererContainer = new RendererContainer()) {
+  constructor(dataLoader = new DataLoader(), rendererContainer = new RendererContainer(),
+              documentLocalizer = null, i18n = null, errorRenderer = new ErrorRenderer()) {
     this.dataLoader = dataLoader;
     this.rendererContainer = rendererContainer;
+    this.documentLocalizer = documentLocalizer;
+    this.i18n = i18n;
+    this.errorRenderer = errorRenderer;
     this.isInitialized = false;
   }
 
@@ -28,8 +33,12 @@ export class CVApplication {
   async initialize(root) {
     try {
       const data = await this.dataLoader.loadCVData();
+      this.currentData = data;
+      this.root = root;
+      if (this.documentLocalizer) this.documentLocalizer.apply(root, data);
       this.rendererContainer.renderAll(root, data);
       this.isInitialized = true;
+      return data;
     } catch (error) {
       this.handleError(root, error);
     }
@@ -42,13 +51,11 @@ export class CVApplication {
    */
   handleError(root, error) {
     console.error('CV Application Error:', error);
-    root.body.innerHTML = `
-      <div style="text-align: center; padding: 50px; color: #666;">
-        <h2>Error Loading CV</h2>
-        <p>${error.message}</p>
-        <p>Please check the console for more details.</p>
-      </div>
-    `;
+    this.errorRenderer.render(root, {
+      title: this.i18n ? this.i18n.t('errors.loadingTitle') : 'Error loading CV',
+      message: error.message,
+      hint: this.i18n ? this.i18n.t('errors.loadingHint') : 'Please check the console for more details.'
+    });
   }
 
   /**

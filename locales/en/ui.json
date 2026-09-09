@@ -1,0 +1,17 @@
+{
+  "meta": { "title": "{{name}} – Curriculum Vitae" },
+  "actions": { "downloadPdf": "Download PDF", "print": "Browser print" },
+  "layouts": {
+    "nerd": "Nerd Mode",
+    "spotlight": "Impact Spotlight",
+    "technical": "Technical Profile"
+  },
+  "accessibility": {
+    "profilePhoto": "Portrait of {{name}}",
+    "layoutSwitcher": "Choose CV layout"
+  },
+  "errors": {
+    "loadingTitle": "Error loading CV",
+    "loadingHint": "Please check the console for more details."
+  }
+}

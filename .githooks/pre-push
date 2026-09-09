@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Sees EVERY ref update the push implies — so it also covers --all, --mirror and
+# configured refspecs, which no inspection of the command line can enumerate.
+#
+# stdin: <local ref> <local sha> <remote ref> <remote sha>
+set -u
+. "$(dirname "$0")/_policy.sh"
+
+Z='0000000000000000000000000000000000000000'
+while read -r LOCAL_REF LOCAL_SHA REMOTE_REF REMOTE_SHA; do
+  [ -z "${REMOTE_REF:-}" ] && continue
+  TARGET="${REMOTE_REF#refs/heads/}"
+  is_protected "$TARGET" || continue
+
+  if [ "$LOCAL_SHA" = "$Z" ]; then
+    refuse "Deletion of protected branch '$TARGET'" \
+      "A push that deletes a protected branch does not get through here."
+  fi
+
+  if [ "$REMOTE_SHA" = "$Z" ]; then
+    # New on the remote: everything the branch contains. `git diff <one-commit>` compares the
+    # WORKING TREE with that commit, so passing $LOCAL_SHA alone asked an unrelated question
+    # and answered it with whatever happened to be uncommitted.
+    RANGE="$(git hash-object -t tree /dev/null)..$LOCAL_SHA"
+  else
+    RANGE="$REMOTE_SHA..$LOCAL_SHA"
+  fi
+  # The exit status, not the emptiness of the output: a range that cannot be computed —
+  # a remote commit never fetched — produces no output and a failure, and treating that as
+  # "nothing to see" let the push through. $LOCAL_SHA is always local, so the old check on it
+  # could never fire.
+  if ! DIFF="$(git diff --name-only --diff-filter=ACMRTD "$RANGE" 2>/dev/null)"; then
+    refuse "Unverifiable push to '$TARGET'" \
+      "Cannot determine what this push would send: $RANGE is not computable here." \
+      "Fetch the remote branch first, so what you are adding can be seen."
+  fi
+  CODE="$(printf '%s\n' "$DIFF" | code_only)"
+  [ -z "$CODE" ] && continue
+
+  refuse "Push of CODE to protected branch '$TARGET'" \
+    "Files: $(printf '%s' "$CODE" | head -8 | paste -sd ', ' -)" \
+    "" \
+    "Code lands via change request from a feature branch, never by direct push."
+done
+exit 0

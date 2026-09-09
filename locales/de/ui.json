@@ -1,0 +1,17 @@
+{
+  "meta": { "title": "{{name}} – Lebenslauf" },
+  "actions": { "downloadPdf": "PDF herunterladen", "print": "Browserdruck" },
+  "layouts": {
+    "nerd": "Nerd-Modus",
+    "spotlight": "Wirkung im Fokus",
+    "technical": "Technisches Profil"
+  },
+  "accessibility": {
+    "profilePhoto": "Porträt von {{name}}",
+    "layoutSwitcher": "Lebenslauf-Layout auswählen"
+  },
+  "errors": {
+    "loadingTitle": "Lebenslauf konnte nicht geladen werden",
+    "loadingHint": "Weitere Informationen finden Sie in der Konsole."
+  }
+}

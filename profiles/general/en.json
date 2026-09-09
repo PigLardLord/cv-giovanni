@@ -1,0 +1,239 @@
+{
+  "name": "Giovanni Trovato",
+  "title": "Senior iOS Engineer / Mobile Platform Owner",
+  "subtitle": "Swift · SwiftUI · Enterprise Mobility · CI/CD",
+  "location": "Bad Liebenstein, Thuringia, Germany",
+  "email": "trovato.giovanni@gmail.com",
+  "phone": "+39 329 8484 046",
+  "availability": "EU citizen · unrestricted German work authorisation",
+  "portfolio": "https://sites.google.com/view/giovanni-trovato",
+  "profile": "Senior iOS engineer with 11+ years in native mobile and six years owning an enterprise MDM client from architecture to production. Delivered software used across tens of thousands of managed devices, with measurable improvements in automated quality and release speed. Brings Android depth, security review, CI/CD ownership and direct platform coordination with Apple and Google.",
+  "career_highlights": [
+    "6 years owning an enterprise iOS MDM client from its first commit",
+    "~4,800 Android tests, 82% of app screens UI-tested, 75% faster CI",
+    "MDM clients in production across tens of thousands of managed devices"
+  ],
+  "relevant_experience": [
+    {
+      "title": "Mobile Software Engineer / Technical Owner, iOS & Android",
+      "company": "Cortado Mobile Solutions",
+      "location": "Berlin (remote)",
+      "period": "August 2018 – Present",
+      "summary": "Enterprise mobility and device management (MDM, secure printing) in a mobile team of 3–7 engineers.",
+      "highlights": [
+        "Expanded the Android test suite to ~4,800 tests and raised UI-test coverage of the app's screens from 15% to 82%, while cutting CI test runtime by 75% (32 to 8 minutes) to give the team same-hour merge feedback.",
+        "Technical owner of the Cortado MDM iOS client for six years from its first commit — owned architecture, release decisions and code review, coordinating delivery with product, QA and backend while mentoring mobile colleagues.",
+        "Led annual iOS compatibility and platform beta validation, including Swift 6 concurrency and iOS 26 migrations; coordinated directly with Apple on App Review while adopting Dynamic Island, Live Activities, Siri and App Intents without dropping support for older devices.",
+        "Migrated nearly every Android screen from XML to Jetpack Compose, including kiosk mode, adding unit tests throughout; also managed Android Enterprise Partner Program certifications and worked directly with Google on platform issues.",
+        "Owned delivery and security across both platforms: code and vulnerability reviews, GitLab CI/CD and Fastlane, signing and provisioning, security scans and SBOM generation, TestFlight and Play Store staged rollout."
+      ]
+    },
+    {
+      "title": "Mobile Developer",
+      "company": "Apparound",
+      "location": "Pisa, Italy",
+      "period": "September 2015 – July 2018 (3 years)",
+      "summary": "B2B sales-automation platform for enterprise field sales teams.",
+      "highlights": [
+        "Built native iOS and Android features with an offline-first architecture, keeping field sales teams productive without connectivity.",
+        "Created a reusable UI component library and led a UI/UX redesign of the mobile clients, reducing duplicate implementation work across new screens.",
+        "Resolved production defects and performance issues for enterprise customers across iOS (Swift, Objective-C) and Android (Java) with REST back ends."
+      ]
+    },
+    {
+      "title": "Mobile Developer Intern",
+      "company": "Marte 5",
+      "location": "Livorno, Italy",
+      "period": "May 2015 – August 2015 (4 months)",
+      "summary": "Built production Android augmented-reality applications for manufacturing and automotive clients using Java, Vuforia and Wikitude.",
+      "highlights": []
+    }
+  ],
+  "education": [
+    {
+      "degree": "M.Sc. Mobile Application Development",
+      "school": "Università degli Studi di Pisa",
+      "period": "2015"
+    },
+    {
+      "degree": "B.Sc. Computer Engineering",
+      "school": "Università degli Studi di Catania",
+      "period": "2009"
+    }
+  ],
+  "skills": [
+    {
+      "category": "iOS",
+      "items": [
+        {
+          "name": "Swift"
+        },
+        {
+          "name": "SwiftUI"
+        },
+        {
+          "name": "UIKit"
+        },
+        {
+          "name": "Swift Concurrency"
+        },
+        {
+          "name": "XCTest / XCUITest"
+        },
+        {
+          "name": "App Intents"
+        },
+        {
+          "name": "Live Activities"
+        },
+        {
+          "name": "Swift Package Manager (SPM)"
+        }
+      ]
+    },
+    {
+      "category": "Android",
+      "items": [
+        {
+          "name": "Kotlin"
+        },
+        {
+          "name": "Jetpack Compose"
+        },
+        {
+          "name": "Android Enterprise"
+        },
+        {
+          "name": "Mobile Device Management (MDM)"
+        },
+        {
+          "name": "DevicePolicyManager"
+        },
+        {
+          "name": "JUnit"
+        },
+        {
+          "name": "Robolectric"
+        },
+        {
+          "name": "Gradle"
+        },
+        {
+          "name": "Hilt"
+        }
+      ]
+    },
+    {
+      "category": "Delivery & platform",
+      "items": [
+        {
+          "name": "GitLab CI/CD"
+        },
+        {
+          "name": "Fastlane"
+        },
+        {
+          "name": "code signing & provisioning"
+        },
+        {
+          "name": "TestFlight"
+        },
+        {
+          "name": "App Store Connect"
+        },
+        {
+          "name": "Google Play Console"
+        },
+        {
+          "name": "staged rollout"
+        },
+        {
+          "name": "release management"
+        },
+        {
+          "name": "SBOM / Dependency-Track"
+        },
+        {
+          "name": "security scanning & vulnerability review"
+        }
+      ]
+    },
+    {
+      "category": "Architecture & practices",
+      "items": [
+        {
+          "name": "Clean Architecture"
+        },
+        {
+          "name": "MVVM"
+        },
+        {
+          "name": "modularisation"
+        },
+        {
+          "name": "REST APIs"
+        },
+        {
+          "name": "TDD"
+        },
+        {
+          "name": "code review"
+        },
+        {
+          "name": "Git"
+        },
+        {
+          "name": "AI-assisted engineering"
+        },
+        {
+          "name": "technical mentoring"
+        }
+      ]
+    }
+  ],
+  "languages": [
+    {
+      "name": "Italian",
+      "level": "Native"
+    },
+    {
+      "name": "English",
+      "level": "C1 — professional working proficiency"
+    },
+    {
+      "name": "German",
+      "level": "A2 — currently studying"
+    }
+  ],
+  "certifications": [
+    {
+      "name": "iOS Lead Essentials",
+      "issuer": "Essential Developer Academy",
+      "year": 2024,
+      "url": "https://academy.essentialdeveloper.com/achievements/cc210373-d44f-4345-aff2-a1402b5104d4",
+      "description": "Advanced iOS programme: Clean Architecture, TDD, modular design and system design."
+    }
+  ],
+  "interests": [
+    "iOS Architecture",
+    "Enterprise Solutions",
+    "Robotics & IoT",
+    "Tech Mentoring",
+    "Mountain Hiking",
+    "Strategic Gaming"
+  ],
+  "social": [
+    {
+      "platform": "GitHub",
+      "url": "https://github.com/PigLardLord"
+    },
+    {
+      "platform": "LinkedIn",
+      "url": "https://www.linkedin.com/in/piglardlord/"
+    },
+    {
+      "platform": "Web CV",
+      "url": "https://piglardlord.github.io/cv-giovanni/"
+    }
+  ]
+}

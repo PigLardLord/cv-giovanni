@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Keeps code off protected branches. It sees the FINAL index, so `git commit -am`
+# and `git commit <path>` are covered — something a check that runs earlier cannot guarantee.
+set -u
+. "$(dirname "$0")/_policy.sh"
+
+# Extension point, run FIRST and on every branch. Two reasons it is here and not appended at the
+# bottom: the branch check below exits 0 on an unprotected branch, so anything after it never runs
+# where it matters most; and this file is a copy the installer rewrites, so a line added to it
+# disappears at the next install. A drop-in survives both.
+if [ -d "$REPO_ROOT/.githooks/pre-commit.d" ]; then
+  for _ext in "$REPO_ROOT/.githooks/pre-commit.d"/*; do
+    [ -x "$_ext" ] || continue
+    "$_ext" || exit 1
+  done
+fi
+
+BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null)"
+is_protected "$BRANCH" || exit 0
+
+CODE="$(git diff --cached --name-only --diff-filter=ACMRTD | code_only)"
+[ -z "$CODE" ] && exit 0
+
+refuse "Code commit on protected branch '$BRANCH'" \
+  "Files: $(printf '%s' "$CODE" | head -8 | paste -sd ', ' -)" \
+  "" \
+  "Code goes on a feature branch and then into a change request:" \
+  "  git stash && git switch -c feat/<name> && git stash pop"
