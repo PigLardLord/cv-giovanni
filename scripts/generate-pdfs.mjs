@@ -5,12 +5,14 @@ import { PdfExporter } from '../core/PdfExporter.js';
 import { PdfGenerationService } from '../core/PdfGenerationService.js';
 import { PdfMakeRenderer } from '../adapters/PdfMakeRenderer.js';
 import { NodeDirectoryWriter } from '../adapters/NodeDirectoryWriter.js';
+import { GenerationTarget } from '../core/GenerationTarget.js';
 
-const profile = 'general';
-const locale = 'en';
+const projectRoot = new URL('../', import.meta.url);
+const target = GenerationTarget.fromArguments(process.argv.slice(2));
+const { profile, locale } = target;
 const layouts = ['nerd', 'spotlight', 'technical'];
-const data = JSON.parse(await readFile(new URL(`../profiles/${profile}/${locale}.json`, import.meta.url)));
-const cvMessages = JSON.parse(await readFile(new URL(`../locales/${locale}/cv.json`, import.meta.url)));
+const data = JSON.parse(await readFile(new URL(target.dataPath, projectRoot)));
+const cvMessages = JSON.parse(await readFile(new URL(`locales/${locale}/cv.json`, projectRoot)));
 const lookup = (object, path) => path.split('.').reduce((value, key) => value?.[key], object);
 const i18n = {
   t(key) {
@@ -47,12 +49,12 @@ const renderer = new PdfMakeRenderer(pdfMake);
 const releaseService = new PdfGenerationService({
   composer,
   renderer,
-  writer: new NodeDirectoryWriter(new URL('../generated/', import.meta.url))
+  writer: new NodeDirectoryWriter(new URL(`${target.outDir}/`, projectRoot))
 });
 const qaService = new PdfGenerationService({
   composer,
   renderer,
-  writer: new NodeDirectoryWriter(new URL('../generated/qa/', import.meta.url))
+  writer: new NodeDirectoryWriter(new URL(`${target.qaDir}/`, projectRoot))
 });
 
 // What the page is allowed to offer. The naming rule can name a file for any combination;
@@ -62,15 +64,15 @@ const released = [];
 for (const layout of layouts) {
   const result = await releaseService.generate(data, { profile, locale, layout });
   released.push(result.filename);
-  console.log(`generated/${result.filename}`);
+  console.log(`${target.outDir}/${result.filename}`);
   for (const pageSize of ['A4', 'LETTER']) {
     for (const colorMode of ['color', 'monochrome']) {
       const variant = await qaService.generate(data, { profile, locale, layout, pageSize, colorMode, variant: true });
-      console.log(`generated/qa/${variant.filename}`);
+      console.log(`${target.qaDir}/${variant.filename}`);
     }
   }
 }
 
-await writeFile(new URL('../generated/manifest.json', import.meta.url),
+await writeFile(new URL(target.manifestPath, projectRoot),
   `${JSON.stringify({ released }, null, 2)}\n`);
-console.log(`generated/manifest.json — ${released.length} downloads`);
+console.log(`${target.manifestPath} — ${released.length} downloads`);
