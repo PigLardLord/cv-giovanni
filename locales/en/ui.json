@@ -2,7 +2,7 @@
   "meta": { "title": "{{name}} – Curriculum Vitae" },
   "actions": { "downloadPdf": "Download PDF", "print": "Browser print" },
   "layouts": {
-    "classic": "Classic ATS",
+    "nerd": "Nerd Mode",
     "spotlight": "Impact Spotlight",
     "technical": "Technical Profile"
   },

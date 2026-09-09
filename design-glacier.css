@@ -52,14 +52,14 @@ body[data-layout='technical'] .hero-section {
 /* Classic keeps its white masthead: it is the sober, extraction-first variant and its hero text
    is dark by design. Painting it ink turned the name into black on black — the background
    inverted and the foreground did not follow. It gets the signal as a rule, not as a ground. */
-body[data-layout='classic'] .hero-section {
+body[data-layout='nerd'] .hero-section {
   background: #fff;
   color: var(--text-primary);
   border-top: 6px solid var(--ink);
   border-bottom: 3px solid var(--signal-bright);
 }
 
-body[data-layout='classic'] .hero-title {
+body[data-layout='nerd'] .hero-title {
   color: var(--signal);
 }
 
@@ -151,7 +151,7 @@ a[href^='http']:hover {
    three different corporate schemes. One palette now, and the layouts differ by
    arrangement, which is what a layout is.
    -------------------------------------------------------------------------- */
-body[data-layout='classic'],
+body[data-layout='nerd'],
 body[data-layout='spotlight'],
 body[data-layout='technical'] {
   --primary-color: var(--ink);
@@ -228,7 +228,7 @@ body[data-layout='technical'] .job-entry {
 .hero-name,
 body[data-layout='spotlight'] .hero-name,
 body[data-layout='technical'] .hero-name,
-body[data-layout='classic'] .hero-name {
+body[data-layout='nerd'] .hero-name {
   font-family: 'Instrument Serif', Georgia, 'Times New Roman', serif;
   font-weight: 400;
   font-size: 3.6rem;
@@ -236,7 +236,7 @@ body[data-layout='classic'] .hero-name {
   letter-spacing: -0.015em;
 }
 
-body[data-layout='classic'] .hero-name {
+body[data-layout='nerd'] .hero-name {
   font-size: 3rem;
 }
 

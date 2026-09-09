@@ -31,11 +31,11 @@ describe('PdfExporter', () => {
     const designSystem = { resolve: jest.fn(() => ({ defaultStyle: { font: 'Injected Font' }, styles: {} })) };
     const exporter = new PdfExporter(null, { t: (key) => key }, { documentFactory, pageFormats, themes, designSystem });
 
-    const definition = exporter.buildDocument(data, { layout: 'classic', pageSize: 'LETTER', colorMode: 'monochrome' });
+    const definition = exporter.buildDocument(data, { layout: 'nerd', pageSize: 'LETTER', colorMode: 'monochrome' });
 
     expect(documentFactory).toHaveBeenCalledWith(data);
     expect(pageFormats.resolve).toHaveBeenCalledWith('LETTER');
-    expect(themes.resolve).toHaveBeenCalledWith('classic', 'monochrome');
+    expect(themes.resolve).toHaveBeenCalledWith('nerd', 'monochrome');
     expect(designSystem.resolve).toHaveBeenCalled();
     expect(definition.defaultStyle.font).toBe('Injected Font');
     expect(definition.pageSize).toEqual({ width: 1, height: 2 });
@@ -66,7 +66,7 @@ describe('PdfExporter — what has to survive extraction and assistive reading',
     yield node;
     for (const value of Object.values(node)) yield* walk(value);
   };
-  const layouts = ['classic', 'spotlight', 'technical'];
+  const layouts = ['nerd', 'spotlight', 'technical'];
 
   test.each(layouts)('%s keeps every rail label a single short line', (layout) => {
     // A section label may share a band with its block — that is the rail, and it is the shape
@@ -112,7 +112,7 @@ describe('PdfExporter — what has to survive extraction and assistive reading',
 
   test('omits an education description rather than rendering an empty line', () => {
     const bare = { ...rich, education: [{ degree: 'M.Sc.', school: 'Pisa', period: '2013 - 2015' }] };
-    const definition = new PdfExporter(null, { t: (key) => key }).buildDocument(bare, 'classic');
+    const definition = new PdfExporter(null, { t: (key) => key }).buildDocument(bare, 'nerd');
     // Only nodes that actually carry a `text` key: a stack or a table legitimately has none.
     const carriers = [...walk(definition.content)].filter((node) => 'text' in node);
     expect(carriers.length).toBeGreaterThan(0);
@@ -142,7 +142,7 @@ describe('PdfExporter — what has to survive extraction and assistive reading',
     const named = { ...rich, skills: [{ category: 'iOS', items: [
       { name: 'Objective-C' }, { name: 'Dependency-Track' }, { name: 'AI-assisted engineering' }
     ] }] };
-    const definition = new PdfExporter(null, { t: (key) => key }).buildDocument(named, 'classic');
+    const definition = new PdfExporter(null, { t: (key) => key }).buildDocument(named, 'nerd');
     const names = [...walk(definition.content)].filter((node) => node.noWrap);
     expect(names.map((node) => node.text)).toEqual(
       expect.arrayContaining(['Objective-C', 'Dependency-Track', 'AI-assisted engineering'])
@@ -154,7 +154,7 @@ describe('PdfExporter — what has to survive extraction and assistive reading',
       title: 'Engineer', company: 'C', location: 'L', period: '2018 - 2026',
       highlights: ['Resolved defects across iOS (Swift, Objective-C) and Android.']
     }] };
-    const definition = new PdfExporter(null, { t: (key) => key }).buildDocument(withBullet, 'classic');
+    const definition = new PdfExporter(null, { t: (key) => key }).buildDocument(withBullet, 'nerd');
     const protectedRuns = [...walk(definition.content)].filter((node) => node.noWrap).map((node) => node.text);
     expect(protectedRuns).toContain('Objective-C)');
   });
@@ -164,7 +164,7 @@ describe('PdfExporter — what has to survive extraction and assistive reading',
     // the rule could name one. Today the German profile fails earlier and hides the bug; the
     // day profiles/general/de.json lands, the page renders and the button 404s in silence.
     const exporter = new PdfExporter(null, { t: (key) => key });
-    const generated = ['giovanni-trovato-general-en-spotlight.pdf', 'giovanni-trovato-general-en-classic.pdf'];
+    const generated = ['giovanni-trovato-general-en-spotlight.pdf', 'giovanni-trovato-general-en-nerd.pdf'];
     expect(exporter.isAvailable(generated, { profile: 'general', locale: 'en', layout: 'spotlight' })).toBe(true);
     expect(exporter.isAvailable(generated, { profile: 'general', locale: 'de', layout: 'spotlight' })).toBe(false);
     expect(exporter.isAvailable(generated, { profile: 'general', locale: 'en', layout: 'technical' })).toBe(false);

@@ -2,7 +2,7 @@
   "meta": { "title": "{{name}} – Lebenslauf" },
   "actions": { "downloadPdf": "PDF herunterladen", "print": "Browserdruck" },
   "layouts": {
-    "classic": "Klassisch ATS",
+    "nerd": "Nerd-Modus",
     "spotlight": "Wirkung im Fokus",
     "technical": "Technisches Profil"
   },

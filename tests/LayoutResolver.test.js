@@ -7,7 +7,7 @@ describe('LayoutResolver', () => {
     expect(resolver.resolve('')).toBe('spotlight');
   });
 
-  test.each(['classic', 'spotlight', 'technical'])('accepts %s', (layout) => {
+  test.each(['nerd', 'spotlight', 'technical'])('accepts %s', (layout) => {
     expect(resolver.resolve(`?layout=${layout}`)).toBe(layout);
   });
 

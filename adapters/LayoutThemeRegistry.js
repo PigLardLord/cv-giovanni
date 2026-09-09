@@ -15,7 +15,7 @@ const MUTED = '#475569';
 const SOFT = '#F4F4F5';
 
 const COLOR_THEMES = {
-  classic: { primary: INK, ink: INK, body: BODY, muted: MUTED, soft: SOFT, invertedHeader: false },
+  nerd: { primary: INK, ink: INK, body: BODY, muted: MUTED, soft: SOFT, invertedHeader: false },
   spotlight: { primary: INK, ink: INK, body: BODY, muted: MUTED, soft: SOFT, invertedHeader: false },
   technical: { primary: INK, ink: INK, body: BODY, muted: MUTED, soft: SOFT, invertedHeader: false }
 };

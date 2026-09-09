@@ -101,7 +101,7 @@ export class PdfLayout {
         margin: [0, 0, 0, 3]
       })))] : [];
     const layouts = {
-      classic: [header, profile, ...experience, ...skills, ...supporting],
+      nerd: [header, profile, ...experience, ...skills, ...supporting],
       spotlight: [header, profile, ...impact, ...experience, ...skills, ...supporting],
       technical: [header, profile, ...skills, ...experience, ...supporting]
     };

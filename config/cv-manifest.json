@@ -7,5 +7,5 @@
       }
     }
   },
-  "layouts": ["classic", "spotlight", "technical"]
+  "layouts": ["nerd", "spotlight", "technical"]
 }

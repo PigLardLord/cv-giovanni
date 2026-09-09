@@ -1,5 +1,5 @@
 export class LayoutResolver {
-  constructor(layouts = ['classic', 'spotlight', 'technical'], fallback = 'spotlight') {
+  constructor(layouts = ['nerd', 'spotlight', 'technical'], fallback = 'spotlight') {
     this.layouts = layouts;
     this.fallback = fallback;
   }

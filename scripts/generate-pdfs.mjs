@@ -8,7 +8,7 @@ import { NodeDirectoryWriter } from '../adapters/NodeDirectoryWriter.js';
 
 const profile = 'general';
 const locale = 'en';
-const layouts = ['classic', 'spotlight', 'technical'];
+const layouts = ['nerd', 'spotlight', 'technical'];
 const data = JSON.parse(await readFile(new URL(`../profiles/${profile}/${locale}.json`, import.meta.url)));
 const cvMessages = JSON.parse(await readFile(new URL(`../locales/${locale}/cv.json`, import.meta.url)));
 const lookup = (object, path) => path.split('.').reduce((value, key) => value?.[key], object);

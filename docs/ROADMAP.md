@@ -6,7 +6,7 @@ MyCV generates reproducible CVs from three independent choices:
 
 `profile × locale × layout`
 
-The first production target is `general × en × classic-ats`. English remains
+The first production target is `general × en × nerd`. English remains
 the primary content language. German will be enabled only when its complete CV
 content has been reviewed; the application must never silently mix languages.
 
@@ -56,7 +56,7 @@ catalog parity is tested, and both browser and PDF have been reviewed.
 - Adopt `profiles/<profile>/<locale>.json`.
 - Add a manifest of supported combinations; never probe guessed filenames.
 - Support shareable URLs such as
-  `?profile=general&lang=en&layout=classic-ats`.
+  `?profile=general&lang=en&layout=nerd`.
 - Add accessible selectors for profile, locale and layout.
 - Prevent selection of incomplete language/profile combinations.
 
@@ -74,7 +74,7 @@ passes an ATS text-extraction check.
 
 ## M4 — Two production layouts
 
-- `classic-ats`: restrained, monochrome and extraction-safe.
+- `nerd`: dark, ruled and extraction-safe — the screen goes anthracite, the paper stays black on white.
 - `modern`: stronger hierarchy and identity without sacrificing ATS.
 - Fix duplicate skill presentations before adding further designs.
 - Restore and complete the position-based pagination work from

@@ -30,7 +30,7 @@
 }
 
 /* Classic ATS: restrained, linear, and deliberately close to a document. */
-body[data-layout='classic'] {
+body[data-layout='nerd'] {
   --primary-color: #172033;
   --primary-light: #334155;
   --primary-dark: #0f172a;
@@ -38,13 +38,13 @@ body[data-layout='classic'] {
   background: #eef1f5;
 }
 
-body[data-layout='classic'] .container {
+body[data-layout='nerd'] .container {
   max-width: 820px;
   border-radius: 2px;
   box-shadow: 0 8px 30px rgb(15 23 42 / 0.09);
 }
 
-body[data-layout='classic'] .hero-section {
+body[data-layout='nerd'] .hero-section {
   padding: 2.4rem 2.6rem 1.5rem;
   background: #fff;
   color: var(--text-primary);
@@ -52,40 +52,40 @@ body[data-layout='classic'] .hero-section {
   border-bottom: 1px solid var(--border-color);
 }
 
-body[data-layout='classic'] .hero-section::before,
-body[data-layout='classic'] .profile-image-wrapper {
+body[data-layout='nerd'] .hero-section::before,
+body[data-layout='nerd'] .profile-image-wrapper {
   display: none;
 }
 
-body[data-layout='classic'] .hero-content {
+body[data-layout='nerd'] .hero-content {
   display: block;
 }
 
-body[data-layout='classic'] .hero-name {
+body[data-layout='nerd'] .hero-name {
   margin-bottom: 0.2rem;
   font-family: Georgia, 'Times New Roman', serif;
   font-size: 2.35rem;
   font-weight: 700;
 }
 
-body[data-layout='classic'] .hero-title {
+body[data-layout='nerd'] .hero-title {
   margin-bottom: 0.8rem;
   color: #334155;
   font-size: 1rem;
 }
 
-body[data-layout='classic'] .hero-subtitle,
-body[data-layout='classic'] .hero-summary,
-body[data-layout='classic'] .hero-availability {
+body[data-layout='nerd'] .hero-subtitle,
+body[data-layout='nerd'] .hero-summary,
+body[data-layout='nerd'] .hero-availability {
   color: var(--text-secondary);
   max-width: none;
 }
 
-body[data-layout='classic'] .hero-sidebar {
+body[data-layout='nerd'] .hero-sidebar {
   align-items: stretch;
 }
 
-body[data-layout='classic'] .contact-card {
+body[data-layout='nerd'] .contact-card {
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -99,48 +99,48 @@ body[data-layout='classic'] .contact-card {
   text-align: left;
 }
 
-body[data-layout='classic'] .contact-details,
-body[data-layout='classic'] .contact-item {
+body[data-layout='nerd'] .contact-details,
+body[data-layout='nerd'] .contact-item {
   margin: 0;
 }
 
-body[data-layout='classic'] .social-links {
+body[data-layout='nerd'] .social-links {
   margin-left: auto;
 }
 
-body[data-layout='classic'] .social-links a {
+body[data-layout='nerd'] .social-links a {
   padding: 0;
   background: transparent;
   color: var(--primary-color);
 }
 
-body[data-layout='classic'] .skills-spotlight {
+body[data-layout='nerd'] .skills-spotlight {
   padding: 1.25rem 2.6rem;
   background: #fff;
 }
 
-body[data-layout='classic'] .spotlight-title {
+body[data-layout='nerd'] .spotlight-title {
   margin-bottom: 0.65rem;
   color: var(--text-primary);
   text-align: left;
 }
 
-body[data-layout='classic'] .main-content {
+body[data-layout='nerd'] .main-content {
   padding: 1.5rem 2.6rem 2.6rem;
 }
 
-body[data-layout='classic'] .content-grid {
+body[data-layout='nerd'] .content-grid {
   display: block;
 }
 
-body[data-layout='classic'] .secondary-column {
+body[data-layout='nerd'] .secondary-column {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1.25rem;
 }
 
-body[data-layout='classic'] .job-entry,
-body[data-layout='classic'] .edu-entry {
+body[data-layout='nerd'] .job-entry,
+body[data-layout='nerd'] .edu-entry {
   padding: 0 0 0.9rem;
   border: 0;
   border-radius: 0;
@@ -634,13 +634,13 @@ body[data-layout='technical'] {
 
 @media (max-width: 768px) {
   .layout-switcher { border-radius: 14px; }
-  body[data-layout='classic'] .secondary-column,
+  body[data-layout='nerd'] .secondary-column,
   body[data-layout='spotlight'] .skills-showcase,
   body[data-layout='technical'] .secondary-column {
     grid-template-columns: 1fr;
   }
-  body[data-layout='classic'] .contact-card { display: block; }
-  body[data-layout='classic'] .social-links { justify-content: flex-start; margin-top: 0.5rem; }
+  body[data-layout='nerd'] .contact-card { display: block; }
+  body[data-layout='nerd'] .social-links { justify-content: flex-start; margin-top: 0.5rem; }
 }
 
 @media print {

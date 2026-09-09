@@ -24,12 +24,12 @@ describe('DocumentLocalizer', () => {
 
   test('keeps authored fallback text when a catalog key is unavailable', () => {
     const document = new JSDOM(`<!doctype html><html><body>
-      <a data-i18n="layouts.classic">Classic ATS</a>
+      <a data-i18n="layouts.nerd">Nerd Mode</a>
     </body></html>`).window.document;
     const i18n = { language: 'en', t: (key) => key };
 
     new DocumentLocalizer(i18n).apply(document);
 
-    expect(document.querySelector('a').textContent).toBe('Classic ATS');
+    expect(document.querySelector('a').textContent).toBe('Nerd Mode');
   });
 });

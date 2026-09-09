@@ -4,10 +4,10 @@ Generated variants: 12
 
 | File | Pages | Score |
 |---|---:|---:|
-| giovanni-trovato-general-en-classic-a4-color.pdf | 2 | 9/9 |
-| giovanni-trovato-general-en-classic-a4-monochrome.pdf | 2 | 9/9 |
-| giovanni-trovato-general-en-classic-letter-color.pdf | 2 | 9/9 |
-| giovanni-trovato-general-en-classic-letter-monochrome.pdf | 2 | 9/9 |
+| giovanni-trovato-general-en-nerd-a4-color.pdf | 2 | 9/9 |
+| giovanni-trovato-general-en-nerd-a4-monochrome.pdf | 2 | 9/9 |
+| giovanni-trovato-general-en-nerd-letter-color.pdf | 2 | 9/9 |
+| giovanni-trovato-general-en-nerd-letter-monochrome.pdf | 2 | 9/9 |
 | giovanni-trovato-general-en-spotlight-a4-color.pdf | 2 | 9/9 |
 | giovanni-trovato-general-en-spotlight-a4-monochrome.pdf | 2 | 9/9 |
 | giovanni-trovato-general-en-spotlight-letter-color.pdf | 2 | 9/9 |

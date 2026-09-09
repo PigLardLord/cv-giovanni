@@ -86,7 +86,7 @@ carries `data-i18n` keys and `DocumentLocalizer` applies them. No user-visible s
 JS or HTML: add the key to **both** catalogs or `LocaleCatalogs.test.js` fails. `I18nService`
 appends a `?v=` cache-buster to `backend.loadPath` — bump it when the catalogs change shape.
 
-The three layouts `classic`, `spotlight` and `technical` are declared in three places that must
+The three layouts `nerd`, `spotlight` and `technical` are declared in three places that must
 agree: `LayoutResolver`, `LayoutThemeRegistry` and `config/cv-manifest.json`.
 
 Accessibility and ATS rules are product decisions and live in `AGENTS.md`: every rating needs a

@@ -159,7 +159,7 @@ Settled, and not to be undone by someone reclaiming space:
 - **Colour has a role or it does not ship.** Every token in the palette states what it marks and
   carries a grey equivalent, so the monochrome variant degrades rather than breaks. The previous
   palette rendered on **zero glyphs** — the inverted header forced every foreground to white and
-  `classic`'s accent was byte-identical to its muted grey — and no audit check could see it,
+  `nerd`'s accent was byte-identical to its muted grey — and no audit check could see it,
   because a colour that never renders breaks nothing.
 - **Only the role's identity is unbreakable.** Title, employer, dates and summary travel
   together so no reader meets a bare heading; achievements flow, each individually unbreakable

@@ -203,7 +203,7 @@ three options to look thorough wastes the reader's decision.
 
 When you are working inside a project that generates its CV, propose within what that pipeline
 can actually do, and read enough of it to know. In this repository that means: three layouts
-(`classic`, `spotlight`, `technical`), themes resolved per layout with a monochrome variant, a
+(`nerd`, `spotlight`, `technical`), themes resolved per layout with a monochrome variant, a
 pdfmake generation path, and an audit that scores every variant on format, page count, required
 text, reading order, absence of raster images, clean page starts and measured grayscale.
 
