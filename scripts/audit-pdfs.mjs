@@ -2,12 +2,33 @@ import { execFileSync } from 'node:child_process';
 import { mkdtemp, readdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { GenerationTarget } from '../core/GenerationTarget.js';
 
-const qaUrl = new URL('../generated/qa/', import.meta.url);
-const profile = JSON.parse(await readFile(new URL('../profiles/general/en.json', import.meta.url)));
-const cvMessages = JSON.parse(await readFile(new URL('../locales/en/cv.json', import.meta.url)));
+const projectRoot = new URL('../', import.meta.url);
+// The expectations come from the CV under test, not from the published one. Auditing a
+// tailored profile against `general` would check strings it never contained and pass.
+const target = GenerationTarget.fromArguments(process.argv.slice(2));
+const qaUrl = new URL(`${target.qaDir}/`, projectRoot);
+const profile = await readJson(target.dataPath);
+const cvMessages = await readJson(`locales/${target.locale}/cv.json`);
+
+/** Read a file the audit cannot run without. Missing means unchecked, which is exit 2. */
+async function readJson(path) {
+  try {
+    return JSON.parse(await readFile(new URL(path, projectRoot)));
+  } catch (error) {
+    console.error(`audit-pdfs: cannot read ${path} — nothing was checked.`);
+    console.error(error.message);
+    process.exit(2);
+  }
+}
 const labels = cvMessages.sections;
-const mustHave = [profile.name, profile.title, profile.email, labels.experience, labels.skills, 'Cortado Mobile Solutions', 'Swift', 'CI/CD', labels.education, labels.languages];
+// The current employer and the first two skills come from the data rather than from a
+// literal: a tailored profile is a different CV, and an audit that checks another CV's
+// strings is checking nothing about this one.
+const mustHave = [profile.name, profile.title, profile.email, labels.experience, labels.skills,
+  profile.relevant_experience[0].company, labels.education, labels.languages,
+  ...profile.skills[0].items.slice(0, 2).map((item) => item.name)];
 const escapeForRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const strings = (node) => typeof node === 'string' ? [node]
   : node && typeof node === 'object' ? Object.values(node).flatMap(strings) : [];
@@ -23,7 +44,14 @@ const brokenForms = compounds.map((compound) => ({
 // parser interleaves them, and the record boundaries a structured reader looks for are destroyed.
 const educationPairs = profile.education.map((item) =>
   new RegExp(`${escapeForRegExp(item.degree)}\\s+${escapeForRegExp(`${item.school} · ${item.period}`)}`));
-const pdfFiles = (await readdir(qaUrl)).filter((name) => name.endsWith('.pdf')).sort();
+const pdfFiles = (await readdir(qaUrl).catch(() => [])).filter((name) => name.endsWith('.pdf')).sort();
+// An empty matrix used to score a clean pass. Nothing to check is not the same as nothing
+// wrong — the grayscale check spent weeks matching no files and reporting a guarantee.
+if (!pdfFiles.length) {
+  console.error(`audit-pdfs: no PDFs under ${target.qaDir} — nothing was checked.`);
+  console.error('Run `npm run build:pdf` first, with the same --profile.');
+  process.exit(2);
+}
 const rows = [];
 const validPageStarts = [
   labels.skills, labels.experience, labels.education, labels.languages, labels.certifications, labels.selectedImpact,
@@ -113,7 +141,7 @@ const report = [
   'Checks: exact format, maximum two pages, required ATS text, reading order, no raster images, clean page starts, measured grayscale output, canonical compound spelling, and block integrity in extraction.'
 ].join('\n');
 
-await writeFile(new URL('../docs/PDF_AUDIT.md', import.meta.url), `${report}\n`);
+await writeFile(new URL(target.reportPath('PDF_AUDIT.md'), projectRoot), `${report}\n`);
 console.log(report);
 if (failures.length) {
   console.error(JSON.stringify(failures, null, 2));

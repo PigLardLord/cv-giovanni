@@ -28,6 +28,24 @@ export class GenerationTarget {
   }
 
   /**
+   * True for the CV that ships. An audit of a tailored profile writes its report beside
+   * that profile instead of over `docs/`: the committed matrix must describe the published
+   * document, not whichever application was audited last.
+   */
+  get isPublished() {
+    return this.dataPath === DEFAULT_DATA_PATH;
+  }
+
+  /**
+   * Where an audit's markdown belongs.
+   * @param {string} name - Report filename, e.g. `PDF_AUDIT.md`
+   * @returns {string} Path relative to the project root
+   */
+  reportPath(name) {
+    return this.isPublished ? `docs/${name}` : `${this.outDir}/${name}`;
+  }
+
+  /**
    * Read `--profile=<path>` and `--out=<dir>` from an argument list.
    *
    * With no arguments this is the public CV into `generated/`, exactly as before. With a

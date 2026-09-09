@@ -4,6 +4,7 @@ import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createStaticServer } from './serve.mjs';
+import { GenerationTarget } from '../core/GenerationTarget.js';
 
 /**
  * What the browser prints, checked on the paper rather than on the stylesheet.
@@ -19,8 +20,22 @@ import { createStaticServer } from './serve.mjs';
  * of the PDF or the pixels the page actually put on the paper.
  */
 const projectUrl = new URL('..', import.meta.url);
-const profile = JSON.parse(await readFile(new URL('profiles/general/en.json', projectUrl)));
-const labels = JSON.parse(await readFile(new URL('locales/en/cv.json', projectUrl))).sections;
+// The expectations come from the CV under test. Auditing a tailored profile against the
+// published one would check strings it never contained and report a clean pass.
+const target = GenerationTarget.fromArguments(process.argv.slice(2));
+const profile = await readJson(target.dataPath);
+const labels = (await readJson(`locales/${target.locale}/cv.json`)).sections;
+
+/** Read a file the audit cannot run without. Missing means unchecked, which is exit 2. */
+async function readJson(path) {
+  try {
+    return JSON.parse(await readFile(new URL(path, projectUrl)));
+  } catch (error) {
+    console.error(`audit-print: cannot read ${path} — nothing was checked.`);
+    console.error(error.message);
+    process.exit(2);
+  }
+}
 const manifest = JSON.parse(await readFile(new URL('config/cv-manifest.json', projectUrl)));
 
 const DPI = 150;
@@ -34,7 +49,8 @@ const strings = (node) => typeof node === 'string' ? [node]
   : node && typeof node === 'object' ? Object.values(node).flatMap(strings) : [];
 
 const mustHave = [profile.name, profile.title, profile.email, labels.experience, labels.skills,
-  'Cortado Mobile Solutions', 'Swift', 'CI/CD', labels.education, labels.languages];
+  profile.relevant_experience[0].company, labels.education, labels.languages,
+  ...profile.skills[0].items.slice(0, 2).map((item) => item.name)];
 
 // Every hyphenated compound the data writes. A line broken at an existing hyphen
 // extracts without it, so "offline-first" arrives welded shut as "offlinefirst":
@@ -205,7 +221,7 @@ try {
       '--headless', '--disable-gpu', '--no-sandbox', '--hide-scrollbars',
       '--run-all-compositor-stages-before-draw', '--virtual-time-budget=8000',
       '--no-pdf-header-footer', `--print-to-pdf=${pdf}`,
-      `http://127.0.0.1:${port}/index.html?layout=${layout}`
+      `http://127.0.0.1:${port}/index.html?layout=${layout}&profile=${target.profile}`
     ]);
 
     const info = execFileSync('pdfinfo', [pdf], { encoding: 'utf8' });
@@ -301,7 +317,7 @@ const report = [
   'the data did not write, and the intended typeface embedded.'
 ].join('\n');
 
-await writeFile(new URL('docs/PRINT_AUDIT.md', projectUrl), `${report}\n`);
+await writeFile(new URL(target.reportPath('PRINT_AUDIT.md'), projectUrl), `${report}\n`);
 console.log(report);
 
 if (failures.length) {

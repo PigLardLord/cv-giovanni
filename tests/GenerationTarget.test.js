@@ -41,6 +41,14 @@ describe('GenerationTarget', () => {
     expect(target.manifestPath).toBe('build/manifest.json');
   });
 
+  // The committed matrix must describe the CV that ships, not whichever application was
+  // audited last. Auditing a tailored profile writes its report beside that profile.
+  test('a report lands in docs/ only for the published CV', () => {
+    expect(GenerationTarget.fromArguments([]).reportPath('PDF_AUDIT.md')).toBe('docs/PDF_AUDIT.md');
+    expect(GenerationTarget.fromArguments(['--profile=applications/act-ai/en.json'])
+      .reportPath('PDF_AUDIT.md')).toBe('applications/act-ai/out/PDF_AUDIT.md');
+  });
+
   // A path that does not name a profile and a locale would produce filenames nobody can
   // trace back to a CV. Refusing is cheaper than a directory of mislabelled PDFs.
   test.each([
