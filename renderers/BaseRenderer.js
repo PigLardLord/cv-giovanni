@@ -50,6 +50,40 @@ export class BaseRenderer extends Renderer {
   }
 
   /**
+   * Write prose into an element, holding every hyphenated compound together.
+   *
+   * A line that breaks at an existing hyphen extracts from a PDF with the
+   * hyphen gone — "offline-first" reaches a parser as "offlinefirst", which is
+   * invisible on the page and unfindable by anyone searching the canonical
+   * spelling. Each compound becomes an atomic inline box, so the line breaks
+   * around it rather than inside it. This is the DOM counterpart of the PDF's
+   * `noWrap` runs, and the reason it lives here rather than in a stylesheet is
+   * that no CSS property can forbid a break at an explicit hyphen.
+   *
+   * The text itself is untouched: textContent, copy/paste, the accessibility
+   * tree and the extracted PDF all read exactly what the data wrote.
+   * @param {Document} root - DOM root
+   * @param {Element} element - Element to fill
+   * @param {string} text - Prose as the data wrote it
+   * @returns {Element} The element that was filled
+   */
+  setProse(root, element, text) {
+    element.textContent = '';
+    const parts = String(text ?? '').split(/([A-Za-z0-9]+(?:-[A-Za-z0-9]+)+)/g);
+    parts.forEach((part, index) => {
+      if (!part) return;
+      if (index % 2 === 1) {
+        const held = this.createElement(root, 'span', 'no-break');
+        held.textContent = part;
+        element.appendChild(held);
+        return;
+      }
+      element.appendChild(root.createTextNode(part));
+    });
+    return element;
+  }
+
+  /**
    * Render array of items to a container
    * @param {Element} container - Container element
    * @param {Array} items - Items to render

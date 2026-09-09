@@ -506,6 +506,15 @@ section {
   font-weight: 500;
 }
 
+/* A hyphenated compound is an atomic run: renderers/BaseRenderer.setProse wraps each one so a
+   line can break around it but never inside it. Broken at its hyphen, "offline-first" extracts
+   from the printed PDF as "offlinefirst" — on the page it looks right, and no parser searching
+   the canonical spelling can find it. No CSS property forbids a break at an explicit hyphen,
+   which is why the span exists at all. */
+.no-break {
+  white-space: nowrap;
+}
+
 /* =============================================================================
    PRINT BUTTON
    ============================================================================= */

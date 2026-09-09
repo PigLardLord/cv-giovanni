@@ -34,6 +34,10 @@ export class CertificationsRenderer extends BaseRenderer {
     }
     
     li.innerHTML = content;
+
+    const prose = li.querySelector('.cert-description');
+    if (prose) this.setProse(root, prose, prose.textContent);
+
     return li;
   }
 

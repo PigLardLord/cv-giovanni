@@ -10,7 +10,7 @@ export class ProfileRenderer extends BaseRenderer {
       : '';
 
     this.setSectionVisibility(profileElement, summary !== '');
-    profileElement.textContent = summary;
+    this.setProse(root, profileElement, summary);
   }
 
   validate(data) {

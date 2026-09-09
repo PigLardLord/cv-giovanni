@@ -29,12 +29,15 @@ export class ExperienceRenderer extends BaseRenderer {
       ${job.description ? `<p class="job-description">${job.description}</p>` : ''}
     `);
 
+    ['.job-summary', '.job-description'].forEach((selector) => {
+      const prose = entry.querySelector(selector);
+      if (prose) this.setProse(root, prose, prose.textContent);
+    });
+
     if (Array.isArray(job.highlights) && job.highlights.length > 0) {
       const list = this.createElement(root, 'ul', 'job-highlights');
       job.highlights.forEach((highlight) => {
-        const item = this.createElement(root, 'li');
-        item.textContent = highlight;
-        list.appendChild(item);
+        list.appendChild(this.setProse(root, this.createElement(root, 'li'), highlight));
       });
       entry.appendChild(list);
     }

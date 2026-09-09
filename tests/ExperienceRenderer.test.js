@@ -18,6 +18,36 @@ describe('ExperienceRenderer', () => {
     renderer = new ExperienceRenderer();
   });
 
+  test('holds every hyphenated compound on one line without touching the text', () => {
+    const data = {
+      relevant_experience: [
+        {
+          title: 'Mobile Developer',
+          company: 'Apparound',
+          location: 'Pisa',
+          period: '2015-2018',
+          summary: 'B2B sales-automation platform for field sales teams.',
+          highlights: ['Built an offline-first architecture in Objective-C.']
+        }
+      ]
+    };
+
+    renderer.render(document, data);
+
+    // A line that breaks at an existing hyphen extracts from the PDF without it:
+    // "offline-first" reaches a parser as "offlinefirst" and no search for the
+    // canonical spelling finds it.
+    const highlight = document.querySelector('.job-highlights li');
+    expect(highlight.textContent).toBe('Built an offline-first architecture in Objective-C.');
+    expect([...highlight.querySelectorAll('.no-break')].map((held) => held.textContent))
+      .toEqual(['offline-first', 'Objective-C']);
+
+    const summary = document.querySelector('.job-summary');
+    expect(summary.textContent).toBe('B2B sales-automation platform for field sales teams.');
+    expect([...summary.querySelectorAll('.no-break')].map((held) => held.textContent))
+      .toEqual(['sales-automation']);
+  });
+
   test('renders experience entries correctly', () => {
     const data = {
       relevant_experience: [
