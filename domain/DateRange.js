@@ -1,3 +1,5 @@
+import { fold } from './fold.js';
+
 /**
  * Month names, per language, as data.
  *
@@ -35,16 +37,6 @@ const PRESENT = ['present', 'now', 'current', 'ongoing', 'heute', 'aktuell', 'la
 const SINCE = ['since', 'seit', 'dal', 'da'];
 
 const SEPARATOR = /\s*(?:[–—‒~-]|\bto\b|\bbis\b|\bal\b)\s*/;
-
-/** Diacritics off, case down, `ß` to `ss` — one rule for every language rather than one each. */
-function fold(text) {
-  return text
-    .normalize('NFKD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/ß/g, 'ss')
-    .toLowerCase()
-    .trim();
-}
 
 const MONTH_INDEX = Object.fromEntries(
   Object.values(MONTHS).flatMap((names) => Object.entries(names).map(([name, number]) => [fold(name), number]))
