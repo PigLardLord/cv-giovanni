@@ -487,3 +487,292 @@ p, li {
   -webkit-font-smoothing: auto !important;
   -moz-osx-font-smoothing: auto !important;
 }
+
+/* =============================================================================
+   NERD MODE ON PAPER
+   The anthracite is a screen decision and does not reach the printer: this layout prints as ink
+   on white, like the other two. What does survive the crossing is the structure the layout is
+   made of — numbered section heads, hairline rules and the dates in a column of their own —
+   because a printed page that kept only the colour would have kept nothing.
+
+   Achromatic in the strict sense the project's own PDF audit uses: every rendered pixel comes
+   out with R == G == B. The palette this file gives the other two layouts is Tailwind's slate,
+   which is a blue-leaning grey — neutral enough to the eye, but `rgb(55, 65, 81)` is not grey
+   to an auditor — so `nerd` restates the whole ramp in true neutrals: #111 ink, #333 body, #555
+   metadata, #d8d8d8 rules, #ebebeb the quieter ones. Measured on the artefact with pdftoppm at
+   24dpi: maximum channel spread 0 across both pages, the portrait included, which is what the
+   `grayscale(1)` filter below is for.
+
+   Every selector is scoped to `nerd`. `spotlight` and `technical` print exactly as they did,
+   which is checked by fingerprinting all three under print emulation.
+   ============================================================================= */
+
+body[data-layout='nerd'] {
+  color: #333 !important;
+}
+
+/* --- Section heads: a number, a word, and a rule to the margin ------------------------------ */
+body[data-layout='nerd'] .container {
+  counter-reset: nerd-section !important;
+}
+
+body[data-layout='nerd'] .spotlight-title,
+body[data-layout='nerd'] .section-title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6pt !important;
+  margin: 0 0 8pt !important;
+  padding: 0 !important;
+  border: 0 !important;
+  text-align: left !important;
+  counter-increment: nerd-section;
+}
+
+body[data-layout='nerd'] .spotlight-title::before,
+body[data-layout='nerd'] .section-title::before {
+  content: counter(nerd-section, decimal-leading-zero);
+  flex: none;
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: 8pt;
+  font-weight: 700;
+  letter-spacing: 0.4pt;
+  color: #555;
+}
+
+body[data-layout='nerd'] .spotlight-title::after,
+body[data-layout='nerd'] .section-title::after {
+  content: '';
+  flex: 1;
+  height: 0.5pt;
+  background: #d8d8d8;
+}
+
+body[data-layout='nerd'] .spotlight-title,
+body[data-layout='nerd'] .section-title span:last-child {
+  font-size: 9pt !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.6pt !important;
+  color: #111 !important;
+}
+
+/* The bar beside the label belongs to the other two layouts; this one never had one. */
+body[data-layout='nerd'] .title-accent {
+  display: none !important;
+}
+
+/* --- The masthead ---------------------------------------------------------------------------- */
+/* The masthead sets its own inherited colour, which is what the decorative middots between the
+   three addresses were picking up: two pixels of Tailwind slate were the whole difference
+   between "prints grey" and "prints achromatic". */
+body[data-layout='nerd'] .hero-section {
+  border-bottom-color: #d8d8d8 !important;
+  color: #333 !important;
+}
+
+body[data-layout='nerd'] .hero-name {
+  font-family: 'Inter', Arial, sans-serif !important;
+  font-weight: 700 !important;
+  color: #111 !important;
+}
+
+/* The role line keeps the case the data wrote: "Senior iOS Engineer" must not reach an iOS
+   hiring manager as "SENIOR IOS ENGINEER", on paper any more than on screen. */
+body[data-layout='nerd'] .hero-title {
+  color: #333 !important;
+  text-transform: none !important;
+  letter-spacing: 0.3pt !important;
+}
+
+/* Neither of these two lines was ever given a print colour: the subtitle inherited a pale cyan
+   at 1.7:1 and the availability line inherited white on white and printed as nothing at all.
+   Both are fixed here for `nerd` only — the same two lines are still broken for `spotlight` and
+   `technical`, and a shared fix would move their rendering, which this change may not do. */
+body[data-layout='nerd'] .hero-subtitle {
+  color: #333 !important;
+  font-size: 9pt !important;
+  font-weight: 500 !important;
+  margin-top: 3pt !important;
+}
+
+body[data-layout='nerd'] .hero-availability {
+  color: #555 !important;
+  font-size: 8.5pt !important;
+  line-height: 1.4 !important;
+  margin-top: 6pt !important;
+}
+
+body[data-layout='nerd'] .hero-summary {
+  color: #333 !important;
+}
+
+body[data-layout='nerd'] .profile-image-wrapper img {
+  border: 0.5pt solid #d8d8d8 !important;
+  border-radius: 0 !important;
+  filter: grayscale(1) !important;
+}
+
+body[data-layout='nerd'] .contact-card {
+  background: #fff !important;
+  border: 0.5pt solid #d8d8d8 !important;
+}
+
+/* The pin is a colour emoji and this layout prints achromatic; the address beside it says
+   everything the pin does. */
+body[data-layout='nerd'] .contact-icon {
+  display: none !important;
+}
+
+body[data-layout='nerd'] .contact-item {
+  color: #333 !important;
+}
+
+body[data-layout='nerd'] .contact-details {
+  color: #555 !important;
+}
+
+body[data-layout='nerd'] .contact-card a,
+body[data-layout='nerd'] .social-links a {
+  background: #fff !important;
+  border: 0 !important;
+  color: #111 !important;
+  text-decoration: underline !important;
+}
+
+/* --- The skills table -------------------------------------------------------------------------- */
+body[data-layout='nerd'] .skills-spotlight {
+  border-bottom-color: #d8d8d8 !important;
+}
+
+body[data-layout='nerd'] .skill-group {
+  padding: 3pt 0 !important;
+  border-bottom: 0.5pt solid #ebebeb !important;
+}
+
+body[data-layout='nerd'] .skill-category {
+  color: #111 !important;
+}
+
+body[data-layout='nerd'] .skill-list {
+  color: #333 !important;
+}
+
+/* --- The date column ---------------------------------------------------------------------------- */
+/* The dates hold a column of their own on paper too, so the career can still be scanned
+   vertically. The DOM keeps the role first, so a text extractor meets the title before the
+   period whichever way the columns fall.
+
+   The rail has to be paid for out of the measure, and the evidence column is where it comes
+   from: at the shared 62/36 split the three roles ran to a third page. The credentials in the
+   right-hand column are short lines that do not miss the width, so the split moves. Measured on
+   the artefact — two pages, the same as before the rail existed. */
+body[data-layout='nerd'] .content-grid {
+  grid-template-columns: 70% 28% !important;
+}
+
+body[data-layout='nerd'] .job-entry {
+  display: grid !important;
+  grid-template-columns: 52pt minmax(0, 1fr) !important;
+  column-gap: 8pt !important;
+  row-gap: 0 !important;
+  align-items: start !important;
+  padding: 0 !important;
+  margin: 0 0 10pt !important;
+  border: 0 !important;
+}
+
+body[data-layout='nerd'] .job-entry + .job-entry {
+  padding-top: 8pt !important;
+  border-top: 0.5pt solid #ebebeb !important;
+}
+
+body[data-layout='nerd'] .job-entry > * {
+  grid-column: 2;
+}
+
+body[data-layout='nerd'] .job-period {
+  grid-column: 1;
+  grid-row: 1;
+  margin: 0 !important;
+  font-size: 8pt !important;
+  line-height: 1.35 !important;
+  color: #555 !important;
+}
+
+body[data-layout='nerd'] .job-header {
+  grid-row: 1;
+}
+
+body[data-layout='nerd'] .job-title,
+body[data-layout='nerd'] .job-company {
+  color: #111 !important;
+}
+
+body[data-layout='nerd'] .job-summary,
+body[data-layout='nerd'] .job-description {
+  color: #333 !important;
+}
+
+body[data-layout='nerd'] .job-highlights {
+  margin-top: 4pt !important;
+  color: #333 !important;
+}
+
+/* --- The credentials --------------------------------------------------------------------------- */
+body[data-layout='nerd'] .edu-entry {
+  border: 0 !important;
+  border-top: 0.5pt solid #ebebeb !important;
+  border-radius: 0 !important;
+  padding: 6pt 0 !important;
+}
+
+body[data-layout='nerd'] .edu-degree,
+body[data-layout='nerd'] .edu-school {
+  color: #111 !important;
+}
+
+body[data-layout='nerd'] .edu-period {
+  color: #555 !important;
+}
+
+body[data-layout='nerd'] .edu-description {
+  color: #333 !important;
+}
+
+body[data-layout='nerd'] .certifications-list li {
+  background: #fff !important;
+  border-radius: 0 !important;
+  border-left: 0 !important;
+  border-top: 0.5pt solid #ebebeb !important;
+  padding: 6pt 0 !important;
+  color: #333 !important;
+}
+
+body[data-layout='nerd'] .certifications-list strong,
+body[data-layout='nerd'] .certifications-list a {
+  color: #111 !important;
+}
+
+body[data-layout='nerd'] .cert-description {
+  color: #555 !important;
+}
+
+/* A language is a name and a CEFR level, both as text: no dot, no bar, nothing to decode. */
+body[data-layout='nerd'] .languages-list li {
+  border-bottom-color: #ebebeb !important;
+  color: #333 !important;
+}
+
+body[data-layout='nerd'] .languages-list strong {
+  color: #111 !important;
+}
+
+body[data-layout='nerd'] .interests-line,
+body[data-layout='nerd'] .interests-tags {
+  color: #333 !important;
+}
+
+body[data-layout='nerd'] .tag {
+  background: #fff !important;
+  border: 0.5pt solid #d8d8d8 !important;
+  color: #111 !important;
+}
