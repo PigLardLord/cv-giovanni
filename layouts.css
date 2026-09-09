@@ -943,7 +943,7 @@ body[data-layout='technical'] {
   }
 }
 
-@media (max-width: 768px) {
+@media screen and (max-width: 768px) {
   .layout-switcher { border-radius: 14px; }
   body[data-layout='spotlight'] .skills-showcase,
   body[data-layout='technical'] .secondary-column {
