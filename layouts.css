@@ -744,8 +744,23 @@
    the shared masthead rules it defines above. Everything here is screen-only: on paper print.css
    lays the base DOM out on its own two-column grid, and a `display: contents` or a grid area
    leaking into it would break that. */
+/* The rail's share of the page, not a fixed width, and it is the one number that balances the two
+   columns. Nothing in this layout can equalise them by moving content: a grid area is a rectangle
+   and the two columns share their row lines, so anything lifted out of the rail lands level with
+   the rail's foot rather than under the certifications, and the pale hole only narrows. The rail's
+   width is the lever that moves both sides at once — widening it gives the skill chips and the
+   degree lines a longer measure, so the rail loses height, and it shortens the evidence column's
+   measure, so that gains it. At a fixed 284px the rail ran 366px past the evidence from 1024px
+   up and the evidence ran 267px past the rail at 769px. At 35% the worst residual anywhere from
+   769px to 2560px is 53px, and the longest body line in the evidence column comes down from a
+   measured 82 characters to 74, under the 80 of WCAG 1.4.8 rather than over it.
+
+   A percentage and not a clamp: `--rail-width` is also the hard colour stop in the container's
+   gradient in design-glacier.css, and that gradient's box and this grid's content box are the same
+   rectangle only while the container has no side padding. A percentage resolves against both
+   identically, so the seam and the column line stay on the same pixel at every width. */
 body[data-layout='technical'] {
-  --rail-width: 284px;
+  --rail-width: 35%;
 }
 
 @media screen {
