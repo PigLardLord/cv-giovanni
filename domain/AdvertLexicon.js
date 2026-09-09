@@ -22,7 +22,13 @@ export const ADVERT = {
       'not', 'no', 'all', 'any', 'more', 'most', 'other', 'some', 'such', 'own', 'same', 'so',
       'than', 'too', 'very', 'just', 'also', 'about', 'into', 'over', 'across', 'while',
       'role', 'team', 'work', 'working', 'job', 'position', 'company', 'years', 'year',
-      'experience', 'strong', 'good', 'great', 'excellent', 'ability', 'skills', 'help'],
+      'experience', 'strong', 'good', 'great', 'excellent', 'ability', 'skills', 'help',
+      // Verbs and nouns every software advert uses and none of them means anything on their
+      // own: they outrank the technologies unless they are named here.
+      'build', 'building', 'maintain', 'maintaining', 'design', 'designing', 'create',
+      'develop', 'developing', 'support', 'provide', 'ensure', 'using', 'include',
+      'including', 'apps', 'application', 'applications', 'software', 'systems', 'product',
+      'products', 'high', 'solid', 'hands-on', 'closely', 'across'],
     de: ['der', 'die', 'das', 'den', 'dem', 'des', 'ein', 'eine', 'einen', 'einem', 'einer',
       'und', 'oder', 'aber', 'von', 'zu', 'in', 'im', 'an', 'am', 'auf', 'für', 'mit', 'aus',
       'bei', 'als', 'ist', 'sind', 'sein', 'wird', 'werden', 'kann', 'können', 'soll', 'sollen',
@@ -30,14 +36,17 @@ export const ADVERT = {
       'uns', 'es', 'dies', 'diese', 'dieser', 'wer', 'was', 'wie', 'wann', 'wo', 'nicht',
       'kein', 'alle', 'mehr', 'auch', 'sehr', 'nur', 'schon', 'über', 'durch', 'nach',
       'rolle', 'team', 'arbeit', 'stelle', 'position', 'unternehmen', 'jahre', 'jahren',
-      'erfahrung', 'kenntnisse', 'fähigkeiten'],
+      'erfahrung', 'kenntnisse', 'fähigkeiten', 'entwickeln', 'entwicklung', 'erstellen',
+      'pflegen', 'unterstützen', 'anwendung', 'anwendungen', 'software', 'systeme', 'produkt'],
     it: ['il', 'lo', 'la', 'i', 'gli', 'le', 'un', 'uno', 'una', 'e', 'ed', 'o', 'ma', 'di',
       'del', 'della', 'dei', 'delle', 'a', 'al', 'alla', 'ai', 'in', 'nel', 'nella', 'su',
       'per', 'con', 'da', 'dal', 'come', 'è', 'sono', 'essere', 'sarà', 'saranno', 'può',
       'possono', 'deve', 'devono', 'avere', 'ha', 'tu', 'tuo', 'tua', 'lei', 'noi', 'nostro',
       'nostra', 'ci', 'questo', 'questa', 'chi', 'che', 'cosa', 'come', 'quando', 'dove',
       'non', 'nessun', 'tutti', 'più', 'anche', 'molto', 'solo', 'già', 'ruolo', 'team',
-      'lavoro', 'posizione', 'azienda', 'anni', 'esperienza', 'competenze', 'capacità']
+      'lavoro', 'posizione', 'azienda', 'anni', 'esperienza', 'competenze', 'capacità',
+      'sviluppare', 'sviluppo', 'creare', 'mantenere', 'supportare', 'applicazione',
+      'applicazioni', 'software', 'sistemi', 'prodotto']
   },
 
   /**
@@ -144,6 +153,13 @@ export class AdvertLexicon {
   /** The canonical form of a term, when the table knows one. */
   static canonical(term) {
     return SYNONYM.get(fold(term)) || fold(term);
+  }
+
+  /** Every spelling the table knows for a term, its own included. */
+  static formsOf(term) {
+    const canonical = AdvertLexicon.canonical(term);
+    const group = ADVERT.synonyms.find((entry) => fold(entry[0]) === canonical);
+    return group ? group.map(fold) : [fold(term)];
   }
 
   /** Whether two terms mean the same thing through the table rather than by spelling. */
