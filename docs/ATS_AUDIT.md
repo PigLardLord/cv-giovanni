@@ -59,4 +59,5 @@ Regenerate with `npm run audit:ats`.
 - `7cfad5afe25a` — generated/qa/giovanni-trovato-general-en-spotlight-letter-color.pdf, generated/qa/giovanni-trovato-general-en-spotlight-letter-monochrome.pdf
 - `0de521e52af0` — generated/qa/giovanni-trovato-general-en-technical-letter-color.pdf, generated/qa/giovanni-trovato-general-en-technical-letter-monochrome.pdf
 
+
 A layout-aware read of at least one artefact recovers a different number of roles. That is where a column is being serialised; reported, not scored.

@@ -137,7 +137,9 @@ present, reading order, no raster images, a clean start to page two, measured gr
 monochrome ones, canonical spelling of hyphenated compounds, block integrity in extraction, every skill
 category still attached to its own list, and every web address recoverable from the text layer.
 It
-rewrites `docs/PDF_AUDIT.md`. Every variant must stay at 11/11.
+rewrites `docs/PDF_AUDIT.md`. Every CV variant must stay at 11/11. A cover letter is a different document and is scored
+on six of its own: format, exactly one page, its recipient and subject present, no raster,
+monochrome, and canonical compounds. The `-cover` in a filename is what tells them apart.
 
 `npm run audit:print` scores the other artefact — what the browser prints — on twelve checks,
 measured on the rasterised page rather than on the stylesheet, and rewrites `docs/PRINT_AUDIT.md`.

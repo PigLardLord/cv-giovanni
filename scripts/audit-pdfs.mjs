@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { GenerationTarget } from '../core/GenerationTarget.js';
 import { readableAddress } from '../domain/ReadableUrl.js';
+import { CoverLetter } from '../domain/CoverLetter.js';
 
 const projectRoot = new URL('../', import.meta.url);
 // The expectations come from the CV under test, not from the published one. Auditing a
@@ -119,6 +120,13 @@ function highlightsIntact(collapsed) {
   });
 }
 
+// A cover letter is a different document and has to be asked different questions: it has no
+// chronology, no skills and no second page, so every structural check written for a CV would
+// fail on a perfectly good one. The `-letter` in the name is the signal, which is why
+// LetterExporter puts it there.
+const isCoverLetter = (filename) => /-cover(-|\.)/.test(filename);
+const letter = profile.letter ? new CoverLetter(profile.letter) : null;
+
 for (const filename of pdfFiles) {
   const path = new URL(filename, qaUrl).pathname;
   const info = execFileSync('pdfinfo', [path], { encoding: 'utf8' });
@@ -134,7 +142,18 @@ for (const filename of pdfFiles) {
   // grayscale check never ran and every variant reported a guarantee nobody verified.
   const isMonochrome = filename.includes('-monochrome');
   const order = [profile.name, profile.title, labels.experience].map((term) => extracted.indexOf(term));
-  const checks = {
+  const checks = isCoverLetter(filename) ? {
+    format: sizeOk,
+    // One page. A cover letter that runs onto a second is a letter nobody finishes.
+    pages: pages === 1,
+    // The three things that make it a letter rather than a page of prose. A letter whose
+    // company name does not extract is addressed to nobody.
+    content: [letter?.recipient.company, letter?.subject, letter?.signature]
+      .filter(Boolean).every((term) => extracted.includes(term)),
+    textOnly: imageList.trim().split('\n').length <= 2,
+    monochromeMode: !isMonochrome || await isGrayscale(path),
+    canonicalCompounds: !brokenForms.some(({ broken }) => broken.test(extracted))
+  } : {
     format: sizeOk,
     pages: pages > 0 && pages <= 2,
     content: mustHave.every((term) => extracted.includes(term)),
