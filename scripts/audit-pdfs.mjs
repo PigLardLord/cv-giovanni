@@ -88,6 +88,22 @@ async function isGrayscale(path) {
   return grayscale;
 }
 
+/** Every skill category still carrying its own list, in extraction rather than on the page. */
+function skillsAttached(collapsed) {
+  const from = collapsed.indexOf(labels.skills);
+  const categories = profile.skills.map((group) => group.category);
+  return profile.skills.every((group) => {
+    const at = collapsed.indexOf(group.category, from);
+    const first = collapsed.indexOf(group.items[0].name, at + group.category.length);
+    const nextCategory = categories
+      .filter((name) => name !== group.category)
+      .map((name) => collapsed.indexOf(name, at + group.category.length))
+      .filter((index) => index > 0)
+      .sort((a, b) => a - b)[0] ?? Infinity;
+    return at >= 0 && first >= 0 && first < nextCategory;
+  });
+}
+
 /** Each highlight whole, and in the order the data wrote them. Columned, they interleave. */
 function highlightsIntact(collapsed) {
   let cursor = -1;
@@ -127,7 +143,12 @@ for (const filename of pdfFiles) {
     monochromeMode: !isMonochrome || await isGrayscale(path),
     canonicalCompounds: !brokenForms.some(({ broken }) => broken.test(extracted)),
     blockIntegrity: educationPairs.every((pair) => pair.test(collapsed))
-      && (!extracted.includes(labels.selectedImpact) || highlightsIntact(collapsed))
+      && (!extracted.includes(labels.selectedImpact) || highlightsIntact(collapsed)),
+    // A category beside its list is two columns, and two columns that both wrap interleave.
+    // `Architecture & practices` used to arrive as `Architecture &` … list … `practices`,
+    // so a parser recovered two categories and a list attached to neither. The check is that
+    // each category's first skill follows its own label and precedes any other label.
+    skillsAttached: skillsAttached(collapsed)
   };
   const passed = Object.values(checks).filter(Boolean).length;
   rows.push({ filename, pages, score: `${passed}/${Object.keys(checks).length}`, checks });
@@ -138,7 +159,7 @@ const report = [
   '# PDF quality matrix', '', `Generated variants: ${rows.length}`, '',
   '| File | Pages | Score |', '|---|---:|---:|',
   ...rows.map((row) => `| ${row.filename} | ${row.pages} | ${row.score} |`), '',
-  'Checks: exact format, maximum two pages, required ATS text, reading order, no raster images, clean page starts, measured grayscale output, canonical compound spelling, and block integrity in extraction.'
+  'Checks: exact format, maximum two pages, required ATS text, reading order, no raster images, clean page starts, measured grayscale output, canonical compound spelling, block integrity in extraction, and every skill category still attached to its own list.'
 ].join('\n');
 
 await writeFile(new URL(target.reportPath('PDF_AUDIT.md'), projectRoot), `${report}\n`);

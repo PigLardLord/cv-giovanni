@@ -34,10 +34,11 @@ export class PdfLayout {
       margin: [0, gap, 0, 0]
     });
     const indented = (node) => ({ ...node, margin: [RAIL + GUTTER, ...(node.margin || [0, 0, 0, 0]).slice(1)] });
+    const CATEGORY = 132;
     const skillRows = model.skills.map((group) => ({
       columns: [
-        { text: group.category, bold: true, color: theme.ink, width: 96 },
-        { text: this.unbreakableList(group.items.map((item) => item.name)), width: 257 }
+        { text: group.category, bold: true, color: theme.ink, width: CATEGORY },
+        { text: this.unbreakableList(group.items.map((item) => item.name)), width: BODY - CATEGORY - 10 }
       ],
       columnGap: 10,
       margin: [0, 0, 0, 3]
