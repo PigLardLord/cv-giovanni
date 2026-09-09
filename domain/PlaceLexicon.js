@@ -4,9 +4,9 @@ import { fold } from './fold.js';
  * Places a CV's location line is likely to end with, per language.
  *
  * A location is only recognised when its last part is a place this list knows. That is a
- * deliberate limit rather than a gap: `Cortado Mobile Solutions · Berlin (remote)` and
- * `Bad Liebenstein, Thuringia, Germany` are the same shape to a regex, and guessing which
- * one is an address puts a company name in the location field of a parsed record.
+ * deliberate limit rather than a gap: an employer beside a city and a town beside a country
+ * are the same shape to a regex, and guessing which one is an address puts a company name
+ * in the location field of a parsed record.
  *
  * The list is small on purpose. It grows when a CV needs it, in the same shape — and an
  * unrecognised token means **no location recovered**, which is a finding the document can

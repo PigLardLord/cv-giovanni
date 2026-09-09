@@ -118,9 +118,9 @@ export class AtsTextParser {
   /**
    * The location, when a part of the header ends in a place the lexicon knows.
    *
-   * Refused otherwise. `Cortado Mobile Solutions · Berlin (remote)` and `Bad Liebenstein,
-   * Thuringia, Germany` are the same shape to a regex, and a guess puts a company name in
-   * the location field of a parsed record — wrong, and invisible.
+   * Refused otherwise. An employer beside a city and a town beside a country are the same
+   * shape to a regex, and a guess puts a company name in the location field of a parsed
+   * record — wrong, and invisible.
    * @param {string[]} head - Lines above the first heading
    * @returns {{value: string, line: number}|null} The location
    */
@@ -137,8 +137,8 @@ export class AtsTextParser {
   /**
    * The first line, when it looks like a name.
    *
-   * Never derived from the email address: `trovato.giovanni@` would give "Trovato Giovanni",
-   * which is a plausible name and the wrong one. A guess that looks right is worse than a gap.
+   * Never derived from the email address: a local part of `surname.forename` would give the
+   * name reversed — plausible, and wrong. A guess that looks right is worse than a gap.
    */
   static name(head) {
     const candidate = head.find(Boolean);
@@ -161,9 +161,8 @@ export class AtsTextParser {
   /**
    * A telephone number, or nothing.
    *
-   * A CV is full of numbers — `~4,800 tests`, `15% to 82%`, `32 to 8 minutes`, `3–7
-   * engineers` — and every one of them can be read as a phone number by a regex that only
-   * counts digits. The guards are the substance: eight to fifteen digits, no percent, no
+   * A CV is full of numbers — test counts, percentages, runtimes, team sizes — and every one
+   * of them can be read as a phone number by a regex that only counts digits. The guards are the substance: eight to fifteen digits, no percent, no
    * tilde, no thousands comma, and never inside something that parses as a date.
    */
   static phone(head) {
