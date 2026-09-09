@@ -148,13 +148,24 @@ check rather than the reminder. `scripts/audit-pdfs.mjs` already scores every va
 page count, required text, reading order, absence of raster images, clean page starts and
 measured grayscale — an eighth check there outlives any number of review comments.
 
-There are **two artefacts and two audits**, and they fail differently. `npm run audit:pdf` scores
+There are **two artefacts and three audits**, and they fail differently. `npm run audit:pdf` scores
 the documents pdfmake builds. `npm run audit:print` scores what the browser prints: it serves the
 site, prints each layout with a headless Chrome, and reads the text layer poppler extracts and the
 pixels that reached the paper — contrast per word against the printed page, ink margins per page,
 every skill still attached to its category, nothing in the text layer the data did not write. A
 CV can pass every check in the first and still print a line of white on white, which is exactly
 what it did. Run both before claiming the document is sound.
+
+The third asks a different question altogether. `npm run audit:ats` parses the generated PDF the
+way a stranger's parser would — no `-layout`, no access to `profiles/`, no knowledge of what the
+document was supposed to say — and diffs the structure it recovered against the structure that was
+authored. The other two ask *did my string survive*; this one asks *in the right slot, beside the
+right neighbours, in the right order*, which is the question a recruiter's search puts to a parsed
+record. It reports **Recoverability**, never a score: the weights are in `core/AtsScore.js` with
+the reason for each, the report prints them, and it says plainly that no vendor produces the
+number and no employer will ever see it. The score gates nothing; four floors do — a document that
+did not segment, a lost email, a role severed from its title or period, and a chronology that does
+not run one way.
 
 `audit:print` needs a Chrome or Chromium binary. It looks for one on PATH, in the usual install
 locations and in the Playwright cache; `CHROME_PATH` overrides. When it finds none it **exits 2

@@ -144,6 +144,12 @@ measured on the rasterised page rather than on the stylesheet, and rewrites `doc
 All three layouts must stay at 12/12. It needs a browser and **exits 2 having checked nothing**
 when it cannot find one, which must never be read as a pass.
 
+`npm run audit:ats` is the third: it parses the generated PDF the way a stranger's parser would and
+diffs the recovered structure against the authored one, writing `docs/ATS_AUDIT.md`. It exits 1 on
+a floor — no segmentation, a lost email, a severed role, a chronology out of order — and 2 when it
+could not check. Its parser is pure and blind by test: `core/AtsTextParser.js` and the lexicons may
+not read the answer key.
+
 **Platform constraint:** the audit shells out to poppler — `pdfinfo`, `pdftotext`, `pdfimages`
 and `pdftoppm`. They are present on this machine under `/usr/bin`. Without them
 `npm run verify:pdf` fails on a missing binary rather than on a defect, and it is the only part
