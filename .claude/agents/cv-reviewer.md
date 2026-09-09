@@ -77,8 +77,10 @@ is a defect in the review.
   every automated step.
 - **Check geometry and length**: `pdfinfo <file>`.
 - **In this repository**, `npm run verify:pdf` regenerates the twelve variants and scores each
-  on seven checks, rewriting `docs/PDF_AUDIT.md`. Prefer it over hand-rolled checks, and read
-  `scripts/audit-pdfs.mjs` to see what it already guarantees so you do not re-report it.
+  on nine checks, rewriting `docs/PDF_AUDIT.md`, and `npm run audit:print` scores what the browser
+  prints on twelve more, rewriting `docs/PRINT_AUDIT.md`. Prefer them over hand-rolled checks, and
+  read `scripts/audit-pdfs.mjs` and `scripts/audit-print.mjs` to see what they already guarantee so
+  you do not re-report it.
 
 Read the extracted text as the primary artefact. **What survives extraction is the CV**;
 everything else is decoration that some readers get and others do not.

@@ -20,25 +20,33 @@ This is a static CV/resume website built with vanilla HTML, CSS, and JavaScript.
   heuristic caching has hidden real changes more than once)
 - **Open CV**: Open `index.html` in a browser (no build step required)
 
+### Artefacts
+- **Generate the PDFs**: `npm run verify:pdf` (build, then audit the twelve variants)
+- **Audit what the browser prints**: `npm run audit:print` (needs Chrome; `CHROME_PATH` overrides)
+
 ## Architecture
 
-### Data Flow
-- CV data is stored in `cv-data.json` containing structured information (personal details, experience, education, skills, etc.)
-- Main application loads JSON data via fetch and renders sections using dedicated renderer functions
-- Each section is rendered by calling specific functions that manipulate the DOM directly
+Ports and adapters. `AGENTS.md` holds the product rules and the settled decisions; this is the map.
 
-### File Structure
-- `script.js` - Main application entry point that fetches CV data and orchestrates rendering
-- `cv-data.json` - All CV content as structured JSON data
-- `renderers/` - Directory containing modular rendering functions
-- `tests/` - Jest tests for renderer functions
-- `index.html` - Static HTML template with placeholders for dynamic content
-- `style.css` - Styling for the CV layout
+### Data flow
+A CV is `profile × locale × layout`. `config/cv-manifest.json` declares the supported combinations;
+`ProfileResolver` reads `?profile=` and refuses an unknown one rather than falling back. Content
+lives in `profiles/<profile>/<locale>.json`, labels in `locales/<lang>/`, and `domain/CvDocument.js`
+normalises the two into the model every output boundary consumes.
 
-### Renderer Pattern
-The project uses a modular renderer pattern where each major CV section has its own renderer function:
-- `renderHeader.js` - Renders name, title, location, and contact information
-- Additional renderers are inline in `script.js` for experience, education, skills, etc.
+There are **two artefacts and they do not share a DOM**: the page renders through `renderers/`,
+while the PDF is composed from the model by `adapters/PdfLayout.js` and written by pdfmake. That is
+why there are three audits.
+
+### Layers
+- `domain/` — the model, framework-free, no I/O.
+- `core/` — application services: `CVApplication`, `DataLoader`, `PdfExporter`, `ProfileResolver`,
+  `I18nService`. No markup, no typography, no hex colours — `tests/CoreHasNoUI.test.js` enforces it.
+- `interfaces/` and `boundaries/` — the ports.
+- `renderers/` — the DOM implementations, all extending `BaseRenderer`.
+- `adapters/` — the PDF implementations: layout, design system, theme registry, pdfmake renderer.
+- `scripts/` — generation, the audits, and the no-store development server.
+- `vendor/` — i18next and Inter, checked in so the page runs off the file tree with no install step.
 
 ### Testing Setup
 - Uses Jest with JSDOM for DOM testing

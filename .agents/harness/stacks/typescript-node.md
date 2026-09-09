@@ -112,8 +112,8 @@ than assembling an anchor by hand.
 **Known-good — do not re-flag:**
 - `vendor/i18next*` is checked in deliberately: the page must run off the file tree with no
   install step.
-- `cv-data.json`, `cv-data-authentic.json` and `cv-data-enhanced.json` sit at the root next to
-  `profiles/general/en.json`. The manifest points at `profiles/`; the root files are legacy.
+- Content lives only in `profiles/<profile>/<locale>.json`, behind `config/cv-manifest.json`. The
+  legacy `cv-data*.json` files that used to sit at the root have been deleted.
 - `tests/socialLinksRenderer.test.js` is lowercase where every sibling is PascalCase.
 - Tests `import { JSDOM } from 'jsdom'` though only `jest-environment-jsdom` is declared — jsdom
   arrives transitively. It is the established pattern; raise it only when already touching
@@ -132,9 +132,15 @@ fails, because the JSON is fetched. Query parameters drive every variant:
 
 `npm run build:pdf` writes three release PDFs to `generated/` and twelve QA variants to
 `generated/qa/` — three layouts × A4/LETTER × colour/monochrome. `npm run audit:pdf` then scores
-each variant on seven checks: exact page size, at most two pages, the required ATS strings
-present, reading order, no raster images, a clean start to page two, and measured grayscale for
-the monochrome ones. It rewrites `docs/PDF_AUDIT.md`. Every variant must stay at 7/7.
+each variant on nine checks: exact page size, at most two pages, the required ATS strings
+present, reading order, no raster images, a clean start to page two, measured grayscale for the
+monochrome ones, canonical spelling of hyphenated compounds, and block integrity in extraction. It
+rewrites `docs/PDF_AUDIT.md`. Every variant must stay at 9/9.
+
+`npm run audit:print` scores the other artefact — what the browser prints — on twelve checks,
+measured on the rasterised page rather than on the stylesheet, and rewrites `docs/PRINT_AUDIT.md`.
+All three layouts must stay at 12/12. It needs a browser and **exits 2 having checked nothing**
+when it cannot find one, which must never be read as a pass.
 
 **Platform constraint:** the audit shells out to poppler — `pdfinfo`, `pdftotext`, `pdfimages`
 and `pdftoppm`. They are present on this machine under `/usr/bin`. Without them

@@ -1,5 +1,30 @@
 # MyCV product guidance
 
+## The three choices, and who owns what
+
+A CV here is `profile × locale × layout`. The first production target is `general × en × nerd`;
+English is the primary content language, and German is enabled only when its CV content has been
+reviewed as German rather than translated.
+
+Ownership is strict, because every blurred line here has already produced a bug:
+
+- **i18next** owns UI strings, shared CV labels and print strings, in `locales/<lang>/`.
+- **`Intl`** owns dates, numbers, lists and durations. Never hand-format a date.
+- **The profile JSON** owns editorial content and achievements, and nothing else.
+- **URL state wins** over a saved preference, which wins over the browser's, which wins over
+  English.
+- **An unsupported combination fails visibly.** `ProfileResolver` throws rather than falling back:
+  a CV that silently mixes languages is worse than one that refuses to load.
+
+The web page and the PDF share **the same profile JSON and the same catalogues** — not the same
+DOM. The page renders through `renderers/`; the PDF is composed from the model by
+`adapters/PdfLayout.js`. That is why there are two artefacts and three audits: nothing guarantees
+they agree except measuring both.
+
+These rules outlived `docs/ROADMAP.md`, which described milestones that GitHub now tracks. What
+remains of that file's unfinished work is filed under the milestone *Carried over from the old
+roadmap*.
+
 ## Skills presentation
 
 The skills section must give a recruiter an immediate overview without turning an unanchored self-rating into the main evidence of competence.
@@ -67,7 +92,7 @@ the output is not a product review.
 `cv-reviewer` refuses to review without a target, by design. Unless the ticket names another:
 
 - **Role** — the `title` field of `profiles/general/en.json`.
-- **Variant** — `general × en`, the first production target in `docs/ROADMAP.md`.
+- **Variant** — `general × en`, the first production target named above.
 - **Jurisdiction** — Germany, English-language application. Use German conventions when
   reviewing the `de` variant.
 
