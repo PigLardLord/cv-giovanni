@@ -1,6 +1,7 @@
 import { createServer } from 'node:http';
 import { createReadStream } from 'node:fs';
-import { stat } from 'node:fs/promises';
+import { readdir, readFile, stat } from 'node:fs/promises';
+import { LocalProfiles } from '../core/LocalProfiles.js';
 import { extname, join, normalize, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -44,6 +45,44 @@ function resolve(url, root) {
 }
 
 /**
+ * The manifest as it should be served here: the committed one, plus whatever profiles
+ * exist under `applications/`.
+ *
+ * The merge happens in memory and the file on disk is never touched. `config/cv-manifest.json`
+ * is tracked, so an entry written into it would be committed by the next `git add -A` — and
+ * that entry names the company the CV was tailored for. What is not written cannot leak.
+ * @param {string} root - Directory being served
+ * @returns {Promise<string|null>} The manifest to send, or null to fall through
+ */
+async function localManifest(root) {
+  let manifest;
+  try {
+    manifest = JSON.parse(await readFile(join(root, 'config', 'cv-manifest.json'), 'utf8'));
+  } catch {
+    return null;
+  }
+
+  let directories = [];
+  try {
+    const entries = await readdir(join(root, 'applications'), { withFileTypes: true });
+    directories = await Promise.all(entries
+      .filter((entry) => entry.isDirectory())
+      .map(async (entry) => ({ profile: entry.name, files: await readdir(join(root, 'applications', entry.name)) })));
+  } catch {
+    return `${JSON.stringify(manifest, null, 2)}\n`;
+  }
+
+  const { manifest: merged, added, shadowed } = LocalProfiles.merge(
+    manifest, LocalProfiles.entriesFrom(directories)
+  );
+  if (added.length) console.log(`  local profiles: ${added.join(', ')}`);
+  for (const name of shadowed) {
+    console.warn(`  applications/${name} ignored: a published profile of that name already exists`);
+  }
+  return `${JSON.stringify(merged, null, 2)}\n`;
+}
+
+/**
  * Build a static server for `root` that forbids caching.
  * @param {string} root - Directory to serve
  * @returns {import('node:http').Server} A server, not yet listening
@@ -54,6 +93,19 @@ export function createStaticServer(root = projectRoot) {
     if (!target) {
       response.writeHead(403).end('Forbidden');
       return;
+    }
+
+    if (target === join(root, 'config', 'cv-manifest.json')) {
+      const body = await localManifest(root);
+      if (body !== null) {
+        response.writeHead(200, {
+          'Content-Type': types.get('.json'),
+          'Content-Length': Buffer.byteLength(body),
+          'Cache-Control': 'no-store, must-revalidate'
+        });
+        response.end(body);
+        return;
+      }
     }
 
     try {
