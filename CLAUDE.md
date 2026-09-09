@@ -16,6 +16,8 @@ This is a static CV/resume website built with vanilla HTML, CSS, and JavaScript.
 
 ### Development
 - **Install dependencies**: `npm install`
+- **Serve the site**: `npm run serve` (sends `no-store`; never `python -m http.server` — its
+  heuristic caching has hidden real changes more than once)
 - **Open CV**: Open `index.html` in a browser (no build step required)
 
 ## Architecture

@@ -116,6 +116,27 @@ check rather than the reminder. `scripts/audit-pdfs.mjs` already scores every va
 page count, required text, reading order, absence of raster images, clean page starts and
 measured grayscale — an eighth check there outlives any number of review comments.
 
+## What the browser caches, and what it does not
+
+The stylesheets and the entry script carry a `?v=` in `index.html` and change name on
+every edit. **The module graph does not**: `script.js` imports `core/` and `renderers/`
+by plain relative path, and so does everything below it. Those URLs never change.
+
+Measured on the published site, GitHub Pages serves them with `Cache-Control: max-age=600`
+and an ETag. So a visitor who loaded the page in the last ten minutes can be running the
+previous deploy's JavaScript; after ten minutes the browser revalidates and gets the new
+file. Ten minutes of staleness on a CV is not worth a build step, an import map of twenty
+generated entries, or a `?v=` inside every import — which would also put a query string in
+front of Jest's resolver. The stylesheets, which carry the visible change, are versioned
+already.
+
+What *has* cost this project time, three times, is the local server. `python -m http.server`
+sends no `Cache-Control` at all, so the browser falls back to heuristic freshness and can
+hold a module for days: a CSS edit that appeared not to work, a "verification" that was
+reading the previous build, and a renderer change that was invisible on screen while it was
+plainly present in the printed PDF. Use `npm run serve` — it sends `no-store` — and do not
+trust a local page served any other way.
+
 ## Known limitation — the PDF carries no structure tree
 
 The generated PDFs report `Tagged: no`, and that is deliberate.
