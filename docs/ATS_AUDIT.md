@@ -33,6 +33,10 @@ traces to a 2012 sales pitch with no published method; it is not repeated here.
 Nothing. Every field the document writes came back in its own slot.
 
 
+## The advert
+
+No advert was given, so nothing was matched against one.
+
 ## How the number is composed
 
 | Band | Weight | What it measures |
@@ -54,5 +58,6 @@ Regenerate with `npm run audit:ats`.
 - `345b072d9a68` — generated/qa/giovanni-trovato-general-en-nerd-letter-color.pdf, generated/qa/giovanni-trovato-general-en-nerd-letter-monochrome.pdf
 - `7cfad5afe25a` — generated/qa/giovanni-trovato-general-en-spotlight-letter-color.pdf, generated/qa/giovanni-trovato-general-en-spotlight-letter-monochrome.pdf
 - `0de521e52af0` — generated/qa/giovanni-trovato-general-en-technical-letter-color.pdf, generated/qa/giovanni-trovato-general-en-technical-letter-monochrome.pdf
+
 
 A layout-aware read of at least one artefact recovers a different number of roles. That is where a column is being serialised; reported, not scored.

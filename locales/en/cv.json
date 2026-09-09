@@ -8,6 +8,19 @@
     "certifications": "Certifications",
     "interests": "Interests"
   },
-  "experience": { "at": "at" },
-  "contacts": { "email": "Email", "phone": "Phone", "portfolio": "Portfolio" }
+  "experience": {
+    "at": "at"
+  },
+  "contacts": {
+    "email": "Email",
+    "phone": "Phone",
+    "portfolio": "Portfolio"
+  },
+  "letter": {
+    "subject": "Application",
+    "salutationNamed": "Dear",
+    "salutationAnonymous": "Dear Hiring Team",
+    "closing": "Kind regards,",
+    "attachments": "Enclosed"
+  }
 }

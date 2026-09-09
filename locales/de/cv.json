@@ -8,6 +8,19 @@
     "certifications": "Zertifizierungen",
     "interests": "Interessen"
   },
-  "experience": { "at": "bei" },
-  "contacts": { "email": "E-Mail", "phone": "Telefon", "portfolio": "Portfolio" }
+  "experience": {
+    "at": "bei"
+  },
+  "contacts": {
+    "email": "E-Mail",
+    "phone": "Telefon",
+    "portfolio": "Portfolio"
+  },
+  "letter": {
+    "subject": "Bewerbung",
+    "salutationNamed": "Sehr geehrte(r)",
+    "salutationAnonymous": "Sehr geehrte Damen und Herren",
+    "closing": "Mit freundlichen Grüßen",
+    "attachments": "Anlagen"
+  }
 }
