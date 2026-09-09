@@ -834,3 +834,41 @@ body[data-layout='nerd'] .tag {
   border: 0.5pt solid #d8d8d8 !important;
   color: #111 !important;
 }
+
+/* =============================================================================
+   THE CREDENTIALS COLUMN
+   =============================================================================
+   The two columns are the markup's, not the paper's: experience and
+   certifications on the left, education, languages and interests on the right.
+   Experience is an order of magnitude longer than all of them together, so the
+   right-hand column ran out after about 94mm of page two and left roughly 190mm
+   of blank paper beside the last two roles, while certifications queued at the
+   foot of the left column and came within half a millimetre of opening a third
+   page for four lines.
+
+   On paper the short sections all go right and experience keeps the whole left
+   column. Both wrappers become `display: contents` so their children are grid
+   items in their own right — the same technique the screen layouts use — and
+   each one is placed explicitly. The four content rows take their height from
+   the credentials; the fifth absorbs whatever experience still needs, so the
+   right column stacks from the top instead of being distributed down the page.
+
+   The markup does not move, so the reading order a parser sees is unchanged. */
+.primary-column,
+.secondary-column {
+  display: contents !important;
+}
+
+.content-grid {
+  grid-template-rows: repeat(4, min-content) 1fr !important;
+}
+
+.experience-section {
+  grid-column: 1 !important;
+  grid-row: 1 / span 5 !important;
+}
+
+.education-section { grid-column: 2 !important; grid-row: 1 !important; }
+.languages-section { grid-column: 2 !important; grid-row: 2 !important; }
+.interests-section { grid-column: 2 !important; grid-row: 3 !important; }
+.certifications-section { grid-column: 2 !important; grid-row: 4 !important; }
