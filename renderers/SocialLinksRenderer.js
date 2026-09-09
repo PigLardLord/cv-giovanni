@@ -1,4 +1,5 @@
 import { BaseRenderer } from './BaseRenderer.js';
+import { readableAddress } from '../domain/ReadableUrl.js';
 
 export class SocialLinksRenderer extends BaseRenderer {
   render(root, data) {
@@ -27,17 +28,7 @@ export class SocialLinksRenderer extends BaseRenderer {
    * @returns {string} Text to display
    */
   toVisibleText(link) {
-    if (typeof link.url !== 'string' || link.url.trim() === '') {
-      return link.platform || '';
-    }
-
-    const readable = link.url
-      .trim()
-      .replace(/^[a-z][a-z0-9+.-]*:\/\//i, '')
-      .replace(/^www\./i, '')
-      .replace(/\/+$/, '');
-
-    return readable || link.platform || '';
+    return readableAddress(link.url, link.platform || '');
   }
 
   validate(data) {

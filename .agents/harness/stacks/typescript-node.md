@@ -132,11 +132,12 @@ fails, because the JSON is fetched. Query parameters drive every variant:
 
 `npm run build:pdf` writes three release PDFs to `generated/` and twelve QA variants to
 `generated/qa/` — three layouts × A4/LETTER × colour/monochrome. `npm run audit:pdf` then scores
-each variant on ten checks: exact page size, at most two pages, the required ATS strings
+each variant on eleven checks: exact page size, at most two pages, the required ATS strings
 present, reading order, no raster images, a clean start to page two, measured grayscale for the
-monochrome ones, canonical spelling of hyphenated compounds, block integrity in extraction, and every skill
-category still attached to its own list. It
-rewrites `docs/PDF_AUDIT.md`. Every variant must stay at 10/10.
+monochrome ones, canonical spelling of hyphenated compounds, block integrity in extraction, every skill
+category still attached to its own list, and every web address recoverable from the text layer.
+It
+rewrites `docs/PDF_AUDIT.md`. Every variant must stay at 11/11.
 
 `npm run audit:print` scores the other artefact — what the browser prints — on twelve checks,
 measured on the rasterised page rather than on the stylesheet, and rewrites `docs/PRINT_AUDIT.md`.

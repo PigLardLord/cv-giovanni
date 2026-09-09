@@ -9,6 +9,8 @@
  * It knows the document model and the resolved theme, format and type scale. It knows nothing
  * about profiles, locales, filenames or where the bytes end up.
  */
+import { readableAddress } from '../domain/ReadableUrl.js';
+
 export class PdfLayout {
   /**
    * @param {object} model - the CV document model
@@ -77,9 +79,18 @@ export class PdfLayout {
         ...(item.url ? { link: item.url } : {}) },
       { text: item.description, margin: [0, 3, 0, 6] }
     ] }));
-    const links = model.identity.social.map((item) => ({ label: item.platform, url: item.url }));
+    // The address, not the platform name. A PDF link annotation carries the URL but the text
+    // layer carries only what was drawn, so "GitHub" over a hyperlink extracts as "GitHub" and
+    // the parsed record has no address at all — five links, none of them recoverable. Printed,
+    // it is worse: nobody can type a word.
+    const links = model.identity.social.map((item) => ({
+      label: readableAddress(item.url, item.platform), url: item.url
+    }));
     if (model.identity.portfolio && !links.some((link) => link.url === model.identity.portfolio)) {
-      links.push({ label: t('cv:contacts.portfolio'), url: model.identity.portfolio });
+      links.push({
+        label: readableAddress(model.identity.portfolio, t('cv:contacts.portfolio')),
+        url: model.identity.portfolio
+      });
     }
     const header = this.createHeader(model, theme, links);
     const profile = indented({ text: model.profile, margin: [0, 12, 0, 0] });
@@ -170,7 +181,11 @@ export class PdfLayout {
   linkLine(links, theme) {
     return links.flatMap((link, index) => [
       ...(index ? [{ text: ' · ', color: theme.muted }] : []),
-      { text: link.label, link: link.url, decoration: 'underline', color: theme.signal }
+      // An address broken across two lines is a wrong address: the reader retypes half of it,
+      // and extraction welds the halves — `sites.google.com/view/` + `giovanni-trovato` came
+      // back as one token with the hyphen gone, which the compound check caught. The line may
+      // break between addresses; never inside one.
+      { text: link.label, link: link.url, decoration: 'underline', color: theme.signal, noWrap: true }
     ]);
   }
 }

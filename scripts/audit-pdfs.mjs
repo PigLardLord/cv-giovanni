@@ -3,6 +3,7 @@ import { mkdtemp, readdir, readFile, unlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { GenerationTarget } from '../core/GenerationTarget.js';
+import { readableAddress } from '../domain/ReadableUrl.js';
 
 const projectRoot = new URL('../', import.meta.url);
 // The expectations come from the CV under test, not from the published one. Auditing a
@@ -29,6 +30,9 @@ const labels = cvMessages.sections;
 const mustHave = [profile.name, profile.title, profile.email, labels.experience, labels.skills,
   profile.relevant_experience[0].company, labels.education, labels.languages,
   ...profile.skills[0].items.slice(0, 2).map((item) => item.name)];
+// Every address the CV claims, in the form a reader would retype.
+const addresses = [...(profile.social || []).map((item) => item.url), profile.portfolio]
+  .filter(Boolean).map((url) => readableAddress(url)).filter(Boolean);
 const escapeForRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const strings = (node) => typeof node === 'string' ? [node]
   : node && typeof node === 'object' ? Object.values(node).flatMap(strings) : [];
@@ -148,7 +152,12 @@ for (const filename of pdfFiles) {
     // `Architecture & practices` used to arrive as `Architecture &` … list … `practices`,
     // so a parser recovered two categories and a list attached to neither. The check is that
     // each category's first skill follows its own label and precedes any other label.
-    skillsAttached: skillsAttached(collapsed)
+    skillsAttached: skillsAttached(collapsed),
+    // A PDF link annotation carries the URL; the text layer carries only what was drawn. A
+    // document that draws "GitHub" over a hyperlink hands a parser no address at all, and
+    // hands a reader holding the printed page nothing to type. Each address must also survive
+    // whole: broken across a line it extracts welded, which is a different wrong address.
+    addressesRecoverable: addresses.every((address) => collapsed.includes(address))
   };
   const passed = Object.values(checks).filter(Boolean).length;
   rows.push({ filename, pages, score: `${passed}/${Object.keys(checks).length}`, checks });
@@ -159,7 +168,7 @@ const report = [
   '# PDF quality matrix', '', `Generated variants: ${rows.length}`, '',
   '| File | Pages | Score |', '|---|---:|---:|',
   ...rows.map((row) => `| ${row.filename} | ${row.pages} | ${row.score} |`), '',
-  'Checks: exact format, maximum two pages, required ATS text, reading order, no raster images, clean page starts, measured grayscale output, canonical compound spelling, block integrity in extraction, and every skill category still attached to its own list.'
+  'Checks: exact format, maximum two pages, required ATS text, reading order, no raster images, clean page starts, measured grayscale output, canonical compound spelling, block integrity in extraction, every skill category still attached to its own list, and every web address recoverable from the text layer.'
 ].join('\n');
 
 await writeFile(new URL(target.reportPath('PDF_AUDIT.md'), projectRoot), `${report}\n`);
