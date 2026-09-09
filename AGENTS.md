@@ -16,6 +16,13 @@ Ownership is strict, because every blurred line here has already produced a bug:
 - **An unsupported combination fails visibly.** `ProfileResolver` throws rather than falling back:
   a CV that silently mixes languages is worse than one that refuses to load.
 
+**The public CV is `profiles/`. Everything tailored to one company is `applications/`, which is
+gitignored.** A CV written for a named employer names that employer, and this repository is public:
+a committed application publishes who you applied to and lets any reader enumerate the rest. A
+tailored version leaves the machine only as an attached PDF.
+`tests/ApplicationsStayLocal.test.js` enforces it, because a rule the suite does not check is a
+rule you discover by pushing.
+
 The web page and the PDF share **the same profile JSON and the same catalogues** — not the same
 DOM. The page renders through `renderers/`; the PDF is composed from the model by
 `adapters/PdfLayout.js`. That is why there are two artefacts and three audits: nothing guarantees

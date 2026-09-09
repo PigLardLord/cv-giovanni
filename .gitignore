@@ -3,3 +3,9 @@ node_modules/
 *.log
 .DS_Store
 .env
+
+# A CV tailored to one company names that company. This repository is public, so a
+# committed application publishes who you applied to and lets any reader enumerate the
+# others. The public CV is profiles/; everything per-application lives here and leaves the
+# machine only as an attached PDF. tests/ApplicationsStayLocal.test.js enforces it.
+applications/
