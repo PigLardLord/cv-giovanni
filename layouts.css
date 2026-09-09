@@ -148,51 +148,281 @@ body[data-layout='classic'] .edu-entry {
   box-shadow: none;
 }
 
-/* Impact Spotlight: editorial hierarchy and a compact, memorable opening. */
-body[data-layout='spotlight'] {
-  --primary-color: #183153;
-  --primary-light: #2f6f8f;
-  --primary-dark: #10243e;
-  --accent-color: #d49b45;
-  --accent-light: #f4d7a6;
+/* Impact Spotlight: the story leads. The masthead opens like a magazine profile — the portrait
+   on the left, the name and the summary beside it, the contact details demoted to a strip along
+   the masthead's foot — and the experience hangs off a timeline. This block is the arrangement
+   only. The colour, the cards, the timeline's dots and the type live in design-glacier.css under
+   "Impact Spotlight — the skin": that file loads after this one and has to, because it overrides
+   the shared masthead rules it defines above. Everything here is screen-only, like technical: on
+   paper print.css lays the base DOM out on its own grid, and a `display: contents` or a flex
+   `order` leaking into it would break that. */
+@media screen {
+  body[data-layout='spotlight'] .container {
+    max-width: 960px;
+  }
+
+  /* --- The masthead ---------------------------------------------------------------------- */
+  body[data-layout='spotlight'] .hero-section {
+    padding: 2.6rem 2.6rem 1.5rem;
+  }
+
+  body[data-layout='spotlight'] .hero-content {
+    grid-template-columns: 172px minmax(0, 1fr);
+    grid-template-areas:
+      'portrait text'
+      'contact contact';
+    column-gap: 2.3rem;
+    row-gap: 1.6rem;
+    align-items: start;
+  }
+
+  /* The sidebar steps out of the box tree so the portrait and the contact card can take their
+     own places in the masthead grid: the portrait beside the text, the card beneath both. */
+  body[data-layout='spotlight'] .hero-sidebar {
+    display: contents;
+  }
+
+  body[data-layout='spotlight'] .profile-image-wrapper {
+    grid-area: portrait;
+    justify-self: start;
+  }
+
+  body[data-layout='spotlight'] .hero-text {
+    grid-area: text;
+  }
+
+  body[data-layout='spotlight'] .hero-summary {
+    max-width: 64ch;
+  }
+
+  /* The contact card becomes a strip: location, addresses and links on one line. */
+  body[data-layout='spotlight'] .contact-card {
+    grid-area: contact;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1.4rem;
+    text-align: left;
+  }
+
+  body[data-layout='spotlight'] .contact-item,
+  body[data-layout='spotlight'] .contact-details {
+    margin: 0;
+  }
+
+  /* The template breaks the two addresses onto two lines with a <br>; the strip wants one.
+     Print keeps the break: this rule is screen-only. */
+  body[data-layout='spotlight'] .contact-details br {
+    display: none;
+  }
+
+  body[data-layout='spotlight'] .contact-details strong:nth-of-type(2) {
+    margin-left: 1.1rem;
+  }
+
+  /* The three links take a row of their own, under the addresses: all six items on one line
+     would need 1050px, and a strip that wraps by accident reads as a mistake. */
+  body[data-layout='spotlight'] .social-links {
+    flex-basis: 100%;
+    justify-content: flex-start;
+    gap: 0.45rem;
+  }
+
+  body[data-layout='spotlight'] .social-links .inline-separator {
+    display: none;
+  }
+
+  /* --- The skills band: one row per category, label left, names as chips ------------------ */
+  body[data-layout='spotlight'] .skills-spotlight {
+    padding: 1.5rem 2.6rem 1.7rem;
+  }
+
+  body[data-layout='spotlight'] .skills-showcase {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    max-width: none;
+    margin: 0;
+  }
+
+  body[data-layout='spotlight'] .skill-group {
+    display: grid;
+    grid-template-columns: 148px minmax(0, 1fr);
+    gap: 0.5rem 1rem;
+    align-items: start;
+    padding: 0.62rem 0;
+  }
+
+  body[data-layout='spotlight'] .skill-category {
+    flex: none;
+  }
+
+  /* The renderers emit one element per name with a real separator text node between them.
+     Hiding the separator turns the comma list into a field of pills without touching what
+     anyone reads back: `textContent` still says "Swift, SwiftUI". Print keeps the commas. */
+  body[data-layout='spotlight'] .skill-list,
+  body[data-layout='spotlight'] .interests-line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  body[data-layout='spotlight'] .skill-sep,
+  body[data-layout='spotlight'] .interest-sep {
+    display: none;
+  }
+
+  /* --- The body ----------------------------------------------------------------------------- */
+  body[data-layout='spotlight'] .main-content {
+    padding: 2.2rem 2.6rem 2.6rem;
+  }
+
+  /* The two columns step out of the box tree so the sections can take places in one grid: the
+     story — the experience — runs down the left for the full height; the credentials and the
+     personal notes stack on the right, the certification among them. The DOM keeps
+     certifications after experience, so a parser and a screen reader read the evidence first.
+     The last row is flexible so the experience grows it, not the gaps between the right-hand
+     sections. */
+  body[data-layout='spotlight'] .content-grid {
+    grid-template-columns: minmax(0, 1fr) 264px;
+    grid-template-rows: repeat(4, auto) 1fr;
+    gap: 2rem 2.4rem;
+    align-items: start;
+  }
+
+  body[data-layout='spotlight'] .primary-column,
+  body[data-layout='spotlight'] .secondary-column {
+    display: contents;
+  }
+
+  body[data-layout='spotlight'] .experience-section {
+    grid-column: 1;
+    grid-row: 1 / -1;
+  }
+
+  body[data-layout='spotlight'] .education-section {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  body[data-layout='spotlight'] .languages-section {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  body[data-layout='spotlight'] .interests-section {
+    grid-column: 2;
+    grid-row: 3;
+  }
+
+  body[data-layout='spotlight'] .certifications-section {
+    grid-column: 2;
+    grid-row: 4;
+  }
+
+  /* The timeline: a spine down the left of the experience, each role hung off it. The padding
+     is the spine's room; the spine and the dot on each role are drawn by the skin. */
+  body[data-layout='spotlight'] .experience-content {
+    position: relative;
+    padding-left: 34px;
+  }
+
+  body[data-layout='spotlight'] .job-entry {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* The dateline reads first, above the role, the way a magazine dates a story. The DOM keeps
+     the role first, so a screen reader and a parser still meet the title before the period. */
+  body[data-layout='spotlight'] .job-period {
+    order: -1;
+  }
+
+  /* The grid's row gap is the rhythm between sections; the base margins would double it. */
+  body[data-layout='spotlight'] section,
+  body[data-layout='spotlight'] .primary-column > section + section,
+  body[data-layout='spotlight'] .secondary-column > section + section {
+    margin: 0;
+  }
+
+  body[data-layout='spotlight'] .interests-tags {
+    display: block;
+  }
 }
 
-body[data-layout='spotlight'] .hero-section {
-  padding: 2.25rem 2.5rem;
-  background: linear-gradient(118deg, #10243e 0%, #183153 62%, #245271 100%);
-}
+@media screen and (max-width: 768px) {
+  body[data-layout='spotlight'] .hero-section {
+    padding: 2rem 1.4rem 1.4rem;
+  }
 
-body[data-layout='spotlight'] .hero-name {
-  font-size: 2.7rem;
-}
+  body[data-layout='spotlight'] .hero-content {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'portrait'
+      'text'
+      'contact';
+    row-gap: 1.2rem;
+  }
 
-body[data-layout='spotlight'] .hero-title {
-  color: #f4d7a6;
-}
+  body[data-layout='spotlight'] .profile-image-wrapper {
+    justify-self: center;
+  }
 
-body[data-layout='spotlight'] .skills-spotlight {
-  position: relative;
-  padding: 1.4rem 2.5rem;
-  background: #fbf7ef;
-  border-bottom-color: #eadfcf;
-}
+  body[data-layout='spotlight'] .hero-summary {
+    margin-inline: auto;
+  }
 
-body[data-layout='spotlight'] .spotlight-title {
-  margin-bottom: 0.8rem;
-  color: #725226;
-  text-align: left;
-}
+  body[data-layout='spotlight'] .contact-card {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
 
-body[data-layout='spotlight'] .skills-showcase {
-  max-width: none;
-  grid-template-columns: 1fr 1fr;
-  column-gap: 1.6rem;
-}
+  /* Narrow screens get the template's line break back: "Phone:" stranded at a line's end with
+     its number on the next reads as a mistake. */
+  body[data-layout='spotlight'] .contact-details br {
+    display: inline;
+  }
 
-body[data-layout='spotlight'] .job-entry {
-  background: #fff;
-  border: 1px solid #e7ebf0;
-  border-left: 4px solid var(--accent-color);
+  body[data-layout='spotlight'] .contact-details strong:nth-of-type(2) {
+    margin-left: 0;
+  }
+
+  body[data-layout='spotlight'] .social-links {
+    justify-content: center;
+  }
+
+  body[data-layout='spotlight'] .skills-spotlight,
+  body[data-layout='spotlight'] .main-content {
+    padding-left: 1.4rem;
+    padding-right: 1.4rem;
+  }
+
+  body[data-layout='spotlight'] .skill-group {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.35rem;
+    padding: 0.7rem 0;
+  }
+
+  body[data-layout='spotlight'] .content-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    gap: 2rem;
+  }
+
+  body[data-layout='spotlight'] .experience-section,
+  body[data-layout='spotlight'] .education-section,
+  body[data-layout='spotlight'] .languages-section,
+  body[data-layout='spotlight'] .interests-section,
+  body[data-layout='spotlight'] .certifications-section {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  body[data-layout='spotlight'] .experience-content {
+    padding-left: 26px;
+  }
 }
 
 /* Technical Profile: the stack leads. A rail down the left carries the skills and, beneath them,

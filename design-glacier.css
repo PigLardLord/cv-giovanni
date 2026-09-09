@@ -778,3 +778,530 @@ body[data-layout='classic'] .hero-name {
     line-height: 1.35;
   }
 }
+
+/* =============================================================================
+   Impact Spotlight — the skin.
+   The arrangement (the masthead grid, the strip, the timeline's gutter) is in layouts.css. This
+   block colours it, and it deliberately overrides the shared masthead rules earlier in this file
+   — the ink ground, the serif name at 3.6rem, the signal-blue rule under the section labels —
+   which still name `spotlight` in their selectors and are simply out-cascaded here.
+
+   The direction: the story leads, so the page is a warm magazine profile rather than a stack.
+   One saturated band — a terracotta masthead — over warm paper; the portrait on the left with a
+   hard amber offset shadow, the way a photo is pasted on a page; section headings in the display
+   serif, in the case the data wrote; skills as white pills in labelled rows on cream; the
+   experience hung off a timeline whose spine fades from the present into the past.
+
+   Colour has a role, and every text colour is measured, not estimated:
+   `--e-ember` (#b8431b) is the text ember — 5.4:1 on white, 5.1:1 on the cream band — for
+   employers, datelines, links and the skills labels; `--e-ember-deep` is the masthead's dark end
+   and the interest pills' text on their tint; `--e-ember-bright` (3.3:1) and `--e-amber` (2.0:1)
+   mark geometry only — the spine, the dots, the credential spines, the portrait's shadow — and
+   never a word. White on the masthead runs 5.4:1 at its lightest stop and 8.4:1 at its darkest.
+   Screen-only, like the arrangement: print.css already prints in blue on white.
+   ========================================================================================== */
+@media screen {
+  body[data-layout='spotlight'] {
+    --e-ink: #24160f;
+    --e-body: #40302a;
+    --e-muted: #6f5f56;
+    --e-ember: #b8431b;
+    --e-ember-deep: #8a2f0f;
+    --e-ember-bright: #e8641f;
+    --e-amber: #f2a516;
+    --e-tint: #fbe9df;
+    --e-cream: #fbf4ea;
+    --e-line: #eddccd;
+    --e-shadow: 0 1px 2px rgb(74 32 12 / 0.05), 0 14px 30px -16px rgb(120 56 20 / 0.38);
+
+    --text-primary: var(--e-ink);
+    --text-secondary: var(--e-body);
+    --text-muted: var(--e-muted);
+    --primary-color: var(--e-ember);
+    --primary-dark: var(--e-ember-deep);
+    --primary-light: var(--e-ember-bright);
+    --accent-color: var(--e-ember);
+    --accent-light: #ffd9c2;
+    --border-color: var(--e-line);
+    --border-light: #f5ebe0;
+    --bg-secondary: var(--e-cream);
+    --bg-accent: var(--e-tint);
+    background: #efe6db;
+  }
+
+  /* The switcher's links carry http hrefs, so the shared link rule would paint them teal. */
+  body[data-layout='spotlight'] .layout-switcher a {
+    color: var(--e-ember);
+  }
+
+  body[data-layout='spotlight'] .layout-switcher a[aria-current='page'] {
+    background: var(--e-ember-deep);
+    color: #fff;
+  }
+
+  body[data-layout='spotlight'] .container {
+    background: #fff;
+    box-shadow: 0 30px 60px -30px rgb(80 40 20 / 0.45), 0 0 0 1px rgb(80 40 20 / 0.06);
+  }
+
+  /* --- Masthead ------------------------------------------------------------------------- */
+  body[data-layout='spotlight'] .hero-section {
+    color: #fff;
+    background: linear-gradient(118deg, #8a2f0f 0%, #a83c14 52%, #b8431b 100%);
+    border-bottom: 0;
+  }
+
+  /* The spotlight itself: a hard-edged disc of light behind the portrait, and a darker one
+     falling off the opposite corner. Discs, not glows — an edge reads as a decision. */
+  body[data-layout='spotlight'] .hero-section::before {
+    top: -150px;
+    right: auto;
+    bottom: auto;
+    left: -110px;
+    width: 440px;
+    height: 440px;
+    border-radius: 50%;
+    background: rgb(255 255 255 / 0.08);
+    transform: none;
+  }
+
+  body[data-layout='spotlight'] .hero-section::after {
+    content: '';
+    position: absolute;
+    z-index: 0;
+    right: -120px;
+    bottom: -220px;
+    width: 420px;
+    height: 420px;
+    border-radius: 50%;
+    background: rgb(40 10 0 / 0.16);
+  }
+
+  body[data-layout='spotlight'] .hero-content {
+    position: relative;
+    z-index: 1;
+  }
+
+  body[data-layout='spotlight'] .hero-name {
+    margin-bottom: 0.4rem;
+    font-family: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+    font-size: 4rem;
+    font-weight: 400;
+    line-height: 0.98;
+    letter-spacing: -0.01em;
+    color: #fff;
+  }
+
+  /* The role line keeps the case the data wrote: "Senior iOS Engineer" must not reach an iOS
+     hiring manager as "SENIOR IOS ENGINEER". */
+  body[data-layout='spotlight'] .hero-title {
+    margin-bottom: 0.45rem;
+    color: #fff;
+    font-size: 1.15rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  /* White, not a peach tint: measured against the lightest stop under the light disc, a tint
+     of #ffe4d3 came out at 3.9:1. Weight and size separate it from the role line above. */
+  body[data-layout='spotlight'] .hero-subtitle {
+    margin: 0 0 1.1rem;
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+  }
+
+  body[data-layout='spotlight'] .hero-summary {
+    color: #fff;
+    font-size: 1.04rem;
+    line-height: 1.7;
+  }
+
+  /* Work authorisation is the first thing a German recruiter checks on a foreign CV. */
+  body[data-layout='spotlight'] .hero-availability {
+    display: inline-block;
+    margin-top: 1.15rem;
+    padding: 0.32rem 0.75rem;
+    border: 1px solid rgb(255 255 255 / 0.45);
+    border-radius: 999px;
+    background: rgb(40 10 0 / 0.18);
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+
+  body[data-layout='spotlight'] .hero-availability[hidden] {
+    display: none;
+  }
+
+  /* The portrait: a white-rimmed disc with a hard amber shadow, pasted on the page. */
+  body[data-layout='spotlight'] .profile-image-wrapper img {
+    width: 168px;
+    height: 168px;
+    border: 5px solid #fff;
+    box-shadow: 10px 10px 0 var(--e-amber);
+  }
+
+  /* The strip: white text over the masthead, the three links as white pills. */
+  body[data-layout='spotlight'] .contact-card {
+    padding: 1.15rem 0 0;
+    border: 0;
+    border-top: 1px solid rgb(255 255 255 / 0.3);
+    border-radius: 0;
+    background: transparent;
+    backdrop-filter: none;
+    color: #fff;
+  }
+
+  body[data-layout='spotlight'] .contact-item {
+    font-size: 0.86rem;
+    font-weight: 500;
+  }
+
+  body[data-layout='spotlight'] .contact-details {
+    font-size: 0.86rem;
+    line-height: 1.5;
+  }
+
+  body[data-layout='spotlight'] .contact-details strong {
+    color: #fff;
+  }
+
+  body[data-layout='spotlight'] .hero-section .contact-card a,
+  body[data-layout='spotlight'] .social-links a {
+    padding: 0.28rem 0.72rem;
+    border-radius: 999px;
+    background: #fff;
+    color: var(--e-ember);
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-decoration: none;
+    box-shadow: 0 2px 6px -2px rgb(40 10 0 / 0.4);
+  }
+
+  body[data-layout='spotlight'] .hero-section .contact-card a:hover,
+  body[data-layout='spotlight'] .social-links a:hover {
+    background: #fff;
+    color: var(--e-ember-deep);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    transform: none;
+  }
+
+  /* --- Section headings: the display serif, sentence case, a short ember dash before -------- */
+  body[data-layout='spotlight'] .spotlight-title,
+  body[data-layout='spotlight'] .section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0;
+    border-bottom: 0;
+    text-align: left;
+  }
+
+  body[data-layout='spotlight'] .spotlight-title,
+  body[data-layout='spotlight'] .section-title span:last-child {
+    color: var(--e-ink);
+    font-family: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+    font-size: 1.6rem;
+    font-weight: 400;
+    line-height: 1.1;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  body[data-layout='spotlight'] .spotlight-title::before,
+  body[data-layout='spotlight'] .title-accent {
+    content: '';
+    display: block;
+    flex: none;
+    width: 26px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--e-ember-bright);
+  }
+
+  /* --- The skills band ------------------------------------------------------------------- */
+  body[data-layout='spotlight'] .skills-spotlight {
+    background: var(--e-cream);
+    border-bottom: 1px solid var(--e-line);
+  }
+
+  body[data-layout='spotlight'] .spotlight-title {
+    margin-bottom: 0.5rem;
+  }
+
+  body[data-layout='spotlight'] .skill-group + .skill-group {
+    border-top: 1px solid var(--e-line);
+  }
+
+  /* Categories keep the case the data wrote — "iOS" must never be uppercased into "IOS". */
+  body[data-layout='spotlight'] .skill-category {
+    padding-top: 0.34rem;
+    color: var(--e-ember);
+    font-size: 0.82rem;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+
+  body[data-layout='spotlight'] .skill-chip {
+    padding: 0.28rem 0.7rem;
+    border: 1px solid var(--e-line);
+    border-radius: 999px;
+    background: #fff;
+    color: var(--e-body);
+    font-size: 0.8rem;
+    font-weight: 500;
+    line-height: 1.35;
+    box-shadow: 0 1px 2px rgb(74 32 12 / 0.06);
+  }
+
+  /* --- The timeline ----------------------------------------------------------------------- */
+  /* The spine: bright at the present, fading into the past. */
+  body[data-layout='spotlight'] .experience-content::before {
+    content: '';
+    position: absolute;
+    top: 18px;
+    bottom: 22px;
+    left: 8px;
+    width: 3px;
+    border-radius: 2px;
+    background: linear-gradient(180deg, var(--e-ember-bright) 0%, var(--e-line) 85%);
+  }
+
+  /* A role is a white card hung off the spine by a dot. No spine of its own: the timeline is
+     the mark. A document does not react to the pointer, so the base hover lift is off. */
+  body[data-layout='spotlight'] .job-entry {
+    margin-bottom: 0;
+    padding: 1.15rem 1.35rem 1.25rem;
+    border: 1px solid var(--e-line);
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: var(--e-shadow);
+  }
+
+  body[data-layout='spotlight'] .job-entry:hover {
+    border-color: var(--e-line);
+    box-shadow: var(--e-shadow);
+    transform: none;
+  }
+
+  body[data-layout='spotlight'] .job-entry + .job-entry {
+    margin-top: 1.15rem;
+  }
+
+  body[data-layout='spotlight'] .job-entry::before {
+    content: '';
+    position: absolute;
+    top: 1.3rem;
+    left: -32px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--e-ember-bright);
+    box-shadow: 0 0 0 4px #fff;
+  }
+
+  /* The current role is the strongest evidence on the page: its dot carries the spotlight. */
+  body[data-layout='spotlight'] .job-entry:first-child::before {
+    background: var(--e-ember);
+    box-shadow: 0 0 0 4px #fff, 0 0 0 8px rgb(232 100 31 / 0.25);
+  }
+
+  body[data-layout='spotlight'] .job-period {
+    margin: 0 0 0.5rem;
+    color: var(--e-ember);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  body[data-layout='spotlight'] .job-header {
+    margin-bottom: 0.4rem;
+    color: var(--e-body);
+    font-size: 0.92rem;
+    line-height: 1.45;
+  }
+
+  body[data-layout='spotlight'] .job-title {
+    color: var(--e-ink);
+    font-size: 1.12rem;
+  }
+
+  body[data-layout='spotlight'] .job-entry:first-child .job-title {
+    font-size: 1.2rem;
+  }
+
+  body[data-layout='spotlight'] .job-company {
+    color: var(--e-ember);
+    font-weight: 700;
+  }
+
+  body[data-layout='spotlight'] .job-summary {
+    margin: 0;
+    color: var(--e-ink);
+    font-size: 0.93rem;
+    font-weight: 500;
+  }
+
+  body[data-layout='spotlight'] .job-description {
+    font-size: 0.92rem;
+  }
+
+  body[data-layout='spotlight'] .job-highlights {
+    margin: 0.6rem 0 0 1.1rem;
+    color: var(--e-body);
+    font-size: 0.9rem;
+    line-height: 1.58;
+  }
+
+  body[data-layout='spotlight'] .job-highlights li {
+    margin-bottom: 0.38rem;
+    padding-left: 0.15rem;
+  }
+
+  body[data-layout='spotlight'] .job-highlights li::marker {
+    color: var(--e-ember-bright);
+  }
+
+  /* --- Credentials: white cards with an amber spine ---------------------------------------- */
+  body[data-layout='spotlight'] .certifications-list li {
+    padding: 1rem 1.2rem 1.05rem;
+    border: 1px solid var(--e-line);
+    border-left: 4px solid var(--e-amber);
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: var(--e-shadow);
+    color: var(--e-body);
+    font-size: 0.92rem;
+  }
+
+  body[data-layout='spotlight'] .certifications-list strong,
+  body[data-layout='spotlight'] .certifications-list a {
+    color: var(--e-ember);
+  }
+
+  body[data-layout='spotlight'] .cert-description {
+    color: var(--e-body);
+    font-size: 0.86rem;
+  }
+
+  body[data-layout='spotlight'] .edu-entry {
+    margin-bottom: 0.8rem;
+    padding: 0.9rem 1rem 0.95rem;
+    border: 1px solid var(--e-line);
+    border-left: 4px solid var(--e-amber);
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: var(--e-shadow);
+  }
+
+  body[data-layout='spotlight'] .edu-entry:last-child {
+    margin-bottom: 0;
+  }
+
+  body[data-layout='spotlight'] .edu-entry:hover {
+    border-color: var(--e-line);
+    border-left-color: var(--e-amber);
+    box-shadow: var(--e-shadow);
+  }
+
+  body[data-layout='spotlight'] .edu-degree {
+    margin-bottom: 0.25rem;
+    color: var(--e-ink);
+    font-size: 0.95rem;
+    line-height: 1.35;
+  }
+
+  body[data-layout='spotlight'] .edu-school {
+    color: var(--e-body);
+    font-size: 0.85rem;
+  }
+
+  body[data-layout='spotlight'] .edu-period {
+    color: var(--e-muted);
+    font-size: 0.8rem;
+  }
+
+  /* --- Languages and interests -------------------------------------------------------------- */
+  body[data-layout='spotlight'] .languages-list {
+    overflow: hidden;
+    border: 1px solid var(--e-line);
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: var(--e-shadow);
+  }
+
+  body[data-layout='spotlight'] .languages-list li {
+    padding: 0.6rem 0.95rem;
+    border-bottom: 1px solid var(--e-line);
+    color: var(--e-body);
+    font-size: 0.86rem;
+    line-height: 1.45;
+  }
+
+  body[data-layout='spotlight'] .languages-list li:last-child {
+    border-bottom: 0;
+  }
+
+  body[data-layout='spotlight'] .languages-list strong {
+    color: var(--e-ink);
+  }
+
+  /* Interest pills carry a name and nothing else: no score hides in them. */
+  body[data-layout='spotlight'] .interest-chip {
+    padding: 0.3rem 0.75rem;
+    border-radius: 999px;
+    background: var(--e-tint);
+    color: var(--e-ember-deep);
+    font-size: 0.8rem;
+    font-weight: 600;
+    line-height: 1.35;
+  }
+
+  /* --- Footer and focus --------------------------------------------------------------------- */
+  body[data-layout='spotlight'] .print-footer {
+    padding: 1.3rem;
+    border-top: 1px solid var(--e-line);
+    background: var(--e-cream);
+  }
+
+  body[data-layout='spotlight'] .print-button {
+    background: linear-gradient(135deg, var(--e-ember), var(--e-ember-deep));
+    box-shadow: 0 10px 20px -10px rgb(184 67 27 / 0.7);
+  }
+
+  body[data-layout='spotlight'] .print-button-secondary {
+    border-color: var(--e-line);
+    background: #fff;
+    color: var(--e-ember);
+  }
+
+  body[data-layout='spotlight'] a:focus-visible,
+  body[data-layout='spotlight'] button:focus-visible {
+    outline: 2px solid var(--e-ember-bright);
+    outline-offset: 2px;
+  }
+
+  /* On a narrow screen the discs would crowd the centred portrait; the darker one goes. */
+  @media (max-width: 768px) {
+    body[data-layout='spotlight'] .hero-section::after {
+      display: none;
+    }
+
+    body[data-layout='spotlight'] .hero-name {
+      font-size: 2.9rem;
+    }
+
+    body[data-layout='spotlight'] .profile-image-wrapper img {
+      width: 136px;
+      height: 136px;
+      box-shadow: 8px 8px 0 var(--e-amber);
+    }
+  }
+}
