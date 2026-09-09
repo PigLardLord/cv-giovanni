@@ -6,6 +6,7 @@ import { AtsTextParser } from '../core/AtsTextParser.js';
 import { RecoveryDiff } from '../core/RecoveryDiff.js';
 import { AtsScore } from '../core/AtsScore.js';
 import { AtsReport } from '../core/AtsReport.js';
+import { AdvertMatcher } from '../core/AdvertMatcher.js';
 import { GenerationTarget } from '../core/GenerationTarget.js';
 
 /**
@@ -38,6 +39,19 @@ try {
   cannotCheck(`cannot read ${target.dataPath}`, error.message);
 }
 
+// An advert that cannot be read is not the same as no advert: the first is a mistake to
+// report, the second a deliberate run without one. Silently treating them alike would let a
+// typo in a path look like a decision.
+const advertPath = process.argv.slice(2).find((argument) => argument.startsWith('--advert='))?.slice(9);
+let advertText = null;
+if (advertPath) {
+  try {
+    advertText = await readFile(advertPath, 'utf8');
+  } catch (error) {
+    cannotCheck(`cannot read the advert at ${advertPath}`, error.message);
+  }
+}
+
 try {
   execFileSync('pdftotext', ['-v'], { stdio: 'ignore' });
 } catch {
@@ -59,6 +73,7 @@ if (!files.length) {
 
 const results = [];
 const seen = new Map();
+let advert = null;
 for (const { artefact, path } of files) {
   const text = execFileSync('pdftotext', [path, '-'], { encoding: 'utf8' });
   const fingerprint = createHash('sha256').update(text).digest('hex');
@@ -74,6 +89,14 @@ for (const { artefact, path } of files) {
 
   const recovered = AtsTextParser.parse(text);
   const diff = RecoveryDiff.diff(document, recovered);
+  if (advertText && !advert) {
+    const extracted = AdvertMatcher.extractTerms(advertText);
+    advert = {
+      ...AdvertMatcher.match(extracted.terms, recovered, document),
+      language: extracted.language
+    };
+    advert.opening = AdvertMatcher.opening(advert.terms, text);
+  }
 
   // The same file read the way a better extractor reads it. Where the two disagree is where
   // a column was serialised — reported, not scored, until a fixture pins down what a bad
@@ -86,7 +109,7 @@ for (const { artefact, path } of files) {
 
 // The worst artefact, not the first. You send one of these, and the headline should be the
 // one you risk rather than the one that happens to be alphabetically first.
-const scores = results.map((entry) => AtsScore.compose(entry.diff));
+const scores = results.map((entry) => AtsScore.compose(entry.diff, advert));
 const score = scores.reduce((worst, candidate) => (candidate.points < worst.points ? candidate : worst));
 
 // The floors: not the score, which never gates anything, but the four failures that mean the
@@ -99,7 +122,7 @@ const floors = results.flatMap(({ artefact, diff }) => [
 ].filter(Boolean));
 
 const report = [
-  AtsReport.render(score, results),
+  AtsReport.render(score, results, advert),
   '',
   '## Distinct text streams',
   '',

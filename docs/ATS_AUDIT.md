@@ -33,6 +33,10 @@ traces to a 2012 sales pitch with no published method; it is not repeated here.
 Nothing. Every field the document writes came back in its own slot.
 
 
+## The advert
+
+No advert was given, so nothing was matched against one.
+
 ## How the number is composed
 
 | Band | Weight | What it measures |

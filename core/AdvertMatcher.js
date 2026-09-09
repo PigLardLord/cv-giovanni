@@ -38,7 +38,9 @@ export class AdvertMatcher {
     for (const line of lines) {
       const heading = AdvertLexicon.headingKind(line);
       if (heading) {
-        section = heading;
+        // A neutral heading organises the advert without demanding anything, so it does not
+        // change what the terms under it are worth — but its own words are never terms.
+        if (heading !== 'neutral') section = heading;
         continue;
       }
       if (!line.trim() || AdvertLexicon.isBoilerplate(line)) continue;
@@ -124,23 +126,71 @@ export class AdvertMatcher {
    * skills is a word. An advert asks for the first and screens on the second.
    * @param {Array} terms - From `extractTerms`
    * @param {Object} recovered - A RecoveredCv
+   * @param {Object} [document] - The CvDocument, to say whether the CV claims it at all
    * @returns {{terms: Array}} The terms with their evidence
    */
-  static match(terms, recovered) {
+  static match(terms, recovered, document = null) {
+    const authored = document ? AdvertMatcher.authoredText(document) : null;
     const prose = AdvertMatcher.prose(recovered);
     const headline = AdvertMatcher.headline(recovered);
     const listed = AdvertMatcher.listed(recovered);
 
     return {
-      terms: terms.map((entry) => {
+      terms: terms.map((entry) => AdvertMatcher.place(entry, prose, headline, listed, authored))
+    };
+  }
+
+  /**
+   * One term, placed — and, when the source is available, told apart from a term the CV
+   * simply does not claim.
+   *
+   * This is the distinction the whole tool exists for. A term the CV writes but the artefact
+   * lost is a **layout defect**: the renderer is wrong and the copy is fine. A term the CV
+   * never wrote is a **content gap**: a human decides whether it is worth claiming, and the
+   * tool must never suggest that it is.
+   */
+  static place(entry, prose, headline, listed, authored) {
+    const claimed = authored === null ? null : AdvertMatcher.appears(entry.term, authored) !== null;
+    const at = (evidence, match, where) => ({ ...entry, evidence, match, where, authored: claimed });
+    {
         const inProse = AdvertMatcher.appears(entry.term, prose.text);
-        if (inProse) return { ...entry, evidence: 'inProse', match: inProse, where: prose.whereOf(entry.term) };
+        if (inProse) return at('inProse', inProse, prose.whereOf(entry.term));
         const inHeadline = AdvertMatcher.appears(entry.term, headline);
-        if (inHeadline) return { ...entry, evidence: 'inHeadline', match: inHeadline, where: 'the role line' };
+        if (inHeadline) return at('inHeadline', inHeadline, 'the role line');
         const inList = AdvertMatcher.appears(entry.term, listed);
-        if (inList) return { ...entry, evidence: 'inSkillsOnly', match: inList, where: 'the skills list' };
-        return { ...entry, evidence: 'absent', match: null, where: null };
-      })
+        if (inList) return at('inSkillsOnly', inList, 'the skills list');
+        return at('absent', null, null);
+    }
+  }
+
+  /** Everything the authored profile says, so a lost term can be told from an unwritten one. */
+  static authoredText(document) {
+    return [
+      document.identity.title, document.identity.subtitle, document.profile,
+      ...(document.careerHighlights || []),
+      ...document.experience.flatMap((job) => [job.title, job.company, job.summary, ...(job.highlights || [])]),
+      ...document.skills.flatMap((group) => [group.category, ...group.items.map((item) => item.name)]),
+      ...document.certifications.flatMap((item) => [item.name, item.description])
+    ].filter(Boolean).join('\n');
+  }
+
+  /**
+   * Which required terms appear in the opening of the extracted text.
+   *
+   * A reader deciding whether to keep reading has not reached the skills section. If the
+   * first fifteen lines establish nothing the advert asked for, the document is answering a
+   * question nobody got to.
+   * @param {Array} terms - Matched terms
+   * @param {string} text - The extracted text
+   * @param {number} [lines] - How much counts as the opening
+   * @returns {{present: string[], missing: string[]}} Required terms, split
+   */
+  static opening(terms, text, lines = 15) {
+    const head = String(text ?? '').split(/\r?\n/).filter((line) => line.trim()).slice(0, lines).join('\n');
+    const required = terms.filter((entry) => entry.required);
+    return {
+      present: required.filter((entry) => AdvertMatcher.appears(entry.term, head)).map((entry) => entry.term),
+      missing: required.filter((entry) => !AdvertMatcher.appears(entry.term, head)).map((entry) => entry.term)
     };
   }
 

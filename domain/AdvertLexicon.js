@@ -79,6 +79,19 @@ export const ADVERT = {
       'cosa richiediamo', 'competenze richieste']
   },
 
+  /**
+   * Headings that organise an advert without demanding or offering anything. Their own words
+   * are structure, not requirements: `Tech Stack` is not a technology.
+   */
+  structuralHeadings: {
+    en: ['role', 'the role', 'about the role', 'focus', 'responsibilities', 'outcomes',
+      'tech stack', 'our stack', 'how we work', 'interview process', 'the team', 'location'],
+    de: ['die rolle', 'aufgaben', 'schwerpunkte', 'technologien', 'unser stack',
+      'so arbeiten wir', 'bewerbungsprozess', 'das team', 'standort'],
+    it: ['il ruolo', 'mansioni', 'responsabilità', 'tecnologie', 'il nostro stack',
+      'come lavoriamo', 'processo di selezione', 'il team', 'sede']
+  },
+
   /** Headings under which an advert talks about itself. Terms below these are worth less. */
   offerHeadings: {
     en: ['we offer', 'what we offer', 'benefits', 'perks', 'about us', 'why join', 'our culture',
@@ -113,6 +126,7 @@ const STOPWORDS = set(ADVERT.stopwords);
 const BOILERPLATE = Object.values(ADVERT.boilerplate).flat().map(fold);
 const REQUIREMENT = Object.values(ADVERT.requirementHeadings).flat().map(fold);
 const OFFER = Object.values(ADVERT.offerHeadings).flat().map(fold);
+const STRUCTURAL = Object.values(ADVERT.structuralHeadings).flat().map(fold);
 
 const SYNONYM = new Map();
 for (const group of ADVERT.synonyms) {
@@ -147,6 +161,7 @@ export class AdvertLexicon {
     if (!folded || folded.length > 60) return null;
     if (REQUIREMENT.some((entry) => folded === entry || folded.startsWith(entry))) return 'required';
     if (OFFER.some((entry) => folded === entry || folded.startsWith(entry))) return 'offer';
+    if (STRUCTURAL.some((entry) => folded === entry)) return 'neutral';
     return null;
   }
 
