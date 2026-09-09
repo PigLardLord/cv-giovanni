@@ -116,6 +116,19 @@ check rather than the reminder. `scripts/audit-pdfs.mjs` already scores every va
 page count, required text, reading order, absence of raster images, clean page starts and
 measured grayscale — an eighth check there outlives any number of review comments.
 
+There are **two artefacts and two audits**, and they fail differently. `npm run audit:pdf` scores
+the documents pdfmake builds. `npm run audit:print` scores what the browser prints: it serves the
+site, prints each layout with a headless Chrome, and reads the text layer poppler extracts and the
+pixels that reached the paper — contrast per word against the printed page, ink margins per page,
+every skill still attached to its category, nothing in the text layer the data did not write. A
+CV can pass every check in the first and still print a line of white on white, which is exactly
+what it did. Run both before claiming the document is sound.
+
+`audit:print` needs a Chrome or Chromium binary. It looks for one on PATH, in the usual install
+locations and in the Playwright cache; `CHROME_PATH` overrides. When it finds none it **exits 2
+and checks nothing**, because an audit that did not run must never read as a pass — the same
+mistake the grayscale check made when its filename pattern matched no files for weeks.
+
 ## What the browser caches, and what it does not
 
 The stylesheets and the entry script carry a `?v=` in `index.html` and change name on

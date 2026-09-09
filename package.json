@@ -9,7 +9,8 @@
     "build:pdf": "node scripts/generate-pdfs.mjs",
     "audit:pdf": "node scripts/audit-pdfs.mjs",
     "verify:pdf": "npm run build:pdf && npm run audit:pdf",
-    "serve": "node scripts/serve.mjs"
+    "serve": "node scripts/serve.mjs",
+    "audit:print": "node scripts/audit-print.mjs"
   },
   "keywords": [],
   "author": "",

@@ -2,7 +2,7 @@ import { createServer } from 'node:http';
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { extname, join, normalize, sep } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 /**
  * A development server that refuses to let the browser cache anything.
@@ -19,8 +19,7 @@ import { fileURLToPath } from 'node:url';
  * ETag — a returning visitor can be up to ten minutes behind a deploy and no
  * longer. That is a property of the host, not something this file changes.
  */
-const root = fileURLToPath(new URL('..', import.meta.url));
-const port = Number(process.argv[2] || process.env.PORT || 8080);
+const projectRoot = fileURLToPath(new URL('..', import.meta.url));
 
 const types = new Map(Object.entries({
   '.html': 'text/html; charset=utf-8',
@@ -38,33 +37,45 @@ const types = new Map(Object.entries({
 }));
 
 /** Resolve a request path inside the project, or null when it escapes it. */
-function resolve(url) {
+function resolve(url, root) {
   const pathname = decodeURIComponent(new URL(url, 'http://localhost').pathname);
   const target = normalize(join(root, pathname === '/' ? 'index.html' : pathname));
   return target === root.replace(/[\\/]$/, '') || target.startsWith(root) ? target : null;
 }
 
-createServer(async (request, response) => {
-  const target = resolve(request.url);
-  if (!target) {
-    response.writeHead(403).end('Forbidden');
-    return;
-  }
+/**
+ * Build a static server for `root` that forbids caching.
+ * @param {string} root - Directory to serve
+ * @returns {import('node:http').Server} A server, not yet listening
+ */
+export function createStaticServer(root = projectRoot) {
+  return createServer(async (request, response) => {
+    const target = resolve(request.url, root);
+    if (!target) {
+      response.writeHead(403).end('Forbidden');
+      return;
+    }
 
-  try {
-    const info = await stat(target);
-    const file = info.isDirectory() ? join(target, 'index.html') : target;
-    const size = info.isDirectory() ? (await stat(file)).size : info.size;
-    response.writeHead(200, {
-      'Content-Type': types.get(extname(file)) || 'application/octet-stream',
-      'Content-Length': size,
-      'Cache-Control': 'no-store, must-revalidate'
-    });
-    createReadStream(file).pipe(response);
-  } catch {
-    response.writeHead(404, { 'Cache-Control': 'no-store' }).end('Not found');
-  }
-}).listen(port, () => {
-  console.log(`serving ${root} on http://localhost:${port} with no-store`);
-  console.log(`  http://localhost:${port}/index.html?layout=nerd`);
-});
+    try {
+      const info = await stat(target);
+      const file = info.isDirectory() ? join(target, 'index.html') : target;
+      const size = info.isDirectory() ? (await stat(file)).size : info.size;
+      response.writeHead(200, {
+        'Content-Type': types.get(extname(file)) || 'application/octet-stream',
+        'Content-Length': size,
+        'Cache-Control': 'no-store, must-revalidate'
+      });
+      createReadStream(file).pipe(response);
+    } catch {
+      response.writeHead(404, { 'Cache-Control': 'no-store' }).end('Not found');
+    }
+  });
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const port = Number(process.argv[2] || process.env.PORT || 8080);
+  createStaticServer().listen(port, () => {
+    console.log(`serving ${projectRoot} on http://localhost:${port} with no-store`);
+    console.log(`  http://localhost:${port}/index.html?layout=nerd`);
+  });
+}
