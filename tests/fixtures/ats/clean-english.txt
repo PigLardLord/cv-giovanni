@@ -44,10 +44,10 @@ September 2015 – July 2018 (3 years)
 B2B sales-automation platform for enterprise field sales teams.
 Built native iOS and Android features with an offline-first architecture, keeping
 field sales teams productive without connectivity.
-
-Created a reusable UI component library and led a UI/UX redesign of the mobile
+Created a reusable UI component library and led a UI/UX redesign of the mobile
 clients, reducing duplicate implementation work across new screens.
-Resolved production defects and performance issues for enterprise customers
+
+Resolved production defects and performance issues for enterprise customers
 across iOS (Swift, Objective-C) and Android (Java) with REST back ends.
 
 Mobile Developer Intern
