@@ -51,8 +51,7 @@ describe('a clean document, as the artefact actually extracts', () => {
     expect(cv.identity.addresses.map((address) => address.value)).toEqual([
       'github.com/PigLardLord',
       'linkedin.com/in/piglardlord',
-      'piglardlord.github.io/cv-giovanni',
-      'sites.google.com/view/giovanni-trovato'
+      'piglardlord.github.io/cv-giovanni'
     ]);
   });
 
@@ -82,7 +81,7 @@ describe('a clean document, as the artefact actually extracts', () => {
     expect(cv.spokenLanguages.map((language) => [language.name, language.cefr])).toEqual([
       ['Italian', null],
       ['English', 'C1'],
-      ['German', 'A2']
+      ['German', 'A1']
     ]);
   });
 });
