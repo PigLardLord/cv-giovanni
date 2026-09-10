@@ -12,6 +12,7 @@
       "done": "status:done"
     },
     "backlog_label": "status:backlog",
+    "_never_autoclose": "Arrived as the template default and is now a decision: a ticket is closed by a person, after the work has been audited. The finished work is judged by an external auditor, and an auditor reads open tickets against a diff \u2014 a ticket a merge closed on its own was never read by anyone. So no commit message and no pull-request body may carry a GitHub closing keyword; write `Refs #N`. tests/TicketsCloseByHand.test.js enforces it on every commit a branch adds to the base.",
     "never_autoclose": true,
     "_sync": "Optional. A secondary view (a board, a dashboard) to realign after every state change. It is NOT the source of truth \u2014 the tracker is. If this command fails the loop SAYS SO and carries on: a stale view is an annoyance, a stalled loop is a blocker.",
     "sync": null,

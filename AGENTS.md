@@ -136,7 +136,7 @@ A drafted ticket carries:
 - Acceptance criteria taken from the finding's **Prevention** line, so the ticket closes against
   the rule and not against an opinion.
 - The component label, and `status:backlog` unless it is being started immediately.
-- No auto-closing keywords: `board.never_autoclose` is set.
+- No auto-closing keywords, here or anywhere else — see **Who closes a ticket** below.
 
 Filing or reopening a ticket changes the tracker, so it sits behind the loop's ordinary
 `gated` autonomy: propose the ticket, show it, and let a person say go.
@@ -165,6 +165,36 @@ So:
 The finished work is then judged by an **external auditor**, not by the loop that produced it.
 That is the point of filing rather than fixing quietly: an auditor can read a ticket and a diff,
 and cannot read a message that was never written down.
+
+### Who closes a ticket
+
+A person does, after the work has been audited. Never a merge.
+
+`board.never_autoclose` in `.agents/harness/ticket-loop.json` says so. It arrived as the harness
+template's default rather than as anyone's decision, and for three sprints the practice
+contradicted it: every commit message ended `Closes #N` and both pull-request bodies repeated the
+list. Thirteen tickets closed themselves the moment pull request #1 merged, still carrying
+`status:in-review` — a label saying a review was pending on work the tracker had already filed
+away. That is issue #37, and the flag is now a decision rather than an inheritance.
+
+The rule, in full:
+
+- **A commit message references a ticket, it does not close one.** Write `Refs #19`. The keywords
+  GitHub acts on are `close`, `fix` and `resolve`, in all three tenses, followed by `#N` or the
+  issue's URL — all nine are forbidden, and `tests/TicketsCloseByHand.test.js` fails on any commit
+  a branch adds to the base branch that uses one.
+- **A pull-request body follows the same rule.** It is merged into the default branch's history
+  and GitHub reads it there too.
+- **Closing is the auditor's act.** An auditor reads an open ticket against a diff. A ticket a
+  merge closed on its own was read by nobody, and reopening it afterwards leaves a timeline that
+  says the work was done twice.
+
+The one exemption is written down where it applies: six commits already merged through pull
+request #31 carry `Closes #15`–`Closes #20`, and rewriting them would orphan the SHAs that pull
+request points at. They are listed in the test by SHA, with the reason, and they will close those
+six tickets when `cv-2026-update` reaches `main` — whoever merges is expected to reopen them.
+Naming the debt is the point: an exemption in a list can be counted, an exemption in a habit
+cannot.
 
 ### Prevention rules become tests where they can
 
