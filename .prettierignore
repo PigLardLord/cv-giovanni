@@ -1,0 +1,16 @@
+# Third-party code, kept byte for byte as it was vendored or locked.
+vendor/
+package-lock.json
+
+# Written by the scripts, not by hand. Formatting them would fight the generator on every run.
+generated/
+docs/ATS_AUDIT.md
+docs/PDF_AUDIT.md
+docs/PRINT_AUDIT.md
+
+# Installed and updated by the harness tooling, which owns their layout.
+.agents/harness/
+.agents/skills/
+
+# Inputs whose exact bytes are what the test checks.
+tests/fixtures/
