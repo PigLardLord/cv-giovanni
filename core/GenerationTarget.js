@@ -71,7 +71,7 @@ export class GenerationTarget {
     if (!match) {
       throw new Error(
         `--profile must name a file as <root>/<profile>/<locale>.json, not "${dataPath}" — ` +
-        'the profile and the locale are read from the path and end up in every filename.'
+          'the profile and the locale are read from the path and end up in every filename.'
       );
     }
 

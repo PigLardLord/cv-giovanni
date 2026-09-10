@@ -35,8 +35,10 @@ describe('the furniture of a posting', () => {
   });
 
   test('the work itself is not boilerplate', () => {
-    for (const phrase of ['Build and maintain iOS applications using Swift and SwiftUI',
-      'Optimize performance, memory usage, and battery efficiency']) {
+    for (const phrase of [
+      'Build and maintain iOS applications using Swift and SwiftUI',
+      'Optimize performance, memory usage, and battery efficiency'
+    ]) {
       expect(AdvertLexicon.isBoilerplate(phrase)).toBe(false);
     }
   });

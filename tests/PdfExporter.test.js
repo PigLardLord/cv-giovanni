@@ -56,8 +56,10 @@ describe('PdfExporter — what has to survive extraction and assistive reading',
     ],
     education: [{ degree: 'M.Sc.', school: 'Pisa', period: '2013 - 2015', description: 'Mobile' }],
     languages: [{ name: 'Italian', level: 'Native' }],
-    certifications: [{ name: 'iOS Lead Essentials', issuer: 'Academy', year: 2024,
-                       url: 'https://academy.example/achievement', description: 'Advanced' }]
+    certifications: [{
+      name: 'iOS Lead Essentials', issuer: 'Academy', year: 2024,
+      url: 'https://academy.example/achievement', description: 'Advanced'
+    }]
   };
   const build = (layout) => new PdfExporter(null, { t: (key) => key }).buildDocument(rich, layout);
   const walk = function* (node) {

@@ -146,11 +146,12 @@ const floors = letters.filter((entry) => entry.recovered !== true)
     ? `${entry.artefact}: a cover letter was generated but the profile carries no letter to check it against`
     : `${entry.artefact}: the letter's recipient or subject did not survive extraction`))
   .concat(results.flatMap(({ artefact, diff }) => [
-  diff.segmentation !== 'ok' && `${artefact}: the document did not segment`,
-  diff.identity.email === 'lost' && `${artefact}: the email address was not recovered`,
-  diff.experience.some((role) => !role.tripleAdjacent) && `${artefact}: a role lost its title, employer or period`,
-  !diff.roleOrderMonotonic && `${artefact}: the chronology does not run one way`
-].filter(Boolean)));
+    diff.segmentation !== 'ok' && `${artefact}: the document did not segment`,
+    diff.identity.email === 'lost' && `${artefact}: the email address was not recovered`,
+    diff.experience.some((role) => !role.tripleAdjacent)
+      && `${artefact}: a role lost its title, employer or period`,
+    !diff.roleOrderMonotonic && `${artefact}: the chronology does not run one way`
+  ].filter(Boolean)));
 
 const report = [
   AtsReport.render(score, results, advert),

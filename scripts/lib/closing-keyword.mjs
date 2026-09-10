@@ -30,7 +30,7 @@ export const CLOSING_KEYWORDS = [
  */
 const REFERENCE = new RegExp(
   `\\b(${CLOSING_KEYWORDS.join('|')})\\b[\\s:]+` +
-  '(?:https?://\\S*?/issues/(\\d+)|#(\\d+))',
+    '(?:https?://\\S*?/issues/(\\d+)|#(\\d+))',
   'gi'
 );
 

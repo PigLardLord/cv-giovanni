@@ -152,15 +152,13 @@ export class AdvertMatcher {
   static place(entry, prose, headline, listed, authored) {
     const claimed = authored === null ? null : AdvertMatcher.appears(entry.term, authored) !== null;
     const at = (evidence, match, where) => ({ ...entry, evidence, match, where, authored: claimed });
-    {
-        const inProse = AdvertMatcher.appears(entry.term, prose.text);
-        if (inProse) return at('inProse', inProse, prose.whereOf(entry.term));
-        const inHeadline = AdvertMatcher.appears(entry.term, headline);
-        if (inHeadline) return at('inHeadline', inHeadline, 'the role line');
-        const inList = AdvertMatcher.appears(entry.term, listed);
-        if (inList) return at('inSkillsOnly', inList, 'the skills list');
-        return at('absent', null, null);
-    }
+    const inProse = AdvertMatcher.appears(entry.term, prose.text);
+    if (inProse) return at('inProse', inProse, prose.whereOf(entry.term));
+    const inHeadline = AdvertMatcher.appears(entry.term, headline);
+    if (inHeadline) return at('inHeadline', inHeadline, 'the role line');
+    const inList = AdvertMatcher.appears(entry.term, listed);
+    if (inList) return at('inSkillsOnly', inList, 'the skills list');
+    return at('absent', null, null);
   }
 
   /** Everything the authored profile says, so a lost term can be told from an unwritten one. */

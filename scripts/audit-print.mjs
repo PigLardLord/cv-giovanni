@@ -275,7 +275,7 @@ try {
       // overflowing its column rather than sitting in it.
       margins: margins.length > 0 && margins.every((box) =>
         Math.min(box.left, box.right, box.top, box.bottom) >= MARGIN_FLOOR_MM
-        && Math.abs(box.left - box.right) <= SIDE_TOLERANCE_MM),
+          && Math.abs(box.left - box.right) <= SIDE_TOLERANCE_MM),
       // Nothing in the text layer that the data did not write: no colour emoji,
       // no bare digits left behind by a CSS counter.
       textLayerClean: !/\p{Extended_Pictographic}/u.test(text) && !/^\s*\d{1,2}\s*$/m.test(text),
