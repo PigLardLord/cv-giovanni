@@ -2,8 +2,7 @@ Giovanni Trovato
 Senior iOS Engineer / Mobile Platform Owner
 Swift · SwiftUI · Enterprise Mobility · CI/CD
 Bad Liebenstein, Thuringia, Germany · trovato.giovanni@gmail.com · +39 329 8484 046
-github.com/PigLardLord · linkedin.com/in/piglardlord · piglardlord.github.io/cv-giovanni ·
-sites.google.com/view/giovanni-trovato
+github.com/PigLardLord · linkedin.com/in/piglardlord · piglardlord.github.io/cv-giovanni
 EU citizen · unrestricted German work authorisation
 
 Senior iOS engineer with 11+ years in native mobile and six years owning an
@@ -45,10 +44,10 @@ September 2015 – July 2018 (3 years)
 B2B sales-automation platform for enterprise field sales teams.
 Built native iOS and Android features with an offline-first architecture, keeping
 field sales teams productive without connectivity.
-
-Created a reusable UI component library and led a UI/UX redesign of the mobile
+Created a reusable UI component library and led a UI/UX redesign of the mobile
 clients, reducing duplicate implementation work across new screens.
-Resolved production defects and performance issues for enterprise customers
+
+Resolved production defects and performance issues for enterprise customers
 across iOS (Swift, Objective-C) and Android (Java) with REST back ends.
 
 Mobile Developer Intern
@@ -88,8 +87,8 @@ AI-assisted engineering, technical mentoring
 
 Education
 
-M.Sc. Mobile Application Development
-Università degli Studi di Pisa · 2015
+First Level Professional Master's Programme in Mobile Applications Development
+Università degli Studi di Pisa · 2014 – 2016
 
 B.Sc. Computer Engineering
 Università degli Studi di Catania · 2009
@@ -98,7 +97,7 @@ Languages
 
 Italian: Native
 English: C1 — professional working proficiency
-German: A2 — currently studying
+German: A1 — currently studying
 
 Certifications
 
