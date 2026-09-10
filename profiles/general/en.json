@@ -6,7 +6,6 @@
   "email": "trovato.giovanni@gmail.com",
   "phone": "+39 329 8484 046",
   "availability": "EU citizen · unrestricted German work authorisation",
-  "portfolio": "https://sites.google.com/view/giovanni-trovato",
   "profile": "Senior iOS engineer with 11+ years in native mobile and six years owning an enterprise MDM client from architecture to production. Delivered software used across tens of thousands of managed devices, with measurable improvements in automated quality and release speed. Brings Android depth, security review, CI/CD ownership and direct platform coordination with Apple and Google.",
   "career_highlights": [
     "6 years owning an enterprise iOS MDM client from its first commit",
@@ -51,7 +50,7 @@
   ],
   "education": [
     {
-      "degree": "First-Level Professional Master's Programme in Mobile Applications Development",
+      "degree": "First Level Professional Master's Programme in Mobile Applications Development",
       "school": "Università degli Studi di Pisa",
       "period": "2014 – 2016"
     },
