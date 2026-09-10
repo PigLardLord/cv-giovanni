@@ -15,7 +15,13 @@
     "preview": "Preview",
     "device": "iPhone",
     "marks": { "profile": "Profile", "contact": "Contact" },
-    "card": { "call": "call", "mail": "mail", "location": "Location" }
+    "card": {
+      "call": "call",
+      "mail": "mail",
+      "callName": "Call {{value}}",
+      "mailName": "Email {{value}}",
+      "location": "Location"
+    }
   },
   "errors": {
     "loadingTitle": "Error loading CV",

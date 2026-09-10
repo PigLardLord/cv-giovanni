@@ -8,11 +8,14 @@
  * - `{ code }` is syntax — a keyword, a quote, a bracket, an argument label. The renderer never
  *   puts it into the document; the stylesheet draws it. A screen reader, a selection and a search
  *   never meet it.
- * - `{ text }` is the CV, exactly as the data wrote it. It is the only real text the file has.
+ * - `{ text }` is the CV, exactly as the data wrote it — and the punctuation between two of its
+ *   words on one line, the comma between two skills and the colon between a language and its
+ *   level. Drawn, that punctuation vanished from a selection and "Swift, SwiftUI" copied as
+ *   "SwiftSwiftUI"; the product review measured it in Chrome.
  *
- * So the page can look like source code without a single word of Swift reaching anything that
- * reads the document, which is the rule `AGENTS.md` sets for every visual device here: removing
- * the stylesheet removes the decoration and never the meaning.
+ * So the page can look like source code without a word of Swift reaching anything that reads the
+ * document, which is the rule `AGENTS.md` sets for every visual device here: removing the
+ * stylesheet removes the decoration and never the meaning.
  *
  * The file is written the way Swift is written — a multi-line string for the summary, an
  * initialiser per role with its achievements in a trailing closure, a result builder for the
@@ -20,19 +23,41 @@
  * compile: `Engineer`, `Role` and `SkillSet` are names, not a library.
  *
  * `card` is the contact card the phone beside the editor shows: the name, the role and the ways to
- * reach the candidate. Every word on it is already in the file, so the renderer draws it too.
+ * reach the candidate, each with somewhere to go.
  *
  * It takes the raw profile, as every page renderer does, and knows nothing about the DOM.
  */
 import { readableAddress } from '../domain/ReadableUrl.js';
 
-const SECTIONS = ['skills', 'experience', 'certifications', 'education', 'languages', 'interests'];
+/**
+ * Who the candidate is comes first, then the evidence — experience before skills — and last how
+ * to reach them, which the card beside the file already offers. With the contact block and the
+ * skills ahead of it, the current employer sat 1.8 to 3.9 screens down.
+ */
+const SECTIONS = [
+  'profile',
+  'experience',
+  'skills',
+  'certifications',
+  'education',
+  'languages',
+  'interests',
+  'contact'
+];
+
+/** Section labels shared with the other outputs, or the editor's own for the two it adds. */
+const LABELS = {
+  profile: 'source.marks.profile',
+  contact: 'source.marks.contact'
+};
 
 /** A phone screen has room for four buttons across; a fifth would wrap into a second row. */
 const CARD_ACTIONS = 4;
 
 const code = (value, kind = 'plain') => ({ code: value, kind });
 const content = (value, kind, extra = {}) => ({ text: value, kind, ...extra });
+/** Punctuation that separates two words on one line: real text, so a copy keeps it. */
+const between = (value) => content(value, 'plain');
 const clean = (value) => (value === undefined || value === null ? '' : String(value).trim());
 const list = (value) => (Array.isArray(value) ? value.filter(Boolean) : []);
 
@@ -48,7 +73,7 @@ const arrayOf = (type) => [code('['), code(type, 'type'), code(']')];
 
 const arrayLiteral = (values) => [
   code('['),
-  ...values.flatMap((value, index) => [...(index > 0 ? [code(', ')] : []), ...quoted(value)]),
+  ...values.flatMap((value, index) => [...(index > 0 ? [between(', ')] : []), ...quoted(value)]),
   code(']')
 ];
 
@@ -73,6 +98,9 @@ const normalise = (value) => {
 /** Lines are `[depth, tokens, extra]` until `compose` places them; this moves a block inward. */
 const indent = (lines, by = 1) =>
   lines.map(([depth, tokens, extra]) => [depth + by, tokens, extra]);
+
+/** A number a phone can dial: the digits and a leading plus, nothing a person types to read it. */
+const telephone = (number) => `tel:${number.replace(/[^\d+]/g, '')}`;
 
 /**
  * The candidate's name as a Swift type: each word capitalised and run together, apostrophes
@@ -107,21 +135,8 @@ export class SwiftSourceLayout {
     const outline = [];
     const push = (depth, tokens = [], extra = {}) =>
       lines.push({ depth: tokens.length === 0 ? 0 : depth, tokens, ...extra });
-    const section = (key, label, body) => {
-      if (body.length === 0) return;
-      if (outline.length > 0) push(0);
 
-      const id = `source-${key}`;
-      push(1, [code('// MARK: - ', 'mark'), content(label, 'mark')], { heading: 2, id });
-      push(0);
-      body.forEach(([depth, tokens, extra]) => push(1 + depth, tokens, extra));
-      outline.push({ id, label });
-    };
-
-    push(0, [code('//', 'comment')]);
     push(0, [code(`//  ${typeName}.swift`, 'comment')]);
-    push(0, [code('//  CV', 'comment')]);
-    push(0, [code('//', 'comment')]);
     push(0);
     push(0, [code('import ', 'keyword'), code('SwiftUI', 'type')]);
     push(0);
@@ -132,10 +147,23 @@ export class SwiftSourceLayout {
       code('Engineer', 'type'),
       code(' {')
     ]);
+    const body = lines.length;
 
-    section('profile', t('source.marks.profile'), this.profile(data));
-    section('contact', t('source.marks.contact'), this.contact(data));
-    SECTIONS.forEach((key) => section(key, t(`cv:sections.${key}`), this[key](data)));
+    // The name opens the struct, above every MARK, so the first heading a reader meets is the h1.
+    this.identity(data).forEach(([depth, tokens, extra]) => push(1 + depth, tokens, extra));
+
+    SECTIONS.forEach((key) => {
+      const block = this[key](data);
+      if (block.length === 0) return;
+      if (lines.length > body) push(0);
+
+      const id = `source-${key}`;
+      const label = t(LABELS[key] ?? `cv:sections.${key}`);
+      push(1, [code('// MARK: - ', 'mark'), content(label, 'mark')], { heading: 2, id });
+      push(0);
+      block.forEach(([depth, tokens, extra]) => push(1 + depth, tokens, extra));
+      outline.push({ id, label });
+    });
 
     push(0, [code('}')]);
     push(0);
@@ -166,58 +194,60 @@ export class SwiftSourceLayout {
     };
   }
 
-  profile(data) {
-    const string = (name, value, extra = {}) => [
-      ...declaration('let', name),
-      ...quoted(value, extra)
+  identity(data) {
+    const name = clean(data.name);
+    const title = clean(data.title);
+    return [
+      ...(name
+        ? [
+            [
+              0,
+              [...declaration('let', 'name'), ...quoted(name, { element: 'h1' })],
+              { current: true }
+            ]
+          ]
+        : []),
+      ...(title ? [[0, [...declaration('let', 'title'), ...quoted(title)]]] : [])
     ];
-    const [name, title, focus, summary, availability] = [
-      data.name,
-      data.title,
-      data.subtitle,
-      data.profile,
-      data.availability
-    ].map(clean);
+  }
+
+  profile(data) {
+    const [focus, summary, availability] = [data.subtitle, data.profile, data.availability].map(
+      clean
+    );
 
     const lines = [];
-    if (name) lines.push([0, string('name', name, { element: 'h1' }), { current: true }]);
-    if (title) lines.push([0, string('title', title)]);
-    if (focus) lines.push([0, string('focus', focus)]);
+    if (focus) lines.push([0, [...declaration('let', 'focus'), ...quoted(focus)]]);
     if (summary) {
       // A paragraph is a multi-line string in Swift: the delimiters take lines of their own.
       lines.push([0, [...declaration('let', 'summary'), code('"""', 'string')]]);
       lines.push([1, [content(summary, 'string')]]);
       lines.push([1, [code('"""', 'string')]]);
     }
-    if (availability) lines.push([0, string('availability', availability)]);
+    if (availability) {
+      lines.push([0, [...declaration('let', 'availability'), ...quoted(availability)]]);
+    }
     return lines;
   }
 
-  contact(data) {
-    const links = list(data.social)
-      .filter((link) => clean(link.url) !== '')
-      .map((link) => {
-        const address = readableAddress(link.url);
-        return [
-          code('Link', 'call'),
-          code('('),
-          ...quoted(clean(link.platform) || address),
-          code(', '),
-          code('url: ', 'label'),
-          ...quoted(address, { element: 'a', href: clean(link.url) }),
-          code(')')
-        ];
-      });
-
-    return this.call(
-      'Contact',
-      [
-        ['location', data.location],
-        ['email', data.email],
-        ['phone', data.phone],
-        ['links', links]
-      ],
-      { prefix: declaration('let', 'contact'), close: '' }
+  experience(data) {
+    return this.collection(
+      'experience',
+      'Role',
+      list(data.relevant_experience).map((role) =>
+        this.call(
+          'Role',
+          [
+            ['title', role.title, { element: 'h3' }],
+            ['company', role.company],
+            ['location', role.location],
+            ['period', role.period],
+            ['summary', role.summary],
+            ['description', role.description]
+          ],
+          { trailing: list(role.highlights) }
+        )
+      )
     );
   }
 
@@ -257,27 +287,6 @@ export class SwiftSourceLayout {
       ]),
       [0, [code('}')]]
     ];
-  }
-
-  experience(data) {
-    return this.collection(
-      'experience',
-      'Role',
-      list(data.relevant_experience).map((role) =>
-        this.call(
-          'Role',
-          [
-            ['title', role.title, { element: 'h3' }],
-            ['company', role.company],
-            ['location', role.location],
-            ['period', role.period],
-            ['summary', role.summary],
-            ['description', role.description]
-          ],
-          { trailing: list(role.highlights) }
-        )
-      )
-    );
   }
 
   certifications(data) {
@@ -327,7 +336,12 @@ export class SwiftSourceLayout {
       [0, [...declaration('let', 'languages', pairs), code('[')]],
       ...languages.map((language) => [
         1,
-        [...quoted(clean(language.name)), code(': '), ...quoted(clean(language.level)), code(',')]
+        [
+          ...quoted(clean(language.name)),
+          between(': '),
+          ...quoted(clean(language.level)),
+          code(',')
+        ]
       ]),
       [0, [code(']')]]
     ];
@@ -339,6 +353,36 @@ export class SwiftSourceLayout {
     return [
       [0, [...declaration('let', 'interests', arrayOf('String')), ...arrayLiteral(interests)]]
     ];
+  }
+
+  contact(data) {
+    const email = clean(data.email);
+    const phone = clean(data.phone);
+    const links = list(data.social)
+      .filter((link) => clean(link.url) !== '')
+      .map((link) => {
+        const address = readableAddress(link.url);
+        return [
+          code('Link', 'call'),
+          code('('),
+          ...quoted(clean(link.platform) || address),
+          between(', '),
+          code('destination: ', 'label'),
+          ...quoted(address, { element: 'a', href: clean(link.url) }),
+          code(')')
+        ];
+      });
+
+    return this.call(
+      'Contact',
+      [
+        ['location', data.location],
+        ['email', email, email ? { element: 'a', href: `mailto:${email}` } : {}],
+        ['phone', phone, phone ? { element: 'a', href: telephone(phone) } : {}],
+        ['links', links]
+      ],
+      { prefix: declaration('let', 'contact'), close: '' }
+    );
   }
 
   /** `let name: [Type] = [` an entry per block `]`, or nothing when there are no entries. */
@@ -397,7 +441,8 @@ export class SwiftSourceLayout {
   /**
    * The contact card the preview renders: the name, the role, a row of actions and the details.
    * The actions are the ways a card offers to reach someone — call, mail, then the profile's links
-   * — up to one row of four.
+   * — up to one row of four, and each one goes somewhere: a button that does nothing reads as a
+   * broken page.
    */
   card(data, t) {
     const phone = clean(data.phone);
@@ -405,16 +450,50 @@ export class SwiftSourceLayout {
     const location = clean(data.location);
 
     const actions = [
-      ...(phone ? [{ icon: 'phone', label: t('source.card.call') }] : []),
-      ...(email ? [{ icon: 'mail', label: t('source.card.mail') }] : []),
+      ...(phone
+        ? [
+            {
+              icon: 'phone',
+              label: t('source.card.call'),
+              name: t('source.card.callName', { value: phone }),
+              href: telephone(phone)
+            }
+          ]
+        : []),
+      ...(email
+        ? [
+            {
+              icon: 'mail',
+              label: t('source.card.mail'),
+              name: t('source.card.mailName', { value: email }),
+              href: `mailto:${email}`
+            }
+          ]
+        : []),
       ...list(data.social)
         .filter((link) => clean(link.url) !== '' && clean(link.platform) !== '')
-        .map((link) => ({ icon: 'link', label: clean(link.platform) }))
+        .map((link) => ({
+          icon: 'link',
+          label: clean(link.platform),
+          name: clean(link.platform),
+          href: clean(link.url)
+        }))
     ].slice(0, CARD_ACTIONS);
 
     const rows = [
-      ...(phone ? [{ kind: 'phone', label: t('cv:contacts.phone'), value: phone }] : []),
-      ...(email ? [{ kind: 'email', label: t('cv:contacts.email'), value: email }] : []),
+      ...(phone
+        ? [{ kind: 'phone', label: t('cv:contacts.phone'), value: phone, href: telephone(phone) }]
+        : []),
+      ...(email
+        ? [
+            {
+              kind: 'email',
+              label: t('cv:contacts.email'),
+              value: email,
+              href: `mailto:${email}`
+            }
+          ]
+        : []),
       ...(location ? [{ kind: 'location', label: t('source.card.location'), value: location }] : [])
     ];
 

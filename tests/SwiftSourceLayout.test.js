@@ -1,3 +1,6 @@
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { SwiftSourceLayout } from '../adapters/SwiftSourceLayout.js';
 
 const labels = {
@@ -5,6 +8,8 @@ const labels = {
   'source.marks.contact': 'Contact',
   'source.card.call': 'call',
   'source.card.mail': 'mail',
+  'source.card.callName': 'Call {{value}}',
+  'source.card.mailName': 'Email {{value}}',
   'source.card.location': 'Location',
   'cv:contacts.phone': 'Phone',
   'cv:contacts.email': 'Email',
@@ -15,7 +20,7 @@ const labels = {
   'cv:sections.languages': 'Languages',
   'cv:sections.interests': 'Interests'
 };
-const t = (key) => labels[key] ?? key;
+const t = (key, options = {}) => (labels[key] ?? key).replace('{{value}}', options.value ?? '');
 
 const profile = {
   name: 'Ada Lovelace',
@@ -68,6 +73,11 @@ const profile = {
   interests: ['Robotics & IoT', 'Hiking']
 };
 
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const published = JSON.parse(
+  fs.readFileSync(path.join(root, 'profiles', 'general', 'en.json'), 'utf8')
+);
+
 /** The file as a person reading the editor sees it: syntax and content, four spaces a level. */
 const sourceOf = ({ lines }) =>
   lines
@@ -78,57 +88,36 @@ const sourceOf = ({ lines }) =>
     )
     .join('\n');
 
-/** What survives without the stylesheet: the tokens that carry real text. */
-const contentOf = ({ lines }) =>
-  lines.flatMap((line) =>
-    line.tokens.filter((token) => 'text' in token).map((token) => token.text)
-  );
+/** What a selection of a line copies: its real text, with everything the stylesheet draws gone. */
+const textOf = (line) =>
+  line.tokens
+    .filter((token) => 'text' in token)
+    .map((token) => token.text)
+    .join('');
+
+const textLinesOf = ({ lines }) => lines.map(textOf).filter(Boolean);
 
 describe('SwiftSourceLayout', () => {
   const layout = new SwiftSourceLayout();
 
-  test('reads the CV as a Swift file, section by section, in the order the page renders it', () => {
+  test('reads the CV as a Swift file: who, the profile, the evidence, then how to reach them', () => {
     expect(sourceOf(layout.compose(profile, { t }))).toBe(
       [
-        '//',
         '//  AdaLovelace.swift',
-        '//  CV',
-        '//',
         '',
         'import SwiftUI',
         '',
         'struct AdaLovelace: Engineer {',
-        '    // MARK: - Profile',
-        '',
         '    let name = "Ada Lovelace"',
         '    let title = "Senior iOS Engineer"',
+        '',
+        '    // MARK: - Profile',
+        '',
         '    let focus = "Swift · SwiftUI"',
         '    let summary = """',
         '        Engineer with eleven years in native mobile.',
         '        """',
         '    let availability = "EU citizen"',
-        '',
-        '    // MARK: - Contact',
-        '',
-        '    let contact = Contact(',
-        '        location: "Berlin, Germany",',
-        '        email: "ada@example.com",',
-        '        phone: "+49 30 1234",',
-        '        links: [',
-        '            Link("GitHub", url: "github.com/ada"),',
-        '        ]',
-        '    )',
-        '',
-        '    // MARK: - Core Technologies',
-        '',
-        '    var skills: some SkillSet {',
-        '        Category("iOS") {',
-        '            ["Swift", "SwiftUI"]',
-        '        }',
-        '        Category("Delivery & platform") {',
-        '            ["Fastlane"]',
-        '        }',
-        '    }',
         '',
         '    // MARK: - Professional Experience',
         '',
@@ -151,6 +140,17 @@ describe('SwiftSourceLayout', () => {
         '            summary: "Built AR apps."',
         '        ),',
         '    ]',
+        '',
+        '    // MARK: - Core Technologies',
+        '',
+        '    var skills: some SkillSet {',
+        '        Category("iOS") {',
+        '            ["Swift", "SwiftUI"]',
+        '        }',
+        '        Category("Delivery & platform") {',
+        '            ["Fastlane"]',
+        '        }',
+        '    }',
         '',
         '    // MARK: - Certifications',
         '',
@@ -183,6 +183,17 @@ describe('SwiftSourceLayout', () => {
         '    // MARK: - Interests',
         '',
         '    let interests: [String] = ["Robotics & IoT", "Hiking"]',
+        '',
+        '    // MARK: - Contact',
+        '',
+        '    let contact = Contact(',
+        '        location: "Berlin, Germany",',
+        '        email: "ada@example.com",',
+        '        phone: "+49 30 1234",',
+        '        links: [',
+        '            Link("GitHub", destination: "github.com/ada"),',
+        '        ]',
+        '    )',
         '}',
         '',
         '#Preview {',
@@ -193,29 +204,17 @@ describe('SwiftSourceLayout', () => {
     );
   });
 
-  test('keeps the syntax out of the text: what a reader copies is what the data wrote', () => {
-    // Every keyword, quote, bracket and argument label is decoration the stylesheet draws; the
-    // renderer never writes it into the document. So the real text of the file is the CV and
-    // nothing else — a screen reader, a selection and a search all meet "Acme", not `company:`.
-    expect(contentOf(layout.compose(profile, { t }))).toEqual([
-      'Profile',
+  test('copies line by line the way a reader reads it', () => {
+    // The quotes, brackets and labels are drawn; what separates two words on one line is not.
+    // A selection of the skills reads "Swift, SwiftUI", never "SwiftSwiftUI" — the product review
+    // measured the second in Chrome, and a list of words could not have caught it.
+    expect(textLinesOf(layout.compose(profile, { t }))).toEqual([
       'Ada Lovelace',
       'Senior iOS Engineer',
+      'Profile',
       'Swift · SwiftUI',
       'Engineer with eleven years in native mobile.',
       'EU citizen',
-      'Contact',
-      'Berlin, Germany',
-      'ada@example.com',
-      '+49 30 1234',
-      'GitHub',
-      'github.com/ada',
-      'Core Technologies',
-      'iOS',
-      'Swift',
-      'SwiftUI',
-      'Delivery & platform',
-      'Fastlane',
       'Professional Experience',
       'Mobile Engineer',
       'Acme',
@@ -229,6 +228,11 @@ describe('SwiftSourceLayout', () => {
       'Livorno',
       '2015',
       'Built AR apps.',
+      'Core Technologies',
+      'iOS',
+      'Swift, SwiftUI',
+      'Delivery & platform',
+      'Fastlane',
       'Certifications',
       'iOS Lead Essentials',
       'Essential Developer',
@@ -239,47 +243,63 @@ describe('SwiftSourceLayout', () => {
       'Università di Catania',
       '2009',
       'Languages',
-      'Italian',
-      'Native',
-      'English',
-      'C1 — professional',
+      'Italian: Native',
+      'English: C1 — professional',
       'Interests',
-      'Robotics & IoT',
-      'Hiking'
+      'Robotics & IoT, Hiking',
+      'Contact',
+      'Berlin, Germany',
+      'ada@example.com',
+      '+49 30 1234',
+      'GitHub, github.com/ada'
     ]);
   });
 
-  test('gives the file a document outline: the name, one heading per section, one per role', () => {
+  test('never lets two words on one line meet without real text between them', () => {
+    const glued = layout.compose(published, { t }).lines.flatMap((line) => {
+      const words = line.tokens.filter((token) => 'text' in token);
+      return words
+        .slice(1)
+        .filter((token, index) => token.kind !== 'plain' && words[index].kind !== 'plain')
+        .map((token, index) => `${words[index].text}|${token.text}`);
+    });
+
+    expect(glued).toEqual([]);
+  });
+
+  test('opens on the name: the first heading is the h1, on the line the editor opens on', () => {
+    const { lines } = layout.compose(profile, { t });
+    const headings = lines.flatMap((line) => [
+      ...(line.heading ? [`h${line.heading}`] : []),
+      ...line.tokens.filter((token) => /^h\d$/.test(token.element)).map((token) => token.element)
+    ]);
+
+    expect(headings[0]).toBe('h1');
+    expect(lines.filter((line) => line.current).map((line) => sourceOf({ lines: [line] }))).toEqual(
+      ['    let name = "Ada Lovelace"']
+    );
+  });
+
+  test('gives the file a document outline: one heading per section, one per role', () => {
     const { lines } = layout.compose(profile, { t });
     const tokens = lines.flatMap((line) => line.tokens);
 
-    expect(tokens.filter((token) => token.element === 'h1').map((token) => token.text)).toEqual([
-      'Ada Lovelace'
-    ]);
     expect(
       lines.filter((line) => line.heading === 2).map((line) => [line.id, line.tokens.at(-1).text])
     ).toEqual([
       ['source-profile', 'Profile'],
-      ['source-contact', 'Contact'],
-      ['source-skills', 'Core Technologies'],
       ['source-experience', 'Professional Experience'],
+      ['source-skills', 'Core Technologies'],
       ['source-certifications', 'Certifications'],
       ['source-education', 'Education'],
       ['source-languages', 'Languages'],
-      ['source-interests', 'Interests']
+      ['source-interests', 'Interests'],
+      ['source-contact', 'Contact']
     ]);
     expect(tokens.filter((token) => token.element === 'h3').map((token) => token.text)).toEqual([
       'Mobile Engineer',
       'Intern'
     ]);
-  });
-
-  test('marks the line the editor opens on', () => {
-    const { lines } = layout.compose(profile, { t });
-
-    expect(lines.filter((line) => line.current).map((line) => sourceOf({ lines: [line] }))).toEqual(
-      ['    let name = "Ada Lovelace"']
-    );
   });
 
   test('colours a call apart from a type and an argument label apart from punctuation', () => {
@@ -290,6 +310,7 @@ describe('SwiftSourceLayout', () => {
     expect(kindOf('Engineer')).toBe('type');
     expect(kindOf('KeyValuePairs')).toBe('type');
     expect(kindOf('title: ')).toBe('label');
+    expect(kindOf('destination: ')).toBe('label');
     expect(kindOf('some ')).toBe('keyword');
     expect(kindOf('preferredColorScheme')).toBe('call');
     expect(kindOf('dark')).toBe('property');
@@ -298,24 +319,26 @@ describe('SwiftSourceLayout', () => {
   test('lists the sections it wrote, in order, for the navigator', () => {
     expect(layout.compose(profile, { t }).outline).toEqual([
       { id: 'source-profile', label: 'Profile' },
-      { id: 'source-contact', label: 'Contact' },
-      { id: 'source-skills', label: 'Core Technologies' },
       { id: 'source-experience', label: 'Professional Experience' },
+      { id: 'source-skills', label: 'Core Technologies' },
       { id: 'source-certifications', label: 'Certifications' },
       { id: 'source-education', label: 'Education' },
       { id: 'source-languages', label: 'Languages' },
-      { id: 'source-interests', label: 'Interests' }
+      { id: 'source-interests', label: 'Interests' },
+      { id: 'source-contact', label: 'Contact' }
     ]);
   });
 
-  test('keeps the addresses followable', () => {
+  test('makes every address a link a reader can use: the certificate, mail, phone and profiles', () => {
     const tokens = layout.compose(profile, { t }).lines.flatMap((line) => line.tokens);
 
     expect(
       tokens.filter((token) => token.element === 'a').map((token) => [token.text, token.href])
     ).toEqual([
-      ['github.com/ada', 'https://github.com/ada/'],
-      ['iOS Lead Essentials', 'https://example.com/cert']
+      ['iOS Lead Essentials', 'https://example.com/cert'],
+      ['ada@example.com', 'mailto:ada@example.com'],
+      ['+49 30 1234', 'tel:+49301234'],
+      ['github.com/ada', 'https://github.com/ada/']
     ]);
   });
 
@@ -326,26 +349,36 @@ describe('SwiftSourceLayout', () => {
     expect(sourceOf(source)).not.toMatch(/Certifications|interests|links|focus/);
     expect(source.outline.map((entry) => entry.id)).toEqual([
       'source-profile',
-      'source-contact',
-      'source-skills',
       'source-experience',
+      'source-skills',
       'source-education',
-      'source-languages'
+      'source-languages',
+      'source-contact'
     ]);
   });
 
-  test('composes the contact card the #Preview renders', () => {
+  test('composes the contact card the #Preview renders, with actions that go somewhere', () => {
     expect(layout.compose(profile, { t }).card).toEqual({
       name: 'Ada Lovelace',
       title: 'Senior iOS Engineer',
       actions: [
-        { icon: 'phone', label: 'call' },
-        { icon: 'mail', label: 'mail' },
-        { icon: 'link', label: 'GitHub' }
+        { icon: 'phone', label: 'call', name: 'Call +49 30 1234', href: 'tel:+49301234' },
+        {
+          icon: 'mail',
+          label: 'mail',
+          name: 'Email ada@example.com',
+          href: 'mailto:ada@example.com'
+        },
+        { icon: 'link', label: 'GitHub', name: 'GitHub', href: 'https://github.com/ada/' }
       ],
       rows: [
-        { kind: 'phone', label: 'Phone', value: '+49 30 1234' },
-        { kind: 'email', label: 'Email', value: 'ada@example.com' },
+        { kind: 'phone', label: 'Phone', value: '+49 30 1234', href: 'tel:+49301234' },
+        {
+          kind: 'email',
+          label: 'Email',
+          value: 'ada@example.com',
+          href: 'mailto:ada@example.com'
+        },
         { kind: 'location', label: 'Location', value: 'Berlin, Germany' }
       ]
     });

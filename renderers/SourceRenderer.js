@@ -6,12 +6,13 @@ import { SwiftSourceLayout } from '../adapters/SwiftSourceLayout.js';
  *
  * Every decision — which lines, which tokens, what is syntax and what is content, what the card
  * shows — is made by `adapters/SwiftSourceLayout.js`. This only turns its output into elements,
- * and keeps the two rules that make the editor safe to read:
+ * and keeps the rules that make the editor safe to read:
  *
  * - Syntax is an empty, `aria-hidden` element whose `data-code` the stylesheet draws, and content
- *   is real text. The line numbers are drawn the same way, from a CSS counter.
- * - The card repeats what the file already says, so it is a picture: `aria-hidden`, and every word
- *   on it drawn from `data-text`. Nobody hears the name twice or copies it out of a phone.
+ *   is real text. The line numbers and the file's name are drawn the same way.
+ * - The card repeats what the file already says, so its words are drawn from `data-text` and kept
+ *   from assistive technology. What looks like a button is one: each action is a link with a name
+ *   of its own, and nothing focusable sits inside anything `aria-hidden` that can be tabbed to.
  */
 export class SourceRenderer extends BaseRenderer {
   constructor(i18n = null, layout = new SwiftSourceLayout()) {
@@ -25,14 +26,15 @@ export class SourceRenderer extends BaseRenderer {
     if (!code || !this.validate(data)) return;
 
     const source = this.layout.compose(data, {
-      t: (key) => (this.i18n ? this.i18n.t(key) : key)
+      t: (key, options) => (this.i18n ? this.i18n.t(key, options) : key)
     });
 
     code.textContent = '';
     source.lines.forEach((line) => code.appendChild(this.createLine(root, line)));
 
     root.querySelectorAll('[data-source-file]').forEach((slot) => {
-      slot.textContent = source.fileName;
+      slot.textContent = '';
+      slot.dataset.text = source.fileName;
     });
 
     this.renderOutline(root, source.outline);
@@ -59,27 +61,40 @@ export class SourceRenderer extends BaseRenderer {
     if (!container) return;
 
     container.textContent = '';
-    container.setAttribute('aria-hidden', 'true');
-    container.appendChild(this.drawn(root, 'p', 'app-name', card.name));
-    if (card.title) container.appendChild(this.drawn(root, 'p', 'app-title', card.title));
+    container.removeAttribute('aria-hidden');
+    container.appendChild(this.drawn(root, 'p', 'app-name', card.name, true));
+    if (card.title) container.appendChild(this.drawn(root, 'p', 'app-title', card.title, true));
 
     if (card.actions.length > 0) {
       const actions = this.createElement(root, 'ul', 'app-actions');
-      card.actions.forEach(({ icon, label }) => {
-        const action = this.drawn(root, 'li', 'app-action', label);
+      card.actions.forEach(({ icon, label, name, href }) => {
+        const action = this.createAddress(root, href);
+        action.classList.add('app-action');
         action.dataset.icon = icon;
-        actions.appendChild(action);
+        action.dataset.text = label;
+        action.setAttribute('aria-label', name);
+        const item = this.createElement(root, 'li');
+        item.appendChild(action);
+        actions.appendChild(item);
       });
       container.appendChild(actions);
     }
 
+    // The details repeat the actions for a pointer; a keyboard and a screen reader already have
+    // the actions, so the rows stay out of both.
     if (card.rows.length > 0) {
       const rows = this.createElement(root, 'ul', 'app-rows');
-      card.rows.forEach(({ kind, label, value }) => {
+      rows.setAttribute('aria-hidden', 'true');
+      card.rows.forEach(({ kind, label, value, href }) => {
         const row = this.createElement(root, 'li', 'app-row');
         row.dataset.kind = kind;
         row.appendChild(this.drawn(root, 'span', 'app-row-label', label));
-        row.appendChild(this.drawn(root, 'span', 'app-row-value', value));
+
+        const detail = href ? this.createAddress(root, href) : this.createElement(root, 'span');
+        detail.classList.add('app-row-value');
+        detail.dataset.text = value;
+        if (href) detail.setAttribute('tabindex', '-1');
+        row.appendChild(detail);
         rows.appendChild(row);
       });
       container.appendChild(rows);
@@ -114,17 +129,28 @@ export class SourceRenderer extends BaseRenderer {
 
     const element =
       token.element === 'a'
-        ? this.createLink(root, token.href, token.text)
+        ? this.createAddress(root, token.href, token.text)
         : this.createElement(root, token.element || 'span');
     element.classList.add('tok', `tok-${token.kind}`);
     element.textContent = token.text;
     return element;
   }
 
+  /** A link to an address: a web page opens in a tab of its own; a mail or a call does not. */
+  createAddress(root, href, text = '') {
+    if (/^https?:/i.test(href)) return this.createLink(root, href, text);
+
+    const link = this.createElement(root, 'a');
+    link.href = href;
+    link.textContent = text;
+    return link;
+  }
+
   /** An element whose words the stylesheet draws from `data-text`. */
-  drawn(root, tag, className, text) {
+  drawn(root, tag, className, text, hidden = false) {
     const element = this.createElement(root, tag, className);
     element.dataset.text = text;
+    if (hidden) element.setAttribute('aria-hidden', 'true');
     return element;
   }
 }

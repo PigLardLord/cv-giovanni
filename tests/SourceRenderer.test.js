@@ -5,12 +5,15 @@ const labels = {
   'source.marks.profile': 'Profile',
   'source.marks.contact': 'Contact',
   'source.card.mail': 'mail',
+  'source.card.mailName': 'Email {{value}}',
   'cv:contacts.email': 'Email',
   'cv:sections.skills': 'Core Technologies',
   'cv:sections.experience': 'Professional Experience',
   'cv:sections.languages': 'Languages'
 };
-const i18n = { t: (key) => labels[key] ?? key };
+const i18n = {
+  t: (key, options = {}) => (labels[key] ?? key).replace('{{value}}', options.value ?? '')
+};
 
 const profile = {
   name: 'Ada Lovelace',
@@ -66,18 +69,27 @@ describe('SourceRenderer', () => {
     expect(code().textContent).not.toMatch(/\blet\b|struct|MARK|"|title:/);
   });
 
-  test('keeps the document outline: the name, the sections and the roles are headings', () => {
+  test('copies a line of names as a list, and a language as a name and its level', () => {
     render();
 
+    const lines = [...code().querySelectorAll('.source-line')].map((line) => line.textContent);
+    expect(lines).toContain('Swift, SwiftUI');
+    expect(lines).toContain('Italian: Native');
+    expect(lines).toContain('GitHub, github.com/ada');
+  });
+
+  test('keeps the document outline: the name first, then the sections and the roles', () => {
+    render();
+
+    expect(code().querySelector('h1, h2, h3').tagName).toBe('H1');
     expect(code().querySelector('h1').textContent).toBe('Ada Lovelace');
     expect(
       [...code().querySelectorAll('h2')].map((heading) => [heading.id, heading.textContent])
     ).toEqual([
-      ['source-profile', 'Profile'],
-      ['source-contact', 'Contact'],
-      ['source-skills', 'Core Technologies'],
       ['source-experience', 'Professional Experience'],
-      ['source-languages', 'Languages']
+      ['source-skills', 'Core Technologies'],
+      ['source-languages', 'Languages'],
+      ['source-contact', 'Contact']
     ]);
     expect([...code().querySelectorAll('h3')].map((heading) => heading.textContent)).toEqual([
       'Mobile Engineer'
@@ -108,13 +120,20 @@ describe('SourceRenderer', () => {
     expect(numbers.every((number) => number.textContent === '')).toBe(true);
   });
 
-  test('keeps a link followable, and opens it without handing over the page', () => {
+  test('keeps a profile link followable, and opens it without handing over the page', () => {
     render();
 
-    const link = code().querySelector('a');
+    const link = code().querySelector('a[href^="https://github.com"]');
     expect(link.textContent).toBe('github.com/ada');
-    expect(link.getAttribute('href')).toBe('https://github.com/ada');
     expect(link.rel).toBe('noopener noreferrer');
+  });
+
+  test('makes the email address a link that writes a mail', () => {
+    render();
+
+    const mail = code().querySelector('a[href="mailto:ada@example.com"]');
+    expect(mail.textContent).toBe('ada@example.com');
+    expect(mail.hasAttribute('target')).toBe(false);
   });
 
   test('fills the navigator with a link to every section it wrote', () => {
@@ -126,49 +145,71 @@ describe('SourceRenderer', () => {
         link.textContent
       ])
     ).toEqual([
-      ['#source-profile', 'Profile'],
-      ['#source-contact', 'Contact'],
-      ['#source-skills', 'Core Technologies'],
       ['#source-experience', 'Professional Experience'],
-      ['#source-languages', 'Languages']
+      ['#source-skills', 'Core Technologies'],
+      ['#source-languages', 'Languages'],
+      ['#source-contact', 'Contact']
     ]);
   });
 
-  test('names the file wherever the editor shows it', () => {
+  test('draws the file name wherever the editor shows it, so a selection starts at the CV', () => {
     render();
 
-    expect(
-      [...document.querySelectorAll('[data-source-file]')].map((slot) => slot.textContent)
-    ).toEqual(['AdaLovelace.swift', 'AdaLovelace.swift']);
+    const slots = [...document.querySelectorAll('[data-source-file]')];
+    expect(slots.map((slot) => slot.dataset.text)).toEqual([
+      'AdaLovelace.swift',
+      'AdaLovelace.swift'
+    ]);
+    expect(slots.every((slot) => slot.textContent === '')).toBe(true);
   });
 
-  test('draws the preview as a contact card nobody selects or hears twice', () => {
+  test('draws the card as a picture, with actions that are real links', () => {
     render();
 
-    // The card repeats the name, the role and the address the file already holds as text, so it
-    // is a picture of an app: hidden from assistive technology, and every word drawn from
-    // `data-text` rather than written into the document.
+    // The card repeats the name, the role and the addresses the file already holds as text, so
+    // its words are drawn from `data-text` and nobody hears them twice. What looks like a button
+    // is one: each action is a link with a name of its own, outside anything `aria-hidden`.
     const card = document.getElementById('source-card');
-    expect(card.getAttribute('aria-hidden')).toBe('true');
+    expect(card.hasAttribute('aria-hidden')).toBe(false);
     expect(card.textContent).toBe('');
-    expect(card.querySelector('.app-name').dataset.text).toBe('Ada Lovelace');
+
+    const name = card.querySelector('.app-name');
+    expect([name.dataset.text, name.getAttribute('aria-hidden')]).toEqual(['Ada Lovelace', 'true']);
     expect(card.querySelector('.app-title').dataset.text).toBe('Senior iOS Engineer');
+
     expect(
       [...card.querySelectorAll('.app-action')].map((action) => [
+        action.tagName,
+        action.getAttribute('href'),
+        action.getAttribute('aria-label'),
         action.dataset.icon,
-        action.dataset.text
+        action.dataset.text,
+        action.closest('[aria-hidden]')
       ])
     ).toEqual([
-      ['mail', 'mail'],
-      ['link', 'GitHub']
+      ['A', 'mailto:ada@example.com', 'Email ada@example.com', 'mail', 'mail', null],
+      ['A', 'https://github.com/ada', 'GitHub', 'link', 'GitHub', null]
     ]);
+  });
+
+  test('keeps the card’s details tappable without reading them out a second time', () => {
+    render();
+
+    const rows = document.querySelector('#source-card .app-rows');
+    expect(rows.getAttribute('aria-hidden')).toBe('true');
     expect(
-      [...card.querySelectorAll('.app-row')].map((row) => [
-        row.dataset.kind,
-        row.querySelector('.app-row-label').dataset.text,
-        row.querySelector('.app-row-value').dataset.text
-      ])
-    ).toEqual([['email', 'Email', 'ada@example.com']]);
+      [...rows.querySelectorAll('.app-row')].map((row) => {
+        const value = row.querySelector('.app-row-value');
+        return [
+          row.dataset.kind,
+          row.querySelector('.app-row-label').dataset.text,
+          value.tagName,
+          value.getAttribute('href'),
+          value.getAttribute('tabindex'),
+          value.dataset.text
+        ];
+      })
+    ).toEqual([['email', 'Email', 'A', 'mailto:ada@example.com', '-1', 'ada@example.com']]);
   });
 
   test('renders again without writing the file or the card twice', () => {
@@ -177,7 +218,7 @@ describe('SourceRenderer', () => {
     render();
 
     expect(code().querySelectorAll('.source-line')).toHaveLength(once);
-    expect(document.querySelectorAll('#source-outline li')).toHaveLength(5);
+    expect(document.querySelectorAll('#source-outline li')).toHaveLength(4);
     expect(document.querySelectorAll('#source-card .app-name')).toHaveLength(1);
   });
 

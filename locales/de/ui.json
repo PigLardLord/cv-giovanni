@@ -15,7 +15,13 @@
     "preview": "Vorschau",
     "device": "iPhone",
     "marks": { "profile": "Profil", "contact": "Kontakt" },
-    "card": { "call": "anrufen", "mail": "E-Mail", "location": "Standort" }
+    "card": {
+      "call": "anrufen",
+      "mail": "E-Mail",
+      "callName": "{{value}} anrufen",
+      "mailName": "E-Mail an {{value}}",
+      "location": "Standort"
+    }
   },
   "errors": {
     "loadingTitle": "Lebenslauf konnte nicht geladen werden",

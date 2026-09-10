@@ -197,6 +197,12 @@
     gap: 8px;
   }
 
+  /* The file's name is chrome, so it is drawn rather than written: a selection of the page starts
+     at the CV, not at a tab. */
+  body[data-layout='nerd'] [data-source-file]::after {
+    content: attr(data-text);
+  }
+
   /* --- The source ----------------------------------------------------------------------------- */
   /* One element per line. The first row of a line starts at its depth; the rows it wraps onto hang
      one indent further in, the way an editor with line wrapping sets a long string, so a wrapped
@@ -277,6 +283,10 @@
     height: var(--x-tabs);
     margin: 0;
     padding: 0 16px;
+  }
+
+  body[data-layout='nerd'] .source-preview-bar span::before {
+    content: attr(data-text);
   }
 
   /* A phone at a phone's proportions. Its padding and radii follow its height, so a shorter window
@@ -385,7 +395,13 @@
     list-style: none;
   }
 
+  body[data-layout='nerd'] .app-actions li {
+    display: flex;
+  }
+
+  /* An action is a link: a tap on "call" calls. */
   body[data-layout='nerd'] .app-action {
+    flex: 1 1 auto;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -454,7 +470,37 @@
   }
 }
 
-/* Nerd Mode at 390px: one column. The code keeps its line numbers and loses width everywhere else —
+/* Nerd Mode below 1000px: one column. Beside a 320px phone the file had thirty characters a row at
+   800px, so the phone moves above the file, and the file's rows stop at a readable measure instead
+   of running the width of a tablet. The phone moves by `order`, which leaves the document order —
+   and a screen reader's — with the file first. */
+@media screen and (max-width: 1000px) {
+  body[data-layout='nerd'] {
+    --x-phone: clamp(300px, 50vh, 440px);
+  }
+
+  body[data-layout='nerd'] .source-view {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body[data-layout='nerd'] .source-preview {
+    order: -1;
+    position: static;
+    height: auto;
+    overflow: visible;
+    padding: 26px 0 30px;
+  }
+
+  body[data-layout='nerd'] .source-preview-bar {
+    display: none;
+  }
+
+  body[data-layout='nerd'] .source-code {
+    max-width: 100ch;
+  }
+}
+
+/* Nerd Mode at 390px. The code keeps its line numbers and loses width everywhere else —
    a two-character indent and a narrower gutter — so an achievement three levels deep still gets
    forty characters a row. The phone follows the window's height and stops at 340px: at a fixed
    404px it pushed the name below the first screen of a 667px phone. */
@@ -482,24 +528,6 @@
   body[data-layout='nerd'] .layout-switcher a {
     flex: 1 1 0;
     padding: 7px 4px;
-  }
-
-  /* The phone comes first, as the portrait did before. It moves by `order`, which leaves the
-     document order — and a screen reader's — with the file first. */
-  body[data-layout='nerd'] .source-view {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  body[data-layout='nerd'] .source-preview {
-    order: -1;
-    position: static;
-    height: auto;
-    overflow: visible;
-    padding: 26px 0 30px;
-  }
-
-  body[data-layout='nerd'] .source-preview-bar {
-    display: none;
   }
 
   body[data-layout='nerd'] .source-tabs {
