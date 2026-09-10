@@ -77,10 +77,12 @@ export class PdfLayout {
     const languages = model.languages.map((item) => ({
       text: [{ text: `${item.name}: `, bold: true }, item.level], margin: [0, 0, 0, 6]
     }));
+    // Without a description, the spacing moves onto the name line instead of an empty paragraph.
     const certifications = model.certifications.map((item) => ({ stack: [
       { text: `${item.name} — ${item.issuer} (${item.year})`, bold: true, color: theme.ink,
-        ...(item.url ? { link: item.url } : {}) },
-      { text: item.description, margin: [0, 3, 0, 6] }
+        ...(item.url ? { link: item.url } : {}),
+        ...(item.description ? {} : { margin: [0, 0, 0, 6] }) },
+      ...(item.description ? [{ text: item.description, margin: [0, 3, 0, 6] }] : [])
     ] }));
     // The address, not the platform name. A PDF link annotation carries the URL but the text
     // layer carries only what was drawn, so "GitHub" over a hyperlink extracts as "GitHub" and
