@@ -34,25 +34,42 @@ roadmap*.
 
 ## Skills presentation
 
-The skills section must give a recruiter an immediate overview without turning an unanchored self-rating into the main evidence of competence.
+The skills section must give a recruiter an immediate overview without turning an unanchored
+self-rating into the main evidence of competence.
 
 ### Evidence reviewed
 
-- Nielsen Norman Group explicitly identifies bars and dot ratings on resumes as arbitrary, subjective, context-free, and space-inefficient. It recommends showing where a skill was used and what it achieved: https://www.nngroup.com/articles/resumes-ux-career-changers/
-- A randomized experiment with 579 German HR managers found that skill signals can affect interview invitations, but their value depends on relevance, expectedness, and credibility. This supports presenting credible signals rather than undifferentiated keyword lists: https://doi.org/10.1016/j.euroecorev.2020.103374
-- Europass uses CEFR (A1-C2) and behavioral descriptors for language self-assessment. This is an appropriate standardized scale for languages: https://europass.europa.eu/en/how-self-assess-your-language-skills
-- Oracle Taleo documents plain-text resume parsing. Because graphical meaning may not survive parsing, every skill and level must remain available as real text: https://docs.oracle.com/en/cloud/saas/taleo-enterprise/24c/otcug/implementing-career-section.pdf
+- Nielsen Norman Group explicitly identifies bars and dot ratings on resumes as arbitrary,
+  subjective, context-free, and space-inefficient. It recommends showing where a skill was used
+  and what it achieved: https://www.nngroup.com/articles/resumes-ux-career-changers/
+- A randomized experiment with 579 German HR managers found that skill signals can affect
+  interview invitations, but their value depends on relevance, expectedness, and credibility. This
+  supports presenting credible signals rather than undifferentiated keyword lists:
+  https://doi.org/10.1016/j.euroecorev.2020.103374
+- Europass uses CEFR (A1-C2) and behavioral descriptors for language self-assessment. This is an
+  appropriate standardized scale for languages:
+  https://europass.europa.eu/en/how-self-assess-your-language-skills
+- Oracle Taleo documents plain-text resume parsing. Because graphical meaning may not survive
+  parsing, every skill and level must remain available as real text:
+  https://docs.oracle.com/en/cloud/saas/taleo-enterprise/24c/otcug/implementing-career-section.pdf
 
 ### Product decision
 
 - Preserve fast visual scanning and a compact, prioritized skills section.
-- Dots may be offered as an optional visual reinforcement, but never as the only expression of proficiency.
-- Every displayed rating must have a textual equivalent in HTML, print, PDF, accessibility output, and extracted text.
-- Do not use unexplained `3/5`, percentages, or generic `beginner-to-expert` graphics. Define a small anchored scale with observable meanings, for example `Core`, `Proficient`, and `Familiar`.
+- Dots may be offered as an optional visual reinforcement, but never as the only expression of
+  proficiency.
+- Every displayed rating must have a textual equivalent in HTML, print, PDF, accessibility output,
+  and extracted text.
+- Do not use unexplained `3/5`, percentages, or generic `beginner-to-expert` graphics. Define a
+  small anchored scale with observable meanings, for example `Core`, `Proficient`, and `Familiar`.
 - Use CEFR labels for languages; do not map language ability to generic skill dots.
-- Keep the list selective and role-specific. A level should be supported by evidence in experience achievements, projects, duration, scope, or outcomes.
-- Keep ATS-safe skill names as plain text and ensure the meaningful reading order survives copy/paste and PDF text extraction.
-- Treat the skills visualization as a layout variant that can be compared with a compact grouped-text variant; do not claim either variant improves hiring outcomes without measured evidence.
+- Keep the list selective and role-specific. A level should be supported by evidence in experience
+  achievements, projects, duration, scope, or outcomes.
+- Keep ATS-safe skill names as plain text and ensure the meaningful reading order survives
+  copy/paste and PDF text extraction.
+- Treat the skills visualization as a layout variant that can be compared with a compact
+  grouped-text variant; do not claim either variant improves hiring outcomes without measured
+  evidence.
 
 ### Acceptance criteria
 
@@ -140,6 +157,31 @@ A drafted ticket carries:
 
 Filing or reopening a ticket changes the tracker, so it sits behind the loop's ordinary
 `gated` autonomy: propose the ticket, show it, and let a person say go.
+
+### A problem you found is a ticket, not a sentence
+
+Whatever you were doing when you found it. This is the rule the disposition table above already
+implies and that this project kept breaking: six real defects — unrendered career figures, a
+measure past the WCAG ceiling, a hardcoded name in the naming rule, a section bypassing the
+domain model, a letter dated from a full address, and a board setting every commit contradicts —
+were each found, stated in a chat message, and lost when the session ended. They are issues 32 to
+38 now, and they should have been issues the day they were seen.
+
+So:
+
+- **File it when you find it**, before deciding whether it is worth doing. Filing costs a minute
+  and is reversible; a finding that lives in a message is gone.
+- **Do not widen the branch to fix it.** The disposition table decides: in scope and cheap, fix it
+  here; anything else is a new ticket. A two-file change that becomes twelve is a change nobody
+  reviews.
+- **Write what happens, where, and quoted** — the same bar the reviewer is held to. A ticket
+  without evidence is an opinion with a number.
+- **Say what you did wrong, when it was yours.** Half of 32–38 came from this loop's own work.
+  A ticket that hides its origin is a ticket somebody re-litigates.
+
+The finished work is then judged by an **external auditor**, not by the loop that produced it.
+That is the point of filing rather than fixing quietly: an auditor can read a ticket and a diff,
+and cannot read a message that was never written down.
 
 ### Who closes a ticket
 

@@ -7,8 +7,13 @@ import { ErrorRenderer } from '../renderers/ErrorRenderer.js';
  * Follows Single Responsibility Principle (SRP) and Dependency Inversion Principle (DIP)
  */
 export class CVApplication {
-  constructor(dataLoader = new DataLoader(), rendererContainer = new RendererContainer(),
-              documentLocalizer = null, i18n = null, errorRenderer = new ErrorRenderer()) {
+  constructor(
+    dataLoader = new DataLoader(),
+    rendererContainer = new RendererContainer(),
+    documentLocalizer = null,
+    i18n = null,
+    errorRenderer = new ErrorRenderer()
+  ) {
     this.dataLoader = dataLoader;
     this.rendererContainer = rendererContainer;
     this.documentLocalizer = documentLocalizer;

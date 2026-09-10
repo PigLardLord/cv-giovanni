@@ -6,6 +6,7 @@ import { AtsTextParser } from '../core/AtsTextParser.js';
 import { RecoveryDiff } from '../core/RecoveryDiff.js';
 import { AtsScore } from '../core/AtsScore.js';
 import { AtsReport } from '../core/AtsReport.js';
+import { AdvertMatcher } from '../core/AdvertMatcher.js';
 import { GenerationTarget } from '../core/GenerationTarget.js';
 
 /**
@@ -32,10 +33,25 @@ function cannotCheck(reason, hint) {
 }
 
 let document;
+let authored;
 try {
-  document = new CvDocument(JSON.parse(await readFile(new URL(target.dataPath, projectRoot))));
+  authored = JSON.parse(await readFile(new URL(target.dataPath, projectRoot)));
+  document = new CvDocument(authored);
 } catch (error) {
   cannotCheck(`cannot read ${target.dataPath}`, error.message);
+}
+
+// An advert that cannot be read is not the same as no advert: the first is a mistake to
+// report, the second a deliberate run without one. Silently treating them alike would let a
+// typo in a path look like a decision.
+const advertPath = process.argv.slice(2).find((argument) => argument.startsWith('--advert='))?.slice(9);
+let advertText = null;
+if (advertPath) {
+  try {
+    advertText = await readFile(advertPath, 'utf8');
+  } catch (error) {
+    cannotCheck(`cannot read the advert at ${advertPath}`, error.message);
+  }
 }
 
 try {
@@ -50,17 +66,43 @@ for (const directory of directories) {
   const url = new URL(`${directory}/`, projectRoot);
   const entries = await readdir(url).catch(() => []);
   files.push(...entries.filter((name) => name.endsWith('.pdf')).sort()
-    .map((name) => ({ artefact: `${directory}/${name}`, path: new URL(name, url).pathname })));
+    .map((name) => ({
+      artefact: `${directory}/${name}`,
+      path: new URL(name, url).pathname,
+      // A cover letter is not a CV and must not be parsed as one: it has no headings, no
+      // chronology and no skills, so this audit would report a failed segmentation and trip
+      // two floors on a perfectly good letter. A false failure is worse than no check — it
+      // teaches whoever sees it to ignore the exit code.
+      isCover: /-cover(-|\.)/.test(name)
+    })));
 }
 
-if (!files.length) {
+if (!files.filter((file) => !file.isCover).length) {
   cannotCheck(`no PDFs under ${target.outDir}`, 'Run `npm run build:pdf` first, with the same --profile.');
 }
 
 const results = [];
+const letters = [];
 const seen = new Map();
-for (const { artefact, path } of files) {
+let advert = null;
+for (const { artefact, path, isCover } of files) {
   const text = execFileSync('pdftotext', [path, '-'], { encoding: 'utf8' });
+  if (isCover) {
+    // The letter's own question, and the only one worth asking of it here: does the reader
+    // it names survive extraction?
+    // Read from the authored JSON, not from CvDocument: that model is the CV's and does not
+    // carry a letter, so `document.letter` was always undefined and `[].every()` was always
+    // true — a check that could not fail, found by breaking the thing it was meant to catch.
+    const wanted = [authored.letter?.recipient?.company, authored.letter?.subject].filter(Boolean);
+    letters.push({
+      artefact,
+      wanted,
+      // Nothing to compare against is not a pass. A cover letter beside a profile that
+      // carries none is a mismatch worth saying out loud.
+      recovered: wanted.length ? wanted.every((term) => text.includes(term)) : null
+    });
+    continue;
+  }
   const fingerprint = createHash('sha256').update(text).digest('hex');
 
   // The colour and monochrome variants are textually identical and A4 and LETTER are not,
@@ -74,6 +116,14 @@ for (const { artefact, path } of files) {
 
   const recovered = AtsTextParser.parse(text);
   const diff = RecoveryDiff.diff(document, recovered);
+  if (advertText && !advert) {
+    const extracted = AdvertMatcher.extractTerms(advertText);
+    advert = {
+      ...AdvertMatcher.match(extracted.terms, recovered, document),
+      language: extracted.language
+    };
+    advert.opening = AdvertMatcher.opening(advert.terms, text);
+  }
 
   // The same file read the way a better extractor reads it. Where the two disagree is where
   // a column was serialised — reported, not scored, until a fixture pins down what a bad
@@ -86,20 +136,25 @@ for (const { artefact, path } of files) {
 
 // The worst artefact, not the first. You send one of these, and the headline should be the
 // one you risk rather than the one that happens to be alphabetically first.
-const scores = results.map((entry) => AtsScore.compose(entry.diff));
+const scores = results.map((entry) => AtsScore.compose(entry.diff, advert));
 const score = scores.reduce((worst, candidate) => (candidate.points < worst.points ? candidate : worst));
 
 // The floors: not the score, which never gates anything, but the four failures that mean the
 // parsed record is unusable however good the rest looks.
-const floors = results.flatMap(({ artefact, diff }) => [
-  diff.segmentation !== 'ok' && `${artefact}: the document did not segment`,
-  diff.identity.email === 'lost' && `${artefact}: the email address was not recovered`,
-  diff.experience.some((role) => !role.tripleAdjacent) && `${artefact}: a role lost its title, employer or period`,
-  !diff.roleOrderMonotonic && `${artefact}: the chronology does not run one way`
-].filter(Boolean));
+const floors = letters.filter((entry) => entry.recovered !== true)
+  .map((entry) => (entry.recovered === null
+    ? `${entry.artefact}: a cover letter was generated but the profile carries no letter to check it against`
+    : `${entry.artefact}: the letter's recipient or subject did not survive extraction`))
+  .concat(results.flatMap(({ artefact, diff }) => [
+    diff.segmentation !== 'ok' && `${artefact}: the document did not segment`,
+    diff.identity.email === 'lost' && `${artefact}: the email address was not recovered`,
+    diff.experience.some((role) => !role.tripleAdjacent)
+      && `${artefact}: a role lost its title, employer or period`,
+    !diff.roleOrderMonotonic && `${artefact}: the chronology does not run one way`
+  ].filter(Boolean)));
 
 const report = [
-  AtsReport.render(score, results),
+  AtsReport.render(score, results, advert),
   '',
   '## Distinct text streams',
   '',
@@ -107,6 +162,10 @@ const report = [
   '',
   ...[...seen.entries()].map(([fingerprint, group]) =>
     `- \`${fingerprint.slice(0, 12)}\` — ${group.join(', ')}`),
+  '',
+  ...(letters.length ? ['', '## Cover letters', '',
+    ...letters.map((entry) => `- ${entry.artefact} — recipient and subject ${entry.recovered === null ? 'COULD NOT BE CHECKED' : (entry.recovered ? 'survive' : 'DO NOT survive')} extraction`)]
+    : []),
   '',
   results.some((entry) => entry.divergence)
     ? 'A layout-aware read of at least one artefact recovers a different number of roles. That is where a column is being serialised; reported, not scored.'

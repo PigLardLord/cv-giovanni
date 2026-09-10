@@ -6,6 +6,7 @@ import { PdfGenerationService } from '../core/PdfGenerationService.js';
 import { PdfMakeRenderer } from '../adapters/PdfMakeRenderer.js';
 import { NodeDirectoryWriter } from '../adapters/NodeDirectoryWriter.js';
 import { GenerationTarget } from '../core/GenerationTarget.js';
+import { LetterExporter } from '../core/LetterExporter.js';
 
 const projectRoot = new URL('../', import.meta.url);
 const target = GenerationTarget.fromArguments(process.argv.slice(2));
@@ -45,6 +46,7 @@ pdfMake.fonts = {
   }
 };
 const composer = new PdfExporter(null, i18n);
+const letterComposer = new LetterExporter(null, i18n);
 const renderer = new PdfMakeRenderer(pdfMake);
 const releaseService = new PdfGenerationService({
   composer,
@@ -56,6 +58,15 @@ const qaService = new PdfGenerationService({
   renderer,
   writer: new NodeDirectoryWriter(new URL(`${target.qaDir}/`, projectRoot))
 });
+// The letter rides the same service: two documents, one pipeline, because a second copy of
+// generate-and-write would be the first with one word changed.
+const letterRelease = new PdfGenerationService({
+  composer: letterComposer, renderer, writer: new NodeDirectoryWriter(new URL(`${target.outDir}/`, projectRoot))
+});
+const letterQa = new PdfGenerationService({
+  composer: letterComposer, renderer, writer: new NodeDirectoryWriter(new URL(`${target.qaDir}/`, projectRoot))
+});
+const hasLetter = LetterExporter.has(data);
 
 // What the page is allowed to offer. The naming rule can name a file for any combination;
 // only this loop knows which ones exist, so it says so rather than leaving the page to guess.
@@ -65,10 +76,18 @@ for (const layout of layouts) {
   const result = await releaseService.generate(data, { profile, locale, layout });
   released.push(result.filename);
   console.log(`${target.outDir}/${result.filename}`);
+  if (hasLetter) {
+    const letter = await letterRelease.generate(data, { profile, locale, layout });
+    console.log(`${target.outDir}/${letter.filename}`);
+  }
   for (const pageSize of ['A4', 'LETTER']) {
     for (const colorMode of ['color', 'monochrome']) {
       const variant = await qaService.generate(data, { profile, locale, layout, pageSize, colorMode, variant: true });
       console.log(`${target.qaDir}/${variant.filename}`);
+      if (hasLetter) {
+        const letter = await letterQa.generate(data, { profile, locale, layout, pageSize, colorMode, variant: true });
+        console.log(`${target.qaDir}/${letter.filename}`);
+      }
     }
   }
 }

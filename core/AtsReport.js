@@ -13,9 +13,10 @@ export class AtsReport {
   /**
    * @param {Object} score - An AtsScore result
    * @param {Array<{artefact: string, diff: Object}>} results - One entry per artefact
+   * @param {Object|null} [advert] - A matched advert, when one was given
    * @returns {string} Markdown
    */
-  static render(score, results) {
+  static render(score, results, advert = null) {
     return [
       '# Recoverability',
       '',
@@ -31,6 +32,8 @@ export class AtsReport {
       '',
       ...AtsReport.findings(results),
       '',
+      ...AtsReport.advertSection(advert),
+      '',
       '## How the number is composed',
       '',
       '| Band | Weight | What it measures |',
@@ -42,6 +45,51 @@ export class AtsReport {
       '',
       'Regenerate with `npm run audit:ats`.'
     ].join('\n');
+  }
+
+  /**
+   * The gap table, and the distinction that is worth more than the number.
+   *
+   * Two columns, because the two kinds of gap belong to different people. A term the CV
+   * writes that the artefact lost is a **layout defect** — the copy is right and the renderer
+   * is wrong. A term the CV never wrote is a **content gap**, and it is a human's decision.
+   *
+   * An absent term is stated and nothing more. The tool never suggests adding one: a term the
+   * experience does not support is a fabrication, and a helpful suggestion is how a fabricated
+   * CV gets built one line at a time.
+   */
+  static advertSection(advert) {
+    if (!advert) {
+      return ['## The advert', '', 'No advert was given, so nothing was matched against one.'];
+    }
+
+    const kind = (term) => {
+      if (term.evidence !== 'absent') return term.evidence === 'inProse' ? 'evidenced' : 'listed only';
+      return term.authored ? 'LAYOUT DEFECT — written, not recovered' : 'content gap — not claimed';
+    };
+
+    const lines = ['## The advert', ''];
+    if (advert.language) {
+      lines.push(`Written in \`${advert.language.language}\`.`, '');
+    }
+    lines.push('| Term | Required | Where the CV answers | Reading |', '|---|---|---|---|');
+    for (const term of advert.terms) {
+      lines.push(`| ${term.term} | ${term.required ? 'yes' : ''} | ${term.where || '—'} | ${kind(term)} |`);
+    }
+
+    const defects = advert.terms.filter((term) => term.evidence === 'absent' && term.authored);
+    const gaps = advert.terms.filter((term) => term.evidence === 'absent' && term.authored === false);
+    lines.push('',
+      `**${defects.length} layout defects** — the CV claims these and the artefact lost them. Fix the renderer, not the copy.`,
+      `**${gaps.length} content gaps** — the CV does not claim these. Whether any of them should be claimed is a decision for a person, and this tool does not make it.`);
+
+    if (advert.opening) {
+      lines.push('',
+        advert.opening.missing.length
+          ? `The opening fifteen lines establish ${advert.opening.present.length} of ${advert.opening.present.length + advert.opening.missing.length} required terms. A reader deciding whether to continue has not reached the skills section.`
+          : 'Every required term appears in the opening fifteen lines.');
+    }
+    return lines;
   }
 
   static unscoredNote(score) {

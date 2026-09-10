@@ -59,9 +59,12 @@ export class PdfLayout {
           job.summary ? { text: this.unbreakableText(job.summary), margin: [0, 3, 0, 3] } : null
         ].filter(Boolean) },
         ...(job.highlights?.length
-          ? [{ ul: job.highlights.map((line) => (
-               { text: this.unbreakableText(line), unbreakable: true })),
-               margin: [12, 0, 0, 0] }]
+          ? [{
+            ul: job.highlights.map((line) => ({
+              text: this.unbreakableText(line), unbreakable: true
+            })),
+            margin: [12, 0, 0, 0]
+          }]
           : [])
       ],
       margin: [0, 0, 0, 6]

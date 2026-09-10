@@ -32,8 +32,10 @@ describe('a clean document, as the artefact actually extracts', () => {
 
   // The CV is full of numbers that a digit-counting regex would take for a telephone.
   test('no measurement is mistaken for a phone number', () => {
-    for (const line of ['Expanded the test suite to ~4,800 tests', 'from 15% to 82%',
-      'cutting CI runtime by 75% (32 to 8 minutes)', 'a mobile team of 3–7 engineers']) {
+    for (const line of [
+      'Expanded the test suite to ~4,800 tests', 'from 15% to 82%',
+      'cutting CI runtime by 75% (32 to 8 minutes)', 'a mobile team of 3–7 engineers'
+    ]) {
       expect(AtsTextParser.phone([line])).toBeNull();
     }
   });
