@@ -265,6 +265,36 @@ reading the previous build, and a renderer change that was invisible on screen w
 plainly present in the printed PDF. Use `npm run serve` — it sends `no-store` — and do not
 trust a local page served any other way.
 
+## Formatting belongs to Prettier
+
+Nobody lays code out by hand here. Prettier does, for every file type it understands, and
+`npm test` fails on a file it would change.
+
+This was decided after the review on pull request #41 found ten indentation defects in ten files by
+eye — a bare block left behind by an edit, a loop header wrapped to the depth of its body, a
+property aligned with the wrong object — and #42 found that nothing in the repository could have
+caught them. An indentation test would have policed one rule; a formatter removes the decision.
+
+- **Prettier 3.9.6, pinned exactly.** A floating version would reformat the tree on a minor release,
+  in a commit nobody meant to make.
+- **The configuration is the style the code already had,** not Prettier's defaults: two spaces,
+  single quotes, no trailing commas, 100 columns. `proseWrap` is `preserve`, so Markdown keeps its
+  line breaks.
+- **`.prettierignore` says what is not formatted, and why:** vendored code and the lockfile, the
+  files the scripts write (`generated/` and the three audit reports), the harness's own files, and
+  test fixtures whose exact bytes are what the tests check.
+- **`.editorconfig`** carries the same indentation to editors that do not run Prettier.
+- **`npm run format`** writes, **`npm run format:check`** checks, and
+  `tests/SourceIsFormatted.test.js` runs the check inside the suite — and proves it can fail on a
+  mis-indented file.
+
+The adoption reformatted 86 files and changed nothing else, which was measured rather than assumed:
+identical syntax trees for every JavaScript file, identical JSON values and Markdown words,
+pixel-identical screen and print renders of all three layouts, and identical PDF text and audit
+reports built from the committed profile. That commit is listed in `.git-blame-ignore-revs`, so
+`git blame` shows who wrote a line rather than who ran the formatter; locally that takes
+`git config blame.ignoreRevsFile .git-blame-ignore-revs`.
+
 ## Known limitation — the PDF carries no structure tree
 
 The generated PDFs report `Tagged: no`, and that is deliberate.

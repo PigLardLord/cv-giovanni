@@ -22,6 +22,11 @@ This is a static CV/resume website built with vanilla HTML, CSS, and JavaScript.
   heuristic caching has hidden real changes more than once)
 - **Open CV**: Open `index.html` in a browser (no build step required)
 
+### Formatting
+
+- **Format everything**: `npm run format` (Prettier — `npm test` fails on any file it would change)
+- **Check only**: `npm run format:check`
+
 ### Artefacts
 
 - **Generate the PDFs**: `npm run verify:pdf` (build, then audit the twelve variants)
