@@ -11,16 +11,19 @@ This is a static CV/resume website built with vanilla HTML, CSS, and JavaScript.
 ## Commands
 
 ### Testing
+
 - **Run tests**: `npm test`
 - **Run single test**: `npm test -- --testNamePattern="test name"`
 
 ### Development
+
 - **Install dependencies**: `npm install`
 - **Serve the site**: `npm run serve` (sends `no-store`; never `python -m http.server` — its
   heuristic caching has hidden real changes more than once)
 - **Open CV**: Open `index.html` in a browser (no build step required)
 
 ### Artefacts
+
 - **Generate the PDFs**: `npm run verify:pdf` (build, then audit the twelve variants)
 - **Audit what the browser prints**: `npm run audit:print` (needs Chrome; `CHROME_PATH` overrides)
 
@@ -29,6 +32,7 @@ This is a static CV/resume website built with vanilla HTML, CSS, and JavaScript.
 Ports and adapters. `AGENTS.md` holds the product rules and the settled decisions; this is the map.
 
 ### Data flow
+
 A CV is `profile × locale × layout`. `config/cv-manifest.json` declares the supported combinations;
 `ProfileResolver` reads `?profile=` and refuses an unknown one rather than falling back. Content
 lives in `profiles/<profile>/<locale>.json`, labels in `locales/<lang>/`, and `domain/CvDocument.js`
@@ -39,6 +43,7 @@ while the PDF is composed from the model by `adapters/PdfLayout.js` and written 
 why there are three audits.
 
 ### Layers
+
 - `domain/` — the model, framework-free, no I/O.
 - `core/` — application services: `CVApplication`, `DataLoader`, `PdfExporter`, `ProfileResolver`,
   `I18nService`. No markup, no typography, no hex colours — `tests/CoreHasNoUI.test.js` enforces it.
@@ -49,12 +54,14 @@ why there are three audits.
 - `vendor/` — i18next and Inter, checked in so the page runs off the file tree with no install step.
 
 ### Testing Setup
+
 - Uses Jest with JSDOM for DOM testing
 - ES modules configuration with `node --experimental-vm-modules`
 - Test environment configured for DOM manipulation testing
 - Tests focus on verifying DOM content insertion and formatting
 
 ## Key Design Decisions
+
 - Pure vanilla JavaScript (no frameworks)
 - JSON-driven content for easy updates
 - Modular renderer functions for maintainability

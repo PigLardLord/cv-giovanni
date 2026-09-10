@@ -26,12 +26,14 @@ A modern, responsive CV/resume website built with vanilla JavaScript, featuring 
 ### Setup
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/PigLardLord/cv-giovanni.git
    cd cv-giovanni
    ```
 
 2. **Install dependencies** (for testing only)
+
    ```bash
    npm install
    ```
@@ -128,13 +130,13 @@ All renderers extend `BaseRenderer` which provides:
 export class ProfileRenderer extends BaseRenderer {
   render(root, data) {
     if (!this.validate(data)) return;
-    
+
     const element = this.getElement(root, 'profile');
     if (element) {
       element.textContent = data.profile || '';
     }
   }
-  
+
   validate(data) {
     return this.validateFields(data, ['profile']);
   }
@@ -324,4 +326,4 @@ Giovanni Trovato is an iOS Developer with over 7 years of experience in mobile a
 
 ---
 
-*Built with ❤️ using vanilla JavaScript and modern web standards*
+_Built with ❤️ using vanilla JavaScript and modern web standards_

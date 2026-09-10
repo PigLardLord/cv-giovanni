@@ -78,5 +78,10 @@ function text(value) {
 function lines(value) {
   if (Array.isArray(value)) return value.map(text).filter(Boolean);
   const single = text(value);
-  return single ? single.split(/\n{2,}/).map(text).filter(Boolean) : [];
+  return single
+    ? single
+        .split(/\n{2,}/)
+        .map(text)
+        .filter(Boolean)
+    : [];
 }

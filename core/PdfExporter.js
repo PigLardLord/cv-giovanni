@@ -14,14 +14,24 @@ export class PdfExporter {
     this.layout = dependencies.layout || new PdfLayout();
   }
 
-  filename({ profile = 'general', locale = 'en', layout = 'spotlight', pageSize = 'A4', colorMode = 'color', variant = false } = {}) {
+  filename({
+    profile = 'general',
+    locale = 'en',
+    layout = 'spotlight',
+    pageSize = 'A4',
+    colorMode = 'color',
+    variant = false
+  } = {}) {
     const suffix = variant ? `-${pageSize.toLowerCase()}-${colorMode}` : '';
     return `giovanni-trovato-${profile}-${locale}-${layout}${suffix}.pdf`;
   }
 
   /** The name the recruiter's inbox receives: the person and the role, no build vocabulary. */
   downloadName({ name = '', title = '' } = {}) {
-    const words = `${name} ${title} CV`.replace(/[^A-Za-z0-9 ]+/g, ' ').trim().split(/\s+/);
+    const words = `${name} ${title} CV`
+      .replace(/[^A-Za-z0-9 ]+/g, ' ')
+      .trim()
+      .split(/\s+/);
     return `${words.join('-')}.pdf`;
   }
 

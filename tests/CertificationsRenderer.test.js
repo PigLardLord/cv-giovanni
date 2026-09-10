@@ -35,7 +35,7 @@ describe('CertificationsRenderer', () => {
 
     const certList = document.getElementById('certifications');
     const items = certList.querySelectorAll('li');
-    
+
     expect(items).toHaveLength(1);
     expect(items[0].innerHTML).toContain('<a href="https://aws.amazon.com/certification/"');
     expect(items[0].textContent).toContain('AWS Solutions Architect');
@@ -57,7 +57,7 @@ describe('CertificationsRenderer', () => {
 
     const certList = document.getElementById('certifications');
     const items = certList.querySelectorAll('li');
-    
+
     expect(items).toHaveLength(1);
     expect(items[0].innerHTML).toContain('<strong>Project Management</strong>');
     expect(items[0].innerHTML).not.toContain('<a href=');
@@ -68,7 +68,7 @@ describe('CertificationsRenderer', () => {
     expect(() => {
       renderer.render(document, {});
     }).not.toThrow();
-    
+
     expect(() => {
       renderer.render(document, { certifications: null });
     }).not.toThrow();

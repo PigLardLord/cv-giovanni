@@ -36,7 +36,14 @@ export class LetterExporter {
    * segmentation and trip two floors on a perfectly good letter. A false failure is worse
    * than no check, because it teaches whoever sees it to ignore the exit code.
    */
-  filename({ profile = 'general', locale = 'en', layout = 'spotlight', pageSize = 'A4', colorMode = 'color', variant = false } = {}) {
+  filename({
+    profile = 'general',
+    locale = 'en',
+    layout = 'spotlight',
+    pageSize = 'A4',
+    colorMode = 'color',
+    variant = false
+  } = {}) {
     const suffix = variant ? `-${pageSize.toLowerCase()}-${colorMode}` : '';
     return `giovanni-trovato-${profile}-${locale}-${layout}-cover${suffix}.pdf`;
   }
@@ -56,7 +63,12 @@ export class LetterExporter {
     const t = (key) => this.i18n?.t(key) || key;
 
     return this.layout.compose(letter, {
-      identity, format, theme, typography: this.designSystem.resolve(theme), t, locale
+      identity,
+      format,
+      theme,
+      typography: this.designSystem.resolve(theme),
+      t,
+      locale
     });
   }
 }

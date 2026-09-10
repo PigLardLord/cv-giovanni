@@ -47,12 +47,14 @@ export class LocalProfiles {
    * @returns {Array<{profile: string, locale: string, path: string}>} Entries
    */
   static entriesFrom(directories = []) {
-    return directories.flatMap(({ profile, files }) => files
-      .filter((file) => /^[a-z]{2}(-[A-Za-z]{2,4})?\.json$/.test(file))
-      .map((file) => ({
-        profile,
-        locale: file.replace(/\.json$/, ''),
-        path: `applications/${profile}/${file}`
-      })));
+    return directories.flatMap(({ profile, files }) =>
+      files
+        .filter((file) => /^[a-z]{2}(-[A-Za-z]{2,4})?\.json$/.test(file))
+        .map((file) => ({
+          profile,
+          locale: file.replace(/\.json$/, ''),
+          path: `applications/${profile}/${file}`
+        }))
+    );
   }
 }

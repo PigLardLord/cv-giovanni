@@ -511,7 +511,7 @@ section {
   page-break-before: avoid !important;
 }
 
-.job-entry:nth-child(n+3) {
+.job-entry:nth-child(n + 3) {
   page-break-before: auto !important;
 }
 
@@ -530,11 +530,17 @@ section {
    ============================================================================= */
 
 /* Ensure clean borders and text */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   page-break-after: avoid !important;
 }
 
-p, li {
+p,
+li {
   orphans: 2 !important;
   widows: 2 !important;
 }
@@ -868,7 +874,19 @@ body[data-layout='nerd'] .tag {
   grid-row: 1 / span 5 !important;
 }
 
-.education-section { grid-column: 2 !important; grid-row: 1 !important; }
-.languages-section { grid-column: 2 !important; grid-row: 2 !important; }
-.interests-section { grid-column: 2 !important; grid-row: 3 !important; }
-.certifications-section { grid-column: 2 !important; grid-row: 4 !important; }
+.education-section {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+}
+.languages-section {
+  grid-column: 2 !important;
+  grid-row: 2 !important;
+}
+.interests-section {
+  grid-column: 2 !important;
+  grid-row: 3 !important;
+}
+.certifications-section {
+  grid-column: 2 !important;
+  grid-row: 4 !important;
+}

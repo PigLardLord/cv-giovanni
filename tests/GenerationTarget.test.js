@@ -29,7 +29,10 @@ describe('GenerationTarget', () => {
   });
 
   test('an explicit output directory wins', () => {
-    const target = GenerationTarget.fromArguments(['--profile=applications/act-ai/en.json', '--out=/tmp/x']);
+    const target = GenerationTarget.fromArguments([
+      '--profile=applications/act-ai/en.json',
+      '--out=/tmp/x'
+    ]);
 
     expect(target.outDir).toBe('/tmp/x');
   });
@@ -45,8 +48,11 @@ describe('GenerationTarget', () => {
   // audited last. Auditing a tailored profile writes its report beside that profile.
   test('a report lands in docs/ only for the published CV', () => {
     expect(GenerationTarget.fromArguments([]).reportPath('PDF_AUDIT.md')).toBe('docs/PDF_AUDIT.md');
-    expect(GenerationTarget.fromArguments(['--profile=applications/act-ai/en.json'])
-      .reportPath('PDF_AUDIT.md')).toBe('applications/act-ai/out/PDF_AUDIT.md');
+    expect(
+      GenerationTarget.fromArguments(['--profile=applications/act-ai/en.json']).reportPath(
+        'PDF_AUDIT.md'
+      )
+    ).toBe('applications/act-ai/out/PDF_AUDIT.md');
   });
 
   // A path that does not name a profile and a locale would produce filenames nobody can

@@ -39,13 +39,16 @@ describe('ExperienceRenderer', () => {
     // canonical spelling finds it.
     const highlight = document.querySelector('.job-highlights li');
     expect(highlight.textContent).toBe('Built an offline-first architecture in Objective-C.');
-    expect([...highlight.querySelectorAll('.no-break')].map((held) => held.textContent))
-      .toEqual(['offline-first', 'Objective-C']);
+    expect([...highlight.querySelectorAll('.no-break')].map((held) => held.textContent)).toEqual([
+      'offline-first',
+      'Objective-C'
+    ]);
 
     const summary = document.querySelector('.job-summary');
     expect(summary.textContent).toBe('B2B sales-automation platform for field sales teams.');
-    expect([...summary.querySelectorAll('.no-break')].map((held) => held.textContent))
-      .toEqual(['sales-automation']);
+    expect([...summary.querySelectorAll('.no-break')].map((held) => held.textContent)).toEqual([
+      'sales-automation'
+    ]);
   });
 
   test('renders experience entries correctly', () => {
@@ -72,7 +75,7 @@ describe('ExperienceRenderer', () => {
 
     const experienceDiv = document.getElementById('experience');
     const jobEntries = experienceDiv.querySelectorAll('.job-entry');
-    
+
     expect(jobEntries).toHaveLength(2);
     expect(jobEntries[0].textContent).toContain('Senior Developer');
     expect(jobEntries[0].textContent).toContain('Tech Corp');
@@ -83,7 +86,7 @@ describe('ExperienceRenderer', () => {
     expect(() => {
       renderer.render(document, {});
     }).not.toThrow();
-    
+
     expect(() => {
       renderer.render(document, { relevant_experience: null });
     }).not.toThrow();
@@ -99,20 +102,22 @@ describe('ExperienceRenderer', () => {
 
   test('renders structured summaries and achievement bullets', () => {
     renderer.render(document, {
-      relevant_experience: [{
-        title: 'Senior Engineer',
-        company: 'Acme',
-        location: 'Berlin',
-        period: '2020–2026',
-        summary: 'Enterprise mobile platform.',
-        highlights: ['Improved test coverage.', 'Automated releases.']
-      }]
+      relevant_experience: [
+        {
+          title: 'Senior Engineer',
+          company: 'Acme',
+          location: 'Berlin',
+          period: '2020–2026',
+          summary: 'Enterprise mobile platform.',
+          highlights: ['Improved test coverage.', 'Automated releases.']
+        }
+      ]
     });
 
-    expect(document.querySelector('.job-summary').textContent)
-      .toBe('Enterprise mobile platform.');
-    expect([...document.querySelectorAll('.job-highlights li')].map((item) => item.textContent))
-      .toEqual(['Improved test coverage.', 'Automated releases.']);
+    expect(document.querySelector('.job-summary').textContent).toBe('Enterprise mobile platform.');
+    expect(
+      [...document.querySelectorAll('.job-highlights li')].map((item) => item.textContent)
+    ).toEqual(['Improved test coverage.', 'Automated releases.']);
     expect(document.querySelector('.job-description')).toBeNull();
   });
 });

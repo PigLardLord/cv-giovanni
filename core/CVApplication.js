@@ -59,7 +59,9 @@ export class CVApplication {
     this.errorRenderer.render(root, {
       title: this.i18n ? this.i18n.t('errors.loadingTitle') : 'Error loading CV',
       message: error.message,
-      hint: this.i18n ? this.i18n.t('errors.loadingHint') : 'Please check the console for more details.'
+      hint: this.i18n
+        ? this.i18n.t('errors.loadingHint')
+        : 'Please check the console for more details.'
     });
   }
 

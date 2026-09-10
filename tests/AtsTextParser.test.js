@@ -18,8 +18,13 @@ describe('a clean document, as the artefact actually extracts', () => {
   test('it segments, in one language', () => {
     expect(cv.segmentation).toBe('ok');
     expect(cv.languages).toEqual(['en']);
-    expect(cv.sections.map((section) => section.section))
-      .toEqual(['experience', 'skills', 'education', 'languages', 'certifications']);
+    expect(cv.sections.map((section) => section.section)).toEqual([
+      'experience',
+      'skills',
+      'education',
+      'languages',
+      'certifications'
+    ]);
   });
 
   test('the contacts come back', () => {
@@ -33,8 +38,10 @@ describe('a clean document, as the artefact actually extracts', () => {
   // The CV is full of numbers that a digit-counting regex would take for a telephone.
   test('no measurement is mistaken for a phone number', () => {
     for (const line of [
-      'Expanded the test suite to ~4,800 tests', 'from 15% to 82%',
-      'cutting CI runtime by 75% (32 to 8 minutes)', 'a mobile team of 3–7 engineers'
+      'Expanded the test suite to ~4,800 tests',
+      'from 15% to 82%',
+      'cutting CI runtime by 75% (32 to 8 minutes)',
+      'a mobile team of 3–7 engineers'
     ]) {
       expect(AtsTextParser.phone([line])).toBeNull();
     }
@@ -50,23 +57,33 @@ describe('a clean document, as the artefact actually extracts', () => {
   });
 
   test('the roles come back in order, each with its own employer and period', () => {
-    expect(cv.experience.map((role) => role.employer.value))
-      .toEqual(['Cortado Mobile Solutions', 'Apparound', 'Marte 5']);
+    expect(cv.experience.map((role) => role.employer.value)).toEqual([
+      'Cortado Mobile Solutions',
+      'Apparound',
+      'Marte 5'
+    ]);
     expect(cv.tripleAdjacent).toBe(true);
     expect(cv.roleOrderMonotonic).toBe(true);
   });
 
   test('each skill category keeps its own list', () => {
-    expect(cv.skills.map((group) => group.category))
-      .toEqual(['iOS', 'Android', 'Delivery & platform', 'Architecture & practices']);
+    expect(cv.skills.map((group) => group.category)).toEqual([
+      'iOS',
+      'Android',
+      'Delivery & platform',
+      'Architecture & practices'
+    ]);
     expect(cv.skills[0].items).toContain('Swift');
     // Split on `,` and `·` only: on `/` this would shatter into halves that are not skills.
     expect(cv.skills[0].items).toContain('XCTest / XCUITest');
   });
 
   test('a CEFR level is read only where one was written', () => {
-    expect(cv.spokenLanguages.map((language) => [language.name, language.cefr]))
-      .toEqual([['Italian', null], ['English', 'C1'], ['German', 'A2']]);
+    expect(cv.spokenLanguages.map((language) => [language.name, language.cefr])).toEqual([
+      ['Italian', null],
+      ['English', 'C1'],
+      ['German', 'A2']
+    ]);
   });
 });
 
@@ -121,8 +138,11 @@ describe('the pathological shapes, each failing the check it was written for', (
     const cv = parse('german-labels');
 
     expect(cv.languages).toEqual(['de']);
-    expect(cv.sections.map((section) => section.section))
-      .toEqual(['experience', 'education', 'languages']);
+    expect(cv.sections.map((section) => section.section)).toEqual([
+      'experience',
+      'education',
+      'languages'
+    ]);
     expect(cv.experience[0].employer.value).toBe('Cortado Mobile Solutions');
     expect(cv.experience[0].period.end).toBe('present');
   });
@@ -132,8 +152,11 @@ describe('the pathological shapes, each failing the check it was written for', (
   test('an orphaned category is recovered as the two categories it became', () => {
     const cv = parse('orphan-category');
 
-    expect(cv.skills.map((group) => group.category))
-      .toEqual(['iOS', 'Architecture &', 'practices']);
+    expect(cv.skills.map((group) => group.category)).toEqual([
+      'iOS',
+      'Architecture &',
+      'practices'
+    ]);
     expect(cv.skills.map((group) => group.category)).not.toContain('Architecture & practices');
   });
 });

@@ -15,16 +15,21 @@ export class SkillsRenderer extends BaseRenderer {
   toGroups(skills) {
     const grouped = skills.some((entry) => entry && Array.isArray(entry.items));
     if (grouped) {
-      return skills.filter((entry) => entry && Array.isArray(entry.items)).map((entry) => ({
-        category: entry.category || '',
-        names: entry.items.map((item) => item && item.name).filter(Boolean)
-      })).filter((group) => group.names.length > 0);
+      return skills
+        .filter((entry) => entry && Array.isArray(entry.items))
+        .map((entry) => ({
+          category: entry.category || '',
+          names: entry.items.map((item) => item && item.name).filter(Boolean)
+        }))
+        .filter((group) => group.names.length > 0);
     }
 
-    return [{
-      category: '',
-      names: skills.map((skill) => skill && skill.name).filter(Boolean)
-    }];
+    return [
+      {
+        category: '',
+        names: skills.map((skill) => skill && skill.name).filter(Boolean)
+      }
+    ];
   }
 
   createSkillGroup(root, group) {
@@ -42,7 +47,6 @@ export class SkillsRenderer extends BaseRenderer {
   }
 
   validate(data) {
-    return this.validateFields(data, ['skills']) && 
-           Array.isArray(data.skills);
+    return this.validateFields(data, ['skills']) && Array.isArray(data.skills);
   }
 }

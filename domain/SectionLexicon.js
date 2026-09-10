@@ -24,12 +24,28 @@ export const SECTIONS = {
     it: ['Risultati principali', 'Risultati', 'Traguardi']
   },
   experience: {
-    en: ['Experience', 'Professional Experience', 'Work Experience', 'Employment History',
-      'Career History', 'Employment'],
-    de: ['Berufserfahrung', 'Beruflicher Werdegang', 'Werdegang', 'Berufspraxis',
-      'Praktische Erfahrung'],
-    it: ['Esperienza', 'Esperienza professionale', 'Esperienze lavorative',
-      'Esperienza lavorativa', 'Percorso professionale']
+    en: [
+      'Experience',
+      'Professional Experience',
+      'Work Experience',
+      'Employment History',
+      'Career History',
+      'Employment'
+    ],
+    de: [
+      'Berufserfahrung',
+      'Beruflicher Werdegang',
+      'Werdegang',
+      'Berufspraxis',
+      'Praktische Erfahrung'
+    ],
+    it: [
+      'Esperienza',
+      'Esperienza professionale',
+      'Esperienze lavorative',
+      'Esperienza lavorativa',
+      'Percorso professionale'
+    ]
   },
   education: {
     en: ['Education', 'Academic Background', 'Qualifications', 'Academic Qualifications'],
@@ -37,12 +53,30 @@ export const SECTIONS = {
     it: ['Istruzione', 'Formazione', 'Percorso di studi', 'Titoli di studio']
   },
   skills: {
-    en: ['Skills', 'Core Technologies', 'Technical Skills', 'Core Competencies',
-      'Technologies', 'Competencies', 'Expertise'],
-    de: ['Kenntnisse', 'Kernkompetenzen', 'Fähigkeiten', 'Kompetenzen', 'EDV-Kenntnisse',
-      'Technische Kenntnisse'],
-    it: ['Competenze', 'Competenze tecniche', 'Competenze chiave', 'Tecnologie',
-      'Conoscenze informatiche']
+    en: [
+      'Skills',
+      'Core Technologies',
+      'Technical Skills',
+      'Core Competencies',
+      'Technologies',
+      'Competencies',
+      'Expertise'
+    ],
+    de: [
+      'Kenntnisse',
+      'Kernkompetenzen',
+      'Fähigkeiten',
+      'Kompetenzen',
+      'EDV-Kenntnisse',
+      'Technische Kenntnisse'
+    ],
+    it: [
+      'Competenze',
+      'Competenze tecniche',
+      'Competenze chiave',
+      'Tecnologie',
+      'Conoscenze informatiche'
+    ]
   },
   languages: {
     en: ['Languages', 'Language Skills'],
@@ -106,7 +140,9 @@ export class SectionLexicon {
 
   /** Every language the lexicon knows, discovered rather than declared. */
   static languages() {
-    return [...new Set(Object.values(SECTIONS).flatMap((byLanguage) => Object.keys(byLanguage)))].sort();
+    return [
+      ...new Set(Object.values(SECTIONS).flatMap((byLanguage) => Object.keys(byLanguage)))
+    ].sort();
   }
 
   /**

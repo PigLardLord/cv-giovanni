@@ -5,12 +5,15 @@ describe('ErrorRenderer', () => {
   let document;
 
   beforeEach(() => {
-    document = new JSDOM('<!DOCTYPE html><html><body><div id="app"></div></body></html>').window.document;
+    document = new JSDOM('<!DOCTYPE html><html><body><div id="app"></div></body></html>').window
+      .document;
   });
 
   test('renders the failure where the CV would have been', () => {
     new ErrorRenderer().render(document, {
-      title: 'Error loading CV', message: 'profile not found', hint: 'Check the console.'
+      title: 'Error loading CV',
+      message: 'profile not found',
+      hint: 'Check the console.'
     });
     const text = document.body.textContent;
     expect(text).toContain('Error loading CV');

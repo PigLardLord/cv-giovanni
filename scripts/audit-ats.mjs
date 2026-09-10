@@ -44,7 +44,10 @@ try {
 // An advert that cannot be read is not the same as no advert: the first is a mistake to
 // report, the second a deliberate run without one. Silently treating them alike would let a
 // typo in a path look like a decision.
-const advertPath = process.argv.slice(2).find((argument) => argument.startsWith('--advert='))?.slice(9);
+const advertPath = process.argv
+  .slice(2)
+  .find((argument) => argument.startsWith('--advert='))
+  ?.slice(9);
 let advertText = null;
 if (advertPath) {
   try {
@@ -65,20 +68,27 @@ const files = [];
 for (const directory of directories) {
   const url = new URL(`${directory}/`, projectRoot);
   const entries = await readdir(url).catch(() => []);
-  files.push(...entries.filter((name) => name.endsWith('.pdf')).sort()
-    .map((name) => ({
-      artefact: `${directory}/${name}`,
-      path: new URL(name, url).pathname,
-      // A cover letter is not a CV and must not be parsed as one: it has no headings, no
-      // chronology and no skills, so this audit would report a failed segmentation and trip
-      // two floors on a perfectly good letter. A false failure is worse than no check — it
-      // teaches whoever sees it to ignore the exit code.
-      isCover: /-cover(-|\.)/.test(name)
-    })));
+  files.push(
+    ...entries
+      .filter((name) => name.endsWith('.pdf'))
+      .sort()
+      .map((name) => ({
+        artefact: `${directory}/${name}`,
+        path: new URL(name, url).pathname,
+        // A cover letter is not a CV and must not be parsed as one: it has no headings, no
+        // chronology and no skills, so this audit would report a failed segmentation and trip
+        // two floors on a perfectly good letter. A false failure is worse than no check — it
+        // teaches whoever sees it to ignore the exit code.
+        isCover: /-cover(-|\.)/.test(name)
+      }))
+  );
 }
 
 if (!files.filter((file) => !file.isCover).length) {
-  cannotCheck(`no PDFs under ${target.outDir}`, 'Run `npm run build:pdf` first, with the same --profile.');
+  cannotCheck(
+    `no PDFs under ${target.outDir}`,
+    'Run `npm run build:pdf` first, with the same --profile.'
+  );
 }
 
 const results = [];
@@ -137,21 +147,30 @@ for (const { artefact, path, isCover } of files) {
 // The worst artefact, not the first. You send one of these, and the headline should be the
 // one you risk rather than the one that happens to be alphabetically first.
 const scores = results.map((entry) => AtsScore.compose(entry.diff, advert));
-const score = scores.reduce((worst, candidate) => (candidate.points < worst.points ? candidate : worst));
+const score = scores.reduce((worst, candidate) =>
+  candidate.points < worst.points ? candidate : worst
+);
 
 // The floors: not the score, which never gates anything, but the four failures that mean the
 // parsed record is unusable however good the rest looks.
-const floors = letters.filter((entry) => entry.recovered !== true)
-  .map((entry) => (entry.recovered === null
-    ? `${entry.artefact}: a cover letter was generated but the profile carries no letter to check it against`
-    : `${entry.artefact}: the letter's recipient or subject did not survive extraction`))
-  .concat(results.flatMap(({ artefact, diff }) => [
-    diff.segmentation !== 'ok' && `${artefact}: the document did not segment`,
-    diff.identity.email === 'lost' && `${artefact}: the email address was not recovered`,
-    diff.experience.some((role) => !role.tripleAdjacent)
-      && `${artefact}: a role lost its title, employer or period`,
-    !diff.roleOrderMonotonic && `${artefact}: the chronology does not run one way`
-  ].filter(Boolean)));
+const floors = letters
+  .filter((entry) => entry.recovered !== true)
+  .map((entry) =>
+    entry.recovered === null
+      ? `${entry.artefact}: a cover letter was generated but the profile carries no letter to check it against`
+      : `${entry.artefact}: the letter's recipient or subject did not survive extraction`
+  )
+  .concat(
+    results.flatMap(({ artefact, diff }) =>
+      [
+        diff.segmentation !== 'ok' && `${artefact}: the document did not segment`,
+        diff.identity.email === 'lost' && `${artefact}: the email address was not recovered`,
+        diff.experience.some((role) => !role.tripleAdjacent) &&
+          `${artefact}: a role lost its title, employer or period`,
+        !diff.roleOrderMonotonic && `${artefact}: the chronology does not run one way`
+      ].filter(Boolean)
+    )
+  );
 
 const report = [
   AtsReport.render(score, results, advert),
@@ -160,11 +179,20 @@ const report = [
   '',
   `${files.length} artefacts, ${results.length} distinct streams.`,
   '',
-  ...[...seen.entries()].map(([fingerprint, group]) =>
-    `- \`${fingerprint.slice(0, 12)}\` — ${group.join(', ')}`),
+  ...[...seen.entries()].map(
+    ([fingerprint, group]) => `- \`${fingerprint.slice(0, 12)}\` — ${group.join(', ')}`
+  ),
   '',
-  ...(letters.length ? ['', '## Cover letters', '',
-    ...letters.map((entry) => `- ${entry.artefact} — recipient and subject ${entry.recovered === null ? 'COULD NOT BE CHECKED' : (entry.recovered ? 'survive' : 'DO NOT survive')} extraction`)]
+  ...(letters.length
+    ? [
+        '',
+        '## Cover letters',
+        '',
+        ...letters.map(
+          (entry) =>
+            `- ${entry.artefact} — recipient and subject ${entry.recovered === null ? 'COULD NOT BE CHECKED' : entry.recovered ? 'survive' : 'DO NOT survive'} extraction`
+        )
+      ]
     : []),
   '',
   results.some((entry) => entry.divergence)

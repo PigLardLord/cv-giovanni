@@ -62,20 +62,45 @@ describe('what the parser refuses to guess', () => {
   // one is a place where a plausible guess would be wrong invisibly.
 
   test('a URL is never derived from anchor text', () => {
-    const cv = AtsTextParser.parse([
-      'Giovanni Rossi', 'Senior Engineer', 'GitHub · LinkedIn · Portfolio', '',
-      'Professional Experience', '', 'Engineer', 'Acme · Berlin', '2020 – 2022', '',
-      'Education', '', 'B.Sc.', 'Somewhere · 2015'
-    ].join('\n'));
+    const cv = AtsTextParser.parse(
+      [
+        'Giovanni Rossi',
+        'Senior Engineer',
+        'GitHub · LinkedIn · Portfolio',
+        '',
+        'Professional Experience',
+        '',
+        'Engineer',
+        'Acme · Berlin',
+        '2020 – 2022',
+        '',
+        'Education',
+        '',
+        'B.Sc.',
+        'Somewhere · 2015'
+      ].join('\n')
+    );
 
     expect(cv.identity.addresses).toEqual([]);
   });
 
   test('a name is never derived from the email address', () => {
-    const cv = AtsTextParser.parse([
-      'rossi.giovanni@example.com', '', 'Professional Experience', '',
-      'Engineer', 'Acme · Berlin', '2020 – 2022', '', 'Education', '', 'B.Sc.', 'X · 2015'
-    ].join('\n'));
+    const cv = AtsTextParser.parse(
+      [
+        'rossi.giovanni@example.com',
+        '',
+        'Professional Experience',
+        '',
+        'Engineer',
+        'Acme · Berlin',
+        '2020 – 2022',
+        '',
+        'Education',
+        '',
+        'B.Sc.',
+        'X · 2015'
+      ].join('\n')
+    );
 
     expect(cv.identity.name).toBeNull();
     expect(cv.identity.email.value).toBe('rossi.giovanni@example.com');
@@ -84,15 +109,28 @@ describe('what the parser refuses to guess', () => {
   test('a location is never read from an unrecognised place', () => {
     expect(PlaceLexicon.locationIn('Springfield, Freedonia')).toBeNull();
     expect(PlaceLexicon.locationIn('Cortado Mobile Solutions, Berlin (remote)')).toBeNull();
-    expect(PlaceLexicon.locationIn('Bad Liebenstein, Thuringia, Germany'))
-      .toBe('Bad Liebenstein, Thuringia, Germany');
+    expect(PlaceLexicon.locationIn('Bad Liebenstein, Thuringia, Germany')).toBe(
+      'Bad Liebenstein, Thuringia, Germany'
+    );
   });
 
   test('an employer is never bound when only one line sits above the date', () => {
-    const cv = AtsTextParser.parse([
-      'Giovanni Rossi', 'Engineer', '', 'Professional Experience', '',
-      'Acme · Berlin', '2020 – 2022', '', 'Education', '', 'B.Sc.', 'X · 2015'
-    ].join('\n'));
+    const cv = AtsTextParser.parse(
+      [
+        'Giovanni Rossi',
+        'Engineer',
+        '',
+        'Professional Experience',
+        '',
+        'Acme · Berlin',
+        '2020 – 2022',
+        '',
+        'Education',
+        '',
+        'B.Sc.',
+        'X · 2015'
+      ].join('\n')
+    );
 
     expect(cv.experience[0].employer).toBeNull();
     expect(cv.experience[0].title).toBeNull();
@@ -100,11 +138,24 @@ describe('what the parser refuses to guess', () => {
   });
 
   test('a CEFR level is never inferred from a prose word', () => {
-    const cv = AtsTextParser.parse([
-      'Giovanni Rossi', 'Engineer', '', 'Professional Experience', '',
-      'Engineer', 'Acme · Berlin', '2020 – 2022', '', 'Languages', '',
-      'Italian: Native', 'English: fluent', 'German: B2 — good'
-    ].join('\n'));
+    const cv = AtsTextParser.parse(
+      [
+        'Giovanni Rossi',
+        'Engineer',
+        '',
+        'Professional Experience',
+        '',
+        'Engineer',
+        'Acme · Berlin',
+        '2020 – 2022',
+        '',
+        'Languages',
+        '',
+        'Italian: Native',
+        'English: fluent',
+        'German: B2 — good'
+      ].join('\n')
+    );
 
     const levels = Object.fromEntries(cv.spokenLanguages.map((l) => [l.name, l.cefr]));
     expect(levels).toEqual({ Italian: null, English: null, German: 'B2' });

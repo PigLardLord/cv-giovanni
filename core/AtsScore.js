@@ -67,7 +67,9 @@ export class AtsScore {
     return {
       points: Math.round(scored.reduce((total, [, band]) => total + band.points, 0)),
       denominator: scored.reduce((total, [name]) => total + BANDS[name].weight, 0),
-      unscored: Object.entries(bands).filter(([, band]) => band === null).map(([name]) => name),
+      unscored: Object.entries(bands)
+        .filter(([, band]) => band === null)
+        .map(([name]) => name),
       bands,
       weights: BANDS
     };
@@ -111,7 +113,12 @@ export class AtsScore {
   static fidelity(diff) {
     const { parts } = BANDS.fidelity;
     const credit = (verdicts) => share(verdicts.map((verdict) => CREDIT[verdict] ?? 0));
-    const roles = diff.experience.flatMap((role) => [role.title, role.employer, role.period, role.highlights]);
+    const roles = diff.experience.flatMap((role) => [
+      role.title,
+      role.employer,
+      role.period,
+      role.highlights
+    ]);
     const education = diff.education.flatMap((entry) => [entry.degree, entry.school]);
     const skills = diff.skills.map((group) => group.category);
     const languages = diff.spokenLanguages.flatMap((entry) => [entry.name, entry.level]);

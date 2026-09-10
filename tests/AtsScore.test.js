@@ -10,10 +10,14 @@ import { AtsScore, BANDS } from '../core/AtsScore.js';
 import { AtsReport } from '../core/AtsReport.js';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
-const document = new CvDocument(JSON.parse(readFileSync(`${root}profiles/general/en.json`, 'utf8')));
-const diffOf = (fixture) => RecoveryDiff.diff(
-  document, AtsTextParser.parse(readFileSync(`${root}tests/fixtures/ats/${fixture}.txt`, 'utf8'))
+const document = new CvDocument(
+  JSON.parse(readFileSync(`${root}profiles/general/en.json`, 'utf8'))
 );
+const diffOf = (fixture) =>
+  RecoveryDiff.diff(
+    document,
+    AtsTextParser.parse(readFileSync(`${root}tests/fixtures/ats/${fixture}.txt`, 'utf8'))
+  );
 const scoreOf = (fixture, advert = null) => AtsScore.compose(diffOf(fixture), advert);
 
 describe('the weights', () => {
@@ -43,8 +47,10 @@ describe('a missing input is never rescaled', () => {
 
   test('with an advert every band is scored', () => {
     const score = scoreOf('clean-english', {
-      terms: [{ term: 'Swift', required: true, evidence: 'inProse' },
-        { term: 'CoreML', required: true, evidence: 'absent' }]
+      terms: [
+        { term: 'Swift', required: true, evidence: 'inProse' },
+        { term: 'CoreML', required: true, evidence: 'absent' }
+      ]
     });
 
     expect(score.denominator).toBe(100);
@@ -82,7 +88,9 @@ describe('the number moves with the damage', () => {
 
 describe('the report says what the number is not', () => {
   const score = scoreOf('clean-english');
-  const markdown = AtsReport.render(score, [{ artefact: 'nerd.pdf', diff: diffOf('clean-english') }]);
+  const markdown = AtsReport.render(score, [
+    { artefact: 'nerd.pdf', diff: diffOf('clean-english') }
+  ]);
 
   // The name matters: every commercial checker sells an "ATS score", and this is not one.
   test('it never calls itself an ATS score', () => {
@@ -100,7 +108,12 @@ describe('the report says what the number is not', () => {
   });
 
   test('the weights are printed, not linked', () => {
-    for (const band of ['Contactability', 'Structural recovery', 'Content fidelity', 'Advert evidence']) {
+    for (const band of [
+      'Contactability',
+      'Structural recovery',
+      'Content fidelity',
+      'Advert evidence'
+    ]) {
       expect(markdown).toContain(band);
     }
     expect(markdown).toContain(String(BANDS.structure.weight));
@@ -125,7 +138,9 @@ describe('the report says what the number is not', () => {
 
   test('a damaged run quotes what did not come back', () => {
     const damaged = diffOf('orphan-category');
-    const text = AtsReport.render(AtsScore.compose(damaged), [{ artefact: 'x.pdf', diff: damaged }]);
+    const text = AtsReport.render(AtsScore.compose(damaged), [
+      { artefact: 'x.pdf', diff: damaged }
+    ]);
 
     expect(text).toContain('a category nobody wrote: "Architecture &"');
   });

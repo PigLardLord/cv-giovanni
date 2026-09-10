@@ -10,7 +10,10 @@ import { join } from 'node:path';
 import { LocalProfiles } from '../core/LocalProfiles.js';
 import { createStaticServer } from '../scripts/serve.mjs';
 
-const published = { defaultProfile: 'general', profiles: { general: { locales: { en: 'profiles/general/en.json' } } } };
+const published = {
+  defaultProfile: 'general',
+  profiles: { general: { locales: { en: 'profiles/general/en.json' } } }
+};
 
 describe('LocalProfiles.merge', () => {
   test('adds a local profile without touching the published one', () => {
@@ -24,7 +27,9 @@ describe('LocalProfiles.merge', () => {
   });
 
   test('leaves the argument alone', () => {
-    LocalProfiles.merge(published, [{ profile: 'x', locale: 'en', path: 'applications/x/en.json' }]);
+    LocalProfiles.merge(published, [
+      { profile: 'x', locale: 'en', path: 'applications/x/en.json' }
+    ]);
 
     expect(Object.keys(published.profiles)).toEqual(['general']);
   });
@@ -56,7 +61,10 @@ describe('the development server merges without writing', () => {
     root = await mkdtemp(join(tmpdir(), 'mycv-serve-'));
     await mkdir(join(root, 'config'), { recursive: true });
     await mkdir(join(root, 'applications', 'act-ai', 'out'), { recursive: true });
-    await writeFile(join(root, 'config', 'cv-manifest.json'), `${JSON.stringify(published, null, 2)}\n`);
+    await writeFile(
+      join(root, 'config', 'cv-manifest.json'),
+      `${JSON.stringify(published, null, 2)}\n`
+    );
     await writeFile(join(root, 'applications', 'act-ai', 'en.json'), '{}');
     await writeFile(join(root, 'applications', 'act-ai', 'advert.txt'), 'an advert');
   });

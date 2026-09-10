@@ -64,7 +64,9 @@ export class LetterLayout {
    * read. The standard gives it a single 5mm line.
    */
   sender(identity, theme) {
-    const parts = [identity.name, identity.location, identity.email, identity.phone].filter(Boolean);
+    const parts = [identity.name, identity.location, identity.email, identity.phone].filter(
+      Boolean
+    );
     return {
       text: parts.join(' · '),
       fontSize: 7.5,
@@ -111,8 +113,15 @@ export class LetterLayout {
       const parsed = new Date(letter.date);
       const formatted = Number.isNaN(parsed.valueOf())
         ? letter.date
-        : new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'long', day: 'numeric' }).format(parsed);
-      stack.push({ text: [identity.location, formatted].filter(Boolean).join(', '), alignment: 'right' });
+        : new Intl.DateTimeFormat(locale, {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          }).format(parsed);
+      stack.push({
+        text: [identity.location, formatted].filter(Boolean).join(', '),
+        alignment: 'right'
+      });
     }
     if (letter.reference) {
       stack.push({ text: letter.reference, alignment: 'right', style: 'meta' });
@@ -143,7 +152,8 @@ export class LetterLayout {
 
     return [
       { text: salutation, margin: [0, 0, 0, 10] },
-      ...[letter.opening, ...letter.body].filter(Boolean)
+      ...[letter.opening, ...letter.body]
+        .filter(Boolean)
         .map((paragraph) => ({ text: paragraph, alignment: 'left', margin: [0, 0, 0, 8] }))
     ];
   }
@@ -165,10 +175,12 @@ export class LetterLayout {
   /** What travels with the letter, named so a reader can tell whether it arrived. */
   attachments(letter, theme, t) {
     if (!letter.attachments.length) return [];
-    return [{
-      text: `${t('cv:letter.attachments')}: ${letter.attachments.join(', ')}`,
-      style: 'meta',
-      margin: [0, 24, 0, 0]
-    }];
+    return [
+      {
+        text: `${t('cv:letter.attachments')}: ${letter.attachments.join(', ')}`,
+        style: 'meta',
+        margin: [0, 24, 0, 0]
+      }
+    ];
   }
 }

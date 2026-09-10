@@ -65,5 +65,7 @@ test('gives every interest its own element while the line still reads as it did'
   new InterestsRenderer().render(document, { interests: ['Robotics & IoT', 'Mountain Hiking'] });
   const chips = [...document.querySelectorAll('.interest-chip')].map((chip) => chip.textContent);
   expect(chips).toEqual(['Robotics & IoT', 'Mountain Hiking']);
-  expect(document.querySelector('.interests-line').textContent).toBe('Robotics & IoT, Mountain Hiking');
+  expect(document.querySelector('.interests-line').textContent).toBe(
+    'Robotics & IoT, Mountain Hiking'
+  );
 });

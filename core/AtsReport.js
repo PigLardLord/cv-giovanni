@@ -64,7 +64,8 @@ export class AtsReport {
     }
 
     const kind = (term) => {
-      if (term.evidence !== 'absent') return term.evidence === 'inProse' ? 'evidenced' : 'listed only';
+      if (term.evidence !== 'absent')
+        return term.evidence === 'inProse' ? 'evidenced' : 'listed only';
       return term.authored ? 'LAYOUT DEFECT — written, not recovered' : 'content gap — not claimed';
     };
 
@@ -74,20 +75,28 @@ export class AtsReport {
     }
     lines.push('| Term | Required | Where the CV answers | Reading |', '|---|---|---|---|');
     for (const term of advert.terms) {
-      lines.push(`| ${term.term} | ${term.required ? 'yes' : ''} | ${term.where || '—'} | ${kind(term)} |`);
+      lines.push(
+        `| ${term.term} | ${term.required ? 'yes' : ''} | ${term.where || '—'} | ${kind(term)} |`
+      );
     }
 
     const defects = advert.terms.filter((term) => term.evidence === 'absent' && term.authored);
-    const gaps = advert.terms.filter((term) => term.evidence === 'absent' && term.authored === false);
-    lines.push('',
+    const gaps = advert.terms.filter(
+      (term) => term.evidence === 'absent' && term.authored === false
+    );
+    lines.push(
+      '',
       `**${defects.length} layout defects** — the CV claims these and the artefact lost them. Fix the renderer, not the copy.`,
-      `**${gaps.length} content gaps** — the CV does not claim these. Whether any of them should be claimed is a decision for a person, and this tool does not make it.`);
+      `**${gaps.length} content gaps** — the CV does not claim these. Whether any of them should be claimed is a decision for a person, and this tool does not make it.`
+    );
 
     if (advert.opening) {
-      lines.push('',
+      lines.push(
+        '',
         advert.opening.missing.length
           ? `The opening fifteen lines establish ${advert.opening.present.length} of ${advert.opening.present.length + advert.opening.missing.length} required terms. A reader deciding whether to continue has not reached the skills section.`
-          : 'Every required term appears in the opening fifteen lines.');
+          : 'Every required term appears in the opening fifteen lines.'
+      );
     }
     return lines;
   }
@@ -128,11 +137,14 @@ export class AtsReport {
 
   static row({ artefact, diff }) {
     const tick = (value) => (value ? 'yes' : 'no');
-    const worst = (verdicts) => LADDER[Math.max(...verdicts.map((verdict) => LADDER.indexOf(verdict)), 0)];
-    return `| ${artefact} | ${worst(Object.values(diff.identity))} | `
-      + `${diff.segmentation} | ${worst(diff.experience.map((role) => role.title))} | `
-      + `${diff.links.filter((link) => link.recovered).length}/${diff.links.length} | `
-      + `${tick(diff.experience.every((role) => role.tripleAdjacent) && diff.roleOrderMonotonic)} |`;
+    const worst = (verdicts) =>
+      LADDER[Math.max(...verdicts.map((verdict) => LADDER.indexOf(verdict)), 0)];
+    return (
+      `| ${artefact} | ${worst(Object.values(diff.identity))} | ` +
+      `${diff.segmentation} | ${worst(diff.experience.map((role) => role.title))} | ` +
+      `${diff.links.filter((link) => link.recovered).length}/${diff.links.length} | ` +
+      `${tick(diff.experience.every((role) => role.tripleAdjacent) && diff.roleOrderMonotonic)} |`
+    );
   }
 
   /** Everything that did not come back, quoted so the parser can be audited rather than trusted. */
@@ -150,9 +162,11 @@ export class AtsReport {
       for (const name of diff.unexpected.skillCategories) {
         problems.push(`a category nobody wrote: "${name}"`);
       }
-      if (diff.sections.missing.length) problems.push(`sections not recognised: ${diff.sections.missing.join(', ')}`);
+      if (diff.sections.missing.length)
+        problems.push(`sections not recognised: ${diff.sections.missing.join(', ')}`);
       if (!diff.roleOrderMonotonic) problems.push('the chronology does not run one way');
-      if (diff.experience.some((role) => !role.tripleAdjacent)) problems.push('a role lost its title, employer or period');
+      if (diff.experience.some((role) => !role.tripleAdjacent))
+        problems.push('a role lost its title, employer or period');
 
       if (problems.length) {
         any = true;

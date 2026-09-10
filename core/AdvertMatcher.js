@@ -98,10 +98,13 @@ export class AdvertMatcher {
       const folded = fold(entry.term);
       const overlaps = kept.some(({ term }) => {
         const other = fold(term);
-        if (AdvertMatcher.contains(folded, other) || AdvertMatcher.contains(other, folded)) return true;
+        if (AdvertMatcher.contains(folded, other) || AdvertMatcher.contains(other, folded))
+          return true;
         // Two phrases sharing a pair of adjacent words are one idea said twice: `App Store
         // quality` and `high App Store` are not two requirements.
-        const shared = AdvertMatcher.bigrams(folded).filter((pair) => AdvertMatcher.bigrams(other).includes(pair));
+        const shared = AdvertMatcher.bigrams(folded).filter((pair) =>
+          AdvertMatcher.bigrams(other).includes(pair)
+        );
         return shared.length > 0;
       });
       if (overlaps) continue;
@@ -151,7 +154,13 @@ export class AdvertMatcher {
    */
   static place(entry, prose, headline, listed, authored) {
     const claimed = authored === null ? null : AdvertMatcher.appears(entry.term, authored) !== null;
-    const at = (evidence, match, where) => ({ ...entry, evidence, match, where, authored: claimed });
+    const at = (evidence, match, where) => ({
+      ...entry,
+      evidence,
+      match,
+      where,
+      authored: claimed
+    });
     const inProse = AdvertMatcher.appears(entry.term, prose.text);
     if (inProse) return at('inProse', inProse, prose.whereOf(entry.term));
     const inHeadline = AdvertMatcher.appears(entry.term, headline);
@@ -164,12 +173,24 @@ export class AdvertMatcher {
   /** Everything the authored profile says, so a lost term can be told from an unwritten one. */
   static authoredText(document) {
     return [
-      document.identity.title, document.identity.subtitle, document.profile,
+      document.identity.title,
+      document.identity.subtitle,
+      document.profile,
       ...(document.careerHighlights || []),
-      ...document.experience.flatMap((job) => [job.title, job.company, job.summary, ...(job.highlights || [])]),
-      ...document.skills.flatMap((group) => [group.category, ...group.items.map((item) => item.name)]),
+      ...document.experience.flatMap((job) => [
+        job.title,
+        job.company,
+        job.summary,
+        ...(job.highlights || [])
+      ]),
+      ...document.skills.flatMap((group) => [
+        group.category,
+        ...group.items.map((item) => item.name)
+      ]),
       ...document.certifications.flatMap((item) => [item.name, item.description])
-    ].filter(Boolean).join('\n');
+    ]
+      .filter(Boolean)
+      .join('\n');
   }
 
   /**
@@ -184,11 +205,19 @@ export class AdvertMatcher {
    * @returns {{present: string[], missing: string[]}} Required terms, split
    */
   static opening(terms, text, lines = 15) {
-    const head = String(text ?? '').split(/\r?\n/).filter((line) => line.trim()).slice(0, lines).join('\n');
+    const head = String(text ?? '')
+      .split(/\r?\n/)
+      .filter((line) => line.trim())
+      .slice(0, lines)
+      .join('\n');
     const required = terms.filter((entry) => entry.required);
     return {
-      present: required.filter((entry) => AdvertMatcher.appears(entry.term, head)).map((entry) => entry.term),
-      missing: required.filter((entry) => !AdvertMatcher.appears(entry.term, head)).map((entry) => entry.term)
+      present: required
+        .filter((entry) => AdvertMatcher.appears(entry.term, head))
+        .map((entry) => entry.term),
+      missing: required
+        .filter((entry) => !AdvertMatcher.appears(entry.term, head))
+        .map((entry) => entry.term)
     };
   }
 
@@ -204,13 +233,16 @@ export class AdvertMatcher {
     return {
       text: blocks.map((block) => block.text).join('\n'),
       // Which role carried it, so a finding can quote where the claim actually lives.
-      whereOf: (term) => blocks.find((block) => AdvertMatcher.appears(term, block.text))?.where || null
+      whereOf: (term) =>
+        blocks.find((block) => AdvertMatcher.appears(term, block.text))?.where || null
     };
   }
 
   /** The name line and the role line: the first thing read, and the least evidenced. */
   static headline(recovered) {
-    return [recovered.identity.title?.value, recovered.identity.name?.value].filter(Boolean).join(' ');
+    return [recovered.identity.title?.value, recovered.identity.name?.value]
+      .filter(Boolean)
+      .join(' ');
   }
 
   /** Skills, certifications and interests — where a word can appear without a claim behind it. */
@@ -218,7 +250,9 @@ export class AdvertMatcher {
     return [
       ...recovered.skills.flatMap((group) => [group.category, ...group.items]),
       ...recovered.certifications.map((entry) => entry.text)
-    ].filter(Boolean).join('\n');
+    ]
+      .filter(Boolean)
+      .join('\n');
   }
 
   /**

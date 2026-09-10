@@ -44,7 +44,9 @@ describe('SectionLexicon.recognise', () => {
 
   test('a truncated heading is reported rather than accepted quietly', () => {
     expect(SectionLexicon.recognise('Professional Experi')).toEqual({
-      section: 'experience', language: 'en', match: 'partial'
+      section: 'experience',
+      language: 'en',
+      match: 'partial'
     });
   });
 });
@@ -54,15 +56,17 @@ describe('every language at once', () => {
   // reported instead of passing as monolingual. AGENTS.md forbids mixing languages in the
   // routing; nothing has ever checked it in the rendered artefact.
   test('a mixed document is visible', () => {
-    const recognised = ['Berufserfahrung', 'Education', 'Sprachen']
-      .map((line) => SectionLexicon.recognise(line));
+    const recognised = ['Berufserfahrung', 'Education', 'Sprachen'].map((line) =>
+      SectionLexicon.recognise(line)
+    );
 
     expect(SectionLexicon.languagesUsed(recognised)).toEqual(['de', 'en']);
   });
 
   test('a document in one language reports one', () => {
-    const recognised = ['Berufserfahrung', 'Ausbildung', 'Sprachen']
-      .map((line) => SectionLexicon.recognise(line));
+    const recognised = ['Berufserfahrung', 'Ausbildung', 'Sprachen'].map((line) =>
+      SectionLexicon.recognise(line)
+    );
 
     expect(SectionLexicon.languagesUsed(recognised)).toEqual(['de']);
   });
@@ -83,7 +87,9 @@ describe('the lexicon covers every locale the project ships', () => {
     // lexicon does not know, not stop at the first.
     const unknown = [];
     for (const locale of locales) {
-      const sections = JSON.parse(await readFile(`${localesDir}${locale}/cv.json`, 'utf8')).sections;
+      const sections = JSON.parse(
+        await readFile(`${localesDir}${locale}/cv.json`, 'utf8')
+      ).sections;
       for (const [key, label] of Object.entries(sections)) {
         const recognised = SectionLexicon.recognise(label);
         if (!recognised || recognised.section !== key || recognised.language !== locale) {

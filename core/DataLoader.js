@@ -15,17 +15,17 @@ export class DataLoader {
   async loadCVData() {
     try {
       const response = await fetch(this.dataUrl);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      
+
       if (!this.validateCVData(data)) {
         throw new Error('Invalid CV data structure');
       }
-      
+
       return data;
     } catch (error) {
       throw new Error(`Failed to load CV data: ${error.message}`);
@@ -44,6 +44,6 @@ export class DataLoader {
 
     // Basic structure validation
     const requiredFields = ['name', 'title'];
-    return requiredFields.some(field => data[field]);
+    return requiredFields.some((field) => data[field]);
   }
 }

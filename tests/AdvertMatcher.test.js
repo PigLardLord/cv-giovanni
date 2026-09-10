@@ -33,7 +33,8 @@ Free fruit and a yearly learning budget.
 `;
 
 const extract = (limit = 16) => AdvertMatcher.extractTerms(advert, limit);
-const evidenceFor = (term, terms) => terms.find((entry) => entry.term.toLowerCase() === term.toLowerCase());
+const evidenceFor = (term, terms) =>
+  terms.find((entry) => entry.term.toLowerCase() === term.toLowerCase());
 
 describe('what the advert asks for', () => {
   const { terms } = extract();
@@ -112,7 +113,9 @@ describe('what counts as a mention', () => {
   });
 
   test('a curated synonym is reported as one, never as an exact match', () => {
-    expect(AdvertMatcher.appears('MDM', 'owned the Mobile Device Management client')).toBe('synonym');
+    expect(AdvertMatcher.appears('MDM', 'owned the Mobile Device Management client')).toBe(
+      'synonym'
+    );
     expect(AdvertMatcher.appears('MDM', 'owned the MDM client')).toBe('exact');
   });
 

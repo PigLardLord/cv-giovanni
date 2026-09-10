@@ -8,10 +8,14 @@ import { AtsTextParser } from '../core/AtsTextParser.js';
 import { RecoveryDiff } from '../core/RecoveryDiff.js';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
-const document = new CvDocument(JSON.parse(readFileSync(`${root}profiles/general/en.json`, 'utf8')));
-const diffOf = (fixture) => RecoveryDiff.diff(
-  document, AtsTextParser.parse(readFileSync(`${root}tests/fixtures/ats/${fixture}.txt`, 'utf8'))
+const document = new CvDocument(
+  JSON.parse(readFileSync(`${root}profiles/general/en.json`, 'utf8'))
 );
+const diffOf = (fixture) =>
+  RecoveryDiff.diff(
+    document,
+    AtsTextParser.parse(readFileSync(`${root}tests/fixtures/ats/${fixture}.txt`, 'utf8'))
+  );
 
 describe('the ladder', () => {
   test.each([
@@ -28,13 +32,17 @@ describe('the ladder', () => {
   test('a normaliser applies per type', () => {
     expect(RecoveryDiff.verdict('+39 329 8484 046', '+393298484046', 'phone')).toBe('normalised');
     expect(RecoveryDiff.verdict('A@B.com', 'a@b.com', 'email')).toBe('normalised');
-    expect(RecoveryDiff.verdict('Delivery & platform', 'Delivery and platform', 'skill')).toBe('normalised');
+    expect(RecoveryDiff.verdict('Delivery & platform', 'Delivery and platform', 'skill')).toBe(
+      'normalised'
+    );
   });
 
   // `partial` needs a whole-word run, or every short string would be inside every long one.
   test('a fragment is not a partial match', () => {
     expect(RecoveryDiff.verdict('Swift', 'Swi')).toBe('wrong');
-    expect(RecoveryDiff.verdict('Architecture & practices', 'Architecture &', 'skill')).toBe('partial');
+    expect(RecoveryDiff.verdict('Architecture & practices', 'Architecture &', 'skill')).toBe(
+      'partial'
+    );
   });
 });
 
@@ -43,7 +51,11 @@ describe('the artefact this repository actually ships', () => {
 
   test('everything is recovered, and the phone only differs in its spacing', () => {
     expect(diff.identity).toEqual({
-      name: 'exact', title: 'exact', email: 'exact', phone: 'normalised', location: 'exact'
+      name: 'exact',
+      title: 'exact',
+      email: 'exact',
+      phone: 'normalised',
+      location: 'exact'
     });
   });
 
@@ -53,9 +65,27 @@ describe('the artefact this repository actually ships', () => {
 
   test('every role keeps its title, employer, period and neighbours', () => {
     expect(diff.experience).toEqual([
-      { title: 'exact', employer: 'exact', period: 'exact', tripleAdjacent: true, highlights: 'exact' },
-      { title: 'exact', employer: 'exact', period: 'exact', tripleAdjacent: true, highlights: 'exact' },
-      { title: 'exact', employer: 'exact', period: 'exact', tripleAdjacent: true, highlights: 'exact' }
+      {
+        title: 'exact',
+        employer: 'exact',
+        period: 'exact',
+        tripleAdjacent: true,
+        highlights: 'exact'
+      },
+      {
+        title: 'exact',
+        employer: 'exact',
+        period: 'exact',
+        tripleAdjacent: true,
+        highlights: 'exact'
+      },
+      {
+        title: 'exact',
+        employer: 'exact',
+        period: 'exact',
+        tripleAdjacent: true,
+        highlights: 'exact'
+      }
     ]);
     expect(diff.roleOrderMonotonic).toBe(true);
   });
@@ -112,12 +142,27 @@ describe('each defect shows up as its own kind of damage', () => {
   });
 
   test('a link that exists only as an annotation is reported lost, not assumed', () => {
-    const diff = RecoveryDiff.diff(document, AtsTextParser.parse([
-      'Giovanni Trovato', 'Senior iOS Engineer / Mobile Platform Owner',
-      'GitHub · LinkedIn · Web CV', '', 'Professional Experience', '',
-      'Mobile Software Engineer', 'Cortado · Berlin', 'August 2018 – Present', '',
-      'Education', '', 'M.Sc.', 'Pisa · 2015'
-    ].join('\n')));
+    const diff = RecoveryDiff.diff(
+      document,
+      AtsTextParser.parse(
+        [
+          'Giovanni Trovato',
+          'Senior iOS Engineer / Mobile Platform Owner',
+          'GitHub · LinkedIn · Web CV',
+          '',
+          'Professional Experience',
+          '',
+          'Mobile Software Engineer',
+          'Cortado · Berlin',
+          'August 2018 – Present',
+          '',
+          'Education',
+          '',
+          'M.Sc.',
+          'Pisa · 2015'
+        ].join('\n')
+      )
+    );
 
     expect(diff.links.every((link) => link.recovered)).toBe(false);
   });
