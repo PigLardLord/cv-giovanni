@@ -9,6 +9,8 @@ const labels = {
   'source.card.call': 'call',
   'source.card.mail': 'mail',
   'source.card.callName': 'Call {{value}}',
+  'source.card.callJoke': 'Dial it on your own phone, lazybones.',
+  'source.card.callDismiss': 'OK',
   'source.card.mailName': 'Email {{value}}',
   'source.card.location': 'Location',
   'cv:contacts.phone': 'Phone',
@@ -358,11 +360,19 @@ describe('SwiftSourceLayout', () => {
   });
 
   test('composes the contact card the #Preview renders, with actions that go somewhere', () => {
+    // "call" is the page's one easter egg, asked for by the candidate: it opens an alert telling
+    // the reader to dial the number themselves. The number stays a tel: link in the file and in
+    // the card's details.
     expect(layout.compose(profile, { t }).card).toEqual({
       name: 'Ada Lovelace',
       title: 'Senior iOS Engineer',
+      call: {
+        title: '+49 30 1234',
+        message: 'Dial it on your own phone, lazybones.',
+        dismiss: 'OK'
+      },
       actions: [
-        { icon: 'phone', label: 'call', name: 'Call +49 30 1234', href: 'tel:+49301234' },
+        { icon: 'phone', label: 'call', name: 'Call +49 30 1234', dialog: 'call' },
         {
           icon: 'mail',
           label: 'mail',
@@ -399,6 +409,7 @@ describe('SwiftSourceLayout', () => {
     expect(labelsOf(full)).toEqual(['call', 'mail', 'GitHub', 'LinkedIn']);
     expect(labelsOf(bare)).toEqual(['mail', 'GitHub', 'LinkedIn', 'Web CV']);
     expect(bare.rows.map((row) => row.kind)).toEqual(['email']);
+    expect(bare.call).toBeNull();
   });
 
   test('names the type after the candidate, as a Swift identifier', () => {

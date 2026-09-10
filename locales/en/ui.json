@@ -20,6 +20,8 @@
       "mail": "mail",
       "callName": "Call {{value}}",
       "mailName": "Email {{value}}",
+      "callJoke": "Dial it on your own phone, lazybones.",
+      "callDismiss": "OK",
       "location": "Location"
     }
   },

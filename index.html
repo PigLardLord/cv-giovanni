@@ -10,11 +10,11 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="style.css?v=20260910-xcode2" />
-    <link rel="stylesheet" href="layouts.css?v=20260910-xcode2" />
-    <link rel="stylesheet" href="design-glacier.css?v=20260910-xcode2" />
-    <link rel="stylesheet" href="print.css?v=20260910-xcode2" media="print" />
-    <script type="module" defer src="script.js?v=20260910-xcode2"></script>
+    <link rel="stylesheet" href="style.css?v=20260911-xcode3" />
+    <link rel="stylesheet" href="layouts.css?v=20260911-xcode3" />
+    <link rel="stylesheet" href="design-glacier.css?v=20260911-xcode3" />
+    <link rel="stylesheet" href="print.css?v=20260911-xcode3" media="print" />
+    <script type="module" defer src="script.js?v=20260911-xcode3"></script>
   </head>
   <body>
     <nav
@@ -61,6 +61,20 @@
           </div>
         </div>
       </aside>
+      <!-- The call button's easter egg: an alert telling the reader to dial the number themselves. -->
+      <dialog
+        id="source-call"
+        class="app-alert"
+        role="alertdialog"
+        aria-labelledby="source-call-title"
+        aria-describedby="source-call-message"
+      >
+        <h2 id="source-call-title" class="app-alert-title"></h2>
+        <p id="source-call-message" class="app-alert-message"></p>
+        <form method="dialog" class="app-alert-actions">
+          <button id="source-call-dismiss" class="app-alert-button" type="submit"></button>
+        </form>
+      </dialog>
     </div>
     <div class="container">
       <!-- Hero Section with Key Info -->

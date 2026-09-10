@@ -289,16 +289,17 @@
     content: attr(data-text);
   }
 
-  /* A phone at a phone's proportions. Its padding and radii follow its height, so a shorter window
-     gets a smaller phone rather than a squarer one. */
+  /* A phone at the proportions of an iPhone 17 Pro Max: a body of 78 × 163.4mm around a screen of
+     440 × 956pt, which the bezel below leaves exactly. Its padding and radii follow its height, so
+     a shorter window gets a smaller phone rather than a squarer one. */
   body[data-layout='nerd'] .simulator {
     position: relative;
     flex: none;
     height: var(--x-phone);
-    aspect-ratio: 150 / 310;
+    aspect-ratio: 780 / 1634;
     margin: auto;
-    padding: calc(var(--x-phone) * 0.0177);
-    border-radius: 16.7% / 8.1%;
+    padding: calc(var(--x-phone) * 0.0158);
+    border-radius: 15.5% / 7.4%;
   }
 
   /* The hardware keys: a strip down each side, cut into keys by the skin's gradient. */
@@ -332,7 +333,7 @@
     align-items: center;
     height: 100%;
     overflow: hidden;
-    border-radius: 14% / 6.5%;
+    border-radius: 13% / 6%;
     container-type: inline-size;
   }
 
@@ -340,10 +341,10 @@
   body[data-layout='nerd'] .simulator-screen::after {
     content: '';
     position: absolute;
-    top: 2%;
+    top: 1.2%;
     left: 50%;
-    width: 31%;
-    height: 4.2%;
+    width: 28.6%;
+    height: 3.9%;
     border-radius: 999px;
     transform: translateX(-50%);
   }
@@ -399,9 +400,13 @@
     display: flex;
   }
 
-  /* An action is a link: a tap on "call" calls. */
+  /* An action is a control: a link, or for "call" the button that opens the alert. */
   body[data-layout='nerd'] .app-action {
     flex: 1 1 auto;
+    padding: 0;
+    border: 0;
+    font: inherit;
+    cursor: pointer;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -441,6 +446,33 @@
   body[data-layout='nerd'] .app-row-label::before,
   body[data-layout='nerd'] .app-row-value::before {
     content: attr(data-text);
+  }
+
+  /* --- The call alert ------------------------------------------------------------------------- */
+  body[data-layout='nerd'] .app-alert {
+    width: min(270px, calc(100vw - 48px));
+    margin: auto;
+    padding: 0;
+    overflow: hidden;
+    text-align: center;
+  }
+
+  body[data-layout='nerd'] .app-alert-title {
+    margin: 19px 16px 0;
+  }
+
+  body[data-layout='nerd'] .app-alert-message {
+    margin: 3px 16px 19px;
+  }
+
+  body[data-layout='nerd'] .app-alert-actions {
+    display: flex;
+    margin: 0;
+  }
+
+  body[data-layout='nerd'] .app-alert-button {
+    flex: 1;
+    min-height: 44px;
   }
 
   /* --- The bottom bar ------------------------------------------------------------------------- */
@@ -502,8 +534,9 @@
 
 /* Nerd Mode at 390px. The code keeps its line numbers and loses width everywhere else —
    a two-character indent and a narrower gutter — so an achievement three levels deep still gets
-   forty characters a row. The phone follows the window's height and stops at 340px: at a fixed
-   404px it pushed the name below the first screen of a 667px phone. */
+   forty characters a row. The phone is an iPhone 17 Pro Max as large as the screen allows, up to
+   its real width, so its card reads at the sizes it has on a laptop. It fills the first screen, by
+   the candidate's choice: the card carries the name, the role and the ways to reach them. */
 @media screen and (max-width: 768px) {
   body[data-layout='nerd'] {
     --x-line: 20px;
@@ -511,7 +544,7 @@
     --x-number-gap: 10px;
     --x-indent: 2ch;
     --x-code-right: 12px;
-    --x-phone: clamp(240px, 42vh, 340px);
+    --x-phone: calc(min(100vw - 32px, 460px) / 0.4774);
   }
 
   /* The toolbar unpins and gives up its dots: on a phone the switcher needs the whole width. */

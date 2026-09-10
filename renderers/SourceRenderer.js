@@ -12,7 +12,8 @@ import { SwiftSourceLayout } from '../adapters/SwiftSourceLayout.js';
  *   is real text. The line numbers and the file's name are drawn the same way.
  * - The card repeats what the file already says, so its words are drawn from `data-text` and kept
  *   from assistive technology. What looks like a button is one: each action is a link with a name
- *   of its own, and nothing focusable sits inside anything `aria-hidden` that can be tabbed to.
+ *   of its own — or, for "call", a button that opens the alert — and nothing focusable sits inside
+ *   anything `aria-hidden` that can be tabbed to.
  */
 export class SourceRenderer extends BaseRenderer {
   constructor(i18n = null, layout = new SwiftSourceLayout()) {
@@ -39,6 +40,7 @@ export class SourceRenderer extends BaseRenderer {
 
     this.renderOutline(root, source.outline);
     this.renderCard(root, source.card);
+    this.renderAlert(root, source.card.call);
   }
 
   renderOutline(root, outline) {
@@ -67,8 +69,10 @@ export class SourceRenderer extends BaseRenderer {
 
     if (card.actions.length > 0) {
       const actions = this.createElement(root, 'ul', 'app-actions');
-      card.actions.forEach(({ icon, label, name, href }) => {
-        const action = this.createAddress(root, href);
+      card.actions.forEach(({ icon, label, name, href, dialog }) => {
+        const action = dialog
+          ? this.createDialogButton(root, `source-${dialog}`)
+          : this.createAddress(root, href);
         action.classList.add('app-action');
         action.dataset.icon = icon;
         action.dataset.text = label;
@@ -99,6 +103,33 @@ export class SourceRenderer extends BaseRenderer {
       });
       container.appendChild(rows);
     }
+  }
+
+  /** The call alert's words, or none when the profile has no number to joke about. */
+  renderAlert(root, call) {
+    [
+      ['source-call-title', call ? call.title : ''],
+      ['source-call-message', call ? call.message : ''],
+      ['source-call-dismiss', call ? call.dismiss : '']
+    ].forEach(([id, text]) => {
+      const element = this.getElement(root, id);
+      if (element) element.textContent = text;
+    });
+  }
+
+  /** A button that opens a dialog as a modal, so the dialog takes focus and closes on Escape. */
+  createDialogButton(root, id) {
+    const button = this.createElement(root, 'button');
+    button.type = 'button';
+    button.setAttribute('aria-haspopup', 'dialog');
+    button.setAttribute('aria-controls', id);
+    button.addEventListener('click', () => {
+      const dialog = root.getElementById(id);
+      if (!dialog || dialog.open) return;
+      if (typeof dialog.showModal === 'function') dialog.showModal();
+      else dialog.setAttribute('open', '');
+    });
+    return button;
   }
 
   createLine(root, line) {

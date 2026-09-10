@@ -20,6 +20,8 @@
       "mail": "E-Mail",
       "callName": "{{value}} anrufen",
       "mailName": "E-Mail an {{value}}",
+      "callJoke": "Wähl die Nummer doch auf deinem eigenen Handy, du Faulpelz.",
+      "callDismiss": "OK",
       "location": "Standort"
     }
   },

@@ -6,6 +6,11 @@ const labels = {
   'source.marks.contact': 'Contact',
   'source.card.mail': 'mail',
   'source.card.mailName': 'Email {{value}}',
+  'source.card.call': 'call',
+  'source.card.callName': 'Call {{value}}',
+  'source.card.callJoke': 'Dial it on your own phone, lazybones.',
+  'source.card.callDismiss': 'OK',
+  'cv:contacts.phone': 'Phone',
   'cv:contacts.email': 'Email',
   'cv:sections.skills': 'Core Technologies',
   'cv:sections.experience': 'Professional Experience',
@@ -44,6 +49,11 @@ describe('SourceRenderer', () => {
         <p aria-hidden="true"><span data-source-file></span></p>
         <div id="source-code"></div>
         <div class="simulator-screen"><img alt="" /><div id="source-card"></div></div>
+        <dialog id="source-call">
+          <h2 id="source-call-title"></h2>
+          <p id="source-call-message"></p>
+          <form method="dialog"><button id="source-call-dismiss"></button></form>
+        </dialog>
       </div>
     </body></html>`).window.document;
   });
@@ -210,6 +220,30 @@ describe('SourceRenderer', () => {
         ];
       })
     ).toEqual([['email', 'Email', 'A', 'mailto:ada@example.com', '-1', 'ada@example.com']]);
+  });
+
+  test('answers a tap on call with an alert: the number, and a nudge to dial it yourself', () => {
+    // The candidate's easter egg. It is a real dialog, so it takes focus, is announced and closes
+    // on Escape, and the button says what it opens.
+    new SourceRenderer(i18n).render(document, { ...profile, phone: '+49 30 1234' });
+
+    const call = document.querySelector('#source-card .app-action[data-icon="phone"]');
+    expect([
+      call.tagName,
+      call.getAttribute('type'),
+      call.getAttribute('aria-haspopup'),
+      call.getAttribute('aria-controls'),
+      call.getAttribute('aria-label'),
+      call.dataset.text
+    ]).toEqual(['BUTTON', 'button', 'dialog', 'source-call', 'Call +49 30 1234', 'call']);
+    expect(document.getElementById('source-call-title').textContent).toBe('+49 30 1234');
+    expect(document.getElementById('source-call-message').textContent).toBe(
+      'Dial it on your own phone, lazybones.'
+    );
+    expect(document.getElementById('source-call-dismiss').textContent).toBe('OK');
+
+    call.click();
+    expect(document.getElementById('source-call').open).toBe(true);
   });
 
   test('renders again without writing the file or the card twice', () => {

@@ -1361,6 +1361,7 @@ body[data-layout='technical'] .hero-name {
     --x-app-rule: #2c2f36;
     --x-app-ink: #f3f4f6;
     --x-app-muted: #9fa5ac;
+    --x-app-alert: rgb(37 40 46 / 0.88);
     --x-portrait-light: #f3f4f6;
     --x-portrait-shade: #c3c9d1;
     --x-tint: var(--x-property);
@@ -1756,6 +1757,52 @@ body[data-layout='technical'] .hero-name {
     color: var(--x-tint);
   }
 
+  /* --- The call alert ------------------------------------------------------------------------- */
+  /* The shape an app's alert has: a frosted panel, a bold title, a line of message and one tinted
+     button under a hairline. The panel is #25282E at 88%, so every word on it stays above 11:1. */
+  body[data-layout='nerd'] .app-alert {
+    border: 0;
+    border-radius: 14px;
+    background: var(--x-app-alert);
+    color: var(--x-app-ink);
+    font-family: var(--x-sans);
+    box-shadow: 0 24px 60px -12px rgb(0 0 0 / 0.6);
+    -webkit-backdrop-filter: blur(24px) saturate(1.4);
+    backdrop-filter: blur(24px) saturate(1.4);
+  }
+
+  body[data-layout='nerd'] .app-alert::backdrop {
+    background: rgb(0 0 0 / 0.45);
+  }
+
+  body[data-layout='nerd'] .app-alert-title {
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+  }
+
+  body[data-layout='nerd'] .app-alert-message {
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  body[data-layout='nerd'] .app-alert-actions {
+    border-top: 1px solid var(--x-app-rule);
+  }
+
+  body[data-layout='nerd'] .app-alert-button {
+    border: 0;
+    background: transparent;
+    color: var(--x-tint);
+    font: 600 17px / 1.3 var(--x-sans);
+    cursor: pointer;
+  }
+
+  body[data-layout='nerd'] .app-alert-button:hover {
+    background: rgb(255 255 255 / 0.06);
+  }
+
   body[data-layout='nerd'] .simulator-screen::after {
     background: var(--x-device);
   }
@@ -1831,25 +1878,6 @@ body[data-layout='technical'] .hero-name {
   @media (max-width: 768px) {
     body[data-layout='nerd'] .layout-switcher a {
       font-size: 11px;
-    }
-
-    /* A phone drawn on a phone keeps the phone's proportions: a floor set for a laptop would
-       overflow a screen 150px wide. */
-    body[data-layout='nerd'] .app-name {
-      font-size: 8.2cqw;
-    }
-
-    body[data-layout='nerd'] .app-title {
-      font-size: 3.9cqw;
-    }
-
-    body[data-layout='nerd'] .app-action,
-    body[data-layout='nerd'] .app-row-label {
-      font-size: 3cqw;
-    }
-
-    body[data-layout='nerd'] .app-row-value {
-      font-size: 4cqw;
     }
 
     body[data-layout='nerd'] .source-code {

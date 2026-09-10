@@ -443,6 +443,10 @@ export class SwiftSourceLayout {
    * The actions are the ways a card offers to reach someone — call, mail, then the profile's links
    * — up to one row of four, and each one goes somewhere: a button that does nothing reads as a
    * broken page.
+   *
+   * "call" is the page's one easter egg, the candidate's own: it opens an alert with the number
+   * and a nudge to dial it yourself. The number stays a `tel:` link in the file and in the
+   * card's details, so nobody who wants to call is kept from it.
    */
   card(data, t) {
     const phone = clean(data.phone);
@@ -456,7 +460,7 @@ export class SwiftSourceLayout {
               icon: 'phone',
               label: t('source.card.call'),
               name: t('source.card.callName', { value: phone }),
-              href: telephone(phone)
+              dialog: 'call'
             }
           ]
         : []),
@@ -497,6 +501,10 @@ export class SwiftSourceLayout {
       ...(location ? [{ kind: 'location', label: t('source.card.location'), value: location }] : [])
     ];
 
-    return { name: clean(data.name), title: clean(data.title), actions, rows };
+    const call = phone
+      ? { title: phone, message: t('source.card.callJoke'), dismiss: t('source.card.callDismiss') }
+      : null;
+
+    return { name: clean(data.name), title: clean(data.title), call, actions, rows };
   }
 }
