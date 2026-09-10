@@ -52,12 +52,12 @@ Regenerate with `npm run audit:ats`.
 
 15 artefacts, 6 distinct streams.
 
-- `41001a5655af` — generated/giovanni-trovato-general-en-nerd.pdf, generated/qa/giovanni-trovato-general-en-nerd-a4-color.pdf, generated/qa/giovanni-trovato-general-en-nerd-a4-monochrome.pdf
-- `e954ee2c815f` — generated/giovanni-trovato-general-en-spotlight.pdf, generated/qa/giovanni-trovato-general-en-spotlight-a4-color.pdf, generated/qa/giovanni-trovato-general-en-spotlight-a4-monochrome.pdf
-- `082a2a929018` — generated/giovanni-trovato-general-en-technical.pdf, generated/qa/giovanni-trovato-general-en-technical-a4-color.pdf, generated/qa/giovanni-trovato-general-en-technical-a4-monochrome.pdf
-- `345b072d9a68` — generated/qa/giovanni-trovato-general-en-nerd-letter-color.pdf, generated/qa/giovanni-trovato-general-en-nerd-letter-monochrome.pdf
-- `7cfad5afe25a` — generated/qa/giovanni-trovato-general-en-spotlight-letter-color.pdf, generated/qa/giovanni-trovato-general-en-spotlight-letter-monochrome.pdf
-- `0de521e52af0` — generated/qa/giovanni-trovato-general-en-technical-letter-color.pdf, generated/qa/giovanni-trovato-general-en-technical-letter-monochrome.pdf
+- `d9c7281d0fcd` — generated/giovanni-trovato-general-en-nerd.pdf, generated/qa/giovanni-trovato-general-en-nerd-a4-color.pdf, generated/qa/giovanni-trovato-general-en-nerd-a4-monochrome.pdf
+- `82dc894385b0` — generated/giovanni-trovato-general-en-spotlight.pdf, generated/qa/giovanni-trovato-general-en-spotlight-a4-color.pdf, generated/qa/giovanni-trovato-general-en-spotlight-a4-monochrome.pdf
+- `b3fccaea7475` — generated/giovanni-trovato-general-en-technical.pdf, generated/qa/giovanni-trovato-general-en-technical-a4-color.pdf, generated/qa/giovanni-trovato-general-en-technical-a4-monochrome.pdf
+- `32e0cc80057a` — generated/qa/giovanni-trovato-general-en-nerd-letter-color.pdf, generated/qa/giovanni-trovato-general-en-nerd-letter-monochrome.pdf
+- `99c81c14c43e` — generated/qa/giovanni-trovato-general-en-spotlight-letter-color.pdf, generated/qa/giovanni-trovato-general-en-spotlight-letter-monochrome.pdf
+- `bea5b1b86605` — generated/qa/giovanni-trovato-general-en-technical-letter-color.pdf, generated/qa/giovanni-trovato-general-en-technical-letter-monochrome.pdf
 
 
 A layout-aware read of at least one artefact recovers a different number of roles. That is where a column is being serialised; reported, not scored.
