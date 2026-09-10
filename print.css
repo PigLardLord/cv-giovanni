@@ -49,8 +49,10 @@ body {
    HIDE WEB-ONLY ELEMENTS
    ============================================================================= */
 
+/* Nerd Mode's editor is a screen rendering of the same profile; paper prints the base DOM. */
 .print-footer,
-.print-button {
+.print-button,
+.source-view {
   display: none !important;
 }
 

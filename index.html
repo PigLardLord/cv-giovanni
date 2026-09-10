@@ -7,14 +7,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="style.css?v=20260909-print4" />
-    <link rel="stylesheet" href="layouts.css?v=20260909-print4" />
-    <link rel="stylesheet" href="design-glacier.css?v=20260909-print4" />
-    <link rel="stylesheet" href="print.css?v=20260909-print4" media="print" />
-    <script type="module" defer src="script.js?v=20260909-print4"></script>
+    <link rel="stylesheet" href="style.css?v=20260910-xcode1" />
+    <link rel="stylesheet" href="layouts.css?v=20260910-xcode1" />
+    <link rel="stylesheet" href="design-glacier.css?v=20260910-xcode1" />
+    <link rel="stylesheet" href="print.css?v=20260910-xcode1" media="print" />
+    <script type="module" defer src="script.js?v=20260910-xcode1"></script>
   </head>
   <body>
     <nav
@@ -26,6 +26,42 @@
       <a data-layout-link="spotlight" data-i18n="layouts.spotlight">Impact Spotlight</a>
       <a data-layout-link="technical" data-i18n="layouts.technical">Technical Profile</a>
     </nav>
+    <!-- Nerd Mode's editor: the same profile as a Swift file. It stays hidden unless the nerd
+         layout's screen stylesheet shows it, so paper, every other layout and a page without CSS
+         never meet it. renderers/SourceRenderer.js writes the file. -->
+    <div class="source-view" hidden>
+      <nav
+        class="source-navigator"
+        aria-label="Sections"
+        data-i18n-attr="aria-label:source.outline"
+      >
+        <p class="source-navigator-file" aria-hidden="true"><span data-source-file></span></p>
+        <ol id="source-outline" class="source-outline"></ol>
+      </nav>
+      <div class="source-editor">
+        <p class="source-tabs" aria-hidden="true">
+          <span class="source-tab" data-source-file></span>
+        </p>
+        <div id="source-code" class="source-code"></div>
+      </div>
+      <aside class="source-preview" aria-label="Preview" data-i18n-attr="aria-label:source.preview">
+        <p class="source-preview-bar" aria-hidden="true">
+          <span data-i18n="source.preview">Preview</span>
+          <span data-i18n="source.device">iPhone</span>
+        </p>
+        <div class="simulator">
+          <div class="simulator-screen">
+            <img
+              class="simulator-portrait"
+              src="profile.webp"
+              alt=""
+              data-i18n-attr="alt:accessibility.profilePhoto"
+            />
+            <div id="source-card" class="app-card" aria-hidden="true"></div>
+          </div>
+        </div>
+      </aside>
+    </div>
     <div class="container">
       <!-- Hero Section with Key Info -->
       <header class="hero-section">

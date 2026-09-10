@@ -10,6 +10,13 @@
     "profilePhoto": "Portrait of {{name}}",
     "layoutSwitcher": "Choose CV layout"
   },
+  "source": {
+    "outline": "Sections",
+    "preview": "Preview",
+    "device": "iPhone",
+    "marks": { "profile": "Profile", "contact": "Contact" },
+    "card": { "call": "call", "mail": "mail", "location": "Location" }
+  },
   "errors": {
     "loadingTitle": "Error loading CV",
     "loadingHint": "Please check the console for more details."

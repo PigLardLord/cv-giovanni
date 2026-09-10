@@ -30,432 +30,497 @@
 }
 
 /* Nerd Mode — the arrangement.
-   A single sheet of anthracite with nothing on it but rules. There is no card, no panel and no
-   second surface, so the page has no edge of its own: what organises it is a fixed 178px
-   monospace column down the left — dates beside a role, a category beside its skills — and a
-   hairline wherever two things must be told apart. This block is the arrangement only; the
-   colour, the type and the hairlines themselves live in design-glacier.css under "Nerd Mode —
-   the skin", which loads after this file and has to, because it overrides the shared masthead
-   and section rules that file defines above.
+   The CV as a Swift file open in an editor: a toolbar across the top, the file's sections down a
+   navigator on the left, the source in the middle, and a phone on the right running the file's
+   #Preview — a contact card around the portrait. The page scrolls as a document; the toolbar, the
+   tab, the navigator and the phone hold still beside it.
 
-   Screen-only, like spotlight and technical: on paper print.css lays the base DOM out on its own
-   two-column grid, and a `display: contents` or a grid placement leaking into it would break
-   that. The paper layout gets its own, deliberately smaller treatment at the foot of print.css. */
+   The source is not the base DOM restyled. It is a second rendering of the same profile, written
+   into `.source-view` by renderers/SourceRenderer.js from the lines adapters/SwiftSourceLayout.js
+   composes, because a Swift file is a different shape to the page's sections — lines, depth,
+   brackets that close — and no stylesheet turns a card into a closing parenthesis. On screen the
+   base sections step aside. They remain what paper prints: `.source-view` carries `hidden`, and
+   only this block overrides it, so in print, in the other two layouts and without a stylesheet the
+   file does not exist.
+
+   What the editor draws is decoration and what it says is the CV. Every keyword, quote, bracket
+   and line number comes from `data-code` or a counter, on elements marked `aria-hidden`, so a
+   selection, a screen reader and a search meet the profile's words and nothing else.
+
+   This block is the arrangement only; the colour, the type and the syntax live in
+   design-glacier.css under "Nerd Mode — the skin". */
 @media screen {
-  /* The measure and the gutter, in one place: the section paddings, the masthead and the footer
-     all hang off them, and the credentials band divides the measure into four. */
+  /* The editor's geometry, in one place. `--x-indent` is in `ch` and resolves on each line, in the
+     code face, so an indent is four characters whatever the fallback font measures. The phone is
+     as tall as the window allows, between a height it still reads at and the 620px it is drawn
+     for. */
   body[data-layout='nerd'] {
-    --g-measure: 1100px;
-    --g-gutter: 76px;
-    --g-rail: 178px;
-    --g-rail-gap: 24px;
-  }
+    --x-toolbar: 52px;
+    --x-tabs: 36px;
+    --x-navigator: 248px;
+    --x-preview: 392px;
+    --x-line: 24px;
+    --x-gutter: 64px;
+    --x-number-gap: 20px;
+    --x-indent: 4ch;
+    --x-code-right: 28px;
+    --x-phone: clamp(360px, calc(100vh - var(--x-toolbar) - var(--x-tabs) - 88px), 620px);
 
-  /* The body's own padding goes so the ground reaches the window on every side. Nothing is
-     lifted off it: the container is the same anthracite, with no radius, shadow or border. */
-  body[data-layout='nerd'] {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
     padding: 0;
   }
 
+  /* The base sections step aside; the footer stays, as the editor's bottom bar. */
+  body[data-layout='nerd'] .hero-section,
+  body[data-layout='nerd'] .skills-spotlight,
+  body[data-layout='nerd'] .main-content {
+    display: none;
+  }
+
   body[data-layout='nerd'] .container {
-    max-width: var(--g-measure);
+    width: 100%;
+    max-width: none;
+    margin: 0;
     border-radius: 0;
     box-shadow: none;
     overflow: visible;
-    counter-reset: nerd-section;
   }
 
-  /* The switcher stops being a floating pill and becomes the sheet's top strip, aligned to the
-     same gutter as everything below it. */
+  /* --- The toolbar --------------------------------------------------------------------------- */
+  /* The layout switcher, pinned, with the window's three dots drawn in the room its padding
+     leaves. The links become one segmented control: they share their borders and only the ends
+     round. */
   body[data-layout='nerd'] .layout-switcher {
-    max-width: var(--g-measure);
+    position: sticky;
+    top: 0;
+    z-index: 3;
     justify-content: flex-start;
+    align-items: center;
     gap: 0;
-    margin: 0 auto;
-    padding: 20px var(--g-gutter);
+    max-width: none;
+    height: var(--x-toolbar);
+    margin: 0;
+    padding: 0 18px 0 94px;
+  }
+
+  body[data-layout='nerd'] .layout-switcher::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 18px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    transform: translateY(-50%);
   }
 
   body[data-layout='nerd'] .layout-switcher a {
     flex: none;
-    padding: 6px 18px 6px 0;
-    text-align: left;
+    padding: 6px 12px;
+    text-align: center;
   }
 
-  /* --- The masthead ------------------------------------------------------------------------ */
-  /* Identity left, portrait right, the contact rail across the foot of both. The sidebar steps
-     out of the box tree so the portrait and the rail can take their own places, the same
-     technique spotlight uses. */
-  body[data-layout='nerd'] .hero-section {
-    padding: 66px var(--g-gutter) 0;
+  body[data-layout='nerd'] .layout-switcher a + a {
+    margin-left: -1px;
   }
 
-  body[data-layout='nerd'] .hero-content {
-    grid-template-columns: minmax(0, 1fr) 104px;
-    grid-template-areas:
-      'text portrait'
-      'contact contact';
-    column-gap: 40px;
-    row-gap: 34px;
+  /* --- The three panes ------------------------------------------------------------------------ */
+  body[data-layout='nerd'] .source-view {
+    display: grid;
+    grid-template-columns: var(--x-navigator) minmax(0, 1fr) var(--x-preview);
     align-items: start;
+    flex: 1 0 auto;
   }
 
-  body[data-layout='nerd'] .hero-sidebar {
-    display: contents;
+  /* The navigator and the phone hold still while the file scrolls past them: each is a grid item
+     as tall as the window, sticking inside a grid area as tall as the file. */
+  body[data-layout='nerd'] .source-navigator,
+  body[data-layout='nerd'] .source-preview {
+    position: sticky;
+    top: var(--x-toolbar);
+    height: calc(100vh - var(--x-toolbar));
+    overflow-y: auto;
   }
 
-  body[data-layout='nerd'] .hero-text {
-    grid-area: text;
+  body[data-layout='nerd'] .source-navigator {
+    padding: 12px 10px;
   }
 
-  body[data-layout='nerd'] .profile-image-wrapper {
-    grid-area: portrait;
-  }
-
-  body[data-layout='nerd'] .contact-card {
-    grid-area: contact;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 10px 22px;
-  }
-
-  body[data-layout='nerd'] .contact-item,
-  body[data-layout='nerd'] .contact-details {
-    margin: 0;
-  }
-
-  /* The template breaks the two addresses onto two lines with a <br>; the rail wants one line.
-     Print keeps the break: this rule is screen-only, like everything in this block. */
-  body[data-layout='nerd'] .contact-details br {
-    display: none;
-  }
-
-  body[data-layout='nerd'] .contact-details strong:nth-of-type(2) {
-    margin-left: 18px;
-  }
-
-  body[data-layout='nerd'] .social-links {
-    gap: 0;
-  }
-
-  /* --- The section heads -------------------------------------------------------------------- */
-  /* A number, a word, and a rule that runs to the margin. The number is a counter, so it comes
-     from the stylesheet and never from the DOM: nothing a parser reads back changes. A section
-     the renderers hide carries `display: none` and does not increment, so an empty section
-     leaves no gap in the numbering. */
-  body[data-layout='nerd'] .spotlight-title,
-  body[data-layout='nerd'] .section-title {
+  body[data-layout='nerd'] .source-navigator-file,
+  body[data-layout='nerd'] .source-outline a {
     display: flex;
     align-items: center;
-    gap: 16px;
-    margin: 0 0 26px;
+    gap: 8px;
+    min-height: 26px;
+    margin: 0;
+    padding: 0 8px;
+  }
+
+  body[data-layout='nerd'] .source-outline {
+    margin: 2px 0 0;
     padding: 0;
-    counter-increment: nerd-section;
+    list-style: none;
   }
 
-  body[data-layout='nerd'] .spotlight-title::before,
-  body[data-layout='nerd'] .section-title::before {
-    content: counter(nerd-section, decimal-leading-zero);
-    flex: none;
+  body[data-layout='nerd'] .source-outline a {
+    padding-left: 42px;
   }
 
-  body[data-layout='nerd'] .spotlight-title::after,
-  body[data-layout='nerd'] .section-title::after {
-    content: '';
-    flex: 1;
-    height: 1px;
+  /* A jump from the navigator lands below the pinned toolbar and tab, not under them. */
+  body[data-layout='nerd'] .source-line[id] {
+    scroll-margin-top: calc(var(--x-toolbar) + var(--x-tabs) + 12px);
   }
 
-  /* --- 01 The skills table ------------------------------------------------------------------ */
-  /* A ruled table: the category holds the rail, the names run as text beside it. Pills belong to
-     technical; nothing here is boxed. */
-  body[data-layout='nerd'] .skills-spotlight {
-    padding: 60px var(--g-gutter) 0;
+  body[data-layout='nerd'] .source-editor {
+    min-width: 0;
   }
 
-  body[data-layout='nerd'] .skills-showcase {
-    display: block;
-    max-width: none;
+  body[data-layout='nerd'] .source-tabs {
+    position: sticky;
+    top: var(--x-toolbar);
+    z-index: 2;
+    display: flex;
+    height: var(--x-tabs);
     margin: 0;
   }
 
-  body[data-layout='nerd'] .skill-group {
-    display: grid;
-    grid-template-columns: var(--g-rail) minmax(0, 1fr);
-    gap: 0 var(--g-rail-gap);
-    align-items: start;
-    padding: 15px 0;
+  body[data-layout='nerd'] .source-tab {
+    margin-bottom: -1px;
+    padding: 0 16px;
   }
 
-  body[data-layout='nerd'] .skill-category,
-  body[data-layout='nerd'] .skill-list {
-    display: block;
-    flex: none;
-  }
-
-  /* --- 02 The experience -------------------------------------------------------------------- */
-  body[data-layout='nerd'] .main-content {
-    padding: 60px var(--g-gutter) 0;
-  }
-
-  /* Both columns step out of the box tree so their five sections can take places in one grid:
-     the experience spans the full measure, and the four short sections that follow it become the
-     credentials band beneath. The DOM order is untouched — a parser still reads experience,
-     certifications, education, languages, interests. */
-  /* The band's four columns stretch to the tallest of them, so the rule that closes the band
-     runs straight across and the dividers between the columns reach it. Left to `start` each
-     column ended at its own last line and the band came out as a staircase. */
-  body[data-layout='nerd'] .content-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 62px 0;
-    align-items: stretch;
-  }
-
-  body[data-layout='nerd'] .primary-column,
-  body[data-layout='nerd'] .secondary-column {
-    display: contents;
-  }
-
-  body[data-layout='nerd'] .experience-section {
-    grid-column: 1 / -1;
-    grid-row: 1;
-  }
-
-  body[data-layout='nerd'] .certifications-section {
-    grid-column: 1;
-    grid-row: 2;
-    padding: 26px 26px 30px 0;
-  }
-
-  body[data-layout='nerd'] .education-section {
-    grid-column: 2;
-    grid-row: 2;
-    padding: 26px;
-  }
-
-  body[data-layout='nerd'] .languages-section {
-    grid-column: 3;
-    grid-row: 2;
-    padding: 26px;
-  }
-
-  body[data-layout='nerd'] .interests-section {
-    grid-column: 4;
-    grid-row: 2;
-    padding: 26px 0 30px 26px;
-  }
-
-  /* The grid's gaps are the rhythm; the base margins would double them. */
-  body[data-layout='nerd'] section,
-  body[data-layout='nerd'] .primary-column > section + section,
-  body[data-layout='nerd'] .secondary-column > section + section {
-    margin: 0;
-  }
-
-  /* A role: its dates hold the rail, everything else runs in the column beside them. The DOM
-     keeps the title first, so a screen reader and a parser meet the role before the period. */
-  body[data-layout='nerd'] .job-entry {
-    display: grid;
-    grid-template-columns: var(--g-rail) minmax(0, 1fr);
-    column-gap: var(--g-rail-gap);
-    row-gap: 0;
-    align-items: start;
-    padding: 0 0 38px;
-    border: 0;
-    border-radius: 0;
-    box-shadow: none;
-  }
-
-  body[data-layout='nerd'] .job-entry > * {
-    grid-column: 2;
-  }
-
-  body[data-layout='nerd'] .job-period {
-    grid-column: 1;
-    grid-row: 1;
-  }
-
-  body[data-layout='nerd'] .job-header {
-    grid-row: 1;
-  }
-
-  body[data-layout='nerd'] .job-entry + .job-entry {
-    margin: 0;
-    padding-top: 34px;
-  }
-
-  body[data-layout='nerd'] .experience-content > .job-entry:last-child {
-    padding-bottom: 0;
-  }
-
-  body[data-layout='nerd'] .job-highlights {
-    margin: 18px 0 0;
-    padding: 0;
-  }
-
-  /* --- 03-06 The credentials band ------------------------------------------------------------ */
-  body[data-layout='nerd'] .edu-entry {
-    padding: 0;
-    border: 0;
-    border-radius: 0;
-    box-shadow: none;
-  }
-
-  body[data-layout='nerd'] .edu-entry + .edu-entry {
-    margin-top: 16px;
-  }
-
-  body[data-layout='nerd'] .certifications-list li {
-    padding: 0;
-    border: 0;
-    border-radius: 0;
-  }
-
-  body[data-layout='nerd'] .certifications-list li + li {
-    margin-top: 16px;
-  }
-
-  body[data-layout='nerd'] .languages-list li {
-    padding: 0;
-    border: 0;
-  }
-
-  body[data-layout='nerd'] .languages-list li + li {
-    margin-top: 12px;
-  }
-
-  body[data-layout='nerd'] .interests-tags {
-    display: block;
-  }
-
-  /* --- The footer ---------------------------------------------------------------------------- */
-  body[data-layout='nerd'] .print-footer {
-    justify-content: flex-start;
+  body[data-layout='nerd'] [data-source-file] {
+    display: inline-flex;
     align-items: center;
-    gap: 14px;
-    padding: 40px var(--g-gutter) 74px;
-  }
-
-  /* The rule that closes the sheet, drawn in the space the two buttons leave. */
-  body[data-layout='nerd'] .print-footer::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-  }
-}
-
-/* Nerd Mode at 390px: the rail has nowhere to go, so it unstacks. Dates rise above their role,
-   categories above their skills, and the four-column band becomes four ruled rows. */
-@media screen and (max-width: 768px) {
-  body[data-layout='nerd'] {
-    --g-gutter: 24px;
-  }
-
-  body[data-layout='nerd'] .layout-switcher {
-    flex-wrap: wrap;
-    gap: 0 4px;
-    padding: 14px var(--g-gutter);
-  }
-
-  body[data-layout='nerd'] .hero-section {
-    padding: 40px var(--g-gutter) 0;
-  }
-
-  body[data-layout='nerd'] .hero-content {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      'portrait'
-      'text'
-      'contact';
-    row-gap: 22px;
-    text-align: left;
-  }
-
-  body[data-layout='nerd'] .contact-card {
-    flex-direction: column;
-    align-items: flex-start;
     gap: 8px;
   }
 
-  /* Narrow screens get the template's line break back: "Phone:" stranded at a line's end with
-     its number on the next reads as a mistake. */
-  body[data-layout='nerd'] .contact-details br {
+  /* --- The source ----------------------------------------------------------------------------- */
+  /* One element per line. The first row of a line starts at its depth; the rows it wraps onto hang
+     one indent further in, the way an editor with line wrapping sets a long string, so a wrapped
+     achievement never reads as a new line of code. The number sits in the gutter and is counted,
+     never written. */
+  body[data-layout='nerd'] .source-code {
+    counter-reset: source-line;
+    padding: 14px 0 56px;
+  }
+
+  body[data-layout='nerd'] .source-line {
+    position: relative;
+    min-height: var(--x-line);
+    margin: 0;
+    padding: 0 var(--x-code-right) 0 calc(var(--x-gutter) + (var(--depth, 0) + 1) * var(--x-indent));
+    text-indent: calc(-1 * var(--x-indent));
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    counter-increment: source-line;
+  }
+
+  body[data-layout='nerd'] .source-line[data-depth='1'] {
+    --depth: 1;
+  }
+
+  body[data-layout='nerd'] .source-line[data-depth='2'] {
+    --depth: 2;
+  }
+
+  body[data-layout='nerd'] .source-line[data-depth='3'] {
+    --depth: 3;
+  }
+
+  body[data-layout='nerd'] .source-line[data-depth='4'] {
+    --depth: 4;
+  }
+
+  body[data-layout='nerd'] .source-line[data-depth='5'] {
+    --depth: 5;
+  }
+
+  body[data-layout='nerd'] .source-number {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: calc(var(--x-gutter) - var(--x-number-gap));
+    text-align: right;
+    text-indent: 0;
+    user-select: none;
+  }
+
+  body[data-layout='nerd'] .source-number::before {
+    content: counter(source-line);
+  }
+
+  body[data-layout='nerd'] .tok[data-code]::before {
+    content: attr(data-code);
+  }
+
+  /* The name and the roles are headings to a screen reader and part of a line to the eye. */
+  body[data-layout='nerd'] .source-line h1,
+  body[data-layout='nerd'] .source-line h3 {
     display: inline;
+    margin: 0;
   }
 
-  body[data-layout='nerd'] .contact-details strong:nth-of-type(2) {
-    margin-left: 0;
+  /* --- The preview ---------------------------------------------------------------------------- */
+  body[data-layout='nerd'] .source-preview {
+    display: flex;
+    flex-direction: column;
   }
 
-  body[data-layout='nerd'] .skills-spotlight,
-  body[data-layout='nerd'] .main-content {
-    padding: 44px var(--g-gutter) 0;
+  body[data-layout='nerd'] .source-preview-bar {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: space-between;
+    height: var(--x-tabs);
+    margin: 0;
+    padding: 0 16px;
   }
 
-  body[data-layout='nerd'] .skill-group {
+  /* A phone at a phone's proportions. Its padding and radii follow its height, so a shorter window
+     gets a smaller phone rather than a squarer one. */
+  body[data-layout='nerd'] .simulator {
+    position: relative;
+    flex: none;
+    height: var(--x-phone);
+    aspect-ratio: 150 / 310;
+    margin: auto;
+    padding: calc(var(--x-phone) * 0.0177);
+    border-radius: 16.7% / 8.1%;
+  }
+
+  /* The hardware keys: a strip down each side, cut into keys by the skin's gradient. */
+  body[data-layout='nerd'] .simulator::before,
+  body[data-layout='nerd'] .simulator::after {
+    content: '';
+    position: absolute;
+    width: 3px;
+  }
+
+  body[data-layout='nerd'] .simulator::before {
+    top: 20%;
+    left: -4px;
+    height: 29%;
+    border-radius: 2px 0 0 2px;
+  }
+
+  body[data-layout='nerd'] .simulator::after {
+    top: 31%;
+    right: -4px;
+    height: 14%;
+    border-radius: 0 2px 2px 0;
+  }
+
+  /* The screen is a size container: everything on it is measured in `cqw`, hundredths of the
+     screen's width, so the app scales with the phone as one picture and never reflows. */
+  body[data-layout='nerd'] .simulator-screen {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+    overflow: hidden;
+    border-radius: 14% / 6.5%;
+    container-type: inline-size;
+  }
+
+  /* The camera cut-out, over the top of the app. */
+  body[data-layout='nerd'] .simulator-screen::after {
+    content: '';
+    position: absolute;
+    top: 2%;
+    left: 50%;
+    width: 31%;
+    height: 4.2%;
+    border-radius: 999px;
+    transform: translateX(-50%);
+  }
+
+  /* --- The app on the screen ------------------------------------------------------------------ */
+  /* A contact card: the portrait in a circle, the name and the role under it, a row of actions and
+     the details in one grouped list. */
+  body[data-layout='nerd'] .simulator-portrait {
+    flex: none;
+    width: 42cqw;
+    height: 42cqw;
+    margin-top: 21cqw;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: 50% 30%;
+  }
+
+  body[data-layout='nerd'] .app-card {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    padding: 0 5cqw;
+  }
+
+  body[data-layout='nerd'] .app-name,
+  body[data-layout='nerd'] .app-title {
+    margin: 0;
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+
+  body[data-layout='nerd'] .app-name {
+    margin-top: 4.6cqw;
+  }
+
+  body[data-layout='nerd'] .app-title {
+    margin-top: 1.4cqw;
+    padding: 0 4cqw;
+  }
+
+  /* As many equal columns as there are actions; the layout gives it four at most. */
+  body[data-layout='nerd'] .app-actions {
+    display: grid;
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
+    gap: 2.2cqw;
+    margin: 6cqw 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  body[data-layout='nerd'] .app-action {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.2cqw;
+    height: 15cqw;
+    border-radius: 3.4cqw;
+  }
+
+  body[data-layout='nerd'] .app-action::before {
+    content: '';
+    width: 5.6cqw;
+    height: 5.6cqw;
+  }
+
+  body[data-layout='nerd'] .app-rows {
+    margin: 5cqw 0 0;
+    padding: 0;
+    overflow: hidden;
+    border-radius: 3.6cqw;
+    list-style: none;
+  }
+
+  body[data-layout='nerd'] .app-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6cqw;
+    padding: 2.6cqw 4cqw;
+    overflow-wrap: anywhere;
+  }
+
+  /* Every word on the card is drawn from `data-text`: the file already says each of them as
+     text, and a card that wrote them again would be read twice. */
+  body[data-layout='nerd'] .app-name::before,
+  body[data-layout='nerd'] .app-title::before,
+  body[data-layout='nerd'] .app-action::after,
+  body[data-layout='nerd'] .app-row-label::before,
+  body[data-layout='nerd'] .app-row-value::before {
+    content: attr(data-text);
+  }
+
+  /* --- The bottom bar ------------------------------------------------------------------------- */
+  body[data-layout='nerd'] .print-footer {
+    justify-content: flex-start;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    padding: 9px 18px;
+  }
+}
+
+/* Nerd Mode below a laptop: the navigator goes first — the file's own MARK lines carry the same
+   sections — and the phone takes a narrower pane. */
+@media screen and (max-width: 1180px) {
+  body[data-layout='nerd'] {
+    --x-preview: 320px;
+    --x-phone: clamp(360px, calc(100vh - var(--x-toolbar) - var(--x-tabs) - 88px), 540px);
+  }
+
+  body[data-layout='nerd'] .source-view {
+    grid-template-columns: minmax(0, 1fr) var(--x-preview);
+  }
+
+  body[data-layout='nerd'] .source-navigator {
+    display: none;
+  }
+}
+
+/* Nerd Mode at 390px: one column. The code keeps its line numbers and loses width everywhere else —
+   a two-character indent and a narrower gutter — so an achievement three levels deep still gets
+   forty characters a row. The phone follows the window's height and stops at 340px: at a fixed
+   404px it pushed the name below the first screen of a 667px phone. */
+@media screen and (max-width: 768px) {
+  body[data-layout='nerd'] {
+    --x-line: 20px;
+    --x-gutter: 40px;
+    --x-number-gap: 10px;
+    --x-indent: 2ch;
+    --x-code-right: 12px;
+    --x-phone: clamp(240px, 42vh, 340px);
+  }
+
+  /* The toolbar unpins and gives up its dots: on a phone the switcher needs the whole width. */
+  body[data-layout='nerd'] .layout-switcher {
+    position: static;
+    height: auto;
+    padding: 10px 12px;
+  }
+
+  body[data-layout='nerd'] .layout-switcher::before {
+    display: none;
+  }
+
+  body[data-layout='nerd'] .layout-switcher a {
+    flex: 1 1 0;
+    padding: 7px 4px;
+  }
+
+  /* The phone comes first, as the portrait did before. It moves by `order`, which leaves the
+     document order — and a screen reader's — with the file first. */
+  body[data-layout='nerd'] .source-view {
     grid-template-columns: minmax(0, 1fr);
-    gap: 7px;
-    padding: 14px 0;
   }
 
-  /* One column, and the band becomes four ruled rows that must sit flush against each other:
-     the grid gap goes and the experience carries the distance to the band on its own margin. */
-  body[data-layout='nerd'] .content-grid {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0;
+  body[data-layout='nerd'] .source-preview {
+    order: -1;
+    position: static;
+    height: auto;
+    overflow: visible;
+    padding: 26px 0 30px;
   }
 
-  body[data-layout='nerd'] .experience-section {
-    margin-bottom: 44px;
+  body[data-layout='nerd'] .source-preview-bar {
+    display: none;
   }
 
-  body[data-layout='nerd'] .experience-section,
-  body[data-layout='nerd'] .certifications-section,
-  body[data-layout='nerd'] .education-section,
-  body[data-layout='nerd'] .languages-section,
-  body[data-layout='nerd'] .interests-section {
-    grid-column: 1;
-    grid-row: auto;
+  body[data-layout='nerd'] .source-tabs {
+    top: 0;
   }
 
-  body[data-layout='nerd'] .certifications-section,
-  body[data-layout='nerd'] .education-section,
-  body[data-layout='nerd'] .languages-section,
-  body[data-layout='nerd'] .interests-section {
-    padding: 20px 0;
+  body[data-layout='nerd'] .source-line[id] {
+    scroll-margin-top: calc(var(--x-tabs) + 12px);
   }
 
-  body[data-layout='nerd'] .job-entry {
-    grid-template-columns: minmax(0, 1fr);
-    padding-bottom: 30px;
-  }
-
-  body[data-layout='nerd'] .job-entry > * {
-    grid-column: 1;
-  }
-
-  body[data-layout='nerd'] .job-period {
-    grid-row: 1;
-  }
-
-  body[data-layout='nerd'] .job-header {
-    grid-row: 2;
-  }
-
-  body[data-layout='nerd'] .job-entry + .job-entry {
-    padding-top: 26px;
+  body[data-layout='nerd'] .source-code {
+    padding: 12px 0 32px;
   }
 
   body[data-layout='nerd'] .print-footer {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-    padding: 36px var(--g-gutter) 48px;
+    padding: 16px 12px 22px;
   }
 
-  body[data-layout='nerd'] .print-footer::after {
-    display: none;
+  body[data-layout='nerd'] .print-button {
+    flex: 1 1 0;
+    justify-content: center;
   }
 }
 

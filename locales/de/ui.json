@@ -10,6 +10,13 @@
     "profilePhoto": "Porträt von {{name}}",
     "layoutSwitcher": "Lebenslauf-Layout auswählen"
   },
+  "source": {
+    "outline": "Abschnitte",
+    "preview": "Vorschau",
+    "device": "iPhone",
+    "marks": { "profile": "Profil", "contact": "Kontakt" },
+    "card": { "call": "anrufen", "mail": "E-Mail", "location": "Standort" }
+  },
   "errors": {
     "loadingTitle": "Lebenslauf konnte nicht geladen werden",
     "loadingHint": "Weitere Informationen finden Sie in der Konsole."
