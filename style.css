@@ -221,6 +221,12 @@ body {
   margin-right: var(--space-sm);
 }
 
+/* The pin is drawn, not written. As text it went into every selection of the location, and from
+   there into application forms (#83). print.css hides it on paper. */
+.contact-icon::before {
+  content: '📍';
+}
+
 .contact-details {
   font-size: 0.85rem;
   line-height: 1.6;
