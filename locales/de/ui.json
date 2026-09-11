@@ -10,6 +10,21 @@
     "profilePhoto": "Porträt von {{name}}",
     "layoutSwitcher": "Lebenslauf-Layout auswählen"
   },
+  "source": {
+    "outline": "Abschnitte",
+    "preview": "Vorschau",
+    "device": "iPhone",
+    "marks": { "profile": "Profil", "contact": "Kontakt" },
+    "card": {
+      "call": "anrufen",
+      "mail": "E-Mail",
+      "callName": "{{value}} anrufen",
+      "mailName": "E-Mail an {{value}}",
+      "callJoke": "Wähl die Nummer doch auf deinem eigenen Handy, du Faulpelz.",
+      "callDismiss": "OK",
+      "location": "Standort"
+    }
+  },
   "errors": {
     "loadingTitle": "Lebenslauf konnte nicht geladen werden",
     "loadingHint": "Weitere Informationen finden Sie in der Konsole."

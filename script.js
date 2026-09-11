@@ -16,6 +16,7 @@ import { LanguagesRenderer } from './renderers/LanguagesRenderer.js';
 import { CertificationsRenderer } from './renderers/CertificationsRenderer.js';
 import { SocialLinksRenderer } from './renderers/SocialLinksRenderer.js';
 import { InterestsRenderer } from './renderers/InterestsRenderer.js';
+import { SourceRenderer } from './renderers/SourceRenderer.js';
 
 const resolver = new LocaleResolver();
 const locale = resolver.resolve({
@@ -74,6 +75,7 @@ app.registerRenderer('certifications', new CertificationsRenderer());
 app.registerRenderer('skills', new SkillsRenderer());
 app.registerRenderer('languages', new LanguagesRenderer());
 app.registerRenderer('interests', new InterestsRenderer());
+app.registerRenderer('source', new SourceRenderer(i18n));
 
 // Start application
 const currentData = await app.initialize(document);
