@@ -194,7 +194,10 @@ describe('PdfExporter — what has to survive extraction and assistive reading',
   // The web page already skips a missing description. The PDF reserved a paragraph for it anyway,
   // and on spotlight LETTER one reserved line is the difference between two pages and three.
   test('omits a certification description rather than rendering an empty line', () => {
-    const bare = { ...rich, certifications: [{ name: 'iOS Lead Essentials', issuer: 'Academy', year: 2024 }] };
+    const bare = {
+      ...rich,
+      certifications: [{ name: 'iOS Lead Essentials', issuer: 'Academy', year: 2024 }]
+    };
     const definition = new PdfExporter(null, { t: (key) => key }).buildDocument(bare, 'nerd');
     const carriers = [...walk(definition.content)].filter((node) => 'text' in node);
     expect(carriers.length).toBeGreaterThan(0);
