@@ -12,6 +12,7 @@
     "serve": "node scripts/serve.mjs",
     "audit:print": "node scripts/audit-print.mjs",
     "audit:ats": "node scripts/audit-ats.mjs",
+    "audit:screen": "node scripts/audit-screen.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

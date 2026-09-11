@@ -31,6 +31,7 @@ This is a static CV/resume website built with vanilla HTML, CSS, and JavaScript.
 
 - **Generate the PDFs**: `npm run verify:pdf` (build, then audit the twelve variants)
 - **Audit what the browser prints**: `npm run audit:print` (needs Chrome; `CHROME_PATH` overrides)
+- **Audit what a reader copies off the screen**: `npm run audit:screen` (needs Chrome; `CHROME_PATH` overrides)
 
 ## Architecture
 
