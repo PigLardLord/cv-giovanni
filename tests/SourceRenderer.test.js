@@ -262,3 +262,186 @@ describe('SourceRenderer', () => {
     expect(() => render()).not.toThrow();
   });
 });
+
+describe('SourceRenderer — the section in view', () => {
+  let dom;
+  let document;
+  let window;
+
+  // The editor as the page has it: the navigator's links, the pinned tab row, and the file.
+  beforeEach(() => {
+    dom = new JSDOM(
+      `<!doctype html><html><body>
+      <div class="source-view">
+        <nav class="source-navigator"><ol id="source-outline"></ol></nav>
+        <div class="source-editor">
+          <p class="source-tabs" aria-hidden="true"><span data-source-file></span></p>
+          <div id="source-code"></div>
+        </div>
+        <div class="simulator-screen"><img alt="" /><div id="source-card"></div></div>
+      </div>
+    </body></html>`,
+      { url: 'http://localhost/index.html?layout=nerd' }
+    );
+    document = dom.window.document;
+    window = dom.window;
+  });
+
+  const render = () => new SourceRenderer(i18n).render(document, profile);
+  const place = (element, rect) => {
+    element.getBoundingClientRect = () => ({ top: 0, bottom: 0, left: 0, right: 0, ...rect });
+  };
+  // The pinned tab row ends 88px down the window; a heading counts as reached once its top is at
+  // the line a jump from the navigator would land it on.
+  const scrollTo = (tops) => {
+    place(document.querySelector('.source-tabs'), { top: 52, bottom: 88 });
+    document
+      .querySelectorAll('#source-code h2[id]')
+      .forEach((heading, index) => place(heading, { top: tops[index] }));
+    window.dispatchEvent(new window.Event('scroll'));
+  };
+  const marked = () =>
+    [...document.querySelectorAll('#source-outline a[aria-current]')].map((link) => [
+      link.getAttribute('href'),
+      link.getAttribute('aria-current')
+    ]);
+
+  test('marks the section whose heading was last scrolled past, and only that one', () => {
+    render();
+    scrollTo([-900, -200, 400, 1300]);
+
+    expect(marked()).toEqual([['#source-skills', 'location']]);
+  });
+
+  // A jump from the navigator lands the heading 12px below the pinned rows, not at their edge,
+  // so the section a reader just jumped to is the one marked.
+  test('marks the section a jump just landed on', () => {
+    render();
+    scrollTo([-900, -200, 100, 1300]);
+
+    expect(marked()).toEqual([['#source-languages', 'location']]);
+  });
+
+  test('marks nothing while the reader is still above the first section', () => {
+    render();
+    scrollTo([700, 1400, 2100, 2800]);
+
+    expect(marked()).toEqual([]);
+  });
+
+  test('moves the mark as the file scrolls', () => {
+    render();
+    scrollTo([-900, -200, 400, 1300]);
+    scrollTo([-1800, -1100, -500, 60]);
+
+    expect(marked()).toEqual([['#source-contact', 'location']]);
+  });
+
+  const endOfFile = (atEnd) => {
+    Object.defineProperty(window, 'innerHeight', { value: 900, configurable: true });
+    Object.defineProperty(window, 'scrollY', { value: atEnd ? 4100 : 0, configurable: true });
+    Object.defineProperty(document.documentElement, 'scrollHeight', {
+      value: 5000,
+      configurable: true
+    });
+  };
+
+  // The last sections end the page before their headings can reach the pinned row. A jump to one of
+  // them has to mark it anyway, or the mark stays on the section before it.
+  test('at the end of the file, marks the section a jump went to though its heading cannot reach the top', () => {
+    render();
+    endOfFile(true);
+    window.location.hash = '#source-contact';
+    scrollTo([-1800, -1100, -500, 300]);
+
+    expect(marked()).toEqual([['#source-contact', 'location']]);
+  });
+
+  test('a jump the reader has scrolled away from no longer holds the mark', () => {
+    render();
+    endOfFile(false);
+    window.location.hash = '#source-contact';
+    scrollTo([-900, -200, 400, 1300]);
+
+    expect(marked()).toEqual([['#source-skills', 'location']]);
+  });
+
+  // Two sections already on screen at the foot of the page: a jump between them scrolls nothing, so
+  // only the change of address can move the mark.
+  test('a jump between two sections already on screen moves the mark without a scroll', () => {
+    render();
+    endOfFile(true);
+    scrollTo([-1800, -1100, 200, 300]);
+    window.location.hash = '#source-languages';
+    window.dispatchEvent(new window.HashChangeEvent('hashchange'));
+
+    expect(marked()).toEqual([['#source-languages', 'location']]);
+  });
+
+  // Below a laptop the links sit in one row that scrolls sideways: here 160px links, 180px apart, in
+  // a row 300px wide, so only the first link is wholly in view.
+  const rowOfLinks = () => {
+    const bar = document.querySelector('.source-navigator');
+    Object.defineProperty(bar, 'clientWidth', { value: 300 });
+    Object.defineProperty(bar, 'scrollLeft', { value: 0, writable: true });
+    document.querySelectorAll('#source-outline a').forEach((link, index) => {
+      Object.defineProperty(link, 'offsetLeft', { value: index * 180 });
+      Object.defineProperty(link, 'offsetWidth', { value: 160 });
+    });
+    return bar;
+  };
+
+  // The marked link is brought into the row's view, or the mark would point at something the reader
+  // cannot see.
+  test('keeps the marked link in view inside the row of links', () => {
+    render();
+    const bar = rowOfLinks();
+    scrollTo([-1800, -1100, -500, 60]);
+
+    expect(bar.scrollLeft).toBe(540 + 160 - 300);
+  });
+
+  // A keyboard reader moving along the row has the link they are on in view. Scrolling the file must
+  // not pull the row out from under that focus; the mark still moves.
+  test('keeps a link with keyboard focus in view while the mark moves on', () => {
+    render();
+    const bar = rowOfLinks();
+    document.querySelector('#source-outline a').focus();
+    scrollTo([-1800, -1100, -500, 60]);
+
+    expect(bar.scrollLeft).toBe(0);
+    expect(marked()).toEqual([['#source-contact', 'location']]);
+  });
+
+  // An address typed by hand can be malformed. It must not stop the mark following the page.
+  test('a malformed address leaves the mark to the scroll position', () => {
+    render();
+    endOfFile(true);
+    window.location.hash = '#%';
+    scrollTo([-900, -200, 400, 1300]);
+
+    expect(marked()).toEqual([['#source-skills', 'location']]);
+  });
+
+  // A browser fires many scroll events a frame. The mark is worked out once, on the next frame, and a
+  // scroll after that frame asks for one of its own.
+  test('works the mark out once a frame, however many events arrive before it', () => {
+    const frames = [];
+    window.requestAnimationFrame = (callback) => frames.push(callback);
+    render();
+    scrollTo([-900, -200, 400, 1300]);
+    window.dispatchEvent(new window.Event('scroll'));
+    window.dispatchEvent(new window.Event('resize'));
+
+    expect(frames).toHaveLength(1);
+    expect(marked()).not.toEqual([['#source-skills', 'location']]);
+
+    frames.shift()();
+    expect(marked()).toEqual([['#source-skills', 'location']]);
+
+    scrollTo([-1800, -1100, -500, 60]);
+    expect(frames).toHaveLength(1);
+    frames.shift()();
+    expect(marked()).toEqual([['#source-contact', 'location']]);
+  });
+});
