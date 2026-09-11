@@ -4,6 +4,8 @@ const profile = {
   name: 'Giovanni Trovato',
   title: 'Senior iOS Engineer / Mobile Platform Owner',
   email: 'trovato.giovanni@gmail.com',
+  location: 'Bad Liebenstein, Thuringia, Germany',
+  social: [{ platform: 'GitHub', url: 'https://github.com/PigLardLord' }],
   relevant_experience: [{ company: 'Cortado Mobile Solutions' }],
   skills: [
     { category: 'iOS', items: [{ name: 'Swift' }, { name: 'SwiftUI' }, { name: 'UIKit' }] },
@@ -36,7 +38,9 @@ const nerd = [
   'Interests',
   'iOS Architecture, Mountain Hiking',
   'Contact',
-  'trovato.giovanni@gmail.com'
+  'trovato.giovanni@gmail.com',
+  'Bad Liebenstein, Thuringia, Germany',
+  'GitHub, github.com/PigLardLord'
 ];
 
 describe('what a reader copies when they select the CV', () => {
@@ -98,6 +102,23 @@ describe('what a reader copies when they select the CV', () => {
       'KotlinJetpack Compose',
       'ItalianNative',
       'GermanA1 — currently studying'
+    ]);
+  });
+
+  // Found by hand on a branch where Impact Spotlight hid the line break between two contact details and
+  // the whitespace beside it went too: the address ran straight into the next label.
+  test('a contact detail that runs into the word beside it is welded', () => {
+    const joined = copy(
+      ...nerd.slice(0, 16),
+      'trovato.giovanni@gmail.comPhone:',
+      'Bad Liebenstein, Thuringia, GermanyGitHub, github.com/PigLardLord'
+    );
+    const { checks, findings } = screenCopy(joined, profile, options);
+
+    expect(checks.notWelded).toBe(false);
+    expect(findings.welded).toEqual([
+      'Bad Liebenstein, Thuringia, GermanyGitHub',
+      'trovato.giovanni@gmail.comPhone'
     ]);
   });
 

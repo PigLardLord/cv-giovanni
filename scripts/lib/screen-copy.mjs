@@ -10,6 +10,8 @@
  * fail on text that breaks it.
  */
 
+import { readableAddress } from '../../domain/ReadableUrl.js';
+
 /** A pictograph anywhere on a line: the data writes words, and decoration drawn as text copies. */
 const PICTOGRAPH = /\p{Extended_Pictographic}/u;
 
@@ -34,6 +36,29 @@ function neighbours(profile) {
     ...interests.slice(1).map((interest, index) => [interests[index], interest])
   ].filter(([first, second]) => first && second);
 }
+
+/** The contact details the page writes as values, in the form a reader copies them. */
+const contactValues = (profile) =>
+  [
+    profile.location,
+    profile.email,
+    profile.phone,
+    ...(profile.social || []).map((item) => readableAddress(item.url)),
+    profile.portfolio && readableAddress(profile.portfolio)
+  ].filter(Boolean);
+
+/**
+ * A contact detail touching a letter or a digit on either side has run into its neighbour. A selection
+ * reading `…@gmail.comPhone:` hands a form an address that does not exist.
+ */
+const runInto = (flat, value) =>
+  [
+    ...flat.matchAll(
+      new RegExp(`([\\p{L}\\p{N}]+)?${escapeForRegExp(value)}([\\p{L}\\p{N}]+)?`, 'gu')
+    )
+  ]
+    .filter(([, before, after]) => before || after)
+    .map(([joined]) => joined);
 
 /**
  * Each category must be followed by its own first skill before any other category: a list that
@@ -77,9 +102,12 @@ export function screenCopy(copied, profile, { skillsLabel } = {}) {
 
   const findings = {
     missing: required.filter((text) => !flat.includes(text)),
-    welded: neighbours(profile)
-      .map(([first, second]) => `${first}${second}`)
-      .filter((joined) => flat.includes(joined)),
+    welded: [
+      ...neighbours(profile)
+        .map(([first, second]) => `${first}${second}`)
+        .filter((joined) => flat.includes(joined)),
+      ...contactValues(profile).flatMap((value) => runInto(flat, value))
+    ],
     detached: detachedCategories(flat, profile.skills || [], labelAt(flat, skillsLabel)),
     unlevelled: (profile.languages || [])
       .filter(

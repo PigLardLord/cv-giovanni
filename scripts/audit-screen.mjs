@@ -253,9 +253,9 @@ const report = [
   ...rows.map((row) => `| ${row.layout} | ${row.width}px | ${row.score} |`),
   '',
   'Checks: the CV captured whole — name, role, email and current employer; no two words the profile',
-  'writes in sequence welded into one; every skill category followed by its own first skill; every',
-  'language on a line with its level; and nothing on a line the data did not write — no pictograph,',
-  'no line number.'
+  'writes in sequence welded into one, and no contact detail run into the word beside it; every skill',
+  'category followed by its own first skill; every language on a line with its level; and nothing on',
+  'a line the data did not write — no pictograph, no line number.'
 ].join('\n');
 
 await writeFile(new URL(target.reportPath('SCREEN_AUDIT.md'), projectUrl), `${report}\n`);
