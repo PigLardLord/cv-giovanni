@@ -1,329 +1,97 @@
-# CV Giovanni Trovato
+# Giovanni Trovato — CV
 
-A modern, responsive CV/resume website built with vanilla JavaScript, featuring a clean architecture and professional design optimized for both web viewing and printing.
+The source of Giovanni Trovato's CV: a static web page in three layouts, the PDFs sent with applications, and the
+audits that check both. The CV itself is at **https://piglardlord.github.io/cv-giovanni/** — nothing about the
+candidate is restated here, so nothing here can go stale.
 
-[![Demo](https://img.shields.io/badge/Demo-Live%20Site-blue)](https://piglardlord.github.io/cv-giovanni/)
-[![Tests](https://img.shields.io/badge/Tests-Passing-green)](#testing)
-[![Vanilla JS](https://img.shields.io/badge/Built%20with-Vanilla%20JS-yellow)](#technology-stack)
+## What is here
 
-## ✨ Features
+A CV is `profile × locale × layout`.
 
-- **Responsive Design** - Optimized for desktop, tablet, and mobile viewing
-- **Print-Optimized** - Dedicated 2-page PDF layout with recruiter-focused design
-- **Data-Driven** - Easy content updates via JSON configuration
-- **Modular Architecture** - Clean, maintainable code following SOLID principles
-- **Zero Dependencies** - Pure vanilla JavaScript with no frameworks
-- **Static Hosting Ready** - No build process required, works with any static host
-- **Comprehensive Testing** - Full test suite with Jest and JSDOM
+- **The content** is one JSON file, `profiles/general/en.json`, and it is the single source of truth: every surface
+  the CV has is generated from it. `config/cv-manifest.json` declares which profiles, locales and layouts exist.
+- **The page** is HTML, CSS and ES modules with no build step. `index.html` loads `script.js`, which renders the
+  profile through `renderers/` into one of three layouts: Nerd Mode (`nerd`), Impact Spotlight (`spotlight`) and
+  Technical Profile (`technical`).
+- **The PDFs** are composed from the same JSON by pdfmake, through `domain/CvDocument.js` and
+  `adapters/PdfLayout.js`. The three that ship are in `generated/`, where the page's Download PDF link finds them
+  through `generated/manifest.json`; the twelve A4 and Letter, colour and monochrome variants the audits read are
+  built into `generated/qa/`.
 
-## 🚀 Quick Start
+The page and the PDF share the JSON and the label catalogues, not a DOM. Nothing guarantees they agree except
+measuring both, which is what the audits are for.
 
-### Prerequisites
-
-- Node.js 16+ (for running tests)
-- Modern web browser
-
-### Setup
-
-1. **Clone the repository**
-
-   ```bash
-   git clone https://github.com/PigLardLord/cv-giovanni.git
-   cd cv-giovanni
-   ```
-
-2. **Install dependencies** (for testing only)
-
-   ```bash
-   npm install
-   ```
-
-3. **Open the CV**
-   Simply open `index.html` in your browser - no build step required!
-
-### Development
+## Running it
 
 ```bash
-# Run tests
-npm test
-
-# Run specific test
-npm test -- --testNamePattern="HeaderRenderer"
-
-# Open CV in browser
-open index.html
+npm install
+npm run serve
 ```
 
-## 📁 Project Structure
-
-```
-cv-giovanni/
-├── index.html              # Main HTML template
-├── style.css              # Web styling and responsive design
-├── print.css              # Dedicated print/PDF optimization
-├── script.js              # Application entry point
-├── cv-data.json           # CV content data
-├── profile.png            # Profile image
-├── CLAUDE.md              # AI assistant instructions
-├── README.md              # This file
-│
-├── core/                  # Application core
-│   ├── CVApplication.js   # Main application controller
-│   ├── DataLoader.js      # JSON data loading utility
-│   └── RendererContainer.js # Dependency injection container
-│
-├── interfaces/            # Type definitions
-│   └── Renderer.js        # Base renderer interface
-│
-├── renderers/             # Modular rendering components
-│   ├── BaseRenderer.js    # Shared utilities and patterns
-│   ├── HeaderRenderer.js  # Header information
-│   ├── ProfileRenderer.js # Professional summary
-│   ├── ExperienceRenderer.js # Work experience
-│   ├── EducationRenderer.js  # Education history
-│   ├── SkillsRenderer.js     # Technical skills
-│   ├── LanguagesRenderer.js  # Languages spoken
-│   ├── CertificationsRenderer.js # Certifications
-│   ├── SocialLinksRenderer.js    # Social media links
-│   └── InterestsRenderer.js      # Personal interests
-│
-└── tests/                 # Test suite
-    ├── jest.config.js     # Jest configuration
-    ├── jest.setup.js      # Test environment setup
-    └── *.test.js          # Individual test files
-```
-
-## 🏗️ Architecture
-
-### Design Patterns
-
-The project implements several software engineering best practices:
-
-- **Model-View-Controller (MVC)** - Clear separation between data, presentation, and control logic
-- **Dependency Injection** - Renderers are registered and managed through a container
-- **Single Responsibility Principle** - Each renderer handles one CV section
-- **Open/Closed Principle** - Easy to extend with new renderers without modifying existing code
-- **Interface Segregation** - All renderers implement the same minimal interface
-- **Dependency Inversion** - High-level modules don't depend on low-level modules
-
-### Data Flow
-
-```
-cv-data.json → DataLoader → CVApplication → RendererContainer → Individual Renderers → DOM
-```
-
-1. **Data Loading** - `DataLoader` fetches CV data from JSON
-2. **Application Initialization** - `CVApplication` orchestrates the rendering process
-3. **Renderer Management** - `RendererContainer` manages and executes all renderers
-4. **DOM Rendering** - Each renderer updates its specific section of the DOM
-
-### Renderer Architecture
-
-All renderers extend `BaseRenderer` which provides:
-
-- **DOM Utilities** - Safe element selection and creation
-- **Validation** - Data validation with graceful error handling
-- **Common Patterns** - Shared code for lists, links, and content rendering
-
-```javascript
-// Example renderer implementation
-export class ProfileRenderer extends BaseRenderer {
-  render(root, data) {
-    if (!this.validate(data)) return;
-
-    const element = this.getElement(root, 'profile');
-    if (element) {
-      element.textContent = data.profile || '';
-    }
-  }
-
-  validate(data) {
-    return this.validateFields(data, ['profile']);
-  }
-}
-```
-
-## 📝 Content Management
-
-### Updating CV Content
-
-All CV content is stored in `cv-data.json`. To update:
-
-1. **Edit the JSON file** with your information
-2. **Refresh the browser** - changes are reflected immediately
-3. **No build step required** - pure client-side rendering
-
-### Data Structure
-
-```json
-{
-  "name": "Your Name",
-  "title": "Your Job Title",
-  "location": "City, Country",
-  "email": "your.email@example.com",
-  "phone": "+1234567890",
-  "profile": "Professional summary...",
-  "relevant_experience": [
-    {
-      "title": "Job Title",
-      "company": "Company Name",
-      "location": "City",
-      "period": "Start - End",
-      "description": "Job description..."
-    }
-  ],
-  "education": [...],
-  "skills": [...],
-  "languages": [...],
-  "certifications": [...],
-  "interests": [...],
-  "social": [...]
-}
-```
-
-### Adding New Sections
-
-To add a new CV section:
-
-1. **Create a new renderer** extending `BaseRenderer`
-2. **Register the renderer** in `script.js`
-3. **Add corresponding HTML** in `index.html`
-4. **Update the data structure** in `cv-data.json`
-5. **Add tests** for the new renderer
-
-## 🎨 Styling
-
-### Design System
-
-The CV uses a modern design system with:
-
-- **CSS Custom Properties** - Consistent theming and easy customization
-- **Inter Font Family** - Professional typography optimized for readability
-- **Responsive Grid** - Flexible layout that adapts to different screen sizes
-- **Print Optimization** - Special styles for high-quality PDF generation
-
-### Key Design Features
-
-- **Professional Color Palette** - Blue accent colors with neutral grays
-- **Consistent Spacing** - Systematic spacing scale using CSS variables
-- **Modern Typography** - Careful font sizing and line height for readability
-- **Subtle Shadows** - Layered depth without being distracting
-- **Responsive Images** - Profile photo optimization for all devices
-
-### Print/PDF Optimization
-
-The CV includes a dedicated `print.css` stylesheet optimized for recruiter needs:
-
-- **2-Page Maximum** - Carefully designed to fit in exactly 2 pages
-- **A4 Format** - Standard business document size with proper margins
-- **Recruiter-Friendly Layout** - Key information prominently positioned
-- **Clean Typography** - Professional fonts and spacing for readability
-- **Smart Page Breaks** - Content sections flow logically across pages
-- **Print Color Management** - Optimized for both color and black & white printing
-
-## 🧪 Testing
-
-### Test Suite
-
-Comprehensive testing with Jest and JSDOM:
-
-```bash
-# Run all tests
-npm test
-
-# Run with coverage
-npm test -- --coverage
-
-# Run specific test file
-npm test HeaderRenderer.test.js
-
-# Run tests in watch mode
-npm test -- --watch
-```
-
-### Test Structure
-
-- **Unit Tests** - Individual renderer functionality
-- **Integration Tests** - Application flow and data loading
-- **DOM Tests** - Actual DOM manipulation verification
-- **Error Handling** - Graceful failure scenarios
-
-### Testing Philosophy
-
-- **High Coverage** - All critical paths tested
-- **Real DOM Testing** - Tests use JSDOM for authentic DOM manipulation
-- **Error Scenarios** - Tests handle missing data and edge cases
-- **Maintainable Tests** - Clear, readable test descriptions
-
-## 🚀 Deployment
-
-### Static Hosting
-
-This CV works with any static hosting service:
-
-- **GitHub Pages** - Current deployment at `https://piglardlord.github.io/cv-giovanni/`
-- **Netlify** - Drag and drop deployment
-- **Vercel** - Git-based deployment
-- **AWS S3** - Cloud storage hosting
-- **Any Web Server** - Apache, Nginx, etc.
-
-### Build Process
-
-**No build process required!** Simply upload these files:
-
-- `index.html`
-- `style.css`
-- `print.css`
-- `script.js`
-- `cv-data.json`
-- `profile.png`
-- `core/` directory
-- `interfaces/` directory
-- `renderers/` directory
-
-## 🤝 Contributing
-
-### Development Workflow
-
-1. **Fork the repository**
-2. **Create a feature branch** (`git checkout -b feature/amazing-feature`)
-3. **Make your changes**
-4. **Run tests** (`npm test`)
-5. **Commit your changes** (`git commit -m 'Add amazing feature'`)
-6. **Push to the branch** (`git push origin feature/amazing-feature`)
-7. **Open a Pull Request**
-
-### Code Standards
-
-- **ES6+ JavaScript** - Modern JavaScript features
-- **Class-based Architecture** - Object-oriented design patterns
-- **Comprehensive Testing** - All new features must include tests
-- **Documentation** - Update README and inline comments
-- **SOLID Principles** - Follow established architecture patterns
-
-### Adding New Features
-
-When adding new functionality:
-
-1. **Follow existing patterns** - Use `BaseRenderer` for new renderers
-2. **Write tests first** - TDD approach preferred
-3. **Update documentation** - Keep README current
-4. **Maintain backwards compatibility** - Don't break existing APIs
-
-## 📄 License
-
-This project is open source and available under the [ISC License](LICENSE).
-
-## 🔗 Links
-
-- **Live Demo**: [https://piglardlord.github.io/cv-giovanni/](https://piglardlord.github.io/cv-giovanni/)
-- **GitHub Repository**: [https://github.com/PigLardLord/cv-giovanni](https://github.com/PigLardLord/cv-giovanni)
-- **Portfolio**: [https://sites.google.com/view/giovanni-trovato](https://sites.google.com/view/giovanni-trovato)
-
-## 👨‍💻 About the Developer
-
-Giovanni Trovato is an iOS Developer with over 7 years of experience in mobile application development, specializing in Swift, SwiftUI, and modern iOS architectures.
-
----
-
-_Built with ❤️ using vanilla JavaScript and modern web standards_
+Then open the address it prints, with `/index.html` after it. `npm run serve` sends `no-store`, so the page is what
+is on disk. Do not preview with `python -m http.server`: it sends no caching headers, and its heuristic caching has
+shown this project a stale page more than once.
+
+The URL chooses the CV:
+
+| Parameter | Values                                                                                   |
+| --------- | ---------------------------------------------------------------------------------------- |
+| `layout`  | `nerd`, `spotlight`, `technical`                                                         |
+| `profile` | a profile the manifest declares — an unknown one fails visibly, rather than falling back |
+| `lang`    | a locale the profile has; `en` today                                                     |
+
+## Commands
+
+| Command               | What it does                                                                                           |
+| --------------------- | ------------------------------------------------------------------------------------------------------ |
+| `npm test`            | Jest with JSDOM: the renderers, the domain, the rules the audits apply, and the repository's own rules |
+| `npm run build:pdf`   | Generates the PDFs                                                                                     |
+| `npm run verify:pdf`  | Generates them, then scores every variant with `npm run audit:pdf`                                     |
+| `npm run audit:print` | Prints each layout in headless Chrome and checks the paper                                             |
+| `npm run audit:ats`   | Parses the PDF the way a stranger's parser would, and reports what it recovers                         |
+| `npm run format`      | Formats the tree with Prettier; `npm run format:check` only checks it                                  |
+
+## How it is built
+
+Ports and adapters:
+
+- `domain/` — the CV model and the lexicons for dates, places and section names. No framework, no I/O.
+- `core/` — application services: loading and resolving the profile, the locale and the layout, exporting the PDFs
+  and the cover letter, parsing and scoring what an ATS recovers. No markup, typography or colour, which
+  `tests/CoreHasNoUI.test.js` enforces.
+- `interfaces/` and `boundaries/` — the ports.
+- `renderers/` — the page's DOM renderers, each extending `renderers/BaseRenderer.js`.
+- `adapters/` — the PDF layout, its design system and themes, the cover letter's layout, Nerd Mode's Swift source
+  layout, and pdfmake behind them.
+- `scripts/` — generation, the audits and the development server.
+- `locales/` — labels and interface strings for i18next. `vendor/` — i18next and the fonts, checked in so the page
+  runs straight off the file tree.
+
+`AGENTS.md` holds the product rules and the decisions already settled; `CLAUDE.md` is the map for coding agents.
+
+## The audits
+
+The two artefacts fail in different ways, so each is measured on its own.
+
+- `npm run audit:pdf` scores every PDF variant: format, page count, the text an ATS looks for, reading order, no
+  raster images, clean page starts, true grayscale, compounds and blocks that survive extraction, every skill still
+  beside its category, every web address in the text layer. Report: `docs/PDF_AUDIT.md`.
+- `npm run audit:print` scores what the browser prints, from the text layer and the pixels on the paper: contrast
+  word by word, margins, the typefaces actually used. It needs Chrome — `CHROME_PATH` overrides where it looks — and
+  when it finds none it exits 2 and checks nothing, because an audit that did not run must never read as a pass.
+  Report: `docs/PRINT_AUDIT.md`.
+- `npm run audit:ats` parses the generated PDF with no knowledge of the profile and diffs what it recovered against
+  what was written. It reports Recoverability, never a pass mark. Report: `docs/ATS_AUDIT.md`.
+
+## Applications
+
+A CV tailored to a named employer lives in `applications/`, which git ignores: this repository is public, and a
+committed application would publish where the candidate applied. `npm run build:pdf -- --profile=<path>` builds
+from that profile into a folder beside it, the audits take the same `--profile`, and a `letter` in the profile
+adds a cover letter. A tailored CV leaves the machine only as an attached PDF.
+
+## Working on it
+
+Work is tracked in GitHub issues and lands through pull requests. A commit references its ticket with `Refs #N` and
+never closes it — a person closes a ticket after the work has been audited, and `tests/TicketsCloseByHand.test.js`
+fails on a closing keyword.
