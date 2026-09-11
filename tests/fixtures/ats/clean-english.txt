@@ -101,8 +101,7 @@ German: A1 — currently studying
 
 Certifications
 
-iOS Lead Essentials — Essential Developer Academy (2024)
-Advanced iOS programme: Clean Architecture, TDD, modular design and system
-design.
+Android Enterprise Expert (incl. Associate, Professional) — Google (2026)
+iOS Lead Essentials (TDD, Clean Architecture) — Essential Developer (2024)
 
 

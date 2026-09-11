@@ -206,11 +206,16 @@
   ],
   "certifications": [
     {
-      "name": "iOS Lead Essentials",
-      "issuer": "Essential Developer Academy",
+      "name": "Android Enterprise Expert (incl. Associate, Professional)",
+      "issuer": "Google",
+      "year": 2026,
+      "url": "https://androidenterprise.exceedlms.com/student/award/zAefp6qrpzWEb5kgEKVb7bah"
+    },
+    {
+      "name": "iOS Lead Essentials (TDD, Clean Architecture)",
+      "issuer": "Essential Developer",
       "year": 2024,
-      "url": "https://academy.essentialdeveloper.com/achievements/cc210373-d44f-4345-aff2-a1402b5104d4",
-      "description": "Advanced iOS programme: Clean Architecture, TDD, modular design and system design."
+      "url": "https://academy.essentialdeveloper.com/achievements/cc210373-d44f-4345-aff2-a1402b5104d4"
     }
   ],
   "interests": [

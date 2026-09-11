@@ -191,6 +191,16 @@ describe('PdfExporter — what has to survive extraction and assistive reading',
     expect(carriers.filter((node) => node.text === undefined || node.text === '')).toEqual([]);
   });
 
+  // The web page already skips a missing description. The PDF reserved a paragraph for it anyway,
+  // and on spotlight LETTER one reserved line is the difference between two pages and three.
+  test('omits a certification description rather than rendering an empty line', () => {
+    const bare = { ...rich, certifications: [{ name: 'iOS Lead Essentials', issuer: 'Academy', year: 2024 }] };
+    const definition = new PdfExporter(null, { t: (key) => key }).buildDocument(bare, 'nerd');
+    const carriers = [...walk(definition.content)].filter((node) => 'text' in node);
+    expect(carriers.length).toBeGreaterThan(0);
+    expect(carriers.filter((node) => node.text === undefined || node.text === '')).toEqual([]);
+  });
+
   test.each(layouts)('%s never puts two wrapping blocks in one column row', (layout) => {
     // Interleaving needs two columns that BOTH wrap: a parser walks the band and alternates
     // their lines. One long entry beside a short label is safe, which is why the skills rows
