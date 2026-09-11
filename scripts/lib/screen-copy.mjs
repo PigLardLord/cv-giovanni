@@ -20,9 +20,6 @@ const LINE_NUMBER = /^\s*\d{1,3}\s*$/;
 
 const escapeForRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-/** Where a label starts, whatever case the stylesheet drew it in and Chrome copied it in. */
-const labelAt = (flat, label) => (label ? flat.search(new RegExp(escapeForRegExp(label), 'i')) : 0);
-
 /** Two neighbours the page writes in sequence, which a selection must never join into one word. */
 function neighbours(profile) {
   const groups = profile.skills || [];
@@ -36,6 +33,40 @@ function neighbours(profile) {
     ...interests.slice(1).map((interest, index) => [interests[index], interest])
   ].filter(([first, second]) => first && second);
 }
+
+/** Every string the profile writes, however deep. */
+const authored = (node) =>
+  typeof node === 'string'
+    ? [node]
+    : node && typeof node === 'object'
+      ? Object.values(node).flatMap(authored)
+      : [];
+
+const spaced = (text) => String(text).replace(/\s+/g, ' ').trim();
+
+/**
+ * What a selection of the whole CV must hold: the identity, and the evidence — every role, its
+ * achievements, every degree and school, certification, skill, language and interest. Four identity
+ * strings alone once passed a selection that had missed nearly all of it.
+ */
+const substance = (profile) =>
+  [
+    profile.name,
+    profile.title,
+    profile.email,
+    ...(profile.relevant_experience || []).flatMap((job) => [
+      job.title,
+      job.company,
+      ...(job.highlights || [])
+    ]),
+    ...(profile.education || []).flatMap((item) => [item.degree, item.school]),
+    ...(profile.certifications || []).map((item) => item.name),
+    ...(profile.skills || []).flatMap((group) => (group.items || []).map((item) => item.name)),
+    ...(profile.languages || []).map((language) => language.name),
+    ...(profile.interests || [])
+  ]
+    .filter(Boolean)
+    .map(spaced);
 
 /** The contact details the page writes as values, in the form a reader copies them. */
 const contactValues = (profile) =>
@@ -61,27 +92,40 @@ const runInto = (flat, value) =>
     .map(([joined]) => joined);
 
 /**
- * Each category must be followed by its own first skill before any other category: a list that
- * reaches the reader after another label is attached, as far as the reader can tell, to that one.
+ * Each category must head its own lines and be followed there by its own first skill. A category is
+ * a line of its own, whatever case it is drawn in; a mention inside another group's skills is not
+ * one, and a list that reaches the reader under another heading is attached, as far as the reader
+ * can tell, to that one.
  */
-function detachedCategories(flat, groups, from) {
-  const categories = groups.map((group) => group.category);
+function detachedCategories(lines, groups, skillsLabel) {
+  const heading = (line, category) => line.trim().toLowerCase() === category.toLowerCase();
+  const from = skillsLabel
+    ? lines.findIndex((line) => line.toLowerCase().includes(skillsLabel.toLowerCase()))
+    : -1;
   return groups
     .filter(({ category, items = [] }) => {
-      const at = from < 0 ? -1 : flat.indexOf(category, from);
+      if (skillsLabel && from < 0) return true;
+      const at = lines.findIndex((line, index) => index > from && heading(line, category));
       if (at < 0 || !items[0]) return true;
-      const after = at + category.length;
-      const first = flat.indexOf(items[0].name, after);
-      const next =
-        categories
-          .filter((name) => name !== category)
-          .map((name) => flat.indexOf(name, after))
-          .filter((index) => index >= 0)
-          .sort((a, b) => a - b)[0] ?? Infinity;
-      return first < 0 || first > next;
+      const next = lines.findIndex(
+        (line, index) => index > at && groups.some((group) => heading(line, group.category))
+      );
+      return !lines
+        .slice(at + 1, next < 0 ? undefined : next)
+        .join('\n')
+        .includes(items[0].name);
     })
     .map((group) => group.category);
 }
+
+/** Where a whole name ends on a line, or -1: `German` is not the start of `Germany`. */
+const nameEnd = (line, name) => {
+  const match = new RegExp(
+    `(?:^|[^\\p{L}\\p{N}])${escapeForRegExp(name)}(?![\\p{L}\\p{N}])`,
+    'u'
+  ).exec(line);
+  return match ? match.index + match[0].length : -1;
+};
 
 /**
  * @param {string} copied - What the selection copied
@@ -92,34 +136,32 @@ function detachedCategories(flat, groups, from) {
  */
 export function screenCopy(copied, profile, { skillsLabel } = {}) {
   const lines = copied.split('\n');
-  const flat = copied.replace(/\s+/g, ' ');
-  const required = [
-    profile.name,
-    profile.title,
-    profile.email,
-    profile.relevant_experience?.[0]?.company
-  ].filter(Boolean);
+  const flat = spaced(copied);
+  const strings = authored(profile).map(spaced);
+  const writtenAs = (text) => strings.some((string) => string.includes(text));
 
   const findings = {
-    missing: required.filter((text) => !flat.includes(text)),
+    missing: substance(profile).filter((text) => !flat.includes(text)),
     welded: [
       ...neighbours(profile)
         .map(([first, second]) => `${first}${second}`)
-        .filter((joined) => flat.includes(joined)),
+        .filter((joined) => flat.includes(joined) && !writtenAs(joined)),
       ...contactValues(profile).flatMap((value) => runInto(flat, value))
     ],
-    detached: detachedCategories(flat, profile.skills || [], labelAt(flat, skillsLabel)),
+    detached: detachedCategories(lines, profile.skills || [], skillsLabel),
     unlevelled: (profile.languages || [])
-      .filter(
-        ({ name, level }) =>
-          !lines.some(
-            (line) =>
-              line.includes(name) && line.indexOf(level, line.indexOf(name) + name.length) >= 0
-          )
+      .filter(({ name, level }) =>
+        lines.every((line) => {
+          const end = nameEnd(line, name);
+          return end < 0 || line.indexOf(level, end) < 0;
+        })
       )
       .map((language) => language.name),
     unwritten: lines
-      .filter((line) => PICTOGRAPH.test(line) || LINE_NUMBER.test(line))
+      .filter(
+        (line) =>
+          PICTOGRAPH.test(line) || (LINE_NUMBER.test(line) && !strings.includes(line.trim()))
+      )
       .map((line) => line.trim())
   };
 

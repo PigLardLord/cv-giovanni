@@ -177,7 +177,106 @@ describe('what a reader copies when they select the CV', () => {
       'Giovanni Trovato',
       'Senior iOS Engineer / Mobile Platform Owner',
       'trovato.giovanni@gmail.com',
-      'Cortado Mobile Solutions'
+      'Cortado Mobile Solutions',
+      'Swift',
+      'SwiftUI',
+      'UIKit',
+      'Kotlin',
+      'Jetpack Compose',
+      'Italian',
+      'German',
+      'iOS Architecture',
+      'Mountain Hiking'
     ]);
+  });
+
+  // The rest of these came from the adversarial review of #62.
+
+  // Four identity strings are not the CV: a selection holding them and little else passed.
+  test('a selection that holds the identity and not the evidence has not captured the CV', () => {
+    const fuller = {
+      ...profile,
+      relevant_experience: [
+        {
+          title: 'Mobile Software Engineer',
+          company: 'Cortado Mobile Solutions',
+          highlights: ['Expanded the Android test suite to ~4,800 tests.']
+        }
+      ],
+      education: [
+        { degree: 'B.Sc. Computer Engineering', school: 'Università degli Studi di Catania' }
+      ],
+      certifications: [{ name: 'iOS Lead Essentials' }]
+    };
+    const { checks, findings } = screenCopy(copy(...nerd), fuller, options);
+
+    expect(checks.captured).toBe(false);
+    expect(findings.missing).toEqual([
+      'Mobile Software Engineer',
+      'Expanded the Android test suite to ~4,800 tests.',
+      'B.Sc. Computer Engineering',
+      'Università degli Studi di Catania',
+      'iOS Lead Essentials'
+    ]);
+  });
+
+  test('a category named inside another group’s skills is not that category’s heading', () => {
+    const mentioned = {
+      ...profile,
+      skills: [
+        {
+          category: 'iOS',
+          items: [{ name: 'Swift' }, { name: 'Android interoperability' }, { name: 'iOS SDK' }]
+        },
+        { category: 'Android', items: [{ name: 'Kotlin' }] }
+      ]
+    };
+    const correct = copy(
+      'Core Technologies',
+      'iOS',
+      'Swift, Android interoperability, iOS SDK',
+      'Android',
+      'Kotlin'
+    );
+    const headless = copy(
+      'Core Technologies',
+      'iOS',
+      'Swift, Android interoperability, iOS SDK',
+      'Mobile / Kotlin'
+    );
+
+    expect(screenCopy(correct, mentioned, options).findings.detached).toEqual([]);
+    expect(screenCopy(headless, mentioned, options).findings.detached).toEqual(['Android']);
+  });
+
+  test('a language name inside a longer word does not carry that language’s level', () => {
+    const inside = copy(
+      ...nerd.slice(0, 12),
+      'German',
+      'Germany: A1 — currently studying',
+      ...nerd.slice(13)
+    );
+
+    expect(screenCopy(inside, profile, options).findings.unlevelled).toEqual(['German']);
+  });
+
+  test('two neighbours whose join is itself a word the profile writes are not a weld', () => {
+    const build = {
+      ...profile,
+      skills: [{ category: 'Build', items: [{ name: 'C' }, { name: 'Make' }, { name: 'CMake' }] }]
+    };
+
+    expect(
+      screenCopy(copy('Core Technologies', 'Build', 'C, Make, CMake'), build, options).findings
+        .welded
+    ).toEqual([]);
+  });
+
+  test('a short number the profile writes is data, not a line number', () => {
+    const school = { ...profile, education: [{ degree: 'Software Engineering', school: '42' }] };
+
+    expect(
+      screenCopy(copy(...nerd, 'Software Engineering', '42'), school, options).findings.unwritten
+    ).toEqual([]);
   });
 });

@@ -64,15 +64,25 @@ if (!browser) {
   process.exit(2);
 }
 
-const within = (promise, ms, what) =>
-  Promise.race([
+/** Rejects after `ms`, and clears its timer either way, so no deadline holds the process open. */
+const within = (promise, ms, what) => {
+  let timer;
+  return Promise.race([
     promise,
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error(`${what} within ${ms / 1000}s`)), ms)
-    )
-  ]);
+    new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`${what} within ${ms / 1000}s`)), ms);
+    })
+  ]).finally(() => clearTimeout(timer));
+};
 
-/** Chrome with its DevTools socket open, and the three things this audit asks of it. */
+/**
+ * Chrome with its DevTools socket open, and the three things this audit asks of it.
+ *
+ * Every wait has a deadline, and whatever ends the connection — the socket closing, the browser
+ * exiting — fails every command still waiting on it: a promise nothing will settle would hold the
+ * audit open, and its cleanup with it. Until the socket is open the browser belongs to this function,
+ * which kills it on any failure; after that it belongs to the caller, through `close`.
+ */
 async function openBrowser(binary, dataDir) {
   const child = spawn(
     binary,
@@ -87,33 +97,65 @@ async function openBrowser(binary, dataDir) {
     ],
     { stdio: ['ignore', 'ignore', 'pipe'] }
   );
-  const address = await within(
-    new Promise((resolve, reject) => {
-      let output = '';
-      child.stderr.on('data', (chunk) => {
-        output += chunk;
-        const match = output.match(/DevTools listening on (ws:\/\/\S+)/);
-        if (match) resolve(match[1]);
-      });
-      child.on('exit', (code) =>
-        reject(new Error(`the browser exited with ${code} before listening`))
-      );
-    }),
-    30000,
-    'the browser printed no DevTools address'
-  );
-  const pages = await (await fetch(`http://127.0.0.1:${new URL(address).port}/json/list`)).json();
-  const socket = new WebSocket(pages.find((entry) => entry.type === 'page').webSocketDebuggerUrl);
-  await new Promise((resolve, reject) => {
-    socket.addEventListener('open', resolve, { once: true });
-    socket.addEventListener('error', () => reject(new Error('the DevTools socket did not open')), {
-      once: true
-    });
-  });
-
-  let sequence = 0;
   const pending = new Map();
   const listeners = new Set();
+  let socket;
+  let ended = null;
+  const failAll = (reason) => {
+    ended ??= reason;
+    for (const { reject } of pending.values()) reject(new Error(reason));
+    pending.clear();
+  };
+  const close = () => {
+    socket?.close();
+    child.kill('SIGKILL');
+  };
+
+  try {
+    const address = await within(
+      new Promise((resolve, reject) => {
+        let output = '';
+        child.on('error', (error) =>
+          reject(new Error(`the browser did not start: ${error.message}`))
+        );
+        child.on('exit', (code) =>
+          reject(new Error(`the browser exited with ${code} before listening`))
+        );
+        child.stderr.on('data', (chunk) => {
+          output += chunk;
+          const match = output.match(/DevTools listening on (ws:\/\/\S+)/);
+          if (match) resolve(match[1]);
+        });
+      }),
+      30000,
+      'the browser printed no DevTools address'
+    );
+    const pages = await within(
+      fetch(`http://127.0.0.1:${new URL(address).port}/json/list`).then((response) =>
+        response.json()
+      ),
+      10000,
+      'the browser listed no page'
+    );
+    socket = new WebSocket(pages.find((entry) => entry.type === 'page').webSocketDebuggerUrl);
+    await within(
+      new Promise((resolve, reject) => {
+        socket.addEventListener('open', resolve, { once: true });
+        socket.addEventListener('error', () => reject(new Error('the DevTools socket failed')), {
+          once: true
+        });
+      }),
+      10000,
+      'the DevTools socket did not open'
+    );
+  } catch (error) {
+    close();
+    throw error;
+  }
+
+  child.on('exit', (code) => failAll(`the browser exited with ${code}`));
+  socket.addEventListener('close', () => failAll('the DevTools socket closed'));
+  socket.addEventListener('error', () => failAll('the DevTools socket failed'));
   socket.addEventListener('message', (event) => {
     const message = JSON.parse(event.data);
     if (message.id && pending.has(message.id)) {
@@ -125,12 +167,22 @@ async function openBrowser(binary, dataDir) {
       listeners.forEach((listener) => listener(message));
     }
   });
+
+  let sequence = 0;
   const send = (method, params = {}) =>
-    new Promise((resolve, reject) => {
-      const id = ++sequence;
-      pending.set(id, { resolve, reject });
-      socket.send(JSON.stringify({ id, method, params }));
-    });
+    within(
+      new Promise((resolve, reject) => {
+        if (ended) {
+          reject(new Error(ended));
+          return;
+        }
+        const id = ++sequence;
+        pending.set(id, { resolve, reject });
+        socket.send(JSON.stringify({ id, method, params }));
+      }),
+      30000,
+      `${method} got no answer`
+    );
   const next = (method) =>
     new Promise((resolve) => {
       const listener = (message) => {
@@ -151,22 +203,20 @@ async function openBrowser(binary, dataDir) {
     }
     return result.value;
   };
-  return {
-    send,
-    next,
-    evaluate,
-    close: () => {
-      socket.close();
-      child.kill('SIGKILL');
-    }
-  };
+  return { send, next, evaluate, close };
 }
 
-/** Resolves once the layout has written its CV and the fonts it asked for have arrived. */
-const rendered = (layout, start) => `new Promise((resolve) => {
+/**
+ * Resolves once the layout has rendered the profile: the layout applied, the language resolved, the
+ * candidate's name inside the CV's first element, and the fonts arrived. Text alone was not enough —
+ * the masthead holds a static pin before any profile has loaded.
+ */
+const rendered = (layout, start, name, locale) => `new Promise((resolve) => {
   const wait = () => {
-    const ready = document.body.dataset.layout === ${JSON.stringify(layout)} &&
-      (document.querySelector(${JSON.stringify(start)})?.textContent || '').trim();
+    const ready =
+      document.body.dataset.layout === ${JSON.stringify(layout)} &&
+      (document.documentElement.lang || '').startsWith(${JSON.stringify(locale)}) &&
+      (document.querySelector(${JSON.stringify(start)})?.textContent || '').includes(${JSON.stringify(name)});
     if (ready) document.fonts.ready.then(() => setTimeout(resolve, 500));
     else setTimeout(wait, 100);
   };
@@ -207,11 +257,11 @@ try {
       await chrome.send('Emulation.setDeviceMetricsOverride', { ...size, deviceScaleFactor: 1 });
       const loaded = chrome.next('Page.loadEventFired');
       await chrome.send('Page.navigate', {
-        url: `http://127.0.0.1:${port}/index.html?layout=${layout}&profile=${target.profile}`
+        url: `http://127.0.0.1:${port}/index.html?layout=${layout}&profile=${target.profile}&lang=${target.locale}`
       });
       await within(loaded, 30000, `${layout} did not load`);
       await within(
-        chrome.evaluate(rendered(layout, start)),
+        chrome.evaluate(rendered(layout, start, profile.name, target.locale)),
         30000,
         `${layout} did not render its CV`
       );
