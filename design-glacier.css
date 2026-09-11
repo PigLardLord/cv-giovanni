@@ -208,8 +208,8 @@ body[data-layout='technical'] .job-entry {
    rhythm that stops every section weighing the same.
    ============================================================================= */
 
-/* Instrument Serif is loaded at the top of this file: an @import is only honoured before
-   every other rule, so a late one is silently ignored and the name quietly stays Inter. */
+/* Instrument Serif is declared with the other vendored faces in vendor/fonts/fonts.css, which
+   index.html links before this file. */
 
 .hero-name,
 body[data-layout='spotlight'] .hero-name,
