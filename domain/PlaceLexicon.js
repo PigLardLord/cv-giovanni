@@ -161,6 +161,8 @@ export class PlaceLexicon {
    * Only when every part after the first is a region or a country this list knows. Otherwise the
    * location comes back as written: an unknown part could be the city's region or the city itself,
    * and a letter dated from the wrong one is worse than a letter dated from all of it.
+   * A first part that is a country (`Germany, Berlin`) or carries a number (`Musterstraße 1, Berlin`)
+   * is not a city either, so that location comes back as written too.
    * @param {string} location - A location as the CV writes it
    * @returns {string} The city, or the location unchanged when that cannot be told
    */
@@ -170,6 +172,8 @@ export class PlaceLexicon {
     const places = ['countries', 'regions'];
     const known =
       rest.length > 0 && rest.every((part) => places.includes(PlaceLexicon.recognise(part)?.kind));
-    return city && known ? city : text;
+    const cityLike =
+      Boolean(city) && !/\d/.test(city) && PlaceLexicon.recognise(city)?.kind !== 'countries';
+    return cityLike && known ? city : text;
   }
 }
