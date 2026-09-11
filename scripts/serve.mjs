@@ -22,20 +22,22 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
  */
 const projectRoot = fileURLToPath(new URL('..', import.meta.url));
 
-const types = new Map(Object.entries({
-  '.html': 'text/html; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8',
-  '.mjs': 'text/javascript; charset=utf-8',
-  '.json': 'application/json; charset=utf-8',
-  '.webp': 'image/webp',
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.svg': 'image/svg+xml',
-  '.pdf': 'application/pdf',
-  '.woff2': 'font/woff2',
-  '.ttf': 'font/ttf'
-}));
+const types = new Map(
+  Object.entries({
+    '.html': 'text/html; charset=utf-8',
+    '.css': 'text/css; charset=utf-8',
+    '.js': 'text/javascript; charset=utf-8',
+    '.mjs': 'text/javascript; charset=utf-8',
+    '.json': 'application/json; charset=utf-8',
+    '.webp': 'image/webp',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.svg': 'image/svg+xml',
+    '.pdf': 'application/pdf',
+    '.woff2': 'font/woff2',
+    '.ttf': 'font/ttf'
+  })
+);
 
 /** Resolve a request path inside the project, or null when it escapes it. */
 function resolve(url, root) {
@@ -65,16 +67,23 @@ async function localManifest(root) {
   let directories = [];
   try {
     const entries = await readdir(join(root, 'applications'), { withFileTypes: true });
-    directories = await Promise.all(entries
-      .filter((entry) => entry.isDirectory())
-      .map(async (entry) => ({ profile: entry.name, files: await readdir(join(root, 'applications', entry.name)) })));
+    directories = await Promise.all(
+      entries
+        .filter((entry) => entry.isDirectory())
+        .map(async (entry) => ({
+          profile: entry.name,
+          files: await readdir(join(root, 'applications', entry.name))
+        }))
+    );
   } catch {
     return `${JSON.stringify(manifest, null, 2)}\n`;
   }
 
-  const { manifest: merged, added, shadowed } = LocalProfiles.merge(
-    manifest, LocalProfiles.entriesFrom(directories)
-  );
+  const {
+    manifest: merged,
+    added,
+    shadowed
+  } = LocalProfiles.merge(manifest, LocalProfiles.entriesFrom(directories));
   if (added.length) console.log(`  local profiles: ${added.join(', ')}`);
   for (const name of shadowed) {
     console.warn(`  applications/${name} ignored: a published profile of that name already exists`);

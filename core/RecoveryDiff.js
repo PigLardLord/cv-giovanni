@@ -3,18 +3,24 @@ import { fold } from '../domain/fold.js';
 
 /** Collapse the differences that do not change what a string says. */
 const NORMALISE = {
-  text: (value) => fold(value)
-    .replace(/[’‘]/g, "'")
-    .replace(/[–—]/g, '-')
-    .replace(/[.,;:]+$/, '')
-    .trim(),
+  text: (value) =>
+    fold(value)
+      .replace(/[’‘]/g, "'")
+      .replace(/[–—]/g, '-')
+      .replace(/[.,;:]+$/, '')
+      .trim(),
   email: (value) => String(value).toLowerCase().trim(),
-  phone: (value) => `${String(value).trim().startsWith('+') ? '+' : ''}${String(value).replace(/\D/g, '')}`,
+  phone: (value) =>
+    `${String(value).trim().startsWith('+') ? '+' : ''}${String(value).replace(/\D/g, '')}`,
   url: (value) => readableAddress(value).toLowerCase(),
   // Trimmed after the substitution, not before: `Architecture &` expands to
   // `architecture and ` with a trailing space, and a trailing space stops the whole-word
   // test from ever matching what follows it.
-  skill: (value) => NORMALISE.text(value).replace(/\s*&\s*/g, ' and ').replace(/\s+/g, ' ').trim()
+  skill: (value) =>
+    NORMALISE.text(value)
+      .replace(/\s*&\s*/g, ' and ')
+      .replace(/\s+/g, ' ')
+      .trim()
 };
 
 /** True when the shorter string is a whole-word run inside the longer. */
@@ -68,15 +74,28 @@ export class RecoveryDiff {
     const identity = {
       name: RecoveryDiff.verdict(document.identity.name, value(recovered.identity.name)),
       title: RecoveryDiff.verdict(document.identity.title, value(recovered.identity.title)),
-      email: RecoveryDiff.verdict(document.identity.email, value(recovered.identity.email), 'email'),
-      phone: RecoveryDiff.verdict(document.identity.phone, value(recovered.identity.phone), 'phone'),
+      email: RecoveryDiff.verdict(
+        document.identity.email,
+        value(recovered.identity.email),
+        'email'
+      ),
+      phone: RecoveryDiff.verdict(
+        document.identity.phone,
+        value(recovered.identity.phone),
+        'phone'
+      ),
       location: RecoveryDiff.verdict(document.identity.location, value(recovered.identity.location))
     };
 
     // A link the document carries but the text layer does not is the defect that is
     // invisible on the page and total in the parsed record.
-    const found = (recovered.identity.addresses || []).map((address) => NORMALISE.url(address.value));
-    const links = [...(document.identity.social || []).map((item) => item.url), document.identity.portfolio]
+    const found = (recovered.identity.addresses || []).map((address) =>
+      NORMALISE.url(address.value)
+    );
+    const links = [
+      ...(document.identity.social || []).map((item) => item.url),
+      document.identity.portfolio
+    ]
       .filter(Boolean)
       .map((url) => ({ url, recovered: found.includes(NORMALISE.url(url)) }));
 
@@ -103,9 +122,15 @@ export class RecoveryDiff {
       ['education', document.education.length],
       ['languages', document.languages.length],
       ['certifications', document.certifications.length]
-    ].filter(([, count]) => count > 0).map(([name]) => name);
+    ]
+      .filter(([, count]) => count > 0)
+      .map(([name]) => name);
     const seen = new Set(recovered.sections.map((section) => section.section));
-    return { expected, found: expected.filter((name) => seen.has(name)), missing: expected.filter((name) => !seen.has(name)) };
+    return {
+      expected,
+      found: expected.filter((name) => seen.has(name)),
+      missing: expected.filter((name) => !seen.has(name))
+    };
   }
 
   /** Per role: the title, the employer, the period, and whether the three arrived together. */
@@ -113,7 +138,14 @@ export class RecoveryDiff {
     const value = (field) => (field && field.value !== undefined ? field.value : null);
     return document.experience.map((job, index) => {
       const role = recovered.experience[index];
-      if (!role) return { title: 'lost', employer: 'lost', period: 'lost', tripleAdjacent: false, highlights: 'lost' };
+      if (!role)
+        return {
+          title: 'lost',
+          employer: 'lost',
+          period: 'lost',
+          tripleAdjacent: false,
+          highlights: 'lost'
+        };
       return {
         title: RecoveryDiff.verdict(job.title, value(role.title)),
         employer: RecoveryDiff.verdict(job.company, value(role.employer)),
@@ -122,7 +154,10 @@ export class RecoveryDiff {
         // Bodies come back as lines, not achievements, so the question is whether each
         // achievement's text survives inside the block — not whether the blocks match.
         highlights: (job.highlights || []).every((highlight) =>
-          NORMALISE.text(role.bodyText || '').includes(NORMALISE.text(highlight))) ? 'exact' : 'partial'
+          NORMALISE.text(role.bodyText || '').includes(NORMALISE.text(highlight))
+        )
+          ? 'exact'
+          : 'partial'
       };
     });
   }
@@ -144,14 +179,20 @@ export class RecoveryDiff {
   /** Per category: the label, whether its own items came back, and whether they stayed with it. */
   static skills(document, recovered) {
     return document.skills.map((group) => {
-      const match = recovered.skills.find((candidate) =>
-        candidate.category && NORMALISE.skill(candidate.category) === NORMALISE.skill(group.category));
+      const match = recovered.skills.find(
+        (candidate) =>
+          candidate.category &&
+          NORMALISE.skill(candidate.category) === NORMALISE.skill(group.category)
+      );
       const items = (group.items || []).map((item) => item.name);
       const recoveredItems = (match?.items || []).map((item) => NORMALISE.skill(item));
       return {
-        category: match ? RecoveryDiff.verdict(group.category, match.category, 'skill')
+        category: match
+          ? RecoveryDiff.verdict(group.category, match.category, 'skill')
           : RecoveryDiff.partialCategory(group.category, recovered),
-        attached: Boolean(match && items.every((item) => recoveredItems.includes(NORMALISE.skill(item)))),
+        attached: Boolean(
+          match && items.every((item) => recoveredItems.includes(NORMALISE.skill(item)))
+        ),
         lost: items.filter((item) => !recoveredItems.includes(NORMALISE.skill(item)))
       };
     });
@@ -160,8 +201,9 @@ export class RecoveryDiff {
   /** A category that came back torn: half of it is a category, and the label is `partial`. */
   static partialCategory(category, recovered) {
     const normalised = NORMALISE.skill(category);
-    const torn = recovered.skills.some((candidate) =>
-      candidate.category && overlaps(normalised, NORMALISE.skill(candidate.category)));
+    const torn = recovered.skills.some(
+      (candidate) => candidate.category && overlaps(normalised, NORMALISE.skill(candidate.category))
+    );
     return torn ? 'partial' : 'lost';
   }
 

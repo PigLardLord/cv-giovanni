@@ -22,9 +22,15 @@ const strings = {
 };
 const t = (key) => strings[key] || key;
 
-const compose = (data, locale = 'en') => new LetterLayout().compose(
-  new CoverLetter(data), { identity, format, theme, typography, t, locale }
-);
+const compose = (data, locale = 'en') =>
+  new LetterLayout().compose(new CoverLetter(data), {
+    identity,
+    format,
+    theme,
+    typography,
+    t,
+    locale
+  });
 
 const flatten = (node) => {
   if (node === null || node === undefined) return [];
@@ -37,7 +43,12 @@ const flatten = (node) => {
 };
 
 const letter = {
-  recipient: { name: 'Anna Weber', role: 'Talent Lead', company: 'ActAI', address: ['Chausseestraße 1', '10115 Berlin'] },
+  recipient: {
+    name: 'Anna Weber',
+    role: 'Talent Lead',
+    company: 'ActAI',
+    address: ['Chausseestraße 1', '10115 Berlin']
+  },
   date: '2026-09-09',
   reference: 'REQ-1042',
   subject: 'Application for iOS Software Engineer',
@@ -90,11 +101,20 @@ describe('what the letter says', () => {
   // The name is deliberately not one of these: it appears in the sender line too, which is
   // correct on a letter and useless as a position marker.
   test('the subject, the body and the close are in reading order', () => {
-    const order = ['ActAI', 'Application for iOS Software Engineer', 'Dear Anna Weber',
-      'Six years owning', 'I would welcome', 'Kind regards', 'Enclosed'];
+    const order = [
+      'ActAI',
+      'Application for iOS Software Engineer',
+      'Dear Anna Weber',
+      'Six years owning',
+      'I would welcome',
+      'Kind regards',
+      'Enclosed'
+    ];
     const positions = order.map((fragment) => text.indexOf(fragment));
 
-    expect(positions.every((at, index) => at >= 0 && (index === 0 || at > positions[index - 1]))).toBe(true);
+    expect(
+      positions.every((at, index) => at >= 0 && (index === 0 || at > positions[index - 1]))
+    ).toBe(true);
   });
 });
 
@@ -105,7 +125,9 @@ describe('the salutation comes from the catalogue, the name from the model', () 
 
   // Nothing invents a name. Without one the letter opens the way the catalogue says.
   test('an unnamed recipient gets the anonymous opening, not an invented name', () => {
-    const text = flatten(compose({ ...letter, recipient: { company: 'ActAI' } }).content).join('\n');
+    const text = flatten(compose({ ...letter, recipient: { company: 'ActAI' } }).content).join(
+      '\n'
+    );
 
     expect(text).toContain('Dear Hiring Team,');
     expect(text).not.toContain('Dear ,');
@@ -124,8 +146,9 @@ describe('the date is formatted, never spelled', () => {
   });
 
   test('an unparseable date is printed as written rather than dropped', () => {
-    expect(flatten(compose({ ...letter, date: 'next Tuesday' }).content).join('\n'))
-      .toContain('next Tuesday');
+    expect(flatten(compose({ ...letter, date: 'next Tuesday' }).content).join('\n')).toContain(
+      'next Tuesday'
+    );
   });
 });
 
@@ -138,7 +161,8 @@ describe('the close holds together', () => {
   });
 
   test('a letter with no attachments says nothing about attachments', () => {
-    expect(flatten(compose({ ...letter, attachments: [] }).content).join('\n'))
-      .not.toContain('Enclosed');
+    expect(flatten(compose({ ...letter, attachments: [] }).content).join('\n')).not.toContain(
+      'Enclosed'
+    );
   });
 });

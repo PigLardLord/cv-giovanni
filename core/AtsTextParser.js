@@ -27,7 +27,12 @@ export class AtsTextParser {
     const lines = String(text ?? '')
       .replace(/ | | /g, ' ')
       .split(/\r?\n/)
-      .map((line) => line.replace(/\f/g, '').replace(/[ \t]+/g, ' ').trim());
+      .map((line) =>
+        line
+          .replace(/\f/g, '')
+          .replace(/[ \t]+/g, ' ')
+          .trim()
+      );
 
     const headings = AtsTextParser.headings(lines);
     if (headings.length < 2) {
@@ -53,7 +58,8 @@ export class AtsTextParser {
       education: AtsTextParser.education(blocks.education || []),
       skills: AtsTextParser.skills(blocks.skills || []),
       spokenLanguages: AtsTextParser.spokenLanguages(blocks.languages || []),
-      certifications: (blocks.certifications || []).filter((entry) => entry.text)
+      certifications: (blocks.certifications || [])
+        .filter((entry) => entry.text)
         .map((entry) => ({ text: entry.text, line: entry.line })),
       unassigned: (blocks.unassigned || []).map((entry) => entry.line)
     });
@@ -98,8 +104,11 @@ export class AtsTextParser {
     // two things that look exactly like hostnames, and both would be reported as links the
     // CV does not have.
     const withoutEmails = emails.reduce((text, email) => text.split(email).join(' '), joined);
-    const addresses = [...new Set((withoutEmails.match(URL) || [])
-      .map((candidate) => candidate.replace(/[.,;]$/, '')))];
+    const addresses = [
+      ...new Set(
+        (withoutEmails.match(URL) || []).map((candidate) => candidate.replace(/[.,;]$/, ''))
+      )
+    ];
 
     const lineOf = (value) => head.findIndex((text) => value && text.includes(value));
     const name = AtsTextParser.name(head);
@@ -145,8 +154,11 @@ export class AtsTextParser {
     if (!candidate || candidate.length > 60) return null;
     if (/[@\d]/.test(candidate) || SectionLexicon.recognise(candidate)) return null;
     const words = candidate.split(' ');
-    return words.length >= 2 && words.length <= 4
-      && words.every((word) => word[0] === word[0].toUpperCase()) ? candidate : null;
+    return words.length >= 2 &&
+      words.length <= 4 &&
+      words.every((word) => word[0] === word[0].toUpperCase())
+      ? candidate
+      : null;
   }
 
   /** The line under the name, when it is not a contact line and not a date. */
@@ -181,9 +193,16 @@ export class AtsTextParser {
 
   /** The summary paragraph: the prose above the first heading, or under a profile heading. */
   static profile(lines, until, block) {
-    const fromBlock = (block || []).map((entry) => entry.text).filter(Boolean).join(' ');
+    const fromBlock = (block || [])
+      .map((entry) => entry.text)
+      .filter(Boolean)
+      .join(' ');
     if (fromBlock.length > 120) return fromBlock;
-    const paragraphs = lines.slice(0, until).join('\n').split(/\n{2,}/).map((p) => p.replace(/\n/g, ' ').trim());
+    const paragraphs = lines
+      .slice(0, until)
+      .join('\n')
+      .split(/\n{2,}/)
+      .map((p) => p.replace(/\n/g, ' ').trim());
     const prose = paragraphs.filter((p) => p.length > 120 && (p.match(/\./g) || []).length >= 2);
     return prose[prose.length - 1] || null;
   }
@@ -207,14 +226,16 @@ export class AtsTextParser {
       const period = DateRange.parse(group[dateAt].text);
       const employerLine = dateAt >= 1 ? group[dateAt - 1] : null;
       const titleLine = dateAt >= 2 ? group[dateAt - 2] : null;
-      const [employer, location] = employerLine ? employerLine.text.split(SEPARATORS) : [null, null];
+      const [employer, location] = employerLine
+        ? employerLine.text.split(SEPARATORS)
+        : [null, null];
 
       roles.push({
         title: RecoveredCv.field(titleLine?.text || null, titleLine?.line ?? -1),
         // Refused rather than guessed: with one line above the date there is no way to tell
         // a title from an employer, and binding the wrong one is worse than binding neither.
-        employer: RecoveredCv.field(titleLine ? (employer || null) : null, employerLine?.line ?? -1),
-        location: RecoveredCv.field(titleLine ? (location || null) : null, employerLine?.line ?? -1),
+        employer: RecoveredCv.field(titleLine ? employer || null : null, employerLine?.line ?? -1),
+        location: RecoveredCv.field(titleLine ? location || null : null, employerLine?.line ?? -1),
         period,
         periodLine: group[dateAt].line,
         tripleAdjacent: dateAt >= 2 && group[dateAt].line - group[dateAt - 2].line <= 2,
@@ -228,7 +249,10 @@ export class AtsTextParser {
     return roles.map((role) => ({
       ...role,
       bodyLines: role.body.map((entry) => entry.text).filter(Boolean),
-      bodyText: role.body.map((entry) => entry.text).filter(Boolean).join(' ')
+      bodyText: role.body
+        .map((entry) => entry.text)
+        .filter(Boolean)
+        .join(' ')
     }));
   }
 
@@ -250,15 +274,17 @@ export class AtsTextParser {
 
   /** Degrees, each with whatever school and period followed it. */
   static education(block) {
-    return AtsTextParser.groups(block).map((group) => {
-      const [school, period] = (group[1]?.text || '').split(SEPARATORS);
-      return {
-        degree: RecoveredCv.field(group[0]?.text || null, group[0]?.line ?? -1),
-        school: RecoveredCv.field(school || null, group[1]?.line ?? -1),
-        period: period || null,
-        line: group[0]?.line ?? -1
-      };
-    }).filter((entry) => entry.degree);
+    return AtsTextParser.groups(block)
+      .map((group) => {
+        const [school, period] = (group[1]?.text || '').split(SEPARATORS);
+        return {
+          degree: RecoveredCv.field(group[0]?.text || null, group[0]?.line ?? -1),
+          school: RecoveredCv.field(school || null, group[1]?.line ?? -1),
+          period: period || null,
+          line: group[0]?.line ?? -1
+        };
+      })
+      .filter((entry) => entry.degree);
   }
 
   /**
@@ -276,8 +302,12 @@ export class AtsTextParser {
         continue;
       }
       const target = groups[groups.length - 1];
-      const items = group.map((entry) => entry.text).join(' ')
-        .split(/\s*[,·]\s*/).map((item) => item.trim()).filter(Boolean);
+      const items = group
+        .map((entry) => entry.text)
+        .join(' ')
+        .split(/\s*[,·]\s*/)
+        .map((item) => item.trim())
+        .filter(Boolean);
       if (target && !target.items.length) target.items = items;
       else groups.push({ category: null, line: group[0].line, items });
     }
@@ -286,18 +316,21 @@ export class AtsTextParser {
 
   /** `Language: level`, `Language — level` or `Language (level)`. CEFR only when written. */
   static spokenLanguages(block) {
-    return block.filter((entry) => entry.text).map((entry) => {
-      const match = /^([^:—(]{2,30})\s*[:—(]\s*(.+?)\)?$/.exec(entry.text);
-      if (!match) return null;
-      const level = match[2].trim();
-      return {
-        name: match[1].trim(),
-        level,
-        // A prose word is not a CEFR level, and mapping one to another would be claiming a
-        // precision the document did not state.
-        cefr: /\b([ABC][12])\b/.exec(level)?.[1] || null,
-        line: entry.line
-      };
-    }).filter(Boolean);
+    return block
+      .filter((entry) => entry.text)
+      .map((entry) => {
+        const match = /^([^:—(]{2,30})\s*[:—(]\s*(.+?)\)?$/.exec(entry.text);
+        if (!match) return null;
+        const level = match[2].trim();
+        return {
+          name: match[1].trim(),
+          level,
+          // A prose word is not a CEFR level, and mapping one to another would be claiming a
+          // precision the document did not state.
+          cefr: /\b([ABC][12])\b/.exec(level)?.[1] || null,
+          line: entry.line
+        };
+      })
+      .filter(Boolean);
   }
 }

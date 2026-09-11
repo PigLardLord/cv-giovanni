@@ -10,28 +10,98 @@ import { fold } from './fold.js';
  */
 export const MONTHS = {
   en: {
-    january: 1, jan: 1, february: 2, feb: 2, march: 3, mar: 3, april: 4, apr: 4,
-    may: 5, june: 6, jun: 6, july: 7, jul: 7, august: 8, aug: 8,
-    september: 9, sept: 9, sep: 9, october: 10, oct: 10, november: 11, nov: 11,
-    december: 12, dec: 12
+    january: 1,
+    jan: 1,
+    february: 2,
+    feb: 2,
+    march: 3,
+    mar: 3,
+    april: 4,
+    apr: 4,
+    may: 5,
+    june: 6,
+    jun: 6,
+    july: 7,
+    jul: 7,
+    august: 8,
+    aug: 8,
+    september: 9,
+    sept: 9,
+    sep: 9,
+    october: 10,
+    oct: 10,
+    november: 11,
+    nov: 11,
+    december: 12,
+    dec: 12
   },
   de: {
-    januar: 1, jan: 1, februar: 2, feb: 2, marz: 3, mar: 3, april: 4, apr: 4,
-    mai: 5, juni: 6, jun: 6, juli: 7, jul: 7, august: 8, aug: 8,
-    september: 9, sep: 9, oktober: 10, okt: 10, november: 11, nov: 11,
-    dezember: 12, dez: 12
+    januar: 1,
+    jan: 1,
+    februar: 2,
+    feb: 2,
+    marz: 3,
+    mar: 3,
+    april: 4,
+    apr: 4,
+    mai: 5,
+    juni: 6,
+    jun: 6,
+    juli: 7,
+    jul: 7,
+    august: 8,
+    aug: 8,
+    september: 9,
+    sep: 9,
+    oktober: 10,
+    okt: 10,
+    november: 11,
+    nov: 11,
+    dezember: 12,
+    dez: 12
   },
   it: {
-    gennaio: 1, gen: 1, febbraio: 2, feb: 2, marzo: 3, mar: 3, aprile: 4, apr: 4,
-    maggio: 5, mag: 5, giugno: 6, giu: 6, luglio: 7, lug: 7, agosto: 8, ago: 8,
-    settembre: 9, set: 9, ottobre: 10, ott: 10, novembre: 11, nov: 11,
-    dicembre: 12, dic: 12
+    gennaio: 1,
+    gen: 1,
+    febbraio: 2,
+    feb: 2,
+    marzo: 3,
+    mar: 3,
+    aprile: 4,
+    apr: 4,
+    maggio: 5,
+    mag: 5,
+    giugno: 6,
+    giu: 6,
+    luglio: 7,
+    lug: 7,
+    agosto: 8,
+    ago: 8,
+    settembre: 9,
+    set: 9,
+    ottobre: 10,
+    ott: 10,
+    novembre: 11,
+    nov: 11,
+    dicembre: 12,
+    dic: 12
   }
 };
 
 /** However a CV says "and it has not ended". */
-const PRESENT = ['present', 'now', 'current', 'ongoing', 'heute', 'aktuell', 'laufend',
-  'oggi', 'presente', 'attuale', 'in corso'];
+const PRESENT = [
+  'present',
+  'now',
+  'current',
+  'ongoing',
+  'heute',
+  'aktuell',
+  'laufend',
+  'oggi',
+  'presente',
+  'attuale',
+  'in corso'
+];
 
 /** However a CV says "it began, and it has not ended". */
 const SINCE = ['since', 'seit', 'dal', 'da'];
@@ -39,7 +109,9 @@ const SINCE = ['since', 'seit', 'dal', 'da'];
 const SEPARATOR = /\s*(?:[–—‒~-]|\bto\b|\bbis\b|\bal\b)\s*/;
 
 const MONTH_INDEX = Object.fromEntries(
-  Object.values(MONTHS).flatMap((names) => Object.entries(names).map(([name, number]) => [fold(name), number]))
+  Object.values(MONTHS).flatMap((names) =>
+    Object.entries(names).map(([name, number]) => [fold(name), number])
+  )
 );
 
 /**
@@ -73,7 +145,9 @@ export class DateRange {
     // no context in a CV decides it. Refusing is the only honest answer.
     if (/\b\d{1,2}[./]\d{1,2}[./]\d{4}\b/.test(raw)) return null;
 
-    const trailingMatch = raw.match(/\s(\([^)]*\)|\d+\s*(?:years?|yrs?|months?|mos?|Jahre?|Monate?|anni|mesi)\b.*)$/i);
+    const trailingMatch = raw.match(
+      /\s(\([^)]*\)|\d+\s*(?:years?|yrs?|months?|mos?|Jahre?|Monate?|anni|mesi)\b.*)$/i
+    );
     const trailing = trailingMatch ? trailingMatch[1].trim() : '';
     const body = trailingMatch ? raw.slice(0, trailingMatch.index).trim() : raw;
 
@@ -82,7 +156,11 @@ export class DateRange {
     // means that year, or that month. Refusing it would drop the role rather than the date,
     // and a missing role is a bigger lie than a short one.
     const split = body.split(SEPARATOR);
-    const parts = sinceMatch ? [sinceMatch[1], 'present'] : (split.length === 1 ? [body, body] : split);
+    const parts = sinceMatch
+      ? [sinceMatch[1], 'present']
+      : split.length === 1
+        ? [body, body]
+        : split;
     if (parts.length !== 2) return null;
 
     const start = DateRange.point(parts[0]);
@@ -90,7 +168,14 @@ export class DateRange {
     if (!start || start === 'present' || !end) return null;
 
     const precision = start.month && (end === 'present' || end.month) ? 'month' : 'year';
-    return new DateRange({ start, end, precision, notation: DateRange.notation(parts[0]), trailing, raw });
+    return new DateRange({
+      start,
+      end,
+      precision,
+      notation: DateRange.notation(parts[0]),
+      trailing,
+      raw
+    });
   }
 
   /**
@@ -165,8 +250,8 @@ export class DateRange {
    */
   static gap(earlier, later) {
     if (!earlier || !later || earlier.end === 'present') return null;
-    const from = (earlier.end.year * 12) + (earlier.end.month || 12);
-    const to = (later.start.year * 12) + (later.start.month || 1);
+    const from = earlier.end.year * 12 + (earlier.end.month || 12);
+    const to = later.start.year * 12 + (later.start.month || 1);
     return to - from;
   }
 

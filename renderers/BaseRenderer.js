@@ -185,6 +185,6 @@ export class BaseRenderer extends Renderer {
    * @returns {boolean} True if all fields exist
    */
   validateFields(data, fields) {
-    return super.validate(data) && fields.every(field => data[field] !== undefined);
+    return super.validate(data) && fields.every((field) => data[field] !== undefined);
   }
 }

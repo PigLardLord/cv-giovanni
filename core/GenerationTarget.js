@@ -57,14 +57,16 @@ export class GenerationTarget {
    * @returns {GenerationTarget} The resolved target
    */
   static fromArguments(argv = []) {
-    const options = new Map(argv
-      .filter((argument) => argument.startsWith('--'))
-      .map((argument) => {
-        const separator = argument.indexOf('=');
-        return separator < 0
-          ? [argument.slice(2), '']
-          : [argument.slice(2, separator), argument.slice(separator + 1)];
-      }));
+    const options = new Map(
+      argv
+        .filter((argument) => argument.startsWith('--'))
+        .map((argument) => {
+          const separator = argument.indexOf('=');
+          return separator < 0
+            ? [argument.slice(2), '']
+            : [argument.slice(2, separator), argument.slice(separator + 1)];
+        })
+    );
 
     const dataPath = options.get('profile') || DEFAULT_DATA_PATH;
     const match = /^(.*\/)?([^/]+)\/([^/]+)\.json$/.exec(dataPath);
@@ -76,9 +78,10 @@ export class GenerationTarget {
     }
 
     const [, , profile, locale] = match;
-    const defaultOut = dataPath === DEFAULT_DATA_PATH
-      ? PUBLISHED_OUT_DIR
-      : `${dataPath.slice(0, dataPath.lastIndexOf('/'))}/out`;
+    const defaultOut =
+      dataPath === DEFAULT_DATA_PATH
+        ? PUBLISHED_OUT_DIR
+        : `${dataPath.slice(0, dataPath.lastIndexOf('/'))}/out`;
 
     return new GenerationTarget({
       dataPath,

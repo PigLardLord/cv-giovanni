@@ -317,7 +317,9 @@ body[data-layout='technical'] .hero-name {
       var(--t-blue-deep) var(--rail-width),
       var(--t-ground) var(--rail-width)
     );
-    box-shadow: 0 30px 50px -30px rgb(15 27 51 / 0.5), 0 0 0 1px rgb(15 27 51 / 0.05);
+    box-shadow:
+      0 30px 50px -30px rgb(15 27 51 / 0.5),
+      0 0 0 1px rgb(15 27 51 / 0.05);
   }
 
   /* --- Masthead ------------------------------------------------------------------------- */
@@ -824,7 +826,9 @@ body[data-layout='technical'] .hero-name {
 
   body[data-layout='spotlight'] .container {
     background: #fff;
-    box-shadow: 0 30px 60px -30px rgb(80 40 20 / 0.45), 0 0 0 1px rgb(80 40 20 / 0.06);
+    box-shadow:
+      0 30px 60px -30px rgb(80 40 20 / 0.45),
+      0 0 0 1px rgb(80 40 20 / 0.06);
   }
 
   /* --- Masthead ------------------------------------------------------------------------- */
@@ -1092,7 +1096,9 @@ body[data-layout='technical'] .hero-name {
   /* The current role is the strongest evidence on the page: its dot carries the spotlight. */
   body[data-layout='spotlight'] .job-entry:first-child::before {
     background: var(--e-ember);
-    box-shadow: 0 0 0 4px #fff, 0 0 0 8px rgb(232 100 31 / 0.25);
+    box-shadow:
+      0 0 0 4px #fff,
+      0 0 0 8px rgb(232 100 31 / 0.25);
   }
 
   body[data-layout='spotlight'] .job-period {

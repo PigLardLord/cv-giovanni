@@ -21,7 +21,7 @@ export class HeaderRenderer extends Renderer {
     this.renderOptional(subtitleElement, data.subtitle);
     this.renderOptional(availabilityElement, data.availability);
     if (locationElement) locationElement.textContent = data.location || '';
-    
+
     if (contactsElement) {
       const email = this.i18n ? this.i18n.t('contacts.email', { ns: 'cv' }) : 'Email';
       const phone = this.i18n ? this.i18n.t('contacts.phone', { ns: 'cv' }) : 'Phone';

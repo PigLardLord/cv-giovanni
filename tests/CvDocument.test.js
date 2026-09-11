@@ -2,8 +2,11 @@ import { CvDocument } from '../domain/CvDocument.js';
 
 test('maps source data into a framework-free document model', () => {
   const model = new CvDocument({
-    name: 'Candidate', title: 'Engineer', profile: 'Summary',
-    skills: [{ category: 'iOS', items: [] }], social: [{ platform: 'GitHub', url: 'https://example.test' }]
+    name: 'Candidate',
+    title: 'Engineer',
+    profile: 'Summary',
+    skills: [{ category: 'iOS', items: [] }],
+    social: [{ platform: 'GitHub', url: 'https://example.test' }]
   });
 
   expect(model.identity.name).toBe('Candidate');

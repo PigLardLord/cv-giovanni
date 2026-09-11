@@ -18,9 +18,15 @@
  * @see https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/linking-a-pull-request-to-an-issue
  */
 export const CLOSING_KEYWORDS = [
-  'close', 'closes', 'closed',
-  'fix', 'fixes', 'fixed',
-  'resolve', 'resolves', 'resolved'
+  'close',
+  'closes',
+  'closed',
+  'fix',
+  'fixes',
+  'fixed',
+  'resolve',
+  'resolves',
+  'resolved'
 ];
 
 /**
@@ -29,8 +35,7 @@ export const CLOSING_KEYWORDS = [
  * the boundary before it.
  */
 const REFERENCE = new RegExp(
-  `\\b(${CLOSING_KEYWORDS.join('|')})\\b[\\s:]+` +
-    '(?:https?://\\S*?/issues/(\\d+)|#(\\d+))',
+  `\\b(${CLOSING_KEYWORDS.join('|')})\\b[\\s:]+` + '(?:https?://\\S*?/issues/(\\d+)|#(\\d+))',
   'gi'
 );
 

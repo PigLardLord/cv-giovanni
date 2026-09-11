@@ -32,7 +32,6 @@ export class SocialLinksRenderer extends BaseRenderer {
   }
 
   validate(data) {
-    return this.validateFields(data, ['social']) &&
-           Array.isArray(data.social);
+    return this.validateFields(data, ['social']) && Array.isArray(data.social);
   }
 }

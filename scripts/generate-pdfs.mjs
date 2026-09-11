@@ -41,8 +41,10 @@ pdfMake.addVirtualFileSystem({
 });
 pdfMake.fonts = {
   Inter: {
-    normal: 'Inter-Regular.ttf', bold: 'Inter-Bold.ttf',
-    italics: 'Inter-Regular.ttf', bolditalics: 'Inter-Bold.ttf'
+    normal: 'Inter-Regular.ttf',
+    bold: 'Inter-Bold.ttf',
+    italics: 'Inter-Regular.ttf',
+    bolditalics: 'Inter-Bold.ttf'
   }
 };
 const composer = new PdfExporter(null, i18n);
@@ -61,10 +63,14 @@ const qaService = new PdfGenerationService({
 // The letter rides the same service: two documents, one pipeline, because a second copy of
 // generate-and-write would be the first with one word changed.
 const letterRelease = new PdfGenerationService({
-  composer: letterComposer, renderer, writer: new NodeDirectoryWriter(new URL(`${target.outDir}/`, projectRoot))
+  composer: letterComposer,
+  renderer,
+  writer: new NodeDirectoryWriter(new URL(`${target.outDir}/`, projectRoot))
 });
 const letterQa = new PdfGenerationService({
-  composer: letterComposer, renderer, writer: new NodeDirectoryWriter(new URL(`${target.qaDir}/`, projectRoot))
+  composer: letterComposer,
+  renderer,
+  writer: new NodeDirectoryWriter(new URL(`${target.qaDir}/`, projectRoot))
 });
 const hasLetter = LetterExporter.has(data);
 
@@ -82,16 +88,32 @@ for (const layout of layouts) {
   }
   for (const pageSize of ['A4', 'LETTER']) {
     for (const colorMode of ['color', 'monochrome']) {
-      const variant = await qaService.generate(data, { profile, locale, layout, pageSize, colorMode, variant: true });
+      const variant = await qaService.generate(data, {
+        profile,
+        locale,
+        layout,
+        pageSize,
+        colorMode,
+        variant: true
+      });
       console.log(`${target.qaDir}/${variant.filename}`);
       if (hasLetter) {
-        const letter = await letterQa.generate(data, { profile, locale, layout, pageSize, colorMode, variant: true });
+        const letter = await letterQa.generate(data, {
+          profile,
+          locale,
+          layout,
+          pageSize,
+          colorMode,
+          variant: true
+        });
         console.log(`${target.qaDir}/${letter.filename}`);
       }
     }
   }
 }
 
-await writeFile(new URL(target.manifestPath, projectRoot),
-  `${JSON.stringify({ released }, null, 2)}\n`);
+await writeFile(
+  new URL(target.manifestPath, projectRoot),
+  `${JSON.stringify({ released }, null, 2)}\n`
+);
 console.log(`${target.manifestPath} — ${released.length} downloads`);

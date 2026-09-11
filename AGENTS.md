@@ -29,8 +29,8 @@ DOM. The page renders through `renderers/`; the PDF is composed from the model b
 they agree except measuring both.
 
 These rules outlived `docs/ROADMAP.md`, which described milestones that GitHub now tracks. What
-remains of that file's unfinished work is filed under the milestone *Carried over from the old
-roadmap*.
+remains of that file's unfinished work is filed under the milestone _Carried over from the old
+roadmap_.
 
 ## Skills presentation
 
@@ -80,9 +80,9 @@ self-rating into the main evidence of competence.
 
 ## The loop's role system
 
-The ticket-loop skill defers to the project's own role system where one exists: *"If the project
+The ticket-loop skill defers to the project's own role system where one exists: _"If the project
 defines its own role system (`AGENTS.md` with role cards, agents in `.claude/agents/`), that
-wins."* This section is that system. It extends the per-ticket pipeline; it does not replace it.
+wins."_ This section is that system. It extends the per-ticket pipeline; it does not replace it.
 
 The manifest's `agents.roster` is deliberately left empty. Nothing in the plugin reads it — not
 the preflight, not `ticketctl`, not the reviewer script — so filling it would look like
@@ -90,7 +90,7 @@ configuration and do nothing. The roles below are the real ones.
 
 ### The two roles
 
-- **`cv-reviewer`** — judges the *product*, adversarially, in seven passes. Read-only: it has no
+- **`cv-reviewer`** — judges the _product_, adversarially, in seven passes. Read-only: it has no
   Write or Edit, and it reports rather than repairs.
 - **`cv-composer`** — proposes layout and copy from material handed to it. It writes nothing at
   all, files included: it drafts, and someone else commits or files.
@@ -127,13 +127,13 @@ used.
 
 This is the rule that keeps the loop from either ignoring the review or drowning in it.
 
-| Verdict finding | Disposition |
-|---|---|
+| Verdict finding                                      | Disposition                                                                                                                              |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | **Blocking** or **Major**, inside the ticket's scope | Correct it on the open ticket, same branch, **before the merge gate**. Never open a ticket for work this branch was already meant to do. |
-| **Blocking**, outside the ticket's scope | New ticket, `priority:critical`, and say so at the merge gate so the person deciding knows what is still broken. |
-| **Major** or **Minor**, outside the ticket's scope | New ticket. Never widen the open branch — that is how a two-file change becomes a twelve-file review nobody reads. |
-| **Minor**, inside scope | Fix it if it is cheap and covered by the existing tests; otherwise a new ticket. |
-| **Observation** | Never a ticket. It goes in the change-request body. |
+| **Blocking**, outside the ticket's scope             | New ticket, `priority:critical`, and say so at the merge gate so the person deciding knows what is still broken.                         |
+| **Major** or **Minor**, outside the ticket's scope   | New ticket. Never widen the open branch — that is how a two-file change becomes a twelve-file review nobody reads.                       |
+| **Minor**, inside scope                              | Fix it if it is cheap and covered by the existing tests; otherwise a new ticket.                                                         |
+| **Observation**                                      | Never a ticket. It goes in the change-request body.                                                                                      |
 
 For a correction on the open ticket, `cv-composer` receives the finding and returns the
 replacement copy or the layout parameters. The implementer applies them under TDD like any other
@@ -231,8 +231,8 @@ what it did. Run both before claiming the document is sound.
 The third asks a different question altogether. `npm run audit:ats` parses the generated PDF the
 way a stranger's parser would — no `-layout`, no access to `profiles/`, no knowledge of what the
 document was supposed to say — and diffs the structure it recovered against the structure that was
-authored. The other two ask *did my string survive*; this one asks *in the right slot, beside the
-right neighbours, in the right order*, which is the question a recruiter's search puts to a parsed
+authored. The other two ask _did my string survive_; this one asks _in the right slot, beside the
+right neighbours, in the right order_, which is the question a recruiter's search puts to a parsed
 record. It reports **Recoverability**, never a score: the weights are in `core/AtsScore.js` with
 the reason for each, the report prints them, and it says plainly that no vendor produces the
 number and no employer will ever see it. The score gates nothing; four floors do — a document that
@@ -258,19 +258,49 @@ generated entries, or a `?v=` inside every import — which would also put a que
 front of Jest's resolver. The stylesheets, which carry the visible change, are versioned
 already.
 
-What *has* cost this project time, three times, is the local server. `python -m http.server`
+What _has_ cost this project time, three times, is the local server. `python -m http.server`
 sends no `Cache-Control` at all, so the browser falls back to heuristic freshness and can
 hold a module for days: a CSS edit that appeared not to work, a "verification" that was
 reading the previous build, and a renderer change that was invisible on screen while it was
 plainly present in the printed PDF. Use `npm run serve` — it sends `no-store` — and do not
 trust a local page served any other way.
 
+## Formatting belongs to Prettier
+
+Nobody lays code out by hand here. Prettier does, for every file type it understands, and
+`npm test` fails on a file it would change.
+
+This was decided after the review on pull request #41 found ten indentation defects in ten files by
+eye — a bare block left behind by an edit, a loop header wrapped to the depth of its body, a
+property aligned with the wrong object — and #42 found that nothing in the repository could have
+caught them. An indentation test would have policed one rule; a formatter removes the decision.
+
+- **Prettier 3.9.6, pinned exactly.** A floating version would reformat the tree on a minor release,
+  in a commit nobody meant to make.
+- **The configuration is the style the code already had,** not Prettier's defaults: two spaces,
+  single quotes, no trailing commas, 100 columns. `proseWrap` is `preserve`, so Markdown keeps its
+  line breaks.
+- **`.prettierignore` says what is not formatted, and why:** vendored code and the lockfile, the
+  files the scripts write (`generated/` and the three audit reports), the harness's own files, and
+  test fixtures whose exact bytes are what the tests check.
+- **`.editorconfig`** carries the same indentation to editors that do not run Prettier.
+- **`npm run format`** writes, **`npm run format:check`** checks, and
+  `tests/SourceIsFormatted.test.js` runs the check inside the suite — and proves it can fail on a
+  mis-indented file.
+
+The adoption reformatted 86 files and changed nothing else, which was measured rather than assumed:
+identical syntax trees for every JavaScript file, identical JSON values and Markdown words,
+pixel-identical screen and print renders of all three layouts, and identical PDF text and audit
+reports built from the committed profile. That commit is listed in `.git-blame-ignore-revs`, so
+`git blame` shows who wrote a line rather than who ran the formatter; locally that takes
+`git config blame.ignoreRevsFile .git-blame-ignore-revs`.
+
 ## Known limitation — the PDF carries no structure tree
 
 The generated PDFs report `Tagged: no`, and that is deliberate.
 
 Assistive software navigates a PDF through a structure tree: headings, paragraphs, lists and a
-declared reading order. pdfmake 0.2.20 writes the tagged *flag* — `/Marked true` — but never
+declared reading order. pdfmake 0.2.20 writes the tagged _flag_ — `/Marked true` — but never
 builds the tree behind it: `/StructTreeRoot` comes out with no `/K` children, `/Nums []`,
 `/ParentTreeNextKey 0`, and the content streams hold no marked-content sequences. `structType` on
 a node changes nothing. There is no tagging API in the version's interface, README or changelog;
@@ -299,7 +329,7 @@ Settled, and not to be undone by someone reclaiming space:
   the point where a label wraps — widen it before letting that happen, and remember the German
   labels are longer.
 - **No letter-spacing on the labels.** At 1pt of tracking, `pdftotext` reads the gaps as spaces
-  and "Professional Experience" extracts as "P ro fe s s i o n a l  E x p e r i e n c e". The
+  and "Professional Experience" extracts as "P ro fe s s i o n a l E x p e r i e n c e". The
   weight of a real Bold carries the label; tracking is not needed and is not safe.
 - **Inter, vendored.** `vendor/fonts/inter/` with its OFL licence, embedded and subset at
   generation. pdfmake's stock family maps `bold` to Roboto Medium 500, so a document that leans

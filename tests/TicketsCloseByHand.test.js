@@ -4,11 +4,17 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { closingReferences, CLOSING_KEYWORDS, NON_CLOSING_PREFIX } from '../scripts/lib/closing-keyword.mjs';
+import {
+  closingReferences,
+  CLOSING_KEYWORDS,
+  NON_CLOSING_PREFIX
+} from '../scripts/lib/closing-keyword.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim();
-const manifest = JSON.parse(readFileSync(new URL('../.agents/harness/ticket-loop.json', import.meta.url)));
+const manifest = JSON.parse(
+  readFileSync(new URL('../.agents/harness/ticket-loop.json', import.meta.url))
+);
 
 /**
  * The six commits that carried `Closes #15`–`Closes #20` onto `cv-2026-update` before this rule
@@ -25,7 +31,7 @@ const MERGED_BEFORE_THE_RULE = [
   '8ab9a9a92e91dd4d0913ce2ce7dc5fbf741ac733', // feat: separate a layout defect from a gap — Closes #17
   'ae1b00f470f23812401f26387149f19aa276f7a7', // feat: model a cover letter — Closes #18
   'e5ea8e381368910b24659776bb4e385d4f92c9eb', // feat: lay out a cover letter on DIN 5008 — Closes #19
-  '8cef3927dfa8bfafa42e80d0da219054239910fd'  // feat: generate the letter with the CV — Closes #20
+  '8cef3927dfa8bfafa42e80d0da219054239910fd' // feat: generate the letter with the CV — Closes #20
 ];
 
 describe('the rule about closing keywords', () => {
@@ -33,8 +39,9 @@ describe('the rule about closing keywords', () => {
   // keyword is caught, the same message with `Refs` is not. Without this pair, a predicate that
   // returned nothing at all would pass the repository check below on any history.
   test.each(CLOSING_KEYWORDS)('`%s #19` closes a ticket', (keyword) => {
-    expect(closingReferences(`feat: something\n\n${keyword} #19`))
-      .toEqual([{ keyword, issue: 19 }]);
+    expect(closingReferences(`feat: something\n\n${keyword} #19`)).toEqual([
+      { keyword, issue: 19 }
+    ]);
   });
 
   test(`\`${NON_CLOSING_PREFIX} #19\` does not`, () => {
@@ -88,8 +95,11 @@ describe('a ticket is closed by a person, not by a merge', () => {
       .split('\n')
       .filter(Boolean)
       .filter((sha) => !MERGED_BEFORE_THE_RULE.includes(sha))
-      .flatMap((sha) => closingReferences(git('log', '-1', '--format=%B', sha))
-        .map(({ keyword, issue }) => `${sha.slice(0, 7)} ${keyword} #${issue}`));
+      .flatMap((sha) =>
+        closingReferences(git('log', '-1', '--format=%B', sha)).map(
+          ({ keyword, issue }) => `${sha.slice(0, 7)} ${keyword} #${issue}`
+        )
+      );
 
     expect(offenders).toEqual([]);
   });

@@ -30,7 +30,7 @@
   "build": {
     "test_fast": "npm test",
     "test_all": "npm test && npm run verify:pdf",
-    "lint": "",
+    "lint": "npm run format:check",
     "build": "",
     "_tiers": "Optional, and only needed when part of the gate CANNOT run everywhere. A gate that skips a tier silently reads as green: that is how a defect survives for months. Declare every conditional tier here; preflight reports which are available and which are not, and the loop must name the missing ones at the regression gate instead of calling a partial run green.",
     "tiers": []
