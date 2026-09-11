@@ -58,6 +58,36 @@ describe('each certification reaches the text layer as the one line the layout d
     ]);
   });
 
+  // Found by the adversarial review: each entry must have a line of its own, so one extracted line
+  // cannot stand for an entry written twice, and an entry written again later is not out of order.
+  test('an entry written twice needs two lines, not one line matched twice', () => {
+    const twice = [...certifications, certifications[0]];
+
+    expect(certificationProblems(extracted(android, ios), twice)).toEqual([
+      { line: android, problem: 'missing' }
+    ]);
+    expect(certificationProblems(extracted(android, ios, android), twice)).toEqual([]);
+  });
+
+  test('a line extracted more often than the profile writes it is repeated', () => {
+    expect(certificationProblems(extracted(android, ios, ios), certifications)).toEqual([
+      { line: ios, problem: 'repeated' }
+    ]);
+  });
+
+  // pdftotext hands back a no-break space as a space, and a run of spaces as one.
+  test('a name whose spaces the extraction normalises still matches its line', () => {
+    const spaced = [
+      {
+        name: 'iOS Lead\u00a0Essentials  (TDD, Clean Architecture)',
+        issuer: 'Essential Developer',
+        year: 2024
+      }
+    ];
+
+    expect(certificationProblems(extracted(ios), spaced)).toEqual([]);
+  });
+
   test('a profile without certifications has nothing to check', () => {
     expect(certificationProblems(extracted(), undefined)).toEqual([]);
   });
