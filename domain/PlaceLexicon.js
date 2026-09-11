@@ -153,4 +153,23 @@ export class PlaceLexicon {
     if (parts.length < 2 || parts.length > 4) return null;
     return PlaceLexicon.recognise(parts[parts.length - 1]) ? text : null;
   }
+
+  /**
+   * The city alone, for the line that dates a letter: `Bad Liebenstein, Thuringia, Germany` is
+   * `Bad Liebenstein`, because a German letter is dated from the place, not from the address.
+   *
+   * Only when every part after the first is a region or a country this list knows. Otherwise the
+   * location comes back as written: an unknown part could be the city's region or the city itself,
+   * and a letter dated from the wrong one is worse than a letter dated from all of it.
+   * @param {string} location - A location as the CV writes it
+   * @returns {string} The city, or the location unchanged when that cannot be told
+   */
+  static cityOf(location) {
+    const text = String(location ?? '').trim();
+    const [city, ...rest] = text.split(',').map((part) => part.trim());
+    const places = ['countries', 'regions'];
+    const known =
+      rest.length > 0 && rest.every((part) => places.includes(PlaceLexicon.recognise(part)?.kind));
+    return city && known ? city : text;
+  }
 }
