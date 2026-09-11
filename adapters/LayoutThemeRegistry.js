@@ -16,13 +16,27 @@ const SOFT = '#F4F4F5';
 
 const COLOR_THEMES = {
   nerd: { primary: INK, ink: INK, body: BODY, muted: MUTED, soft: SOFT, invertedHeader: false },
-  spotlight: { primary: INK, ink: INK, body: BODY, muted: MUTED, soft: SOFT, invertedHeader: false },
+  spotlight: {
+    primary: INK,
+    ink: INK,
+    body: BODY,
+    muted: MUTED,
+    soft: SOFT,
+    invertedHeader: false
+  },
   technical: { primary: INK, ink: INK, body: BODY, muted: MUTED, soft: SOFT, invertedHeader: false }
 };
 
 const MONO_THEME = {
-  primary: '#111111', ink: '#111111', body: '#333333', muted: '#555555', soft: '#F2F2F2',
-  signal: '#333333', signalBright: '#333333', accent: '#333333', invertedHeader: false
+  primary: '#111111',
+  ink: '#111111',
+  body: '#333333',
+  muted: '#555555',
+  soft: '#F2F2F2',
+  signal: '#333333',
+  signalBright: '#333333',
+  accent: '#333333',
+  invertedHeader: false
 };
 
 export class LayoutThemeRegistry {

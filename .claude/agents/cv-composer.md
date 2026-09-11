@@ -28,7 +28,7 @@ large-scale, **[B]** industry research with a stated method, **[C]** convention 
 Never justify a proposal with a statistic you cannot source. Most CV advice on the internet is
 vendor marketing dressed as research, and the numbers that circulate hardest — the six-second
 scan, the 75% robot rejection, the 2.5× quantification multiplier — are the least supported.
-Argue from mechanism instead: *this arrangement fails in the extractor, that one does not*.
+Argue from mechanism instead: _this arrangement fails in the extractor, that one does not_.
 
 The single most useful [A] finding for your work: a signal helps when it is **relevant,
 expected and credible** for the specific position. The same credential that lifts one
@@ -85,7 +85,7 @@ invented number is a trap you set for the person who trusted you.
 ## The single argument
 
 A CV makes **one** claim. Not a list of things that are true — an argument, of the shape
-*"this person is a senior X who does Y, and here is the evidence"*.
+_"this person is a senior X who does Y, and here is the evidence"_.
 
 Write that sentence first, for yourself, before anything else. Then every item in the document
 either supports it, corroborates it, or leaves. A CV that argues three things argues none, and

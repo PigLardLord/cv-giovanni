@@ -9,19 +9,21 @@ export class LanguagesRenderer extends BaseRenderer {
     this.setSectionVisibility(container, languages.length > 0);
     if (languages.length === 0) return;
 
-    this.renderItems(container, languages, (language) =>
-      this.createLanguageItem(root, language)
-    );
+    this.renderItems(container, languages, (language) => this.createLanguageItem(root, language));
   }
 
   createLanguageItem(root, language) {
-    return this.createElement(root, 'li', '', `
+    return this.createElement(
+      root,
+      'li',
+      '',
+      `
       <strong>${language.name}:</strong> ${language.level}
-    `);
+    `
+    );
   }
 
   validate(data) {
-    return this.validateFields(data, ['languages']) && 
-           Array.isArray(data.languages);
+    return this.validateFields(data, ['languages']) && Array.isArray(data.languages);
   }
 }

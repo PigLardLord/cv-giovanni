@@ -14,26 +14,104 @@ import { fold } from './fold.js';
  */
 export const PLACES = {
   countries: {
-    en: ['Germany', 'Italy', 'Austria', 'Switzerland', 'United Kingdom', 'UK', 'Ireland',
-      'Netherlands', 'Belgium', 'France', 'Spain', 'Portugal', 'Poland', 'Czechia',
-      'Denmark', 'Sweden', 'Norway', 'Finland', 'United States', 'USA', 'Canada'],
-    de: ['Deutschland', 'Italien', 'Österreich', 'Schweiz', 'Vereinigtes Königreich',
-      'Niederlande', 'Belgien', 'Frankreich', 'Spanien', 'Portugal', 'Polen', 'Tschechien',
-      'Dänemark', 'Schweden', 'Norwegen', 'Finnland'],
-    it: ['Germania', 'Italia', 'Austria', 'Svizzera', 'Regno Unito', 'Irlanda', 'Paesi Bassi',
-      'Belgio', 'Francia', 'Spagna', 'Portogallo', 'Polonia', 'Danimarca', 'Svezia', 'Norvegia']
+    en: [
+      'Germany',
+      'Italy',
+      'Austria',
+      'Switzerland',
+      'United Kingdom',
+      'UK',
+      'Ireland',
+      'Netherlands',
+      'Belgium',
+      'France',
+      'Spain',
+      'Portugal',
+      'Poland',
+      'Czechia',
+      'Denmark',
+      'Sweden',
+      'Norway',
+      'Finland',
+      'United States',
+      'USA',
+      'Canada'
+    ],
+    de: [
+      'Deutschland',
+      'Italien',
+      'Österreich',
+      'Schweiz',
+      'Vereinigtes Königreich',
+      'Niederlande',
+      'Belgien',
+      'Frankreich',
+      'Spanien',
+      'Portugal',
+      'Polen',
+      'Tschechien',
+      'Dänemark',
+      'Schweden',
+      'Norwegen',
+      'Finnland'
+    ],
+    it: [
+      'Germania',
+      'Italia',
+      'Austria',
+      'Svizzera',
+      'Regno Unito',
+      'Irlanda',
+      'Paesi Bassi',
+      'Belgio',
+      'Francia',
+      'Spagna',
+      'Portogallo',
+      'Polonia',
+      'Danimarca',
+      'Svezia',
+      'Norvegia'
+    ]
   },
   // The German states, because a German CV writes one and a parser that does not know them
   // reads "Thuringia" as a town and stops.
   regions: {
-    en: ['Baden-Württemberg', 'Bavaria', 'Berlin', 'Brandenburg', 'Bremen', 'Hamburg',
-      'Hesse', 'Lower Saxony', 'Mecklenburg-Vorpommern', 'North Rhine-Westphalia',
-      'Rhineland-Palatinate', 'Saarland', 'Saxony', 'Saxony-Anhalt', 'Schleswig-Holstein',
-      'Thuringia'],
-    de: ['Baden-Württemberg', 'Bayern', 'Berlin', 'Brandenburg', 'Bremen', 'Hamburg',
-      'Hessen', 'Niedersachsen', 'Mecklenburg-Vorpommern', 'Nordrhein-Westfalen',
-      'Rheinland-Pfalz', 'Saarland', 'Sachsen', 'Sachsen-Anhalt', 'Schleswig-Holstein',
-      'Thüringen'],
+    en: [
+      'Baden-Württemberg',
+      'Bavaria',
+      'Berlin',
+      'Brandenburg',
+      'Bremen',
+      'Hamburg',
+      'Hesse',
+      'Lower Saxony',
+      'Mecklenburg-Vorpommern',
+      'North Rhine-Westphalia',
+      'Rhineland-Palatinate',
+      'Saarland',
+      'Saxony',
+      'Saxony-Anhalt',
+      'Schleswig-Holstein',
+      'Thuringia'
+    ],
+    de: [
+      'Baden-Württemberg',
+      'Bayern',
+      'Berlin',
+      'Brandenburg',
+      'Bremen',
+      'Hamburg',
+      'Hessen',
+      'Niedersachsen',
+      'Mecklenburg-Vorpommern',
+      'Nordrhein-Westfalen',
+      'Rheinland-Pfalz',
+      'Saarland',
+      'Sachsen',
+      'Sachsen-Anhalt',
+      'Schleswig-Holstein',
+      'Thüringen'
+    ],
     it: ['Baviera', 'Berlino', 'Amburgo', 'Assia', 'Bassa Sassonia', 'Sassonia', 'Turingia']
   }
 };
@@ -68,7 +146,10 @@ export class PlaceLexicon {
   static locationIn(line) {
     const text = String(line ?? '').trim();
     if (!text || /[@\d]/.test(text)) return null;
-    const parts = text.split(',').map((part) => part.trim()).filter(Boolean);
+    const parts = text
+      .split(',')
+      .map((part) => part.trim())
+      .filter(Boolean);
     if (parts.length < 2 || parts.length > 4) return null;
     return PlaceLexicon.recognise(parts[parts.length - 1]) ? text : null;
   }

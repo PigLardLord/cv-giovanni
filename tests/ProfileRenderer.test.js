@@ -26,7 +26,9 @@ describe('ProfileRenderer', () => {
     renderer.render(document, data);
 
     const profileElement = document.getElementById('profile');
-    expect(profileElement.textContent).toBe('Experienced developer with expertise in mobile applications.');
+    expect(profileElement.textContent).toBe(
+      'Experienced developer with expertise in mobile applications.'
+    );
   });
 
   test('handles missing profile gracefully', () => {
@@ -39,7 +41,7 @@ describe('ProfileRenderer', () => {
   test('handles missing element gracefully', () => {
     const dom = new JSDOM(`<html><body></body></html>`);
     const docWithoutProfile = dom.window.document;
-    
+
     expect(() => {
       renderer.render(docWithoutProfile, { profile: 'Test' });
     }).not.toThrow();

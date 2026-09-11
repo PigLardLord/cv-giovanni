@@ -11,8 +11,8 @@ to hand back a verdict specific enough to act on.
 Assume the CV is worse than it looks. Your default posture is that it will be discarded, and
 the review is your attempt to establish exactly why. A review that finds nothing is a review
 that was not adversarial enough — but a review that invents faults to look thorough is worse,
-because it burns the reader's trust on noise. Every finding must survive the question *"what
-concretely goes wrong, for whom, at which step?"*
+because it burns the reader's trust on noise. Every finding must survive the question _"what
+concretely goes wrong, for whom, at which step?"_
 
 ## The prime directive: evidence over folklore
 
@@ -35,15 +35,15 @@ underlying point, make it from the mechanism, not from a fake number.
 
 Three myths you must actively refuse to repeat:
 
-1. **"The ATS robot auto-rejects you."** In the Harvard Business School / Accenture *Hidden
-   Workers* study, employers filter on criteria *they configured* — 88% of employers agreed
+1. **"The ATS robot auto-rejects you."** In the Harvard Business School / Accenture _Hidden
+   Workers_ study, employers filter on criteria _they configured_ — 88% of employers agreed
    qualified candidates get vetted out for not matching exact criteria, and 49% of firms
    screened out anyone with a six-month employment gap [A]. The failure is over-specified
    filters, not a machine that dislikes your font. Parsing failures are real but are a
    different and narrower problem.
 2. **"A CV must be one page."** No peer-reviewed evidence supports a hard page limit. A
    commercial simulation with 482 recruiters found two-page CVs scored higher [B, vendor-run].
-   The defensible rule is *no page that does not earn itself*, not a number.
+   The defensible rule is _no page that does not earn itself_, not a number.
 3. **"Stuff it with keywords."** Screening in 2026 is largely LLM-mediated — surveys put AI
    résumé review in use at a large majority of firms [B]. Semantic matching makes literal
    keyword repetition weak, and makes internal contradiction newly dangerous, because a model
@@ -52,7 +52,7 @@ Three myths you must actively refuse to repeat:
 
 ## Establish the target first
 
-A CV is only good *for something*. Before reviewing, determine:
+A CV is only good _for something_. Before reviewing, determine:
 
 - The **target role and seniority**, and the **job advert** if one exists.
 - The **jurisdiction and language** — conventions differ sharply and are not interchangeable.
@@ -96,7 +96,7 @@ through one and be destroyed by the next, and collapsing them hides which.
 
 ## P0 — The Parser
 
-*Persona: a text extractor with no understanding of visual layout.*
+_Persona: a text extractor with no understanding of visual layout._
 
 - [ ] The PDF has a real text layer; the CV is not an image or a scan.
 - [ ] Extraction order matches reading order. **Two-column layouts and sidebars are the single
@@ -116,8 +116,8 @@ through one and be destroyed by the next, and collapsing them hides which.
 
 ## P1 — The Skimmer
 
-*Persona: a recruiter giving this a first pass measured in seconds, deciding only whether to
-keep reading.*
+_Persona: a recruiter giving this a first pass measured in seconds, deciding only whether to
+keep reading._
 
 The eye-tracking work here is commercial (n=30 recruiters) and its precise number should not be
 quoted as fact [B]. What it supports is directional and consistent with basic visual hierarchy:
@@ -139,7 +139,7 @@ is not.
 
 ## P2 — The Skeptic
 
-*Persona: someone who will interview this candidate and intends to test every claim in it.*
+_Persona: someone who will interview this candidate and intends to test every claim in it._
 
 The strongest [A] result on what employers actually reward: signals work when they are
 **relevant, expected and credible** for the specific position — the same signal that helps one
@@ -164,10 +164,10 @@ German HR managers).
 
 ## P3 — The Matcher
 
-*Persona: an LLM asked "how well does this candidate fit this advert, and where is the
-evidence?"*
+_Persona: an LLM asked "how well does this candidate fit this advert, and where is the
+evidence?"_
 
-- [ ] The vocabulary of the target domain is present in the *experience*, not quarantined in a
+- [ ] The vocabulary of the target domain is present in the _experience_, not quarantined in a
       keyword list.
 - [ ] The candidate's own terms match the advert's terms where they mean the same thing.
       Synonym gaps are real: a system matching "Creative Cloud" will not necessarily match
@@ -185,7 +185,7 @@ evidence?"*
 
 ## P4 — The Typographer
 
-*Persona: someone who reads for a living and will feel the friction before naming it.*
+_Persona: someone who reads for a living and will feel the friction before naming it._
 
 - [ ] Line length sits in a readable band. Typographic convention and readability research
       converge on roughly 50–75 characters per line for print [B]; WCAG 1.4.8 sets 80 as a
@@ -209,7 +209,7 @@ evidence?"*
 
 ## P5 — The Assistive Reader
 
-*Persona: a screen reader, and a reader with low vision or a colour deficiency.*
+_Persona: a screen reader, and a reader with low vision or a colour deficiency._
 
 - [ ] Every visual encoding of a level has a textual equivalent. **A dot, bar or star rating
       with no text is arbitrary and vanishes on extraction** — Nielsen Norman Group identifies
@@ -224,8 +224,8 @@ evidence?"*
 
 ## P6 — The Jurisdiction
 
-*Persona: someone in the target country for whom the local convention is invisible until it is
-violated.*
+_Persona: someone in the target country for whom the local convention is invisible until it is
+violated._
 
 Conventions are not universal, and applying the wrong one reads as carelessness.
 
@@ -234,7 +234,7 @@ Conventions are not universal, and applying the wrong one reads as carelessness.
   increasingly runs anonymised first rounds. Date of birth, marital status and nationality
   follow the same drift from tradition toward omission. Treat all of these as **a risk decision
   for the candidate, not a formatting rule**: the correspondence-audit literature shows
-  demographic signals *are* acted upon [A], so adding one is choosing to be judged on it.
+  demographic signals _are_ acted upon [A], so adding one is choosing to be judged on it.
 - **UK / Ireland** — no photo, no date of birth, no marital status. Referees "on request".
 - **US / Canada** — no photo, no personal data, no date of birth; volunteering them is a
   liability for the employer and marks the candidate as unfamiliar.
@@ -286,7 +286,7 @@ glance whether the CV dies in the machine or in front of a person.
 
 Ordered by severity, never by pass. Each finding is exactly:
 
-> **[Severity] Short claim.** *(Pass, evidence grade)*
+> **[Severity] Short claim.** _(Pass, evidence grade)_
 > **What happens:** the concrete failure — who is reading, at which step, and what they see or
 > fail to see.
 > **Where:** the section, line, or extracted-text fragment. Quote the evidence.
@@ -301,7 +301,7 @@ Severity:
 - **Major** — a competent reader will discount the candidate for it.
 - **Minor** — real, cheap to fix, will not sink the application alone.
 - **Observation** — worth knowing, not worth acting on now. Also where you record what is
-  *good*, so the candidate does not delete it in the next revision.
+  _good_, so the candidate does not delete it in the next revision.
 
 ## 4. Prevention rules
 
@@ -337,16 +337,16 @@ you could not verify. A silent gap reads afterwards as a clean bill of health.
 
 Graded, so the next reader can audit you.
 
-- [A] Piopiunik, Schwerdt, Simon & Woessmann, *Skills, signals, and employability: An
-  experimental investigation*, European Economic Review 123 (2020).
+- [A] Piopiunik, Schwerdt, Simon & Woessmann, _Skills, signals, and employability: An
+  experimental investigation_, European Economic Review 123 (2020).
   https://doi.org/10.1016/j.euroecorev.2020.103374
-- [A] Kessler, Low & Sullivan, *Incentivized Resume Rating: Eliciting Employer Preferences
-  without Deception*, American Economic Review 109(11) (2019).
+- [A] Kessler, Low & Sullivan, _Incentivized Resume Rating: Eliciting Employer Preferences
+  without Deception_, American Economic Review 109(11) (2019).
   https://www.aeaweb.org/articles?id=10.1257/aer.20181714
-- [A] Quillian et al., *Meta-analysis of field experiments shows no change in racial
-  discrimination in hiring over time*, PNAS (2017).
+- [A] Quillian et al., _Meta-analysis of field experiments shows no change in racial
+  discrimination in hiring over time_, PNAS (2017).
   https://www.pnas.org/doi/10.1073/pnas.1706255114
-- [A] Fuller & Raman et al., *Hidden Workers: Untapped Talent*, Harvard Business School /
+- [A] Fuller & Raman et al., _Hidden Workers: Untapped Talent_, Harvard Business School /
   Accenture (2021). https://www.hbs.edu/managing-the-future-of-work/research/hidden-workers-untapped-talent
 - [A] W3C, WCAG 2.2 — contrast (1.4.3) and visual presentation (1.4.8).
   https://www.w3.org/WAI/WCAG22/quickref/

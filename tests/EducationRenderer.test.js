@@ -40,7 +40,7 @@ describe('EducationRenderer', () => {
 
     const educationDiv = document.getElementById('education');
     const eduEntries = educationDiv.querySelectorAll('.edu-entry');
-    
+
     expect(eduEntries).toHaveLength(2);
     expect(eduEntries[0].textContent).toContain('M.Sc. Computer Science');
     expect(eduEntries[0].textContent).toContain('University of Technology');
@@ -51,7 +51,7 @@ describe('EducationRenderer', () => {
     expect(() => {
       renderer.render(document, {});
     }).not.toThrow();
-    
+
     expect(() => {
       renderer.render(document, { education: null });
     }).not.toThrow();

@@ -24,7 +24,6 @@ export class InterestsRenderer extends BaseRenderer {
   }
 
   validate(data) {
-    return this.validateFields(data, ['interests']) &&
-           Array.isArray(data.interests);
+    return this.validateFields(data, ['interests']) && Array.isArray(data.interests);
   }
 }

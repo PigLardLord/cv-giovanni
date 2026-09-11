@@ -10,5 +10,7 @@ test('resolves every layout in color and monochrome', () => {
 });
 
 test('rejects an unknown layout', () => {
-  expect(() => new LayoutThemeRegistry().resolve('future-layout')).toThrow('Unsupported PDF layout');
+  expect(() => new LayoutThemeRegistry().resolve('future-layout')).toThrow(
+    'Unsupported PDF layout'
+  );
 });

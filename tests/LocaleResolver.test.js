@@ -4,9 +4,13 @@ describe('LocaleResolver', () => {
   const resolver = new LocaleResolver();
 
   test('gives URL language precedence over saved and browser preferences', () => {
-    expect(resolver.resolve({
-      search: '?lang=de', stored: 'en', browserLanguages: ['en-GB']
-    })).toBe('de');
+    expect(
+      resolver.resolve({
+        search: '?lang=de',
+        stored: 'en',
+        browserLanguages: ['en-GB']
+      })
+    ).toBe('de');
   });
 
   test('normalizes BCP 47 language tags', () => {

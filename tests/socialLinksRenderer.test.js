@@ -124,8 +124,9 @@ describe('SocialLinksRenderer', () => {
     test('places the separator between the two links', () => {
       renderer.render(document, data);
 
-      const parts = [...document.querySelector('.social-links').children]
-        .map((child) => child.className);
+      const parts = [...document.querySelector('.social-links').children].map(
+        (child) => child.className
+      );
 
       expect(parts).toEqual(['', 'inline-separator', '']);
     });

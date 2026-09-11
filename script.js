@@ -58,7 +58,10 @@ try {
   throw error;
 }
 const app = new CVApplication(
-  new DataLoader(profileSelection.dataUrl), new RendererContainer(), localizer, i18n
+  new DataLoader(profileSelection.dataUrl),
+  new RendererContainer(),
+  localizer,
+  i18n
 );
 
 // Register all renderers

@@ -27,9 +27,15 @@ describe('the lexicon is multilingual by construction', () => {
 
 describe('the furniture of a posting', () => {
   test.each([
-    'm/w/d', 'Vollzeit', 'Wir bieten', 'unbefristet',
-    'equal opportunity', 'What we offer', 'apply now',
-    'pari opportunità', 'tempo pieno'
+    'm/w/d',
+    'Vollzeit',
+    'Wir bieten',
+    'unbefristet',
+    'equal opportunity',
+    'What we offer',
+    'apply now',
+    'pari opportunità',
+    'tempo pieno'
   ])('%s is boilerplate', (phrase) => {
     expect(AdvertLexicon.isBoilerplate(phrase)).toBe(true);
   });
@@ -90,9 +96,18 @@ describe('synonyms are curated, and say so', () => {
 describe('the language of the advert', () => {
   // Reported, never corrected. A German advert against an English CV is a finding.
   test.each([
-    ['en', 'We are looking for an engineer who will build and maintain the iOS application with Swift and SwiftUI, and who can work with the team on the design of the interface and on the quality of the code we ship to our users.'],
-    ['de', 'Wir suchen einen Entwickler, der die iOS Anwendung mit Swift und SwiftUI baut und pflegt, und der mit dem Team an der Gestaltung der Oberfläche und an der Qualität des Codes arbeitet, den wir an unsere Nutzer ausliefern.'],
-    ['it', 'Cerchiamo uno sviluppatore che costruisca e mantenga l applicazione iOS con Swift e SwiftUI, e che lavori con il team sulla progettazione della interfaccia e sulla qualità del codice che rilasciamo ai nostri utenti.']
+    [
+      'en',
+      'We are looking for an engineer who will build and maintain the iOS application with Swift and SwiftUI, and who can work with the team on the design of the interface and on the quality of the code we ship to our users.'
+    ],
+    [
+      'de',
+      'Wir suchen einen Entwickler, der die iOS Anwendung mit Swift und SwiftUI baut und pflegt, und der mit dem Team an der Gestaltung der Oberfläche und an der Qualität des Codes arbeitet, den wir an unsere Nutzer ausliefern.'
+    ],
+    [
+      'it',
+      'Cerchiamo uno sviluppatore che costruisca e mantenga l applicazione iOS con Swift e SwiftUI, e che lavori con il team sulla progettazione della interfaccia e sulla qualità del codice che rilasciamo ai nostri utenti.'
+    ]
   ])('%s is recognised', (language, text) => {
     expect(AdvertLexicon.languageOf(text).language).toBe(language);
   });

@@ -11,7 +11,10 @@ const modules = fs.readdirSync(core).filter((name) => name.endsWith('.js'));
 // on its own.
 const forbidden = [
   { name: 'markup', pattern: /innerHTML|<div\b|<h\d\b|<p>|style="/ },
-  { name: 'typography or geometry', pattern: /\bfontSize\b|\blineHeight\b|\bpageMargins\b|\bcolumnGap\b|\bmargin:\s*\[|\bpadding:/ },
+  {
+    name: 'typography or geometry',
+    pattern: /\bfontSize\b|\blineHeight\b|\bpageMargins\b|\bcolumnGap\b|\bmargin:\s*\[|\bpadding:/
+  },
   { name: 'colour literal', pattern: /#[0-9a-fA-F]{6}\b/ }
 ];
 

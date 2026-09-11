@@ -25,7 +25,9 @@ export class PdfLayout {
     // Side margins are fixed; the body takes whatever the paper gives. LETTER is wider than A4,
     // so it gets a slightly longer line instead of a wider margin — the alternative was throwing
     // its extra width away and paying for it with a third page.
-    const RAIL = 116, GUTTER = 10, SIDE = 46;
+    const RAIL = 116,
+      GUTTER = 10,
+      SIDE = 46;
     const BODY = format.width - 2 * SIDE - RAIL - GUTTER;
     const railed = (key, blocks, gap = 6) => ({
       columns: [
@@ -35,12 +37,18 @@ export class PdfLayout {
       columnGap: GUTTER,
       margin: [0, gap, 0, 0]
     });
-    const indented = (node) => ({ ...node, margin: [RAIL + GUTTER, ...(node.margin || [0, 0, 0, 0]).slice(1)] });
+    const indented = (node) => ({
+      ...node,
+      margin: [RAIL + GUTTER, ...(node.margin || [0, 0, 0, 0]).slice(1)]
+    });
     const CATEGORY = 132;
     const skillRows = model.skills.map((group) => ({
       columns: [
         { text: group.category, bold: true, color: theme.ink, width: CATEGORY },
-        { text: this.unbreakableList(group.items.map((item) => item.name)), width: BODY - CATEGORY - 10 }
+        {
+          text: this.unbreakableList(group.items.map((item) => item.name)),
+          width: BODY - CATEGORY - 10
+        }
       ],
       columnGap: 10,
       margin: [0, 0, 0, 3]
@@ -52,30 +60,52 @@ export class PdfLayout {
     // tall enough to jump the page whole, wasting more space than the guarantee was worth.
     const jobs = model.experience.map((job) => ({
       stack: [
-        { unbreakable: true, stack: [
-          { text: job.title, style: 'itemTitle' },
-          { text: `${job.company} · ${job.location}`, style: 'employer' },
-          { text: job.period, style: 'meta' },
-          job.summary ? { text: this.unbreakableText(job.summary), margin: [0, 3, 0, 3] } : null
-        ].filter(Boolean) },
+        {
+          unbreakable: true,
+          stack: [
+            { text: job.title, style: 'itemTitle' },
+            { text: `${job.company} · ${job.location}`, style: 'employer' },
+            { text: job.period, style: 'meta' },
+            job.summary ? { text: this.unbreakableText(job.summary), margin: [0, 3, 0, 3] } : null
+          ].filter(Boolean)
+        },
         ...(job.highlights?.length
-          ? [{
-            ul: job.highlights.map((line) => ({
-              text: this.unbreakableText(line), unbreakable: true
-            })),
-            margin: [12, 0, 0, 0]
-          }]
+          ? [
+              {
+                ul: job.highlights.map((line) => ({
+                  text: this.unbreakableText(line),
+                  unbreakable: true
+                })),
+                margin: [12, 0, 0, 0]
+              }
+            ]
           : [])
       ],
       margin: [0, 0, 0, 6]
     }));
-    const education = model.education.map((item) => ({ stack: [
-      { text: item.degree, bold: true, color: theme.ink },
-      { text: `${item.school} · ${item.period}`, style: 'meta', margin: [0, 0, 0, 6] },
-      ...(item.description ? [{ text: item.description, style: 'meta', margin: [0, 3, 0, 12] }] : [])
-    ] }));
+    const education = model.education.map((item) => ({
+      stack: [
+        { text: item.degree, bold: true, color: theme.ink },
+        { text: `${item.school} · ${item.period}`, style: 'meta', margin: [0, 0, 0, 6] },
+        ...(item.description
+          ? [{ text: item.description, style: 'meta', margin: [0, 3, 0, 12] }]
+          : [])
+      ]
+    }));
     const languages = model.languages.map((item) => ({
-      text: [{ text: `${item.name}: `, bold: true }, item.level], margin: [0, 0, 0, 6]
+      text: [{ text: `${item.name}: `, bold: true }, item.level],
+      margin: [0, 0, 0, 6]
+    }));
+    const certifications = model.certifications.map((item) => ({
+      stack: [
+        {
+          text: `${item.name} — ${item.issuer} (${item.year})`,
+          bold: true,
+          color: theme.ink,
+          ...(item.url ? { link: item.url } : {})
+        },
+        { text: item.description, margin: [0, 3, 0, 6] }
+      ]
     }));
     // Without a description, the spacing moves onto the name line instead of an empty paragraph.
     const certifications = model.certifications.map((item) => ({ stack: [
@@ -89,7 +119,8 @@ export class PdfLayout {
     // the parsed record has no address at all — five links, none of them recoverable. Printed,
     // it is worse: nobody can type a word.
     const links = model.identity.social.map((item) => ({
-      label: readableAddress(item.url, item.platform), url: item.url
+      label: readableAddress(item.url, item.platform),
+      url: item.url
     }));
     if (model.identity.portfolio && !links.some((link) => link.url === model.identity.portfolio)) {
       links.push({
@@ -108,15 +139,24 @@ export class PdfLayout {
     ];
     // Each highlight is one text node with a vector tick beside it: the tick carries no text,
     // so nothing shares a band with anything that wraps.
-    const impact = model.careerHighlights.length ? [railed('cv:sections.selectedImpact',
-      model.careerHighlights.map((text) => ({
-        columns: [
-          { width: 2, canvas: [{ type: 'rect', x: 0, y: 2, w: 2, h: 9, color: theme.signalBright }] },
-          { width: 347, text, bold: true, color: theme.ink }
-        ],
-        columnGap: 8,
-        margin: [0, 0, 0, 3]
-      })))] : [];
+    const impact = model.careerHighlights.length
+      ? [
+          railed(
+            'cv:sections.selectedImpact',
+            model.careerHighlights.map((text) => ({
+              columns: [
+                {
+                  width: 2,
+                  canvas: [{ type: 'rect', x: 0, y: 2, w: 2, h: 9, color: theme.signalBright }]
+                },
+                { width: 347, text, bold: true, color: theme.ink }
+              ],
+              columnGap: 8,
+              margin: [0, 0, 0, 3]
+            }))
+          )
+        ]
+      : [];
     const layouts = {
       nerd: [header, profile, ...experience, ...skills, ...supporting],
       spotlight: [header, profile, ...impact, ...experience, ...skills, ...supporting],
@@ -129,7 +169,10 @@ export class PdfLayout {
       // pagination stay comparable; the extra width of LETTER goes into the margin, and 40pt
       // top and bottom clears the 12mm a printer can clip.
       pageMargins: [SIDE, 40, SIDE, 40],
-      info: { title: `${model.identity.name} — ${model.identity.title}`, author: model.identity.name },
+      info: {
+        title: `${model.identity.name} — ${model.identity.title}`,
+        author: model.identity.name
+      },
       ...typography,
       content: layouts[layout] || layouts.spotlight
     };
@@ -139,22 +182,33 @@ export class PdfLayout {
     // No banner. The inverted header forced every foreground colour to white, which is why the
     // accent rendered on zero glyphs in all three layouts: the palette was there and nothing
     // could show it. An open masthead lets scale carry the identity and colour carry structure.
-    return { stack: [
-      { text: model.identity.name, style: 'name' },
-      { text: model.identity.title, style: 'role', margin: [0, 3, 0, 0] },
-      ...(model.identity.subtitle ? [{ text: model.identity.subtitle, style: 'meta', margin: [0, 3, 0, 0] }] : []),
-      { text: `${model.identity.location} · ${model.identity.email} · ${model.identity.phone}`,
-        style: 'meta', margin: [0, 6, 0, 0] },
-      { text: this.linkLine(links, theme), fontSize: 9, margin: [0, 3, 0, 0] },
-      ...(model.identity.availability
-        ? [{ text: model.identity.availability, style: 'meta', margin: [0, 3, 0, 0] }] : []),
-      // The bar sits over the rail and the hairline runs the body: one vector gesture that
-      // announces the axis the whole document is built on. Vector, so no raster image ships.
-      { canvas: [
-        { type: 'rect', x: 0, y: 0, w: 126, h: 3, color: theme.signalBright },
-        { type: 'rect', x: 126, y: 1.25, w: 377, h: 0.5, color: theme.ink }
-      ], margin: [0, 12, 0, 0] }
-    ] };
+    return {
+      stack: [
+        { text: model.identity.name, style: 'name' },
+        { text: model.identity.title, style: 'role', margin: [0, 3, 0, 0] },
+        ...(model.identity.subtitle
+          ? [{ text: model.identity.subtitle, style: 'meta', margin: [0, 3, 0, 0] }]
+          : []),
+        {
+          text: `${model.identity.location} · ${model.identity.email} · ${model.identity.phone}`,
+          style: 'meta',
+          margin: [0, 6, 0, 0]
+        },
+        { text: this.linkLine(links, theme), fontSize: 9, margin: [0, 3, 0, 0] },
+        ...(model.identity.availability
+          ? [{ text: model.identity.availability, style: 'meta', margin: [0, 3, 0, 0] }]
+          : []),
+        // The bar sits over the rail and the hairline runs the body: one vector gesture that
+        // announces the axis the whole document is built on. Vector, so no raster image ships.
+        {
+          canvas: [
+            { type: 'rect', x: 0, y: 0, w: 126, h: 3, color: theme.signalBright },
+            { type: 'rect', x: 126, y: 1.25, w: 377, h: 0.5, color: theme.ink }
+          ],
+          margin: [0, 12, 0, 0]
+        }
+      ]
+    };
   }
 
   /**
@@ -171,7 +225,9 @@ export class PdfLayout {
     if (typeof text !== 'string') return text;
     const parts = text.split(/(\S+-\S+)/g).filter((part) => part !== '');
     if (!parts.some((part) => /\S+-\S+/.test(part))) return text;
-    return parts.map((part) => /\S+-\S+/.test(part) ? { text: part, noWrap: true } : { text: part });
+    return parts.map((part) =>
+      /\S+-\S+/.test(part) ? { text: part, noWrap: true } : { text: part }
+    );
   }
 
   /** Names that must never break: a wrap on the hyphen extracts `Objective-C` as `ObjectiveC`. */
@@ -190,7 +246,13 @@ export class PdfLayout {
       // and extraction welds the halves — `sites.google.com/view/` + `giovanni-trovato` came
       // back as one token with the hyphen gone, which the compound check caught. The line may
       // break between addresses; never inside one.
-      { text: link.label, link: link.url, decoration: 'underline', color: theme.signal, noWrap: true }
+      {
+        text: link.label,
+        link: link.url,
+        decoration: 'underline',
+        color: theme.signal,
+        noWrap: true
+      }
     ]);
   }
 }

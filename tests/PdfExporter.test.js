@@ -3,12 +3,23 @@ import { PdfExporter } from '../core/PdfExporter.js';
 
 describe('PdfExporter', () => {
   const data = {
-    name: 'Giovanni Trovato', title: 'Engineer', location: 'Germany', email: 'a@b.c', phone: '123',
-    profile: 'Profile', skills: [], relevant_experience: [], education: [], languages: [], certifications: []
+    name: 'Giovanni Trovato',
+    title: 'Engineer',
+    location: 'Germany',
+    email: 'a@b.c',
+    phone: '123',
+    profile: 'Profile',
+    skills: [],
+    relevant_experience: [],
+    education: [],
+    languages: [],
+    certifications: []
   };
 
   test('builds a document with selectable text content', () => {
-    const i18n = { t: (key) => key === 'cv:sections.experience' ? 'Professional Experience' : key };
+    const i18n = {
+      t: (key) => (key === 'cv:sections.experience' ? 'Professional Experience' : key)
+    };
     const document = new PdfExporter(null, i18n).buildDocument(data, 'technical');
     expect(document.pageSize).toEqual({ width: 595.28, height: 841.89 });
     expect(JSON.stringify(document.content)).toContain('Giovanni Trovato');
@@ -17,21 +28,55 @@ describe('PdfExporter', () => {
 
   test('builds a direct path for pre-generated downloads', () => {
     const exporter = new PdfExporter(null, { t: (key) => key });
-    expect(exporter.filePath({ profile: 'general', locale: 'en', layout: 'technical' }))
-      .toBe('generated/giovanni-trovato-general-en-technical.pdf');
+    expect(exporter.filePath({ profile: 'general', locale: 'en', layout: 'technical' })).toBe(
+      'generated/giovanni-trovato-general-en-technical.pdf'
+    );
   });
 
   test('supports injected document, page-format and theme boundaries', () => {
     const documentFactory = jest.fn(() => ({
-      identity: { name: 'Injected', title: 'Role', subtitle: '', location: '', email: '', phone: '', availability: '', portfolio: '', social: [] },
-      profile: 'Profile', careerHighlights: [], skills: [], experience: [], education: [], languages: [], certifications: []
+      identity: {
+        name: 'Injected',
+        title: 'Role',
+        subtitle: '',
+        location: '',
+        email: '',
+        phone: '',
+        availability: '',
+        portfolio: '',
+        social: []
+      },
+      profile: 'Profile',
+      careerHighlights: [],
+      skills: [],
+      experience: [],
+      education: [],
+      languages: [],
+      certifications: []
     }));
     const pageFormats = { resolve: jest.fn(() => ({ width: 1, height: 2 })) };
-    const themes = { resolve: jest.fn(() => ({ primary: '#000', accent: '#000', soft: '#fff', invertedHeader: false })) };
-    const designSystem = { resolve: jest.fn(() => ({ defaultStyle: { font: 'Injected Font' }, styles: {} })) };
-    const exporter = new PdfExporter(null, { t: (key) => key }, { documentFactory, pageFormats, themes, designSystem });
+    const themes = {
+      resolve: jest.fn(() => ({
+        primary: '#000',
+        accent: '#000',
+        soft: '#fff',
+        invertedHeader: false
+      }))
+    };
+    const designSystem = {
+      resolve: jest.fn(() => ({ defaultStyle: { font: 'Injected Font' }, styles: {} }))
+    };
+    const exporter = new PdfExporter(
+      null,
+      { t: (key) => key },
+      { documentFactory, pageFormats, themes, designSystem }
+    );
 
-    const definition = exporter.buildDocument(data, { layout: 'nerd', pageSize: 'LETTER', colorMode: 'monochrome' });
+    const definition = exporter.buildDocument(data, {
+      layout: 'nerd',
+      pageSize: 'LETTER',
+      colorMode: 'monochrome'
+    });
 
     expect(documentFactory).toHaveBeenCalledWith(data);
     expect(pageFormats.resolve).toHaveBeenCalledWith('LETTER');
@@ -44,11 +89,17 @@ describe('PdfExporter', () => {
 
 describe('PdfExporter — what has to survive extraction and assistive reading', () => {
   const rich = {
-    name: 'Giovanni Trovato', title: 'Senior iOS Engineer', location: 'Germany',
-    email: 'a@b.c', phone: '123', availability: 'EU citizen',
+    name: 'Giovanni Trovato',
+    title: 'Senior iOS Engineer',
+    location: 'Germany',
+    email: 'a@b.c',
+    phone: '123',
+    availability: 'EU citizen',
     portfolio: 'https://portfolio.example',
     social: [{ platform: 'GitHub', url: 'https://github.com/example' }],
-    profile: 'Profile', skills: [], relevant_experience: [],
+    profile: 'Profile',
+    skills: [],
+    relevant_experience: [],
     career_highlights: [
       '6 years owning an enterprise iOS MDM client from its first commit',
       '~4,800 Android tests, 82% UI coverage, 75% faster CI feedback',
@@ -56,14 +107,22 @@ describe('PdfExporter — what has to survive extraction and assistive reading',
     ],
     education: [{ degree: 'M.Sc.', school: 'Pisa', period: '2013 - 2015', description: 'Mobile' }],
     languages: [{ name: 'Italian', level: 'Native' }],
-    certifications: [{
-      name: 'iOS Lead Essentials', issuer: 'Academy', year: 2024,
-      url: 'https://academy.example/achievement', description: 'Advanced'
-    }]
+    certifications: [
+      {
+        name: 'iOS Lead Essentials',
+        issuer: 'Academy',
+        year: 2024,
+        url: 'https://academy.example/achievement',
+        description: 'Advanced'
+      }
+    ]
   };
   const build = (layout) => new PdfExporter(null, { t: (key) => key }).buildDocument(rich, layout);
   const walk = function* (node) {
-    if (Array.isArray(node)) { for (const child of node) yield* walk(child); return; }
+    if (Array.isArray(node)) {
+      for (const child of node) yield* walk(child);
+      return;
+    }
     if (!node || typeof node !== 'object') return;
     yield node;
     for (const value of Object.values(node)) yield* walk(value);
@@ -87,7 +146,11 @@ describe('PdfExporter — what has to survive extraction and assistive reading',
 
   test.each(layouts)('%s sets no text below 9pt', (layout) => {
     const definition = build(layout);
-    const sizes = [...walk(definition.content), definition.defaultStyle, ...Object.values(definition.styles)]
+    const sizes = [
+      ...walk(definition.content),
+      definition.defaultStyle,
+      ...Object.values(definition.styles)
+    ]
       .filter((node) => node && typeof node.fontSize === 'number')
       .map((node) => node.fontSize);
     expect(sizes.length).toBeGreaterThan(0);
@@ -97,9 +160,13 @@ describe('PdfExporter — what has to survive extraction and assistive reading',
   test('renders every link as an annotation, not as raw URL text', () => {
     const nodes = [...walk(build('spotlight').content)];
     const linked = nodes.filter((node) => typeof node.link === 'string').map((node) => node.link);
-    expect(linked).toEqual(expect.arrayContaining([
-      'https://github.com/example', 'https://portfolio.example', 'https://academy.example/achievement'
-    ]));
+    expect(linked).toEqual(
+      expect.arrayContaining([
+        'https://github.com/example',
+        'https://portfolio.example',
+        'https://academy.example/achievement'
+      ])
+    );
     const visible = nodes.filter((node) => typeof node.text === 'string').map((node) => node.text);
     expect(visible.filter((text) => text.includes('https://'))).toEqual([]);
   });
@@ -113,7 +180,10 @@ describe('PdfExporter — what has to survive extraction and assistive reading',
   });
 
   test('omits an education description rather than rendering an empty line', () => {
-    const bare = { ...rich, education: [{ degree: 'M.Sc.', school: 'Pisa', period: '2013 - 2015' }] };
+    const bare = {
+      ...rich,
+      education: [{ degree: 'M.Sc.', school: 'Pisa', period: '2013 - 2015' }]
+    };
     const definition = new PdfExporter(null, { t: (key) => key }).buildDocument(bare, 'nerd');
     // Only nodes that actually carry a `text` key: a stack or a table legitimately has none.
     const carriers = [...walk(definition.content)].filter((node) => 'text' in node);
@@ -151,9 +221,19 @@ describe('PdfExporter — what has to survive extraction and assistive reading',
   });
 
   test('keeps every technology name unbreakable, so none loses its hyphen', () => {
-    const named = { ...rich, skills: [{ category: 'iOS', items: [
-      { name: 'Objective-C' }, { name: 'Dependency-Track' }, { name: 'AI-assisted engineering' }
-    ] }] };
+    const named = {
+      ...rich,
+      skills: [
+        {
+          category: 'iOS',
+          items: [
+            { name: 'Objective-C' },
+            { name: 'Dependency-Track' },
+            { name: 'AI-assisted engineering' }
+          ]
+        }
+      ]
+    };
     const definition = new PdfExporter(null, { t: (key) => key }).buildDocument(named, 'nerd');
     const names = [...walk(definition.content)].filter((node) => node.noWrap);
     expect(names.map((node) => node.text)).toEqual(
@@ -162,12 +242,22 @@ describe('PdfExporter — what has to survive extraction and assistive reading',
   });
 
   test('protects hyphenated compounds inside body copy, not only in the skills list', () => {
-    const withBullet = { ...rich, relevant_experience: [{
-      title: 'Engineer', company: 'C', location: 'L', period: '2018 - 2026',
-      highlights: ['Resolved defects across iOS (Swift, Objective-C) and Android.']
-    }] };
+    const withBullet = {
+      ...rich,
+      relevant_experience: [
+        {
+          title: 'Engineer',
+          company: 'C',
+          location: 'L',
+          period: '2018 - 2026',
+          highlights: ['Resolved defects across iOS (Swift, Objective-C) and Android.']
+        }
+      ]
+    };
     const definition = new PdfExporter(null, { t: (key) => key }).buildDocument(withBullet, 'nerd');
-    const protectedRuns = [...walk(definition.content)].filter((node) => node.noWrap).map((node) => node.text);
+    const protectedRuns = [...walk(definition.content)]
+      .filter((node) => node.noWrap)
+      .map((node) => node.text);
     expect(protectedRuns).toContain('Objective-C)');
   });
 
@@ -176,10 +266,19 @@ describe('PdfExporter — what has to survive extraction and assistive reading',
     // the rule could name one. Today the German profile fails earlier and hides the bug; the
     // day profiles/general/de.json lands, the page renders and the button 404s in silence.
     const exporter = new PdfExporter(null, { t: (key) => key });
-    const generated = ['giovanni-trovato-general-en-spotlight.pdf', 'giovanni-trovato-general-en-nerd.pdf'];
-    expect(exporter.isAvailable(generated, { profile: 'general', locale: 'en', layout: 'spotlight' })).toBe(true);
-    expect(exporter.isAvailable(generated, { profile: 'general', locale: 'de', layout: 'spotlight' })).toBe(false);
-    expect(exporter.isAvailable(generated, { profile: 'general', locale: 'en', layout: 'technical' })).toBe(false);
+    const generated = [
+      'giovanni-trovato-general-en-spotlight.pdf',
+      'giovanni-trovato-general-en-nerd.pdf'
+    ];
+    expect(
+      exporter.isAvailable(generated, { profile: 'general', locale: 'en', layout: 'spotlight' })
+    ).toBe(true);
+    expect(
+      exporter.isAvailable(generated, { profile: 'general', locale: 'de', layout: 'spotlight' })
+    ).toBe(false);
+    expect(
+      exporter.isAvailable(generated, { profile: 'general', locale: 'en', layout: 'technical' })
+    ).toBe(false);
   });
 
   test('treats a missing or unreadable manifest as nothing being available', () => {

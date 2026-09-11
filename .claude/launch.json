@@ -4,21 +4,13 @@
     {
       "name": "cv-site",
       "runtimeExecutable": "python3",
-      "runtimeArgs": [
-        "-m",
-        "http.server",
-        "8080"
-      ],
+      "runtimeArgs": ["-m", "http.server", "8080"],
       "port": 8080
     },
     {
       "name": "cv-site-fresh",
       "runtimeExecutable": "python3",
-      "runtimeArgs": [
-        "-m",
-        "http.server",
-        "8099"
-      ],
+      "runtimeArgs": ["-m", "http.server", "8099"],
       "port": 8099
     }
   ]

@@ -11,14 +11,17 @@
     "verify:pdf": "npm run build:pdf && npm run audit:pdf",
     "serve": "node scripts/serve.mjs",
     "audit:print": "node scripts/audit-print.mjs",
-    "audit:ats": "node scripts/audit-ats.mjs"
+    "audit:ats": "node scripts/audit-ats.mjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "jest": "^29.7.0",
-    "jest-environment-jsdom": "^29.7.0"
+    "jest-environment-jsdom": "^29.7.0",
+    "prettier": "3.9.6"
   },
   "dependencies": {
     "i18next": "^26.4.2",

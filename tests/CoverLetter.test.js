@@ -1,12 +1,20 @@
 import { CoverLetter } from '../domain/CoverLetter.js';
 
 const complete = {
-  recipient: { name: 'Anna Weber', role: 'Talent Lead', company: 'ActAI', address: ['Chausseestraße 1', '10115 Berlin'] },
+  recipient: {
+    name: 'Anna Weber',
+    role: 'Talent Lead',
+    company: 'ActAI',
+    address: ['Chausseestraße 1', '10115 Berlin']
+  },
   date: '2026-09-09',
   reference: 'REQ-1042',
   subject: 'Application for iOS Software Engineer',
   opening: 'I am writing about the iOS Software Engineer position.',
-  body: ['Six years owning an enterprise MDM client.', 'Swift 6 concurrency and iOS 26 migrations.'],
+  body: [
+    'Six years owning an enterprise MDM client.',
+    'Swift 6 concurrency and iOS 26 migrations.'
+  ],
   closing: 'I would welcome the chance to talk.',
   signature: 'Giovanni Trovato',
   attachments: ['Curriculum vitae']

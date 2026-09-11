@@ -114,7 +114,9 @@ describe('what a career is made of', () => {
     const newer = parse('August 2018 – Present');
 
     expect(DateRange.gap(older, newer)).toBe(1);
-    expect(DateRange.gap(parse('January 2016 – December 2018'), parse('June 2018 – March 2020'))).toBe(-6);
+    expect(
+      DateRange.gap(parse('January 2016 – December 2018'), parse('June 2018 – March 2020'))
+    ).toBe(-6);
     // A range that has not ended cannot be the earlier half of a gap.
     expect(DateRange.gap(newer, older)).toBeNull();
   });
