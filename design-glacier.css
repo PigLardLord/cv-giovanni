@@ -1,17 +1,15 @@
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif&family=JetBrains+Mono:wght@400;500;700&display=swap');
 /* =============================================================================
    Glacier — the design system the PDF already uses, brought to the web.
    Loaded last on purpose: it overrides tokens rather than rewriting style.css,
    so it can be removed with one <link> and nothing else changes.
    ============================================================================= */
 
-/* The typeface is NOT self-hosted here, and that is deliberate. index.html already loads Inter
-   from Google Fonts in woff2 at five weights; the TTFs vendored for the PDF are ~400KB each and
-   carry only 400 and 700, so self-hosting them would make the page four times heavier and
-   poorer. It does leave the site depending on a CDN, which is at odds with vendoring i18next —
-   a real inconsistency, worth closing with a woff2 subset when there is a tool to make one.
-   What matters for the design: the heaviest weight actually served is 700, so nothing may ask
-   for 800 and receive a synthesised bold. */
+/* The typefaces are self-hosted. vendor/fonts/fonts.css, loaded first by index.html, declares
+   Inter, JetBrains Mono and Instrument Serif as woff2 latin and latin-ext subsets. They came from
+   Google Fonts until that request was found to hand every visitor's IP address to Google before
+   any consent (#61); the TTFs vendored for the PDF are unchanged, 400 and 700 only.
+   What matters for the design: the heaviest weight served is 700, so nothing may ask for 800 and
+   receive a synthesised bold. */
 
 :root {
   /* Every colour states what it marks. `signal` is text-weight and clears 4.5:1
@@ -210,17 +208,24 @@ body[data-layout='technical'] .job-entry {
    rhythm that stops every section weighing the same.
    ============================================================================= */
 
-/* Instrument Serif is loaded at the top of this file: an @import is only honoured before
-   every other rule, so a late one is silently ignored and the name quietly stays Inter. */
+/* Instrument Serif is declared with the other vendored faces in vendor/fonts/fonts.css, which
+   index.html links before this file. */
 
 .hero-name,
-body[data-layout='spotlight'] .hero-name,
-body[data-layout='technical'] .hero-name {
+body[data-layout='spotlight'] .hero-name {
   font-family: 'Instrument Serif', Georgia, 'Times New Roman', serif;
   font-weight: 400;
   font-size: 3.6rem;
   line-height: 0.98;
   letter-spacing: -0.015em;
+}
+
+/* Technical Profile sets its name in Inter, on screen and on paper, and says so here rather than in
+   the screen-only block below. Declared only there, print fell back to the rule above and asked for
+   Instrument Serif: a face the screen never loads, which did not arrive in time and printed the name
+   in Liberation Serif (#68). */
+body[data-layout='technical'] .hero-name {
+  font-family: 'Inter', system-ui, sans-serif;
 }
 
 /* The role line reads as a standing label, not as a second headline. */
@@ -343,7 +348,6 @@ body[data-layout='technical'] .hero-name {
 
   body[data-layout='technical'] .hero-name {
     margin-bottom: 0.5rem;
-    font-family: 'Inter', system-ui, sans-serif;
     font-size: 2.9rem;
     font-weight: 700;
     line-height: 1.02;
@@ -396,9 +400,12 @@ body[data-layout='technical'] .hero-name {
   }
 
   /* The badge: the portrait sits half over the top edge of a white card that holds the contact
-     details, the way a photo sits on an ID. */
+     details, the way a photo sits on an ID. The photo is a cut-out on a transparent ground, so the
+     circle gets a ground of its own: without one it showed the blue masthead above and the white
+     card below, and the head sat across the seam (#58). */
   body[data-layout='technical'] .profile-image-wrapper img {
     border: 4px solid #fff;
+    background: var(--t-blue-tint);
     box-shadow: 0 10px 22px -8px rgb(4 12 40 / 0.6);
   }
 
@@ -1326,7 +1333,7 @@ body[data-layout='technical'] .hero-name {
    on the actions and the addresses, where an app puts its tint. The portrait, a cut-out, sits on
    a pale backdrop of its own.
 
-   The code is set in JetBrains Mono from Google Fonts, with the platform's monospace behind it and
+   The code is set in JetBrains Mono from vendor/fonts, with the platform's monospace behind it and
    ligatures off, so every character on a line is the character it is. The chrome is set in Inter,
    like the other two layouts.
 
@@ -1492,6 +1499,17 @@ body[data-layout='technical'] .hero-name {
   body[data-layout='nerd'] .source-outline a:hover {
     background: var(--x-chrome);
     color: var(--x-ink);
+  }
+
+  /* The section in view: the link a reader would need to find their place, marked the way the open
+     tab is — raised, with the lime as the one signal. */
+  body[data-layout='nerd'] .source-outline a[aria-current='location'] {
+    background: var(--x-raised);
+    color: var(--x-ink);
+  }
+
+  body[data-layout='nerd'] .source-outline a[aria-current='location']::before {
+    background: var(--x-signal);
   }
 
   /* --- The editor ----------------------------------------------------------------------------- */
@@ -1862,6 +1880,15 @@ body[data-layout='technical'] .hero-name {
   body[data-layout='nerd'] button:focus-visible {
     outline: 2px solid var(--x-signal);
     outline-offset: 2px;
+  }
+
+  /* --- Below a laptop: the navigator is the tab row ------------------------------------------ */
+  @media (max-width: 1180px) {
+    body[data-layout='nerd'] .source-navigator {
+      border-right: 0;
+      border-bottom: 1px solid var(--x-rule);
+      background: var(--x-chrome);
+    }
   }
 
   /* --- 390px ---------------------------------------------------------------------------------- */

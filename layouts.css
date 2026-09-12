@@ -485,8 +485,10 @@
   }
 }
 
-/* Nerd Mode below a laptop: the navigator goes first — the file's own MARK lines carry the same
-   sections — and the phone takes a narrower pane. */
+/* Nerd Mode below a laptop: there is no room for the navigator's column, so the navigator becomes the
+   tab row — the section links in one line that scrolls sideways, pinned where the file's tab was —
+   and the phone takes a narrower pane. Scrolling a file 4,000px long was the only way to a section
+   before (#60). */
 @media screen and (max-width: 1180px) {
   body[data-layout='nerd'] {
     --x-preview: 320px;
@@ -497,8 +499,50 @@
     grid-template-columns: minmax(0, 1fr) var(--x-preview);
   }
 
+  /* The navigator shares the file's grid area and the phone keeps its own. A sticky element sticks
+     only inside its own area, and the file's is as tall as the file. */
+  body[data-layout='nerd'] .source-navigator,
+  body[data-layout='nerd'] .source-editor {
+    grid-row: 1;
+    grid-column: 1;
+  }
+
+  body[data-layout='nerd'] .source-preview {
+    grid-row: 1;
+    grid-column: 2;
+  }
+
   body[data-layout='nerd'] .source-navigator {
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    height: var(--x-tabs);
+    padding: 0 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+  }
+
+  /* The row that named the file now carries the sections. The tab keeps its height underneath, so
+     the file still starts below the pinned row, and the jump offsets stay what they were. */
+  body[data-layout='nerd'] .source-navigator-file {
     display: none;
+  }
+
+  body[data-layout='nerd'] .source-tabs {
+    visibility: hidden;
+  }
+
+  body[data-layout='nerd'] .source-outline {
+    display: flex;
+    gap: 2px;
+    margin: 0;
+  }
+
+  body[data-layout='nerd'] .source-outline a {
+    padding-left: 10px;
+    white-space: nowrap;
   }
 }
 
@@ -516,6 +560,8 @@
   }
 
   body[data-layout='nerd'] .source-preview {
+    grid-row: 1;
+    grid-column: 1;
     order: -1;
     position: static;
     height: auto;
@@ -529,6 +575,11 @@
 
   body[data-layout='nerd'] .source-code {
     max-width: 100ch;
+  }
+
+  body[data-layout='nerd'] .source-navigator,
+  body[data-layout='nerd'] .source-editor {
+    grid-row: 2;
   }
 }
 
@@ -563,7 +614,8 @@
     padding: 7px 4px;
   }
 
-  body[data-layout='nerd'] .source-tabs {
+  body[data-layout='nerd'] .source-tabs,
+  body[data-layout='nerd'] .source-navigator {
     top: 0;
   }
 
