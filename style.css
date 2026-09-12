@@ -59,6 +59,23 @@
   padding: 0;
 }
 
+/* The first paint waits for the CV (#74). The browser lays the page out before script.js has chosen a
+   layout and before the renderers have filled or hidden their containers, and painting that state gave
+   every layout a first screen that then jumped: Nerd Mode's plain CV replaced by its editor, empty
+   sections collapsing — a layout shift of up to 1.0. script.js sets data-rendered once the CV and its
+   fonts are in. If it never gets that far, the page appears after three seconds anyway: a page left
+   blank by a failed script is worse than one that moves. */
+body:not([data-rendered]) {
+  visibility: hidden;
+  animation: show-an-unrendered-page 0s 3s forwards;
+}
+
+@keyframes show-an-unrendered-page {
+  to {
+    visibility: visible;
+  }
+}
+
 body {
   font-family:
     'Inter',
