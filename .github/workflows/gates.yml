@@ -61,6 +61,13 @@ jobs:
         env:
           CHROME_PATH: /usr/bin/google-chrome
 
+      # audit-screen exits 2 and checks nothing when it finds no browser, as the print audit does, and
+      # any exit but 0 fails the step. JSDOM cannot see what a selection copies; this can (#62, #89).
+      - name: Audit what a reader copies off the screen
+        run: npm run audit:screen
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+
       - name: Collect the reports this run wrote
         if: always()
         run: |
