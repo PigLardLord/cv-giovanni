@@ -6,6 +6,7 @@ import { GenerationTarget } from '../core/GenerationTarget.js';
 import { readableAddress } from '../domain/ReadableUrl.js';
 import { CoverLetter } from '../domain/CoverLetter.js';
 import { certificationProblems } from './lib/certification-lines.mjs';
+import { pdfVariant } from './lib/pdf-variant.mjs';
 
 const projectRoot = new URL('../', import.meta.url);
 // The expectations come from the CV under test, not from the published one. Auditing a
@@ -153,7 +154,7 @@ function highlightsIntact(collapsed) {
 // chronology, no skills and no second page, so every structural check written for a CV would
 // fail on a perfectly good one. The `-letter` in the name is the signal, which is why
 // LetterExporter puts it there.
-const isCoverLetter = (filename) => /-cover(-|\.)/.test(filename);
+const isCoverLetter = (filename) => pdfVariant(filename).coverLetter;
 const letter = profile.letter ? new CoverLetter(profile.letter) : null;
 
 for (const filename of pdfFiles) {
@@ -161,7 +162,9 @@ for (const filename of pdfFiles) {
   const info = execFileSync('pdfinfo', [path], { encoding: 'utf8' });
   const extracted = execFileSync('pdftotext', [path, '-'], { encoding: 'utf8' });
   const imageList = execFileSync('pdfimages', ['-list', path], { encoding: 'utf8' });
-  const expectedLetter = filename.includes('-letter-');
+  // Read from the end of the name: a profile named with `letter` in it used to make every file
+  // US Letter (#79).
+  const expectedLetter = pdfVariant(filename).paper === 'letter';
   const sizeOk = expectedLetter ? /612 x 792 pts/.test(info) : /595\.28 x 841\.89 pts/.test(info);
   const pages = Number(info.match(/Pages:\s+(\d+)/)?.[1]);
   const pageTwo =
