@@ -245,6 +245,33 @@ locations and in the Playwright cache; `CHROME_PATH` overrides. When it finds no
 and checks nothing**, because an audit that did not run must never read as a pass — the same
 mistake the grayscale check made when its filename pattern matched no files for weeks.
 
+## Branches, and how a change reaches the public CV
+
+**GitHub Flow**, chosen by the owner on #44:
+
+- **`main` is what is published.** GitHub Pages serves it: a commit on `main` is a commit a recruiter
+  can open.
+- **Every change reaches `main` by pull request,** from a short-lived branch cut from `main` and named
+  `{prefix}/{ticket}-{slug}`, as the ticket loop already names it, and merges once the gates in
+  `.github/workflows/gates.yml` are green.
+- **No other branch lives long.** No `develop`, no `release/*`, no integration branch. `cv-2026-update`
+  lived for months: pull request #31 merged into it twenty-one seconds after it had been merged into
+  `main`, and sprint 3 never reached the default branch (#40). A release, when one is worth naming, is a
+  tag on `main`.
+- **An urgent fix takes the same road:** a branch from `main`, a pull request, the gates, a merge. A
+  second road to the public CV would be a road without gates, and #63 is what that costs: a merge nobody
+  tested published an empty CV for 48 minutes.
+- **`.agents/harness/guards.json` protects `^main$`**, and nothing else, so the local hook refuses a
+  direct commit to `main`. The same rule on GitHub — a ruleset requiring a pull request and the gates —
+  is a repository setting, and the owner's to switch on. `tests/BranchingModel.test.js` fails when the
+  guard and this section stop agreeing.
+
+Until #45 deploys from CI after the gates, GitHub Pages still builds every push to `main` on its own. A
+green gate is the rule for merging, not yet what publishes.
+
+One branch predates the model and stays: `archive/print-pagination-engine` keeps the print pagination
+engine that was removed reachable. It is never merged and never deployed.
+
 ## What the browser caches, and what it does not
 
 The stylesheets and the entry script carry a `?v=` in `index.html` and change name on
