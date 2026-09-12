@@ -18,6 +18,18 @@ import { SocialLinksRenderer } from './renderers/SocialLinksRenderer.js';
 import { InterestsRenderer } from './renderers/InterestsRenderer.js';
 import { SourceRenderer } from './renderers/SourceRenderer.js';
 
+/**
+ * Lets the page paint. style.css holds the first paint until the CV is in the page, because what the
+ * browser would paint sooner — a layout not yet chosen, containers not yet filled or hidden — then
+ * jumps (#74). Reading a size forces layout, so every face the page uses has started loading before
+ * the wait for fonts begins, and a face swapped in afterwards moves nothing either.
+ */
+const reveal = async () => {
+  void document.body.offsetHeight;
+  await document.fonts.ready;
+  document.body.dataset.rendered = '';
+};
+
 const resolver = new LocaleResolver();
 const locale = resolver.resolve({
   search: location.search,
@@ -56,6 +68,7 @@ try {
 } catch (error) {
   localizer.apply(document);
   new CVApplication(undefined, undefined, localizer, i18n).handleError(document, error);
+  await reveal();
   throw error;
 }
 const app = new CVApplication(
@@ -96,6 +109,7 @@ if (downloadLink) {
   }
 }
 document.getElementById('print-browser')?.addEventListener('click', () => window.print());
+await reveal();
 
 window.cvApp = app;
 window.cvI18n = i18n;
