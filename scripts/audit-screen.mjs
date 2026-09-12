@@ -1,8 +1,9 @@
 import { spawn } from 'node:child_process';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createStaticServer, previewKey } from './serve.mjs';
+import { writeReport } from './lib/write-report.mjs';
 import { findBrowser } from './lib/find-browser.mjs';
 import { screenCopy } from './lib/screen-copy.mjs';
 import { RECORD_LAYOUT_SHIFTS, layoutShift } from './lib/layout-shift.mjs';
@@ -344,7 +345,7 @@ const report = [
   'while it loads — every layout shift from navigation to fonts ready, added up, below 0.1.'
 ].join('\n');
 
-await writeFile(new URL(target.reportPath('SCREEN_AUDIT.md'), projectUrl), `${report}\n`);
+await writeReport(new URL(target.reportPath('SCREEN_AUDIT.md'), projectUrl), `${report}\n`);
 console.log(report);
 
 if (failures.length) {

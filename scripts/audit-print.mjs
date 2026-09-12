@@ -1,9 +1,10 @@
 import { execFileSync, spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createStaticServer, previewKey } from './serve.mjs';
+import { writeReport } from './lib/write-report.mjs';
 import { fallbackRuns, typefacesFor } from './lib/printed-typefaces.mjs';
 import { GenerationTarget } from '../core/GenerationTarget.js';
 
@@ -409,7 +410,7 @@ const report = [
   'the data did not write, and every run of text set in a typeface its layout prints in.'
 ].join('\n');
 
-await writeFile(new URL(target.reportPath('PRINT_AUDIT.md'), projectUrl), `${report}\n`);
+await writeReport(new URL(target.reportPath('PRINT_AUDIT.md'), projectUrl), `${report}\n`);
 console.log(report);
 
 if (failures.length) {
