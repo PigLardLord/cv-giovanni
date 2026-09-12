@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createStaticServer } from './serve.mjs';
+import { createStaticServer, previewKey } from './serve.mjs';
 import { findBrowser } from './lib/find-browser.mjs';
 import { screenCopy } from './lib/screen-copy.mjs';
 import { GenerationTarget } from '../core/GenerationTarget.js';
@@ -239,7 +239,9 @@ const selection = (start, end) => `(() => {
   return text;
 })()`;
 
-const server = createStaticServer();
+// The browser this audit starts holds the run's key, so a tailored profile under applications/ loads (#71).
+const key = previewKey();
+const server = createStaticServer(undefined, { key });
 await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 const { port } = server.address();
 const dataDir = await mkdtemp(join(tmpdir(), 'mycv-screen-'));
@@ -257,7 +259,7 @@ try {
       await chrome.send('Emulation.setDeviceMetricsOverride', { ...size, deviceScaleFactor: 1 });
       const loaded = chrome.next('Page.loadEventFired');
       await chrome.send('Page.navigate', {
-        url: `http://127.0.0.1:${port}/index.html?layout=${layout}&profile=${target.profile}&lang=${target.locale}`
+        url: `http://127.0.0.1:${port}/index.html?layout=${layout}&profile=${target.profile}&lang=${target.locale}&key=${key}`
       });
       await within(loaded, 30000, `${layout} did not load`);
       await within(
