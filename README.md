@@ -32,6 +32,9 @@ Then open the address it prints, with `/index.html` after it. `npm run serve` se
 is on disk. Do not preview with `python -m http.server`: it sends no caching headers, and its heuristic caching has
 shown this project a stale page more than once.
 
+The server answers only this machine. `npm run serve -- --network` opens it to another device on the network,
+and even then `applications/` is served to this machine alone.
+
 The URL chooses the CV:
 
 | Parameter | Values                                                                                   |
@@ -42,14 +45,15 @@ The URL chooses the CV:
 
 ## Commands
 
-| Command               | What it does                                                                                           |
-| --------------------- | ------------------------------------------------------------------------------------------------------ |
-| `npm test`            | Jest with JSDOM: the renderers, the domain, the rules the audits apply, and the repository's own rules |
-| `npm run build:pdf`   | Generates the PDFs                                                                                     |
-| `npm run verify:pdf`  | Generates them, then scores every variant with `npm run audit:pdf`                                     |
-| `npm run audit:print` | Prints each layout in headless Chrome and checks the paper                                             |
-| `npm run audit:ats`   | Parses the PDF the way a stranger's parser would, and reports what it recovers                         |
-| `npm run format`      | Formats the tree with Prettier; `npm run format:check` only checks it                                  |
+| Command                | What it does                                                                                           |
+| ---------------------- | ------------------------------------------------------------------------------------------------------ |
+| `npm test`             | Jest with JSDOM: the renderers, the domain, the rules the audits apply, and the repository's own rules |
+| `npm run build:pdf`    | Generates the PDFs                                                                                     |
+| `npm run verify:pdf`   | Generates them, then scores every variant with `npm run audit:pdf`                                     |
+| `npm run audit:print`  | Prints each layout in headless Chrome and checks the paper                                             |
+| `npm run audit:ats`    | Parses the PDF the way a stranger's parser would, and reports what it recovers                         |
+| `npm run audit:screen` | Opens each layout in headless Chrome and checks what a reader copies off the page                      |
+| `npm run format`       | Formats the tree with Prettier; `npm run format:check` only checks it                                  |
 
 ## How it is built
 
@@ -71,7 +75,7 @@ Ports and adapters:
 
 ## The audits
 
-The two artefacts fail in different ways, so each is measured on its own.
+The two artefacts fail in different ways, so each is measured on its own, and the page twice: on paper and on screen.
 
 - `npm run audit:pdf` scores every PDF variant: format, page count, the text an ATS looks for, reading order, no
   raster images, clean page starts, true grayscale, compounds and blocks that survive extraction, every skill still
@@ -82,6 +86,10 @@ The two artefacts fail in different ways, so each is measured on its own.
   Report: `docs/PRINT_AUDIT.md`.
 - `npm run audit:ats` parses the generated PDF with no knowledge of the profile and diffs what it recovered against
   what was written. It reports Recoverability, never a pass mark. Report: `docs/ATS_AUDIT.md`.
+- `npm run audit:screen` selects the CV in headless Chrome, at a desktop and a phone width, and checks what a reader
+  copies: the CV whole, no two words welded together, every skill under its own category, every language with its
+  level, and nothing the data did not write. Like the print audit it exits 2 when it finds no browser. Report:
+  `docs/SCREEN_AUDIT.md`.
 
 ## Applications
 
@@ -92,6 +100,7 @@ adds a cover letter. A tailored CV leaves the machine only as an attached PDF.
 
 ## Working on it
 
-Work is tracked in GitHub issues and lands through pull requests. A commit references its ticket with `Refs #N` and
+Work is tracked in GitHub issues and lands through pull requests. Every push and pull request runs the gates in GitHub Actions,
+`.github/workflows/gates.yml`: formatting, the tests, and the PDF, ATS and print audits. A red audit fails the build. A commit references its ticket with `Refs #N` and
 never closes it — a person closes a ticket after the work has been audited, and `tests/TicketsCloseByHand.test.js`
 fails on a closing keyword.
