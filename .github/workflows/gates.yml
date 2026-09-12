@@ -1,0 +1,77 @@
+name: Gates
+
+# Every gate this project has, on every push and every pull request. Until now each ran only when
+# someone remembered to run it, and the audits have already caught defects that shipped for months (#28).
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A newer push to the same branch makes the run for the older one moot.
+concurrency:
+  group: gates-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # tests/TicketsCloseByHand.test.js reads every commit the branch adds to origin/main.
+          fetch-depth: 0
+
+      # The reports are tracked, so a run that stops before an audit would upload the committed ones as
+      # if this run had written them. Everything an audit writes from here on is newer than this mark.
+      - name: Mark the start of the run
+        run: touch "$RUNNER_TEMP/run-started"
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 26
+          cache: npm
+
+      # Every audit reads the PDFs through poppler: pdftotext, pdfinfo, pdffonts, pdfimages, pdftoppm.
+      - name: Install poppler
+        run: sudo apt-get update && sudo apt-get install --yes --no-install-recommends poppler-utils
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Formatting
+        run: npm run format:check
+
+      - name: Tests
+        run: npm test
+
+      - name: Generate and audit the twelve PDF variants
+        run: npm run verify:pdf
+
+      - name: Audit what a stranger's parser recovers
+        run: npm run audit:ats
+
+      # audit-print exits 2 and checks nothing when it finds no browser. Any exit but 0 fails the step,
+      # so an audit that did not run can never read as a pass. The runner image ships Chrome.
+      - name: Audit what the browser prints
+        run: npm run audit:print
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+
+      - name: Collect the reports this run wrote
+        if: always()
+        run: |
+          mkdir -p "$RUNNER_TEMP/audit-reports"
+          find docs -maxdepth 1 -name '*_AUDIT.md' -newer "$RUNNER_TEMP/run-started" -exec cp {} "$RUNNER_TEMP/audit-reports/" \;
+          ls "$RUNNER_TEMP/audit-reports"
+
+      - name: Keep them
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: audit-reports
+          path: ${{ runner.temp }}/audit-reports/
+          if-no-files-found: ignore
