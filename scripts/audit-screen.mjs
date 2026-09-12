@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { createStaticServer } from './serve.mjs';
 import { findBrowser } from './lib/find-browser.mjs';
 import { screenCopy } from './lib/screen-copy.mjs';
+import { RECORD_LAYOUT_SHIFTS, layoutShift } from './lib/layout-shift.mjs';
 import { GenerationTarget } from '../core/GenerationTarget.js';
 
 /**
@@ -250,6 +251,8 @@ try {
   chrome = await openBrowser(browser, dataDir);
   await chrome.send('Page.enable');
   await chrome.send('Runtime.enable');
+  // Every document this tab opens records its layout shifts from its first byte (#74).
+  await chrome.send('Page.addScriptToEvaluateOnNewDocument', { source: RECORD_LAYOUT_SHIFTS });
   for (const layout of manifest.layouts) {
     const [start, end] = BOUNDS[layout];
     for (const size of SIZES) {
@@ -265,14 +268,22 @@ try {
         30000,
         `${layout} did not render its CV`
       );
+      // From navigation to the fonts being ready, which `rendered` waited for. A page that recorded
+      // nothing did not run the recorder, and a shift nobody measured is not a page holding still.
+      const recorded = await chrome.evaluate('window.__layoutShifts');
+      if (!Array.isArray(recorded)) throw new Error(`${layout} recorded no layout shifts`);
+      const shift = layoutShift(recorded);
       const copied = await chrome.evaluate(selection(start, end));
       if (copied === null) throw new Error(`${layout} has no ${start} or no ${end}`);
 
-      const { checks, findings } = screenCopy(copied, profile, { skillsLabel: labels.skills });
+      const copy = screenCopy(copied, profile, { skillsLabel: labels.skills });
+      const checks = { ...copy.checks, holdsStill: shift.holdsStill };
+      const findings = { ...copy.findings, movedWhileLoading: shift.holdsStill ? [] : shift.moved };
       const passed = Object.values(checks).filter(Boolean).length;
       rows.push({
         layout,
         width: size.width,
+        shift: shift.total,
         score: `${passed}/${Object.keys(checks).length}`,
         checks,
         findings
@@ -298,14 +309,17 @@ const report = [
   'What a reader copies off the page: each layout opened in headless Chrome at a desktop and a phone',
   'width, its CV selected, and the selection read. Regenerate with `npm run audit:screen`.',
   '',
-  '| Layout | Width | Score |',
-  '|---|---:|---:|',
-  ...rows.map((row) => `| ${row.layout} | ${row.width}px | ${row.score} |`),
+  '| Layout | Width | Layout shift | Score |',
+  '|---|---:|---:|---:|',
+  ...rows.map(
+    (row) => `| ${row.layout} | ${row.width}px | ${row.shift.toFixed(3)} | ${row.score} |`
+  ),
   '',
   'Checks: the CV captured whole — name, role, email and current employer; no two words the profile',
   'writes in sequence welded into one, and no contact detail run into the word beside it; every skill',
   'category followed by its own first skill; every language on a line with its level; and nothing on',
-  'a line the data did not write — no pictograph, no line number.'
+  'a line the data did not write — no pictograph, no line number; and the first screen holding still',
+  'while it loads — every layout shift from navigation to fonts ready, added up, below 0.1.'
 ].join('\n');
 
 await writeFile(new URL(target.reportPath('SCREEN_AUDIT.md'), projectUrl), `${report}\n`);
