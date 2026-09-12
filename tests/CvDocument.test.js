@@ -14,3 +14,13 @@ test('maps source data into a framework-free document model', () => {
   expect(model.skills[0].category).toBe('iOS');
   expect(model.experience).toEqual([]);
 });
+
+// Interests are part of the CV like every other section. The model carries them, so every output
+// boundary built on it can reach them, whether or not it shows them (#35).
+test('carries the interests the profile writes, and none when it writes none', () => {
+  expect(new CvDocument({ interests: ['Mountain Hiking', 'Tech Mentoring'] }).interests).toEqual([
+    'Mountain Hiking',
+    'Tech Mentoring'
+  ]);
+  expect(new CvDocument({}).interests).toEqual([]);
+});

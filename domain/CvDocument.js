@@ -19,5 +19,6 @@ export class CvDocument {
     this.education = data.education || [];
     this.languages = data.languages || [];
     this.certifications = data.certifications || [];
+    this.interests = data.interests || [];
   }
 }
