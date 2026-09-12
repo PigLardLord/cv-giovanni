@@ -5,6 +5,8 @@ import { join } from 'node:path';
 import { GenerationTarget } from '../core/GenerationTarget.js';
 import { readableAddress } from '../domain/ReadableUrl.js';
 import { CoverLetter } from '../domain/CoverLetter.js';
+import { certificationProblems } from './lib/certification-lines.mjs';
+import { pdfVariant } from './lib/pdf-variant.mjs';
 
 const projectRoot = new URL('../', import.meta.url);
 // The expectations come from the CV under test, not from the published one. Auditing a
@@ -152,7 +154,7 @@ function highlightsIntact(collapsed) {
 // chronology, no skills and no second page, so every structural check written for a CV would
 // fail on a perfectly good one. The `-letter` in the name is the signal, which is why
 // LetterExporter puts it there.
-const isCoverLetter = (filename) => /-cover(-|\.)/.test(filename);
+const isCoverLetter = (filename) => pdfVariant(filename).coverLetter;
 const letter = profile.letter ? new CoverLetter(profile.letter) : null;
 
 for (const filename of pdfFiles) {
@@ -160,7 +162,9 @@ for (const filename of pdfFiles) {
   const info = execFileSync('pdfinfo', [path], { encoding: 'utf8' });
   const extracted = execFileSync('pdftotext', [path, '-'], { encoding: 'utf8' });
   const imageList = execFileSync('pdfimages', ['-list', path], { encoding: 'utf8' });
-  const expectedLetter = filename.includes('-letter-');
+  // Read from the end of the name: a profile named with `letter` in it used to make every file
+  // US Letter (#79).
+  const expectedLetter = pdfVariant(filename).paper === 'letter';
   const sizeOk = expectedLetter ? /612 x 792 pts/.test(info) : /595\.28 x 841\.89 pts/.test(info);
   const pages = Number(info.match(/Pages:\s+(\d+)/)?.[1]);
   const pageTwo =
@@ -179,6 +183,9 @@ for (const filename of pdfFiles) {
   const order = [profile.name, profile.title, labels.experience].map((term) =>
     extracted.indexOf(term)
   );
+  const certifications = isCoverLetter(filename)
+    ? []
+    : certificationProblems(extracted, profile.certifications);
   const checks = isCoverLetter(filename)
     ? {
         format: sizeOk,
@@ -222,10 +229,20 @@ for (const filename of pdfFiles) {
         // document that draws "GitHub" over a hyperlink hands a parser no address at all, and
         // hands a reader holding the printed page nothing to type. Each address must also survive
         // whole: broken across a line it extracts welded, which is a different wrong address.
-        addressesRecoverable: addresses.every((address) => collapsed.includes(address))
+        addressesRecoverable: addresses.every((address) => collapsed.includes(address)),
+        // A certification is one line, `name — issuer (year)`, and the page has no room for a second.
+        // A name lengthened by a copy edit wraps, spends the last page's margin and extracts as two
+        // lines a parser reads as two entries (#53).
+        certificationsOnOneLine: certifications.length === 0
       };
   const passed = Object.values(checks).filter(Boolean).length;
-  rows.push({ filename, pages, score: `${passed}/${Object.keys(checks).length}`, checks });
+  rows.push({
+    filename,
+    pages,
+    score: `${passed}/${Object.keys(checks).length}`,
+    checks,
+    ...(certifications.length ? { certifications } : {})
+  });
 }
 
 const failures = rows.filter((row) => Object.values(row.checks).some((value) => !value));
@@ -238,7 +255,7 @@ const report = [
   '|---|---:|---:|',
   ...rows.map((row) => `| ${row.filename} | ${row.pages} | ${row.score} |`),
   '',
-  'Checks: exact format, maximum two pages, required ATS text, reading order, no raster images, clean page starts, measured grayscale output, canonical compound spelling, block integrity in extraction, every skill category still attached to its own list, and every web address recoverable from the text layer.'
+  'Checks: exact format, maximum two pages, required ATS text, reading order, no raster images, clean page starts, measured grayscale output, canonical compound spelling, block integrity in extraction, every skill category still attached to its own list, every web address recoverable from the text layer, and every certification on one line of its own, in the order the profile writes them.'
 ].join('\n');
 
 await writeFile(new URL(target.reportPath('PDF_AUDIT.md'), projectRoot), `${report}\n`);

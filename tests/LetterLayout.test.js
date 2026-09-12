@@ -145,6 +145,26 @@ describe('the date is formatted, never spelled', () => {
     expect(german).toMatch(/9\. September 2026/);
   });
 
+  // A German letter is dated from the city alone. The region and the country belong in the sender
+  // line, which keeps the whole location (#36).
+  test('dates the letter from the city, and leaves the whole location to the sender', () => {
+    const lines = flatten(
+      new LetterLayout().compose(new CoverLetter(letter), {
+        identity: { ...identity, location: 'Bad Liebenstein, Thuringia, Germany' },
+        format,
+        theme,
+        typography,
+        t,
+        locale: 'de'
+      }).content
+    );
+
+    expect(lines).toContain('Bad Liebenstein, 9. September 2026');
+    expect(lines.some((line) => line.includes('· Bad Liebenstein, Thuringia, Germany ·'))).toBe(
+      true
+    );
+  });
+
   test('an unparseable date is printed as written rather than dropped', () => {
     expect(flatten(compose({ ...letter, date: 'next Tuesday' }).content).join('\n')).toContain(
       'next Tuesday'

@@ -1,3 +1,5 @@
+import { PlaceLexicon } from '../domain/PlaceLexicon.js';
+
 /**
  * A cover letter on a page, laid out to DIN 5008 form B.
  *
@@ -118,8 +120,10 @@ export class LetterLayout {
             month: 'long',
             day: 'numeric'
           }).format(parsed);
+      // Dated from the city alone, as a German reader expects: the region and the country are in the
+      // sender line already (#36).
       stack.push({
-        text: [identity.location, formatted].filter(Boolean).join(', '),
+        text: [PlaceLexicon.cityOf(identity.location), formatted].filter(Boolean).join(', '),
         alignment: 'right'
       });
     }
