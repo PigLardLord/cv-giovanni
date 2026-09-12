@@ -9,34 +9,30 @@ import { fileURLToPath } from 'node:url';
 // thing an agent reaches for to check a change in a browser. It ran `python -m http.server`, which
 // sends no Cache-Control, and whose heuristic caching has shown this project a stale page three
 // times. AGENTS.md: use `npm run serve`, and do not trust a local page served any other way (#57).
-const launch = JSON.parse(
-  readFileSync(fileURLToPath(new URL('../.claude/launch.json', import.meta.url)), 'utf8')
-);
-
-/** The command line a configuration runs, as one string. */
-const commandOf = (configuration) =>
-  [configuration.runtimeExecutable, ...(configuration.runtimeArgs || [])].join(' ');
+const launchPath = fileURLToPath(new URL('../.claude/launch.json', import.meta.url));
+const launch = JSON.parse(readFileSync(launchPath, 'utf8'));
 
 // `-m http.server`, or the module glued to the end of a cluster of python flags: `-Bmhttp.server`.
-const usesHttpServer = (configuration) =>
-  /(?:^|\s)(?:-\w*m\s*)?http\.server\b/.test(commandOf(configuration));
+const HTTP_SERVER = /(?:^|\s)(?:-\w*m\s*)?http\.server\b/;
+const SERVE_SCRIPT = /(?:^|[\\/])scripts[\\/]serve\.mjs$/;
+
+/** The command line an entry runs, as one string. */
+const commandOf = (entry) => [entry.runtimeExecutable, ...(entry.runtimeArgs || [])].join(' ');
 
 /** The runtime by name, whatever path it is given by. */
-const runtimeOf = (configuration) =>
-  basename(configuration.runtimeExecutable || '').replace(/\.exe$/i, '');
+const runtimeOf = (entry) => basename(entry.runtimeExecutable || '').replace(/\.exe$/i, '');
 
-const usesProjectServer = (configuration) => {
-  const args = configuration.runtimeArgs || [];
-  if (runtimeOf(configuration) === 'npm') return args[0] === 'run' && args[1] === 'serve';
-  return (
-    runtimeOf(configuration) === 'node' &&
-    args.some((arg) => /(?:^|[\\/])scripts[\\/]serve\.mjs$/.test(arg))
-  );
+const usesHttpServer = (entry) => HTTP_SERVER.test(commandOf(entry));
+
+const usesProjectServer = (entry) => {
+  const args = entry.runtimeArgs || [];
+  if (runtimeOf(entry) === 'npm') return args[0] === 'run' && args[1] === 'serve';
+  return runtimeOf(entry) === 'node' && args.some((arg) => SERVE_SCRIPT.test(arg));
 };
 
 describe('the preview serves the site with the project’s own server', () => {
   // The check has to be able to fail, and this pair is where that is proved.
-  test('a python http.server entry is recognised, and the project server is not mistaken for one', () => {
+  test('tells python’s http.server from the project server, both ways', () => {
     const python = { runtimeExecutable: 'python3', runtimeArgs: ['-m', 'http.server', '8080'] };
     const node = { runtimeExecutable: 'node', runtimeArgs: ['scripts/serve.mjs', '8123'] };
 
@@ -61,14 +57,12 @@ describe('the preview serves the site with the project’s own server', () => {
     { runtimeExecutable: '/usr/bin/node', runtimeArgs: ['scripts/serve.mjs', '8123'] },
     { runtimeExecutable: 'node', runtimeArgs: ['--no-warnings', './scripts/serve.mjs'] },
     { runtimeExecutable: 'npm', runtimeArgs: ['run', 'serve', '--', '8123'] }
-  ])('$runtimeExecutable $runtimeArgs starts the project server', (configuration) => {
-    expect([usesHttpServer(configuration), usesProjectServer(configuration)]).toEqual([
-      false,
-      true
-    ]);
+  ])('$runtimeExecutable $runtimeArgs starts the project server', (entry) => {
+    expect(usesProjectServer(entry)).toBe(true);
+    expect(usesHttpServer(entry)).toBe(false);
   });
 
-  test('another script, or the right script under another runtime, is not the project server', () => {
+  test('is not fooled by another script, or by the right script under python', () => {
     const audit = { runtimeExecutable: 'node', runtimeArgs: ['scripts/audit-print.mjs'] };
     const python = { runtimeExecutable: 'python3', runtimeArgs: ['scripts/serve.mjs'] };
 
@@ -76,9 +70,9 @@ describe('the preview serves the site with the project’s own server', () => {
   });
 
   test('no configuration runs python’s http.server', () => {
-    expect(
-      launch.configurations.filter(usesHttpServer).map((configuration) => configuration.name)
-    ).toEqual([]);
+    const names = launch.configurations.filter(usesHttpServer).map((entry) => entry.name);
+
+    expect(names).toEqual([]);
   });
 
   test('a configuration starts scripts/serve.mjs, which sends no-store', () => {
