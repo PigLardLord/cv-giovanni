@@ -6,9 +6,10 @@
  */
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
+import { request as httpRequest } from 'node:http';
 import { join } from 'node:path';
 import { LocalProfiles } from '../core/LocalProfiles.js';
-import { createStaticServer } from '../scripts/serve.mjs';
+import { createStaticServer, previewKey } from '../scripts/serve.mjs';
 
 const published = {
   defaultProfile: 'general',
@@ -73,12 +74,30 @@ describe('the development server merges without writing', () => {
     await rm(root, { recursive: true, force: true });
   });
 
+  /** A request as this machine's browser sends it, once it has opened the address with the key (#71). */
   async function get(path) {
-    const server = createStaticServer(root);
+    const key = previewKey();
+    const server = createStaticServer(root, { key });
     await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const send = (target, headers = {}) =>
+      new Promise((resolve, reject) => {
+        const { port } = server.address();
+        httpRequest({ host: '127.0.0.1', port, path: target, headers }, (response) => {
+          let body = '';
+          response.setEncoding('utf8');
+          response.on('data', (chunk) => (body += chunk));
+          response.on('end', () =>
+            resolve({ status: response.statusCode, headers: response.headers, body })
+          );
+        })
+          .on('error', reject)
+          .end();
+      });
     try {
-      const response = await fetch(`http://127.0.0.1:${server.address().port}${path}`);
-      return { status: response.status, body: await response.text() };
+      const traded = await send(`/index.html?key=${key}`);
+      const cookie = traded.headers['set-cookie'][0].split(';')[0];
+      const { status, body } = await send(path, { cookie });
+      return { status, body };
     } finally {
       server.closeAllConnections?.();
       await new Promise((resolve) => server.close(resolve));

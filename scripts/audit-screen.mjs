@@ -2,9 +2,10 @@ import { spawn } from 'node:child_process';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createStaticServer } from './serve.mjs';
+import { createStaticServer, previewKey } from './serve.mjs';
 import { findBrowser } from './lib/find-browser.mjs';
 import { screenCopy } from './lib/screen-copy.mjs';
+import { RECORD_LAYOUT_SHIFTS, layoutShift } from './lib/layout-shift.mjs';
 import { GenerationTarget } from '../core/GenerationTarget.js';
 
 /**
@@ -97,6 +98,11 @@ async function openBrowser(binary, dataDir) {
     ],
     { stdio: ['ignore', 'ignore', 'pipe'] }
   );
+  // Settles once the browser is gone, whether it stopped or never started.
+  const gone = new Promise((resolve) => {
+    child.once('exit', resolve);
+    child.once('error', resolve);
+  });
   const pending = new Map();
   const listeners = new Set();
   let socket;
@@ -106,9 +112,21 @@ async function openBrowser(binary, dataDir) {
     for (const { reject } of pending.values()) reject(new Error(reason));
     pending.clear();
   };
-  const close = () => {
+  // Resolves once the browser has exited. Killed outright, its renderers outlived it and went on writing
+  // into the profile directory the audit removes next: on the CI runner that removal failed with
+  // ENOTEMPTY on every run, after every check had passed, and the audit exited 1 with no report (#89).
+  // Asked to stop, Chrome closes its profile first; only a browser that does not stop is killed.
+  const close = async () => {
     socket?.close();
-    child.kill('SIGKILL');
+    child.kill('SIGTERM');
+    const stopped = await within(gone, 5000, 'the browser did not stop').then(
+      () => true,
+      () => false
+    );
+    if (!stopped) {
+      child.kill('SIGKILL');
+      await within(gone, 5000, 'the browser did not exit').catch(() => {});
+    }
   };
 
   try {
@@ -149,7 +167,7 @@ async function openBrowser(binary, dataDir) {
       'the DevTools socket did not open'
     );
   } catch (error) {
-    close();
+    await close();
     throw error;
   }
 
@@ -239,7 +257,9 @@ const selection = (start, end) => `(() => {
   return text;
 })()`;
 
-const server = createStaticServer();
+// The browser this audit starts holds the run's key, so a tailored profile under applications/ loads (#71).
+const key = previewKey();
+const server = createStaticServer(undefined, { key });
 await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 const { port } = server.address();
 const dataDir = await mkdtemp(join(tmpdir(), 'mycv-screen-'));
@@ -250,6 +270,8 @@ try {
   chrome = await openBrowser(browser, dataDir);
   await chrome.send('Page.enable');
   await chrome.send('Runtime.enable');
+  // Every document this tab opens records its layout shifts from its first byte (#74).
+  await chrome.send('Page.addScriptToEvaluateOnNewDocument', { source: RECORD_LAYOUT_SHIFTS });
   for (const layout of manifest.layouts) {
     const [start, end] = BOUNDS[layout];
     for (const size of SIZES) {
@@ -257,7 +279,7 @@ try {
       await chrome.send('Emulation.setDeviceMetricsOverride', { ...size, deviceScaleFactor: 1 });
       const loaded = chrome.next('Page.loadEventFired');
       await chrome.send('Page.navigate', {
-        url: `http://127.0.0.1:${port}/index.html?layout=${layout}&profile=${target.profile}&lang=${target.locale}`
+        url: `http://127.0.0.1:${port}/index.html?layout=${layout}&profile=${target.profile}&lang=${target.locale}&key=${key}`
       });
       await within(loaded, 30000, `${layout} did not load`);
       await within(
@@ -265,14 +287,22 @@ try {
         30000,
         `${layout} did not render its CV`
       );
+      // From navigation to the fonts being ready, which `rendered` waited for. A page that recorded
+      // nothing did not run the recorder, and a shift nobody measured is not a page holding still.
+      const recorded = await chrome.evaluate('window.__layoutShifts');
+      if (!Array.isArray(recorded)) throw new Error(`${layout} recorded no layout shifts`);
+      const shift = layoutShift(recorded);
       const copied = await chrome.evaluate(selection(start, end));
       if (copied === null) throw new Error(`${layout} has no ${start} or no ${end}`);
 
-      const { checks, findings } = screenCopy(copied, profile, { skillsLabel: labels.skills });
+      const copy = screenCopy(copied, profile, { skillsLabel: labels.skills });
+      const checks = { ...copy.checks, holdsStill: shift.holdsStill };
+      const findings = { ...copy.findings, movedWhileLoading: shift.holdsStill ? [] : shift.moved };
       const passed = Object.values(checks).filter(Boolean).length;
       rows.push({
         layout,
         width: size.width,
+        shift: shift.total,
         score: `${passed}/${Object.keys(checks).length}`,
         checks,
         findings
@@ -284,10 +314,13 @@ try {
   console.error(`audit-screen: ${error.message} — nothing was checked.`);
   process.exitCode = 2;
 } finally {
-  chrome?.close();
+  await chrome?.close();
   server.closeAllConnections?.();
   server.close();
-  await rm(dataDir, { recursive: true, force: true });
+  // What is left behind is a temporary directory, not a result: say so, and let the checks stand.
+  await rm(dataDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }).catch(
+    (error) => console.error(`audit-screen: left ${dataDir} behind — ${error.message}`)
+  );
 }
 if (process.exitCode === 2) process.exit(2);
 
@@ -298,14 +331,17 @@ const report = [
   'What a reader copies off the page: each layout opened in headless Chrome at a desktop and a phone',
   'width, its CV selected, and the selection read. Regenerate with `npm run audit:screen`.',
   '',
-  '| Layout | Width | Score |',
-  '|---|---:|---:|',
-  ...rows.map((row) => `| ${row.layout} | ${row.width}px | ${row.score} |`),
+  '| Layout | Width | Layout shift | Score |',
+  '|---|---:|---:|---:|',
+  ...rows.map(
+    (row) => `| ${row.layout} | ${row.width}px | ${row.shift.toFixed(3)} | ${row.score} |`
+  ),
   '',
   'Checks: the CV captured whole — name, role, email and current employer; no two words the profile',
   'writes in sequence welded into one, and no contact detail run into the word beside it; every skill',
   'category followed by its own first skill; every language on a line with its level; and nothing on',
-  'a line the data did not write — no pictograph, no line number.'
+  'a line the data did not write — no pictograph, no line number; and the first screen holding still',
+  'while it loads — every layout shift from navigation to fonts ready, added up, below 0.1.'
 ].join('\n');
 
 await writeFile(new URL(target.reportPath('SCREEN_AUDIT.md'), projectUrl), `${report}\n`);

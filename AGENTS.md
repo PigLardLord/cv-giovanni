@@ -78,6 +78,20 @@ self-rating into the main evidence of competence.
 - Removing CSS, icons, or graphical markers does not remove skill names or proficiency meaning.
 - The CV does not claim precision that the underlying self-assessment cannot justify.
 
+## Qualifications and certifications
+
+- **A foreign qualification uses the issuer's wording,** never a German- or English-style abbreviation
+  the issuer does not award. The programme at the University of Pisa is a _First Level Professional
+  Master's Programme in Mobile Applications Development_, and an abbreviated degree in its place claims
+  one nobody conferred. When the name holds a word the target market reads as a degree level —
+  _Master's_ — the rendered text states its scope (#48).
+- **A certification's name is the title on the page its link opens.** Lower tiers it includes go in
+  brackets after it — `Android Enterprise Expert (incl. Associate, Professional)` — never as equal names
+  in one entry, which reads as a credential nobody issues.
+- **A certification may lose its description only if its name line still states the subject.** Page
+  budget took the description of iOS Lead Essentials; its subject moved into brackets on the name line,
+  `iOS Lead Essentials (TDD, Clean Architecture)`, rather than disappearing.
+
 ## The loop's role system
 
 The ticket-loop skill defers to the project's own role system where one exists: _"If the project
@@ -110,6 +124,24 @@ skipped and why, rather than skipping it silently.
 The review runs on the **rendered artefact**, not the diff. Run `npm run build:pdf` first;
 `cv-reviewer` needs a PDF to extract text from, and a review of the source that never looked at
 the output is not a product review.
+
+### Linked pages are part of the CV
+
+`profiles/<profile>/<locale>.json` is the single source of truth. The web CV and the PDFs are built
+from it, and a copy of the CV kept by hand anywhere else is stale by construction. So the CV links only
+to surfaces built from the profile, and to third-party profiles that are not a second copy of it —
+GitHub, LinkedIn. A second copy is not kept in step; it is unlinked. The Google Sites page that still
+claimed the withdrawn degree was unlinked on #47 rather than corrected, and a blog there can be linked
+once it is a blog.
+
+When a ticket corrects a factual claim — a degree, a date, a level, a number of years — the product
+review checks every third-party page the CV links to for the old wording before the merge, and the pull
+request says what it found. That check is by hand: LinkedIn and XING need a login.
+
+Inside the repository the check is not by hand. `tests/WithdrawnClaimsStayWithdrawn.test.js` lists every
+withdrawn claim with its reason and fails on any tracked file that still makes one, so withdrawing a
+claim means adding it there. `tests/ReferenceFixtureFollowsProfile.test.js` holds the recoverability
+tests' reference fixture to the profile: it drifted once while every test built on it kept passing.
 
 ### The default review target
 

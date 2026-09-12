@@ -10,7 +10,8 @@ import {
   isFromThisMachine,
   isLoopback,
   listenSettings,
-  mayServe
+  mayServe,
+  previewKey
 } from '../scripts/serve.mjs';
 
 // The development server once listened on every interface and served every file under the root:
@@ -117,7 +118,21 @@ describe('where the server listens', () => {
   });
 });
 
+// A relay that forwards raw bytes — `ssh -R`, `socat`, a tunnel in TCP mode — connects from loopback and
+// adds no header, so a visitor at its far end who writes `Host: localhost` looks exactly like this
+// machine's browser. Nothing in the request can tell them apart; only something the visitor never had
+// can: a key made when the server starts, printed once, and traded by the browser for a cookie (#71).
+describe('the key a run hands out', () => {
+  test('is new every time, and too long to guess', () => {
+    const keys = new Set(Array.from({ length: 20 }, () => previewKey()));
+
+    expect(keys.size).toBe(20);
+    for (const key of keys) expect(Buffer.from(key, 'base64url').length).toBeGreaterThanOrEqual(32);
+  });
+});
+
 describe('what the server hands out', () => {
+  const KEY = previewKey();
   let root;
   let server;
   let origin;
@@ -169,34 +184,95 @@ describe('what the server hands out', () => {
     expect((await get('/%2egit/config')).status).toBe(404);
   });
 
-  test('this machine still previews a tailored CV', async () => {
-    await start();
-    expect((await get('/applications/acme/en.json')).status).toBe(200);
-    expect((await get('/config/cv-manifest.json')).body).toContain('acme');
-  });
-
-  // A request from another machine cannot be made from a test, so the check that decides it is
-  // handed in: the same server, answering as it would to an address that is not loopback.
-  test('another machine gets neither the applications nor the manifest that lists them', async () => {
-    await start({ isLocal: () => false });
-    expect((await get('/applications/acme/en.json')).status).toBe(404);
-    const manifest = await get('/config/cv-manifest.json');
-    expect(manifest.status).toBe(200);
-    expect(manifest.body).not.toContain('acme');
-  });
-
   // A raw request, so the test sends what a browser would not: a malformed path, another Host, the
-  // headers a proxy adds.
-  const getAs = (path, headers = {}) =>
+  // headers a proxy adds, a cookie of its own making.
+  const send = (path, headers = {}) =>
     new Promise((resolve, reject) => {
       const { port } = server.address();
       httpRequest({ host: '127.0.0.1', port, path, headers }, (response) => {
-        response.resume();
-        response.on('end', () => resolve(response.statusCode));
+        let body = '';
+        response.setEncoding('utf8');
+        response.on('data', (chunk) => (body += chunk));
+        response.on('end', () =>
+          resolve({ status: response.statusCode, headers: response.headers, body })
+        );
       })
         .on('error', reject)
         .end();
     });
+  const getAs = async (path, headers) => (await send(path, headers)).status;
+
+  /** What a browser holds once it has opened the address the server printed. */
+  const cookieFor = async (key) => {
+    const { headers } = await send(`/index.html?key=${key}`);
+    return (headers['set-cookie'] || [''])[0].split(';')[0];
+  };
+
+  test('this machine previews a tailored CV once its browser holds the run’s key', async () => {
+    await start({ key: KEY });
+    const cookie = await cookieFor(KEY);
+    expect((await send('/applications/acme/en.json', { cookie })).status).toBe(200);
+    expect((await send('/config/cv-manifest.json', { cookie })).body).toContain('acme');
+  });
+
+  test('the key in the address is traded for a cookie, and the address drops it', async () => {
+    await start({ key: KEY });
+    const { port } = server.address();
+    const { status, headers } = await send(`/index.html?layout=nerd&key=${KEY}&lang=en`);
+
+    expect(status).toBe(303);
+    expect(headers.location).toBe('/index.html?layout=nerd&lang=en');
+    expect(headers['set-cookie']).toHaveLength(1);
+    const [pair, ...attributes] = headers['set-cookie'][0].split('; ');
+    expect(pair).toBe(`mycv-preview-${port}=${KEY}`);
+    expect(attributes).toEqual(expect.arrayContaining(['HttpOnly', 'SameSite=Strict', 'Path=/']));
+  });
+
+  // The acceptance case of #71, sent the way the relay would: from loopback, addressed to localhost,
+  // with no forwarding header — so the server's own check of this machine passes it.
+  test('a relay that sends Host: localhost and no header gets nothing private without the key', async () => {
+    await start({ key: KEY });
+    const relayed = { host: `localhost:${server.address().port}` };
+
+    expect(await getAs('/applications/acme/en.json', relayed)).toBe(404);
+    const manifest = await send('/config/cv-manifest.json', relayed);
+    expect(manifest.status).toBe(200);
+    expect(manifest.body).not.toContain('acme');
+  });
+
+  test('a wrong key buys no cookie, and a cookie made up opens nothing', async () => {
+    await start({ key: KEY });
+    const { port } = server.address();
+    const wrong = previewKey();
+
+    const traded = await send(`/index.html?key=${wrong}`);
+    expect(traded.status).toBe(303);
+    expect(traded.headers['set-cookie']).toBeUndefined();
+    for (const cookie of [
+      `mycv-preview-${port}=${wrong}`,
+      `mycv-preview-${port}=`,
+      `mycv-preview-1=${KEY}`
+    ]) {
+      expect(await getAs('/applications/acme/en.json', { cookie })).toBe(404);
+    }
+  });
+
+  test('a server given no key makes its own, so nothing private is served by default', async () => {
+    await start();
+    expect(await getAs('/applications/acme/en.json')).toBe(404);
+    expect((await send('/config/cv-manifest.json')).body).not.toContain('acme');
+  });
+
+  // A request from another machine cannot be made from a test, so the check that decides it is
+  // handed in: the same server, answering as it would to an address that is not loopback.
+  test('another machine gets neither the applications nor the manifest that lists them, key or not', async () => {
+    await start({ isLocal: () => false, key: KEY });
+    const cookie = await cookieFor(KEY);
+    expect(await getAs('/applications/acme/en.json', { cookie })).toBe(404);
+    const manifest = await send('/config/cv-manifest.json', { cookie });
+    expect(manifest.status).toBe(200);
+    expect(manifest.body).not.toContain('acme');
+  });
 
   test('a malformed address is refused, and the next request is still served', async () => {
     await start();
@@ -236,8 +312,8 @@ describe('what the server hands out', () => {
     writeFileSync(join(root, '.private.json'), JSON.stringify({ secret: 'private', profiles: {} }));
     rmSync(join(root, 'config', 'cv-manifest.json'));
     symlinkSync(join(root, '.private.json'), join(root, 'config', 'cv-manifest.json'));
-    await start();
-    const manifest = await get('/config/cv-manifest.json');
+    await start({ key: KEY });
+    const manifest = await send('/config/cv-manifest.json', { cookie: await cookieFor(KEY) });
     expect(manifest.body).not.toContain('private');
     expect(manifest.status).toBe(404);
   });
@@ -246,13 +322,14 @@ describe('what the server hands out', () => {
   // so in a header; a page on another site that points its own name at 127.0.0.1 still sends that
   // name as Host.
   test('a request through a proxy, or under another site’s name, is not from this machine', async () => {
-    await start();
+    await start({ key: KEY });
     const { port } = server.address();
+    const cookie = await cookieFor(KEY);
     const tailored = '/applications/acme/en.json';
-    expect(await getAs(tailored, { host: `127.0.0.1:${port}` })).toBe(200);
+    expect(await getAs(tailored, { host: `127.0.0.1:${port}`, cookie })).toBe(200);
     expect(
-      await getAs(tailored, { host: `127.0.0.1:${port}`, 'x-forwarded-for': '203.0.113.9' })
+      await getAs(tailored, { host: `127.0.0.1:${port}`, cookie, 'x-forwarded-for': '203.0.113.9' })
     ).toBe(404);
-    expect(await getAs(tailored, { host: `rebound.example:${port}` })).toBe(404);
+    expect(await getAs(tailored, { host: `rebound.example:${port}`, cookie })).toBe(404);
   });
 });
