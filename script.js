@@ -100,8 +100,8 @@ if (downloadLink) {
     .then((response) => (response.ok ? response.json() : null))
     .then((manifest) => manifest?.released)
     .catch(() => null);
-  if (pdfExporter.isAvailable(released, pdfOptions)) {
-    downloadLink.href = pdfExporter.filePath(pdfOptions);
+  if (pdfExporter.isAvailable(released, currentData, pdfOptions)) {
+    downloadLink.href = pdfExporter.filePath(currentData, pdfOptions);
     downloadLink.download = pdfExporter.downloadName(currentData);
   } else {
     // No file for this profile, locale and layout: a hidden button beats one that 404s.

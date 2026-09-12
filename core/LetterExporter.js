@@ -1,5 +1,6 @@
 import { CoverLetter } from '../domain/CoverLetter.js';
 import { CvDocument } from '../domain/CvDocument.js';
+import { nameSlug } from './FileNaming.js';
 import { PageFormat } from '../domain/PageFormat.js';
 import { LayoutThemeRegistry } from '../adapters/LayoutThemeRegistry.js';
 import { PdfDesignSystem } from '../adapters/PdfDesignSystem.js';
@@ -36,16 +37,20 @@ export class LetterExporter {
    * segmentation and trip two floors on a perfectly good letter. A false failure is worse
    * than no check, because it teaches whoever sees it to ignore the exit code.
    */
-  filename({
-    profile = 'general',
-    locale = 'en',
-    layout = 'spotlight',
-    pageSize = 'A4',
-    colorMode = 'color',
-    variant = false
-  } = {}) {
+  filename(
+    data,
+    {
+      profile = 'general',
+      locale = 'en',
+      layout = 'spotlight',
+      pageSize = 'A4',
+      colorMode = 'color',
+      variant = false
+    } = {}
+  ) {
     const suffix = variant ? `-${pageSize.toLowerCase()}-${colorMode}` : '';
-    return `giovanni-trovato-${profile}-${locale}-${layout}-cover${suffix}.pdf`;
+    const name = nameSlug(new CvDocument(data).identity.name);
+    return `${name}-${profile}-${locale}-${layout}-cover${suffix}.pdf`;
   }
 
   /** True when a profile carries a letter at all. The published CV does not. */

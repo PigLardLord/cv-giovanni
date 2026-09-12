@@ -28,9 +28,35 @@ describe('PdfExporter', () => {
 
   test('builds a direct path for pre-generated downloads', () => {
     const exporter = new PdfExporter(null, { t: (key) => key });
-    expect(exporter.filePath({ profile: 'general', locale: 'en', layout: 'technical' })).toBe(
+    expect(exporter.filePath(data, { profile: 'general', locale: 'en', layout: 'technical' })).toBe(
       'generated/giovanni-trovato-general-en-technical.pdf'
     );
+  });
+
+  // The candidate's name was a literal in the naming rule, derived from nothing: a profile for anyone
+  // else still produced files named after this repository's owner (#34).
+  test('names every file after the candidate its profile describes', () => {
+    const exporter = new PdfExporter(null, { t: (key) => key });
+    const options = {
+      profile: 'acme',
+      locale: 'de',
+      layout: 'nerd',
+      pageSize: 'LETTER',
+      variant: true
+    };
+
+    expect(exporter.filename({ ...data, name: 'Ada Lovelace' }, options)).toBe(
+      'ada-lovelace-acme-de-nerd-letter-color.pdf'
+    );
+    expect(exporter.filename({ ...data, name: 'Niccolò D’Amico' }, options)).toBe(
+      'niccolo-d-amico-acme-de-nerd-letter-color.pdf'
+    );
+  });
+
+  test('refuses to name a file for a profile without a name', () => {
+    const exporter = new PdfExporter(null, { t: (key) => key });
+
+    expect(() => exporter.filename({ ...data, name: ' ' }, {})).toThrow(/no name/);
   });
 
   test('supports injected document, page-format and theme boundaries', () => {
@@ -177,6 +203,9 @@ describe('PdfExporter — what has to survive extraction and assistive reading',
     const exporter = new PdfExporter(null, { t: (key) => key });
     expect(exporter.downloadName(rich)).toBe('Giovanni-Trovato-Senior-iOS-Engineer-CV.pdf');
     expect(exporter.downloadName({})).toBe('CV.pdf');
+    expect(exporter.downloadName({ name: 'Niccolò D’Amico', title: 'iOS Engineer' })).toBe(
+      'Niccolo-D-Amico-iOS-Engineer-CV.pdf'
+    );
   });
 
   test('omits an education description rather than rendering an empty line', () => {
@@ -273,24 +302,31 @@ describe('PdfExporter — what has to survive extraction and assistive reading',
       'giovanni-trovato-general-en-spotlight.pdf',
       'giovanni-trovato-general-en-nerd.pdf'
     ];
-    expect(
-      exporter.isAvailable(generated, { profile: 'general', locale: 'en', layout: 'spotlight' })
-    ).toBe(true);
-    expect(
-      exporter.isAvailable(generated, { profile: 'general', locale: 'de', layout: 'spotlight' })
-    ).toBe(false);
-    expect(
-      exporter.isAvailable(generated, { profile: 'general', locale: 'en', layout: 'technical' })
-    ).toBe(false);
+    const spotlight = { profile: 'general', locale: 'en', layout: 'spotlight' };
+    expect(exporter.isAvailable(generated, rich, spotlight)).toBe(true);
+    expect(exporter.isAvailable(generated, rich, { ...spotlight, locale: 'de' })).toBe(false);
+    expect(exporter.isAvailable(generated, rich, { ...spotlight, layout: 'technical' })).toBe(
+      false
+    );
+    // Another candidate's file is not this one's, and a page whose profile failed to load has none.
+    expect(exporter.isAvailable(generated, { ...rich, name: 'Ada Lovelace' }, spotlight)).toBe(
+      false
+    );
+    expect(exporter.isAvailable(generated, undefined, spotlight)).toBe(false);
+    expect(exporter.isAvailable(generated, { ...rich, name: '' }, spotlight)).toBe(false);
   });
 
   test('treats a missing or unreadable manifest as nothing being available', () => {
     // A manifest that failed to load must not read as "everything is there": the page would
     // offer every download and 404 on all of them.
     const exporter = new PdfExporter(null, { t: (key) => key });
-    expect(exporter.isAvailable(undefined, { locale: 'en', layout: 'spotlight' })).toBe(false);
-    expect(exporter.isAvailable([], { locale: 'en', layout: 'spotlight' })).toBe(false);
-    expect(exporter.isAvailable('not a list', { locale: 'en', layout: 'spotlight' })).toBe(false);
+    expect(exporter.isAvailable(undefined, rich, { locale: 'en', layout: 'spotlight' })).toBe(
+      false
+    );
+    expect(exporter.isAvailable([], rich, { locale: 'en', layout: 'spotlight' })).toBe(false);
+    expect(exporter.isAvailable('not a list', rich, { locale: 'en', layout: 'spotlight' })).toBe(
+      false
+    );
   });
 
   test('leaves a measure narrow enough to read', () => {
