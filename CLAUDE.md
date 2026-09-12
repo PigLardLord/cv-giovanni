@@ -22,7 +22,8 @@ This is a static CV/resume website built with vanilla HTML, CSS, and JavaScript.
   heuristic caching has hidden real changes more than once)
 - **Serve to another device**: `npm run serve -- --network` (by default the server answers only this
   machine; hidden paths such as `.git/` are never served, and `applications/` goes only to this machine's
-  own browser — a proxy is recognised by its headers, a raw TCP tunnel is not, so never tunnel the port)
+  own browser once it has opened the `?key=` address the server prints — a new key every run, so neither a
+  proxy nor a raw TCP tunnel reaches a tailored CV)
 - **Open CV**: Open `index.html` in a browser (no build step required)
 
 ### Formatting

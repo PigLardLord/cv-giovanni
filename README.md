@@ -33,7 +33,9 @@ is on disk. Do not preview with `python -m http.server`: it sends no caching hea
 shown this project a stale page more than once.
 
 The server answers only this machine. `npm run serve -- --network` opens it to another device on the network,
-and even then `applications/` is served to this machine alone.
+and even then `applications/` is served to this machine alone — and only to a browser that has opened the second
+address the server prints, the one ending in `?key=`. The key is new every run and never written to disk, so a proxy
+or a tunnel in front of the port reaches the public CV and nothing tailored.
 
 The URL chooses the CV:
 
