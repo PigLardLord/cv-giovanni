@@ -2,16 +2,10 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "cv-site",
-      "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "8080"],
-      "port": 8080
-    },
-    {
-      "name": "cv-site-fresh",
-      "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "8099"],
-      "port": 8099
+      "name": "cv-serve",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["scripts/serve.mjs", "8123"],
+      "port": 8123
     }
   ]
 }

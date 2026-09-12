@@ -7,6 +7,7 @@ generated/
 docs/ATS_AUDIT.md
 docs/PDF_AUDIT.md
 docs/PRINT_AUDIT.md
+docs/SCREEN_AUDIT.md
 
 # Installed and updated by the harness tooling, which owns their layout.
 .agents/harness/

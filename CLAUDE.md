@@ -20,6 +20,9 @@ This is a static CV/resume website built with vanilla HTML, CSS, and JavaScript.
 - **Install dependencies**: `npm install`
 - **Serve the site**: `npm run serve` (sends `no-store`; never `python -m http.server` — its
   heuristic caching has hidden real changes more than once)
+- **Serve to another device**: `npm run serve -- --network` (by default the server answers only this
+  machine; hidden paths such as `.git/` are never served, and `applications/` goes only to this machine's
+  own browser — a proxy is recognised by its headers, a raw TCP tunnel is not, so never tunnel the port)
 - **Open CV**: Open `index.html` in a browser (no build step required)
 
 ### Formatting
@@ -31,6 +34,7 @@ This is a static CV/resume website built with vanilla HTML, CSS, and JavaScript.
 
 - **Generate the PDFs**: `npm run verify:pdf` (build, then audit the twelve variants)
 - **Audit what the browser prints**: `npm run audit:print` (needs Chrome; `CHROME_PATH` overrides)
+- **Audit what a reader copies off the screen**: `npm run audit:screen` (needs Chrome; `CHROME_PATH` overrides)
 
 ## Architecture
 
