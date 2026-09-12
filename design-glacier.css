@@ -1492,6 +1492,17 @@ body[data-layout='technical'] .hero-name {
     color: var(--x-ink);
   }
 
+  /* The section in view: the link a reader would need to find their place, marked the way the open
+     tab is — raised, with the lime as the one signal. */
+  body[data-layout='nerd'] .source-outline a[aria-current='location'] {
+    background: var(--x-raised);
+    color: var(--x-ink);
+  }
+
+  body[data-layout='nerd'] .source-outline a[aria-current='location']::before {
+    background: var(--x-signal);
+  }
+
   /* --- The editor ----------------------------------------------------------------------------- */
   body[data-layout='nerd'] .source-editor {
     border-right: 1px solid var(--x-rule);
@@ -1860,6 +1871,15 @@ body[data-layout='technical'] .hero-name {
   body[data-layout='nerd'] button:focus-visible {
     outline: 2px solid var(--x-signal);
     outline-offset: 2px;
+  }
+
+  /* --- Below a laptop: the navigator is the tab row ------------------------------------------ */
+  @media (max-width: 1180px) {
+    body[data-layout='nerd'] .source-navigator {
+      border-right: 0;
+      border-bottom: 1px solid var(--x-rule);
+      background: var(--x-chrome);
+    }
   }
 
   /* --- 390px ---------------------------------------------------------------------------------- */

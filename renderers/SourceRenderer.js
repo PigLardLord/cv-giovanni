@@ -2,6 +2,13 @@ import { BaseRenderer } from './BaseRenderer.js';
 import { SwiftSourceLayout } from '../adapters/SwiftSourceLayout.js';
 
 /**
+ * How far below the pinned tab row a heading may sit and still count as reached. A jump from the
+ * navigator lands a heading 12px below that row (`scroll-margin-top` in layouts.css), so the section
+ * a reader just jumped to must be the one marked; the rest is rounding.
+ */
+const LANDING_SLACK = 16;
+
+/**
  * Writes the CV into Nerd Mode's editor as a Swift file, and its contact card into the phone.
  *
  * Every decision — which lines, which tokens, what is syntax and what is content, what the card
@@ -41,6 +48,7 @@ export class SourceRenderer extends BaseRenderer {
     this.renderOutline(root, source.outline);
     this.renderCard(root, source.card);
     this.renderAlert(root, source.card.call);
+    this.trackSectionInView(root);
   }
 
   renderOutline(root, outline) {
@@ -56,6 +64,103 @@ export class SourceRenderer extends BaseRenderer {
       item.appendChild(link);
       container.appendChild(item);
     });
+  }
+
+  /**
+   * Keeps the navigator's link to the section in view marked with `aria-current="location"`.
+   *
+   * Below a laptop the navigator is the pinned row of links above the file, and the mark is the only
+   * way to tell where in a 4,000px file the reader is; above it, it is the same courtesy in a column.
+   * Registered once per renderer: rendering again replaces the listener rather than adding one.
+   */
+  trackSectionInView(root) {
+    const view = root.defaultView;
+    if (!view) return;
+
+    if (this.sectionTracker) {
+      ['scroll', 'resize', 'hashchange'].forEach((type) =>
+        view.removeEventListener(type, this.sectionTracker)
+      );
+    }
+    let pending = false;
+    const update = () => {
+      pending = false;
+      this.markSectionInView(root);
+    };
+    this.sectionTracker = () => {
+      if (typeof view.requestAnimationFrame !== 'function') return update();
+      if (pending) return;
+      pending = true;
+      view.requestAnimationFrame(update);
+    };
+    // hashchange as well as scroll: a jump between two sections already on screen scrolls nothing.
+    ['scroll', 'resize', 'hashchange'].forEach((type) =>
+      view.addEventListener(type, this.sectionTracker, { passive: true })
+    );
+    this.markSectionInView(root);
+  }
+
+  /**
+   * The section in view is the last one whose heading has reached the bottom of the pinned tab row.
+   * Above the first heading — the name, the summary — nothing is marked.
+   */
+  markSectionInView(root) {
+    const tabs = this.querySelector(root, '.source-tabs');
+    const links = [...root.querySelectorAll('#source-outline a')];
+    if (!tabs || links.length === 0) return;
+
+    const reached = tabs.getBoundingClientRect().bottom + LANDING_SLACK;
+    const headings = [...root.querySelectorAll('#source-code h2[id]')];
+    const current =
+      this.jumpedTo(root, headings) ||
+      headings.filter((heading) => heading.getBoundingClientRect().top <= reached).pop();
+    const href = current ? `#${current.id}` : null;
+
+    links.forEach((link) => {
+      if (link.getAttribute('href') === href) link.setAttribute('aria-current', 'location');
+      else link.removeAttribute('aria-current');
+    });
+
+    // A keyboard reader moving along the row keeps the link they are on in view. A tap focuses a link
+    // without `:focus-visible`, so for everyone else the row follows the mark.
+    const focused = links.find((link) => link.matches(':focus-visible'));
+    const shown = focused || links.find((link) => link.getAttribute('href') === href);
+    if (shown) this.keepInRow(shown.closest('.source-navigator'), shown);
+  }
+
+  /**
+   * The section a jump went to, when the page ends before its heading can reach the pinned row.
+   *
+   * The last sections of the file are shorter than the window, so the page stops scrolling with their
+   * headings still lower down, and the position alone would keep the section before them marked. At
+   * the end of the page, and only while its heading is on screen, the address the reader jumped to
+   * decides. Scroll back up and the position decides again.
+   */
+  jumpedTo(root, headings) {
+    const view = root.defaultView;
+    if (!view) return null;
+    let id;
+    try {
+      id = decodeURIComponent((view.location.hash || '').slice(1));
+    } catch {
+      // `#%`, typed by hand, names no heading: the position decides.
+      return null;
+    }
+    const target = id ? headings.find((heading) => heading.id === id) : null;
+    if (!target) return null;
+
+    const atEnd = view.scrollY + view.innerHeight >= root.documentElement.scrollHeight - 2;
+    const top = target.getBoundingClientRect().top;
+    return atEnd && top >= 0 && top < view.innerHeight ? target : null;
+  }
+
+  /** Scrolls a row of links sideways just far enough that the given link is wholly inside it. */
+  keepInRow(row, link) {
+    if (!row) return;
+    const start = link.offsetLeft;
+    const end = start + link.offsetWidth;
+    if (start < row.scrollLeft) row.scrollLeft = start;
+    else if (end > row.scrollLeft + row.clientWidth) row.scrollLeft = end - row.clientWidth;
   }
 
   renderCard(root, card) {
