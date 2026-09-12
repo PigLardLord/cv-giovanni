@@ -37,6 +37,12 @@ This is a static CV/resume website built with vanilla HTML, CSS, and JavaScript.
 - **Audit what the browser prints**: `npm run audit:print` (needs Chrome; `CHROME_PATH` overrides)
 - **Audit what a reader copies off the screen**: `npm run audit:screen` (needs Chrome; `CHROME_PATH` overrides)
 
+### Publishing
+
+- **A merge to `main` publishes.** `.github/workflows/gates.yml` runs every gate on it, then its `deploy`
+  job hands GitHub Pages the tree with the PDFs that run built. A red gate publishes nothing, and nothing
+  else publishes: the Pages source is the workflow, not the branch.
+
 ## Architecture
 
 Ports and adapters. `AGENTS.md` holds the product rules and the settled decisions; this is the map.

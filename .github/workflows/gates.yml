@@ -10,10 +10,11 @@ on:
 permissions:
   contents: read
 
-# A newer push to the same branch makes the run for the older one moot.
+# A newer push to the same branch makes the run for the older one moot, except on main: every run there
+# ends in a deploy, so a newer run waits for the older one to finish instead of cancelling it mid-publish.
 concurrency:
   group: gates-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   gates:
@@ -68,6 +69,24 @@ jobs:
         env:
           CHROME_PATH: /usr/bin/google-chrome
 
+      # What GitHub Pages publishes: the tree as committed, with the PDFs this run built from the committed
+      # profile and has just audited, never files built on someone's machine (#43). Only on main, the one
+      # branch that is published (#44), and only when every step above passed.
+      - name: Assemble the site
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          # applications/ is gitignored, so a checkout never has one. Make sure rather than trust it.
+          test ! -e applications
+          rsync -a --exclude='.*' --exclude=node_modules --exclude=generated/qa ./ "$RUNNER_TEMP/site/"
+          test ! -e "$RUNNER_TEMP/site/applications"
+          ls "$RUNNER_TEMP/site"
+
+      - name: Hand the site to GitHub Pages
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: ${{ runner.temp }}/site/
+
       - name: Collect the reports this run wrote
         if: always()
         run: |
@@ -82,3 +101,30 @@ jobs:
           name: audit-reports
           path: ${{ runner.temp }}/audit-reports/
           if-no-files-found: ignore
+
+  # Publishing is what a green run on main does, never a second road: this job runs only for a push to
+  # main, only after every step of `gates` passed, and deploys the site that run assembled (#45). GitHub
+  # Pages builds nothing on its own any more; its source is this workflow.
+  deploy:
+    needs: gates
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    # One deploy at a time, whatever starts it: a second waits for the first rather than cancelling it.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
+
+      - name: Say which commit went live
+        run: echo "Published $GITHUB_SHA to ${{ steps.deployment.outputs.page_url }}" >> "$GITHUB_STEP_SUMMARY"
