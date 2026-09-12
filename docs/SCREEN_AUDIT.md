@@ -7,10 +7,10 @@ width, its CV selected, and the selection read. Regenerate with `npm run audit:s
 |---|---:|---:|
 | nerd | 1280px | 5/5 |
 | nerd | 390px | 5/5 |
-| spotlight | 1280px | 4/5 |
-| spotlight | 390px | 4/5 |
-| technical | 1280px | 4/5 |
-| technical | 390px | 4/5 |
+| spotlight | 1280px | 5/5 |
+| spotlight | 390px | 5/5 |
+| technical | 1280px | 5/5 |
+| technical | 390px | 5/5 |
 
 Checks: the CV captured whole — name, role, email and current employer; no two words the profile
 writes in sequence welded into one, and no contact detail run into the word beside it; every skill

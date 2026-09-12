@@ -1,0 +1,258 @@
+/**
+ * @jest-environment node
+ */
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { request as httpRequest } from 'node:http';
+import { tmpdir } from 'node:os';
+import { join, sep } from 'node:path';
+import {
+  createStaticServer,
+  isFromThisMachine,
+  isLoopback,
+  listenSettings,
+  mayServe
+} from '../scripts/serve.mjs';
+
+// The development server once listened on every interface and served every file under the root:
+// anyone on the same network — or on a Tailscale network this machine belongs to — could read
+// .git/ and, once an application existed, the tailored CVs and the employers they name (#65).
+// AGENTS.md: a tailored version leaves the machine only as an attached PDF.
+
+describe('who counts as this machine', () => {
+  test.each(['127.0.0.1', '::1', '::ffff:127.0.0.1'])('%s is loopback', (address) => {
+    expect(isLoopback(address)).toBe(true);
+  });
+
+  test.each(['192.168.1.20', '10.0.0.7', '100.101.102.103', '::ffff:192.168.1.20', '', undefined])(
+    '%s is another machine',
+    (address) => {
+      expect(isLoopback(address)).toBe(false);
+    }
+  );
+});
+
+describe('a request from this machine', () => {
+  const arriving = (headers, remoteAddress = '127.0.0.1') => ({
+    socket: { remoteAddress },
+    headers
+  });
+
+  test.each(['localhost:8080', '127.0.0.1:8123', '[::1]:8080', 'cv.localhost:8080', 'LOCALHOST'])(
+    'arrives on loopback addressed to %s',
+    (host) => {
+      expect(isFromThisMachine(arriving({ host }))).toBe(true);
+    }
+  );
+
+  // A page on another site can point its own name at 127.0.0.1; the name it used is still in Host.
+  test.each(['rebound.example:8080', '192.168.1.20:8080', ''])(
+    'addressed to "%s", is not',
+    (host) => {
+      expect(isFromThisMachine(arriving({ host }))).toBe(false);
+    }
+  );
+
+  test.each(['forwarded', 'via', 'x-forwarded-for', 'x-forwarded-host', 'x-real-ip'])(
+    'carrying %s, came through a proxy and is not',
+    (header) => {
+      expect(isFromThisMachine(arriving({ host: 'localhost:8080', [header]: '203.0.113.9' }))).toBe(
+        false
+      );
+    }
+  );
+
+  test('from a LAN address, is not', () => {
+    expect(isFromThisMachine(arriving({ host: 'localhost:8080' }, '192.168.1.20'))).toBe(false);
+  });
+});
+
+describe('which paths may be served', () => {
+  const path = (value) => value.split('/').join(sep);
+
+  test.each(['index.html', 'vendor/fonts/fonts.css', 'config/cv-manifest.json'])(
+    '%s, to anyone',
+    (value) => {
+      expect([mayServe(path(value), false), mayServe(path(value), true)]).toEqual([true, true]);
+    }
+  );
+
+  test.each(['.git/config', 'profiles/.DS_Store', '../outside.txt'])('%s, to nobody', (value) => {
+    expect([mayServe(path(value), false), mayServe(path(value), true)]).toEqual([false, false]);
+  });
+
+  // A case-insensitive filesystem opens Applications/ as applications/, and Windows drops a trailing
+  // dot or space: every spelling that reaches the directory is the directory.
+  test.each([
+    'applications/acme/en.json',
+    'Applications/acme/en.json',
+    'APPLICATIONS/acme/en.json',
+    'applications./acme/en.json',
+    'applications /acme/en.json'
+  ])('%s, to this machine only', (value) => {
+    expect([mayServe(path(value), false), mayServe(path(value), true)]).toEqual([false, true]);
+  });
+
+  test('a path that is not inside the root at all, to nobody', () => {
+    expect(mayServe(join(sep, 'etc', 'passwd'), true)).toBe(false);
+  });
+});
+
+describe('where the server listens', () => {
+  test('on the loopback interface, unless told otherwise', () => {
+    expect(listenSettings([], {})).toEqual({ port: 8080, host: '127.0.0.1', network: false });
+  });
+
+  test('the port still comes from the argument or PORT', () => {
+    expect(listenSettings(['8123'], {}).port).toBe(8123);
+    expect(listenSettings([], { PORT: '9000' }).port).toBe(9000);
+  });
+
+  // Opening the server to the network is a decision, so it takes a word of its own.
+  test('on every interface only with --network', () => {
+    expect(listenSettings(['8123', '--network'], {})).toEqual({
+      port: 8123,
+      host: '0.0.0.0',
+      network: true
+    });
+  });
+});
+
+describe('what the server hands out', () => {
+  let root;
+  let server;
+  let origin;
+
+  const start = async (options) => {
+    server = createStaticServer(root, options);
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    origin = `http://127.0.0.1:${server.address().port}`;
+  };
+  const get = async (path) => {
+    const response = await fetch(`${origin}${path}`);
+    return { status: response.status, body: await response.text() };
+  };
+
+  beforeEach(() => {
+    root = mkdtempSync(join(tmpdir(), 'serve-'));
+    writeFileSync(join(root, 'index.html'), '<!doctype html><title>CV</title>');
+    mkdirSync(join(root, '.git'));
+    writeFileSync(join(root, '.git', 'config'), '[remote "origin"]\n');
+    mkdirSync(join(root, 'config'));
+    writeFileSync(
+      join(root, 'config', 'cv-manifest.json'),
+      JSON.stringify({
+        defaultProfile: 'general',
+        profiles: { general: { locales: { en: 'profiles/general/en.json' } } }
+      })
+    );
+    mkdirSync(join(root, 'applications', 'acme'), { recursive: true });
+    writeFileSync(join(root, 'applications', 'acme', 'en.json'), '{"name":"tailored for Acme"}');
+  });
+
+  afterEach(async () => {
+    // fetch keeps its connection alive; close it with the server rather than wait out the timeout.
+    server?.closeAllConnections();
+    if (server) await new Promise((resolve) => server.close(resolve));
+    server = null;
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  test('the page itself is served', async () => {
+    await start();
+    expect((await get('/')).status).toBe(200);
+  });
+
+  test('.git is never served, not even to this machine', async () => {
+    await start();
+    expect((await get('/.git/config')).status).toBe(404);
+    expect((await get('/.git/')).status).toBe(404);
+    expect((await get('/%2egit/config')).status).toBe(404);
+  });
+
+  test('this machine still previews a tailored CV', async () => {
+    await start();
+    expect((await get('/applications/acme/en.json')).status).toBe(200);
+    expect((await get('/config/cv-manifest.json')).body).toContain('acme');
+  });
+
+  // A request from another machine cannot be made from a test, so the check that decides it is
+  // handed in: the same server, answering as it would to an address that is not loopback.
+  test('another machine gets neither the applications nor the manifest that lists them', async () => {
+    await start({ isLocal: () => false });
+    expect((await get('/applications/acme/en.json')).status).toBe(404);
+    const manifest = await get('/config/cv-manifest.json');
+    expect(manifest.status).toBe(200);
+    expect(manifest.body).not.toContain('acme');
+  });
+
+  // A raw request, so the test sends what a browser would not: a malformed path, another Host, the
+  // headers a proxy adds.
+  const getAs = (path, headers = {}) =>
+    new Promise((resolve, reject) => {
+      const { port } = server.address();
+      httpRequest({ host: '127.0.0.1', port, path, headers }, (response) => {
+        response.resume();
+        response.on('end', () => resolve(response.statusCode));
+      })
+        .on('error', reject)
+        .end();
+    });
+
+  test('a malformed address is refused, and the next request is still served', async () => {
+    await start();
+    expect(await getAs('/%ZZ')).toBe(400);
+    expect(await getAs('//')).toBe(400);
+    expect((await get('/')).status).toBe(200);
+  });
+
+  // A link inside the tree can point anywhere: what counts is where the file really is, not the name
+  // the request used to reach it.
+  test('a symbolic link reaches neither .git, nor applications from another machine, nor out of the tree', async () => {
+    const outside = mkdtempSync(join(tmpdir(), 'outside-'));
+    writeFileSync(join(outside, 'secret.txt'), 'not the site');
+    symlinkSync(join(root, '.git'), join(root, 'history'));
+    symlinkSync(join(root, 'applications', 'acme'), join(root, 'latest'));
+    symlinkSync(outside, join(root, 'elsewhere'));
+    try {
+      await start({ isLocal: () => false });
+      expect((await get('/history/config')).status).toBe(404);
+      expect((await get('/latest/en.json')).status).toBe(404);
+      expect((await get('/elsewhere/secret.txt')).status).toBe(404);
+    } finally {
+      rmSync(outside, { recursive: true, force: true });
+    }
+  });
+
+  test('a directory whose index.html links into .git is not served', async () => {
+    mkdirSync(join(root, 'docs'));
+    symlinkSync(join(root, '.git', 'config'), join(root, 'docs', 'index.html'));
+    await start();
+    expect((await get('/docs/')).status).toBe(404);
+  });
+
+  // The manifest is merged from disk for this machine only, and the file it merges from is held to
+  // the same rules as any other.
+  test('the manifest is not merged from a link that leads to a hidden file', async () => {
+    writeFileSync(join(root, '.private.json'), JSON.stringify({ secret: 'private', profiles: {} }));
+    rmSync(join(root, 'config', 'cv-manifest.json'));
+    symlinkSync(join(root, '.private.json'), join(root, 'config', 'cv-manifest.json'));
+    await start();
+    const manifest = await get('/config/cv-manifest.json');
+    expect(manifest.body).not.toContain('private');
+    expect(manifest.status).toBe(404);
+  });
+
+  // A tunnel or reverse proxy on this machine connects from loopback for a visitor elsewhere, and says
+  // so in a header; a page on another site that points its own name at 127.0.0.1 still sends that
+  // name as Host.
+  test('a request through a proxy, or under another site’s name, is not from this machine', async () => {
+    await start();
+    const { port } = server.address();
+    const tailored = '/applications/acme/en.json';
+    expect(await getAs(tailored, { host: `127.0.0.1:${port}` })).toBe(200);
+    expect(
+      await getAs(tailored, { host: `127.0.0.1:${port}`, 'x-forwarded-for': '203.0.113.9' })
+    ).toBe(404);
+    expect(await getAs(tailored, { host: `rebound.example:${port}` })).toBe(404);
+  });
+});
