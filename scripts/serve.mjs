@@ -1,3 +1,4 @@
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { createServer } from 'node:http';
 import { createReadStream, realpath, realpathSync } from 'node:fs';
 import { readdir, readFile, stat } from 'node:fs/promises';
@@ -47,7 +48,8 @@ const FORWARDING_HEADERS = ['forwarded', 'via', 'x-forwarded-for', 'x-forwarded-
  * tunnel or reverse proxy running here connects from loopback for a visitor elsewhere, and says so in a
  * header; a page on another site can point its own name at 127.0.0.1 and read what it fetches, and the
  * name it used is still in Host. So the request must also be addressed to this machine. A relay that
- * forwards raw bytes adds no header and cannot be told apart: never expose the port through one.
+ * forwards raw bytes adds no header and cannot be told apart, which is why a private response also needs
+ * the key the server printed when it started (`previewKey`).
  * @param {import('node:http').IncomingMessage} request - The request
  * @returns {boolean} Whether this machine's browser sent it, with nothing in between
  */
@@ -62,6 +64,43 @@ export function isFromThisMachine({ socket, headers = {} }) {
     addressedHere &&
     !FORWARDING_HEADERS.some((header) => header in headers)
   );
+}
+
+/**
+ * A key for one run of the server: 256 random bits, made at start, printed once, held in memory and
+ * written nowhere. A relay that forwards raw bytes — `ssh -R`, `socat`, a tunnel in TCP mode — carries a
+ * visitor's request in from loopback with no header to give it away, and nothing in that request can
+ * prove where it came from (#71). Something the visitor never had can: this key, which the browser on
+ * this machine trades for a cookie.
+ * @returns {string} The key, base64url
+ */
+export function previewKey() {
+  return randomBytes(32).toString('base64url');
+}
+
+/** The cookie that carries the key, named for the port so two servers here keep their own. */
+const keyCookie = (port) => `mycv-preview-${port}`;
+
+/**
+ * Whether a value is the key, compared in constant time. Both sides are hashed first, so the
+ * comparison always runs over two 32-byte digests: neither the key's length nor the first byte that
+ * differs shows in how long it takes.
+ */
+function isKey(offered, key) {
+  if (typeof offered !== 'string') return false;
+  const digest = (value) => createHash('sha256').update(value).digest();
+  return timingSafeEqual(digest(offered), digest(key));
+}
+
+/** The value of one cookie in a Cookie header, or undefined when it is not there. */
+function cookieValue(header, name) {
+  for (const pair of (header || '').split(';')) {
+    const separator = pair.indexOf('=');
+    if (separator > 0 && pair.slice(0, separator).trim() === name) {
+      return pair.slice(separator + 1).trim();
+    }
+  }
+  return undefined;
 }
 
 /**
@@ -105,17 +144,18 @@ function resolve(url, root) {
 const realpathOf = promisify(realpath.native);
 
 /**
- * Whether a path relative to the root may be served; `local` for a request from this machine. A hidden
- * segment — `.git/`, `.claude/`, `..` — never; `applications/` only locally, compared the way a
- * filesystem may open it: case-insensitively, and without the trailing dots and spaces Windows drops.
+ * Whether a path relative to the root may be served; `trusted` for a request this machine's browser sent
+ * directly, holding the run's key. A hidden segment — `.git/`, `.claude/`, `..` — never; `applications/`
+ * only to a trusted request, compared the way a filesystem may open it: case-insensitively, and without
+ * the trailing dots and spaces Windows drops.
  * @param {string} path - A path relative to the root, as `path.relative` returns it
- * @param {boolean} local - Whether the request came from this machine
+ * @param {boolean} trusted - Whether the request came from this machine's browser with the key
  * @returns {boolean} Whether the file may be sent
  */
-export function mayServe(path, local) {
+export function mayServe(path, trusted) {
   const segments = path.split(sep);
   if (isAbsolute(path) || segments.some((segment) => segment.startsWith('.'))) return false;
-  return local || segments[0].toLowerCase().replace(/[. ]+$/, '') !== 'applications';
+  return trusted || segments[0].toLowerCase().replace(/[. ]+$/, '') !== 'applications';
 }
 
 /**
@@ -168,25 +208,34 @@ async function localManifest(root) {
  *
  * Two kinds of path are never handed to just anyone. A hidden path — `.git/`, `.claude/`, any segment
  * starting with a dot — is never served at all: the page needs none of them, and `.git/` holds the
- * whole history. `applications/`, and the manifest merged with it, are served only to this machine: a
- * tailored CV must still preview locally, and must never be readable from another device. Both rules
- * are checked against the path requested and again against where the file really is, so a link inside
- * the tree cannot carry a request past them.
+ * whole history. `applications/`, and the manifest merged with it, are served only to this machine's
+ * browser holding the run's key: a tailored CV must still preview locally, and must never be readable
+ * from another device or through a relay. Both rules are checked against the path requested and again
+ * against where the file really is, so a link inside the tree cannot carry a request past them.
+ *
+ * The key reaches the browser once, in the address the server prints: `?key=` is traded for a cookie,
+ * and the browser is sent on to the same address without it. A server handed no key makes its own,
+ * which nobody holds — so by default nothing private is served at all.
  * @param {string} root - Directory to serve
- * @param {{ isLocal?: (request: import('node:http').IncomingMessage) => boolean }} options - how to
- *   tell a request from this machine; tests hand in their own
+ * @param {object} [options] - Who may see what
+ * @param {(request: import('node:http').IncomingMessage) => boolean} [options.isLocal] - How to tell a
+ *   request from this machine; tests hand in their own
+ * @param {string} [options.key] - This run's key, from `previewKey`
  * @returns {import('node:http').Server} A server, not yet listening
  */
-export function createStaticServer(root = projectRoot, { isLocal = isFromThisMachine } = {}) {
+export function createStaticServer(
+  root = projectRoot,
+  { isLocal = isFromThisMachine, key = previewKey() } = {}
+) {
   const realRoot = realpathSync.native(root);
   const notFound = (response) =>
     response.writeHead(404, { 'Cache-Control': 'no-store' }).end('Not found');
   // Where a file really is, when the rules let it be served: a link inside the tree can point into
   // .git/, into applications/, or out of the tree altogether. Null when it is missing or refused.
-  const servable = async (path, local) => {
+  const servable = async (path, trusted) => {
     try {
       const file = await realpathOf(path);
-      return mayServe(relative(realRoot, file), local) ? file : null;
+      return mayServe(relative(realRoot, file), trusted) ? file : null;
     } catch {
       return null;
     }
@@ -194,7 +243,9 @@ export function createStaticServer(root = projectRoot, { isLocal = isFromThisMac
 
   return createServer(async (request, response) => {
     let target;
+    let address;
     try {
+      address = new URL(request.url, 'http://localhost');
       target = resolve(request.url, root);
     } catch {
       // `/%ZZ` or `//` names no path. Thrown outside the try below, it would take the server down.
@@ -206,16 +257,36 @@ export function createStaticServer(root = projectRoot, { isLocal = isFromThisMac
       return;
     }
 
-    const local = isLocal(request);
-    if (!mayServe(relative(root, target), local)) {
+    const cookieName = keyCookie(request.socket.localPort);
+    if (address.searchParams.has('key')) {
+      // The address the server printed. The key is traded for a cookie and the browser sent on without
+      // it, so it stays out of history, bookmarks and every Referer the page sends. A wrong key is
+      // dropped the same way, and buys nothing.
+      const offered = address.searchParams.get('key');
+      address.searchParams.delete('key');
+      const headers = {
+        Location: `${address.pathname}${address.search}`,
+        'Cache-Control': 'no-store'
+      };
+      if (isKey(offered, key)) {
+        headers['Set-Cookie'] = `${cookieName}=${key}; HttpOnly; SameSite=Strict; Path=/`;
+      }
+      response.writeHead(303, headers).end();
+      return;
+    }
+
+    // Both, or nothing private: a request this machine's browser sent directly, which refuses a proxy
+    // and another site's name, and the key it was handed at start, which refuses a raw relay (#71).
+    const trusted = isLocal(request) && isKey(cookieValue(request.headers.cookie, cookieName), key);
+    if (!mayServe(relative(root, target), trusted)) {
       notFound(response);
       return;
     }
 
     if (
-      local &&
+      trusted &&
       target === join(root, 'config', 'cv-manifest.json') &&
-      (await servable(target, local))
+      (await servable(target, trusted))
     ) {
       const body = await localManifest(root);
       if (body !== null) {
@@ -231,7 +302,10 @@ export function createStaticServer(root = projectRoot, { isLocal = isFromThisMac
 
     try {
       const info = await stat(target);
-      const file = await servable(info.isDirectory() ? join(target, 'index.html') : target, local);
+      const file = await servable(
+        info.isDirectory() ? join(target, 'index.html') : target,
+        trusted
+      );
       if (!file) {
         notFound(response);
         return;
@@ -250,7 +324,8 @@ export function createStaticServer(root = projectRoot, { isLocal = isFromThisMac
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const { port, host, network } = listenSettings(process.argv.slice(2), process.env);
-  createStaticServer().listen(port, host, () => {
+  const key = previewKey();
+  createStaticServer(projectRoot, { key }).listen(port, host, () => {
     console.log(`serving ${projectRoot} on ${host}:${port} with no-store`);
     console.log(
       network
@@ -258,5 +333,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
         : '  this machine only; pass --network to reach another device'
     );
     console.log(`  http://localhost:${port}/index.html?layout=nerd`);
+    console.log(
+      `  a CV from applications/ needs this run's key, once: http://localhost:${port}/index.html?key=${key}`
+    );
   });
 }

@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs';
 import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createStaticServer } from './serve.mjs';
+import { createStaticServer, previewKey } from './serve.mjs';
 import { fallbackRuns, typefacesFor } from './lib/printed-typefaces.mjs';
 import { GenerationTarget } from '../core/GenerationTarget.js';
 
@@ -263,7 +263,9 @@ if (!browser) {
   process.exit(2);
 }
 
-const server = createStaticServer();
+// The browser this audit starts holds the run's key, so a tailored profile under applications/ loads (#71).
+const key = previewKey();
+const server = createStaticServer(undefined, { key });
 await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 const port = server.address().port;
 const workspace = await mkdtemp(join(tmpdir(), 'mycv-print-'));
@@ -282,7 +284,7 @@ try {
       '--virtual-time-budget=8000',
       '--no-pdf-header-footer',
       `--print-to-pdf=${pdf}`,
-      `http://127.0.0.1:${port}/index.html?layout=${layout}&profile=${target.profile}`
+      `http://127.0.0.1:${port}/index.html?layout=${layout}&profile=${target.profile}&key=${key}`
     ]);
 
     const info = execFileSync('pdfinfo', [pdf], { encoding: 'utf8' });
