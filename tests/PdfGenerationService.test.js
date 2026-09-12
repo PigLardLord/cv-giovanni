@@ -13,6 +13,7 @@ test('injects composer, renderer and writer boundaries', async () => {
   const result = await service.generate({ name: 'Candidate' }, { layout: 'new-layout' });
 
   expect(renderer.render).toHaveBeenCalledWith({ content: [] });
+  expect(composer.filename).toHaveBeenCalledWith({ name: 'Candidate' }, { layout: 'new-layout' });
   expect(writer.write).toHaveBeenCalledWith('cv.pdf', expect.any(Uint8Array));
   expect(result).toEqual({ filename: 'cv.pdf', bytes: 3 });
 });

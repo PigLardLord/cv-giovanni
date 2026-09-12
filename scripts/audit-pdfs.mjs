@@ -7,6 +7,9 @@ import { readableAddress } from '../domain/ReadableUrl.js';
 import { CoverLetter } from '../domain/CoverLetter.js';
 import { certificationProblems } from './lib/certification-lines.mjs';
 import { pdfVariant } from './lib/pdf-variant.mjs';
+import { pages as bboxPages, roomLeft } from './lib/room-left.mjs';
+import { PdfExporter } from '../core/PdfExporter.js';
+import { LetterExporter } from '../core/LetterExporter.js';
 
 const projectRoot = new URL('../', import.meta.url);
 // The expectations come from the CV under test, not from the published one. Auditing a
@@ -157,6 +160,18 @@ function highlightsIntact(collapsed) {
 const isCoverLetter = (filename) => pdfVariant(filename).coverLetter;
 const letter = profile.letter ? new CoverLetter(profile.letter) : null;
 
+// The bottom margin and line height each document was laid out with, from the composer that laid it
+// out: the room left is measured against the page the generator used, not against a copy of its numbers.
+const untranslated = { t: (key) => key };
+const laidOutWith = (definition) => ({
+  bottomMargin: definition.pageMargins[3],
+  lineHeight: definition.defaultStyle.lineHeight
+});
+const cvSettings = laidOutWith(new PdfExporter(null, untranslated).buildDocument(profile, {}));
+const letterSettings = letter
+  ? laidOutWith(new LetterExporter(null, untranslated).buildDocument(profile, {}))
+  : null;
+
 for (const filename of pdfFiles) {
   const path = new URL(filename, qaUrl).pathname;
   const info = execFileSync('pdfinfo', [path], { encoding: 'utf8' });
@@ -167,6 +182,22 @@ for (const filename of pdfFiles) {
   const expectedLetter = pdfVariant(filename).paper === 'letter';
   const sizeOk = expectedLetter ? /612 x 792 pts/.test(info) : /595\.28 x 841\.89 pts/.test(info);
   const pages = Number(info.match(/Pages:\s+(\d+)/)?.[1]);
+  // How much of the last page is left: whether a copy change fits, known before anyone builds it (#49).
+  const [lastPage] =
+    pages > 0
+      ? bboxPages(
+          execFileSync(
+            'pdftotext',
+            ['-bbox-layout', '-f', `${pages}`, '-l', `${pages}`, path, '-'],
+            {
+              encoding: 'utf8'
+            }
+          )
+        )
+      : [];
+  const room = lastPage?.lines.length
+    ? roomLeft(lastPage, isCoverLetter(filename) ? letterSettings : cvSettings)
+    : null;
   const pageTwo =
     pages > 1
       ? execFileSync('pdftotext', ['-f', '2', '-l', '2', path, '-'], { encoding: 'utf8' })
@@ -239,6 +270,7 @@ for (const filename of pdfFiles) {
   rows.push({
     filename,
     pages,
+    room,
     score: `${passed}/${Object.keys(checks).length}`,
     checks,
     ...(certifications.length ? { certifications } : {})
@@ -246,14 +278,29 @@ for (const filename of pdfFiles) {
 }
 
 const failures = rows.filter((row) => Object.values(row.checks).some((value) => !value));
+const roomText = (room) =>
+  room ? `${room.points.toFixed(1)}pt · ${room.lines.toFixed(1)} lines` : '—';
+const measured = rows.filter((row) => row.room);
+const least = Math.min(...measured.map((row) => row.room.points)).toFixed(1);
+const tightest = measured.filter((row) => row.room.points.toFixed(1) === least);
 const report = [
   '# PDF quality matrix',
   '',
   `Generated variants: ${rows.length}`,
   '',
-  '| File | Pages | Score |',
-  '|---|---:|---:|',
-  ...rows.map((row) => `| ${row.filename} | ${row.pages} | ${row.score} |`),
+  ...(tightest.length
+    ? [
+        `Tightest: ${tightest.map((row) => `\`${row.filename}\``).join(' and ')}, with ` +
+          `${least}pt left below the last line of page ${tightest[0].pages} — ` +
+          `${tightest[0].room.lines.toFixed(1)} body lines of ${tightest[0].room.bodyPitch.toFixed(2)}pt.`,
+        ''
+      ]
+    : []),
+  '| File | Pages | Room left | Score |',
+  '|---|---:|---:|---:|',
+  ...rows.map((row) => `| ${row.filename} | ${row.pages} | ${roomText(row.room)} | ${row.score} |`),
+  '',
+  'Room left: the space between the lowest line on the last page and its bottom margin, in points and in body lines — the pitch of the type most of that page is set in. A copy change that adds more body lines than a variant has left makes it a page longer: judge an edit against the tightest variant before building, then build and audit.',
   '',
   'Checks: exact format, maximum two pages, required ATS text, reading order, no raster images, clean page starts, measured grayscale output, canonical compound spelling, block integrity in extraction, every skill category still attached to its own list, every web address recoverable from the text layer, and every certification on one line of its own, in the order the profile writes them.'
 ].join('\n');
