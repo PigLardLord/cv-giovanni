@@ -206,12 +206,13 @@ The rule, in full:
   merge closed on its own was read by nobody, and reopening it afterwards leaves a timeline that
   says the work was done twice.
 
-The one exemption is written down where it applies: six commits already merged through pull
-request #31 carry `Closes #15`–`Closes #20`, and rewriting them would orphan the SHAs that pull
-request points at. They are listed in the test by SHA, with the reason, and they will close those
-six tickets when `cv-2026-update` reaches `main` — whoever merges is expected to reopen them.
-Naming the debt is the point: an exemption in a list can be counted, an exemption in a habit
-cannot.
+The one exemption was written down where it applied. Six commits merged through pull request #31
+carried closing keywords for tickets 15 to 20, and rewriting them would have orphaned the SHAs that
+pull request points at, so the test listed them by SHA with the reason. They closed those six
+tickets when #41 merged on 2026-09-10, as #40 said they would, and each was reopened with a note
+naming the commit that closed it. Once all six were on `main` the list exempted nothing and was
+removed: an exemption that can be counted beats one that lives in a habit, and one that exempts
+nothing is noise.
 
 ### Prevention rules become tests where they can
 
