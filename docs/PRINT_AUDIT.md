@@ -15,4 +15,4 @@ Checks: A4, at most two pages, required ATS text in the case the catalogue wrote
 reading order, canonical hyphenated compounds, degree beside its school, every skill
 attached to its category, every role present, every word at 4.5:1 on paper, margins
 no narrower than 10mm and symmetric within 1.5mm, a text layer carrying nothing
-the data did not write, and the intended typeface embedded.
+the data did not write, and every run of text set in a typeface its layout prints in.

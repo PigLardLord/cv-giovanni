@@ -4,6 +4,7 @@ import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createStaticServer } from './serve.mjs';
+import { fallbackRuns, typefacesFor } from './lib/printed-typefaces.mjs';
 import { GenerationTarget } from '../core/GenerationTarget.js';
 
 /**
@@ -37,6 +38,13 @@ async function readJson(path) {
   }
 }
 const manifest = JSON.parse(await readFile(new URL('config/cv-manifest.json', projectUrl)));
+// A layout with no printed typefaces declared cannot have its text checked: exit 2, as for no browser.
+try {
+  manifest.layouts.forEach(typefacesFor);
+} catch (error) {
+  console.error(`audit-print: ${error.message} — nothing was checked.`);
+  process.exit(2);
+}
 
 const DPI = 150;
 const MM = 25.4;
@@ -279,7 +287,11 @@ try {
 
     const info = execFileSync('pdfinfo', [pdf], { encoding: 'utf8' });
     const text = execFileSync('pdftotext', [pdf, '-'], { encoding: 'utf8' });
-    const fonts = execFileSync('pdffonts', [pdf], { encoding: 'utf8' });
+    // The face of every run of text, so a substitution is named rather than inferred.
+    const fallback = fallbackRuns(
+      execFileSync('pdftohtml', ['-xml', '-i', '-stdout', '-q', pdf], { encoding: 'utf8' }),
+      typefacesFor(layout)
+    );
     const flat = text.replace(/\s+/g, ' ');
     const pageCount = Number(info.match(/Pages:\s+(\d+)/)?.[1]);
 
@@ -347,9 +359,10 @@ try {
       // no bare digits left behind by a CSS counter.
       textLayerClean: !/\p{Extended_Pictographic}/u.test(text) && !/^\s*\d{1,2}\s*$/m.test(text),
       // A fallback typeface changes every line break, and with them the page
-      // count and the measure. If Inter did not arrive, the rest is not the
-      // document anyone will print.
-      intendedTypeface: /Inter/.test(fonts)
+      // count and the measure. Every run has to be set in a face its layout
+      // prints in: Inter embedded somewhere used to be enough, and Technical
+      // Profile printed its name in Liberation Serif under a full score (#68).
+      intendedTypeface: fallback.length === 0
     };
 
     const passed = Object.values(checks).filter(Boolean).length;
@@ -359,6 +372,7 @@ try {
       score: `${passed}/${Object.keys(checks).length}`,
       checks,
       faint: faint.slice(0, 8),
+      fallback: fallback.slice(0, 8),
       margins
     });
   }
@@ -390,7 +404,7 @@ const report = [
   'reading order, canonical hyphenated compounds, degree beside its school, every skill',
   'attached to its category, every role present, every word at 4.5:1 on paper, margins',
   `no narrower than ${MARGIN_FLOOR_MM}mm and symmetric within ${SIDE_TOLERANCE_MM}mm, a text layer carrying nothing`,
-  'the data did not write, and the intended typeface embedded.'
+  'the data did not write, and every run of text set in a typeface its layout prints in.'
 ].join('\n');
 
 await writeFile(new URL(target.reportPath('PRINT_AUDIT.md'), projectUrl), `${report}\n`);
@@ -400,12 +414,13 @@ if (failures.length) {
   console.error('');
   console.error(
     JSON.stringify(
-      failures.map(({ layout, checks, faint }) => ({
+      failures.map(({ layout, checks, faint, fallback }) => ({
         layout,
         failed: Object.entries(checks)
           .filter(([, value]) => !value)
           .map(([name]) => name),
-        faint
+        faint,
+        fallback
       })),
       null,
       2
