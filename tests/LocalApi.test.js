@@ -24,6 +24,7 @@ const recording = (overrides = {}) => {
     calls,
     services: {
       profile: { read: method('profile', 'read'), write: method('profile', 'write') },
+      inference: { status: method('inference', 'status') },
       applications: Object.fromEntries(
         ['create', 'match', 'tailor', 'build'].map((name) => [name, method('applications', name)])
       )
@@ -58,6 +59,7 @@ describe('the local API passes every request through', () => {
 
   test.each([
     ['GET', '/api/profile', undefined, ['profile.read', undefined]],
+    ['GET', '/api/inference', undefined, ['inference.status', undefined]],
     [
       'PUT',
       '/api/profile',
@@ -89,7 +91,7 @@ describe('the local API passes every request through', () => {
   const passesThrough = (call) => PASS_THROUGH.test(call.toString().replace(/\s+/g, ' ').trim());
 
   test('every route is one call to one service method, and the check catches one that is not', () => {
-    expect(ROUTES.map(({ method, path }) => `${method} ${path.source}`)).toHaveLength(6);
+    expect(ROUTES.map(({ method, path }) => `${method} ${path.source}`)).toHaveLength(7);
     expect(ROUTES.filter(({ call }) => !passesThrough(call))).toEqual([]);
 
     const leaking = [
