@@ -1,7 +1,7 @@
 /**
  * Offers the PDF from every Download link on the page, or hides them all (#59).
  *
- * Nerd Mode carries the link twice, at the end of the toolbar and in the footer, and a copy left visible
+ * Every layout carries the link twice, at the top of the page and in the footer, and a copy left visible
  * for a file that does not exist would 404. Which file exists is decided in core, by
  * `PdfExporter.isAvailable`; this only applies that decision to the elements.
  * @param {Document} root - The page

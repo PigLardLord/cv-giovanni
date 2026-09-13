@@ -598,6 +598,8 @@ section {
    Spotlight and Technical Profile, in the toolbar in Nerd Mode. With no layout yet, it stays out of the way (#59). */
 .toolbar-download {
   display: none;
+  /* Above the name, so a reader who selects the whole page and pastes it would start with the button's words. */
+  user-select: none;
 }
 
 /* =============================================================================

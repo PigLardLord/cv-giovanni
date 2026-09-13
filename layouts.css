@@ -1187,6 +1187,17 @@ body[data-layout='technical'] {
     width: fit-content;
     margin: 0 auto 0.75rem;
   }
+
+  /* The skins draw a focused link's ring in their bright tone, which on the page's tint behind this button
+     falls under the 3:1 WCAG 1.4.11 asks: 2.71:1 in Spotlight, 2.90:1 in Technical. The button's own deep
+     tone clears it (#59). */
+  body[data-layout='spotlight'] .toolbar-download:focus-visible {
+    outline-color: var(--e-ember-deep);
+  }
+
+  body[data-layout='technical'] .toolbar-download:focus-visible {
+    outline-color: var(--t-blue-deep);
+  }
 }
 
 @media screen and (max-width: 768px) {
@@ -1195,5 +1206,7 @@ body[data-layout='technical'] {
     width: auto;
     justify-content: center;
     min-height: 44px;
+    margin-bottom: 0.5rem;
+    padding: 9px 12px;
   }
 }
