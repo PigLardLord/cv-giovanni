@@ -14,12 +14,12 @@ const projectRoot = new URL('../', import.meta.url);
 const target = GenerationTarget.fromArguments(process.argv.slice(2));
 const { profile, locale } = target;
 const layouts = ['nerd', 'spotlight', 'technical'];
-// The day these PDFs are made, printed in each one's bottom margin (#55). Lengths are counted to the profile's
-// asOf, so this is the one thing in them that changes from one day to the next.
-const generatedOn = new Date();
+// Lengths are counted to the profile's asOf, and the PDF says so on its last page (#55). Today is only the
+// limit: a month after it gives lengths nobody can check yet.
+const today = new Date();
 const data = JSON.parse(await readFile(new URL(target.dataPath, projectRoot)));
 const asOf = new CvDocument(data).asOf;
-if (countedPast(asOf, generatedOn)) {
+if (countedPast(asOf, today)) {
   throw new Error(
     `${target.dataPath} counts lengths to ${asOf.year}-${String(asOf.month).padStart(2, '0')}, a month after ` +
       `these PDFs are made: nobody can check those lengths yet. Set asOf to this month or an earlier one.`
@@ -91,7 +91,7 @@ const hasLetter = LetterExporter.has(data);
 const released = [];
 
 for (const layout of layouts) {
-  const result = await releaseService.generate(data, { profile, locale, layout, generatedOn });
+  const result = await releaseService.generate(data, { profile, locale, layout });
   released.push(result.filename);
   console.log(`${target.outDir}/${result.filename}`);
   if (hasLetter) {
@@ -104,7 +104,6 @@ for (const layout of layouts) {
         profile,
         locale,
         layout,
-        generatedOn,
         pageSize,
         colorMode,
         variant: true

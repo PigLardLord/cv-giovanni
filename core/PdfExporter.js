@@ -65,13 +65,7 @@ export class PdfExporter {
 
   buildDocument(data, options = {}) {
     if (typeof options === 'string') options = { layout: options };
-    const {
-      layout = 'spotlight',
-      pageSize = 'A4',
-      colorMode = 'color',
-      locale = 'en',
-      generatedOn = null
-    } = options;
+    const { layout = 'spotlight', pageSize = 'A4', colorMode = 'color', locale = 'en' } = options;
     const model = this.documentFactory(data);
     const format = this.pageFormats.resolve(pageSize);
     const theme = this.themes.resolve(layout, colorMode);
@@ -83,8 +77,7 @@ export class PdfExporter {
       theme,
       typography,
       t,
-      locale,
-      generatedOn
+      locale
     });
   }
 }

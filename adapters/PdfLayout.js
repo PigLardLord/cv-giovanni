@@ -21,15 +21,7 @@ export class PdfLayout {
    */
   compose(
     model,
-    {
-      layout = 'spotlight',
-      format,
-      theme,
-      typography,
-      t = (key) => key,
-      locale = 'en',
-      generatedOn = null
-    } = {}
+    { layout = 'spotlight', format, theme, typography, t = (key) => key, locale = 'en' } = {}
   ) {
     // The rail: a single-line label beside a wrapping block. That shape is the one the parser
     // handles — the label glues to the block's first line and nothing interleaves — so the
@@ -176,7 +168,7 @@ export class PdfLayout {
       // pagination stay comparable; the extra width of LETTER goes into the margin, and 40pt
       // top and bottom clears the 12mm a printer can clip.
       pageMargins: [SIDE, 40, SIDE, 40],
-      ...(generatedOn ? { footer: this.generatedLine(generatedOn, t, locale, SIDE) } : {}),
+      ...(model.asOf ? { footer: this.asOfLine(model.asOf, t, locale, SIDE) } : {}),
       info: {
         title: `${model.identity.name} — ${model.identity.title}`,
         author: model.identity.name
@@ -265,23 +257,21 @@ export class PdfLayout {
   }
 
   /**
-   * The day the downloadable PDF was made, on its last page (#55).
+   * The month every length in the PDF is counted to, on its last page (#55).
    *
-   * It sits in the bottom margin, so it takes no room from the CV: spotlight on LETTER has less than one body
-   * line to spare (#49). The page's own browser print is not this document and carries none.
-   * @param {Date} generatedOn - When the generator ran
+   * The owner chose this over the day the PDF was made: CI rebuilds on every push to main, and a recent day
+   * printed beside lengths counted to an older month would contradict them. The line always agrees with the
+   * lengths, and the same commit makes the same document on any day. It sits in the bottom margin, where it
+   * takes no room from the CV: spotlight on LETTER has less than one body line to spare (#49).
+   * @param {{year: number, month: number}} asOf - The profile's month
    * @param {(key: string) => string} t - The catalogue
-   * @param {string} locale - The CV's language, which `Intl` dates it in
+   * @param {string} locale - The CV's language, which `Intl` writes the month in
    * @param {number} side - The page's side margin, which the line lines up with
    * @returns {(page: number, pages: number) => object|null} pdfmake's footer
    */
-  generatedLine(generatedOn, t, locale, side) {
-    const day = new Intl.DateTimeFormat(dateLocale(locale), {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-    const text = `${t('cv:pdf.generated')} ${day.format(generatedOn)}`;
+  asOfLine(asOf, t, locale, side) {
+    const month = new Intl.DateTimeFormat(dateLocale(locale), { year: 'numeric', month: 'long' });
+    const text = `${t('cv:pdf.asOf')} ${month.format(new Date(asOf.year, asOf.month - 1, 1))}`;
     return (page, pages) =>
       page === pages ? { text, style: 'meta', margin: [side, 0, side, 0] } : null;
   }

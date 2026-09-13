@@ -24,6 +24,6 @@
     "attachments": "Anlagen"
   },
   "pdf": {
-    "generated": "Erstellt am"
+    "asOf": "Stand:"
   }
 }

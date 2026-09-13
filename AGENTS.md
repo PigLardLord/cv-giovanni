@@ -414,6 +414,6 @@ Settled, and not to be undone by someone reclaiming space:
   previous layout ran to about 100. Buying the margin back means cutting content, which is the
   candidate's call.
 - **Nothing prints inside the 12mm a printer can clip, with one exception.** The 40pt top and bottom
-  margins clear it. The downloadable PDF's date line (#55) sits at the top of the bottom margin, 10.3mm from
+  margins clear it. The downloadable PDF's "As of" line (#55), the month every length is counted to, sits at the top of the bottom margin, 10.3mm from
   the edge: moving it clear with a 46pt bottom margin pushed spotlight on LETTER to a third page. A printer
-  that clips 12mm loses the date, never the CV.
+  that clips 12mm loses that line, never the CV.
