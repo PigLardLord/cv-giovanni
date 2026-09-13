@@ -10,7 +10,7 @@
  * about profiles, locales, filenames or where the bytes end up.
  */
 import { readableAddress } from '../domain/ReadableUrl.js';
-import { periodText } from '../domain/Tenure.js';
+import { dateLocale, periodText } from '../domain/Tenure.js';
 
 export class PdfLayout {
   /**
@@ -276,9 +276,13 @@ export class PdfLayout {
    * @returns {(page: number, pages: number) => object|null} pdfmake's footer
    */
   generatedLine(generatedOn, t, locale, side) {
-    const day = new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'long', day: 'numeric' });
+    const day = new Intl.DateTimeFormat(dateLocale(locale), {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
     const text = `${t('cv:pdf.generated')} ${day.format(generatedOn)}`;
     return (page, pages) =>
-      page === pages ? { text, style: 'meta', margin: [side, 8, side, 0] } : null;
+      page === pages ? { text, style: 'meta', margin: [side, 0, side, 0] } : null;
   }
 }

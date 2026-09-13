@@ -413,3 +413,7 @@ Settled, and not to be undone by someone reclaiming space:
   LETTER above it. That is the price of two pages at 9.3pt, and it is a deliberate trade: the
   previous layout ran to about 100. Buying the margin back means cutting content, which is the
   candidate's call.
+- **Nothing prints inside the 12mm a printer can clip, with one exception.** The 40pt top and bottom
+  margins clear it. The downloadable PDF's date line (#55) sits at the top of the bottom margin, 10.3mm from
+  the edge: moving it clear with a 46pt bottom margin pushed spotlight on LETTER to a third page. A printer
+  that clips 12mm loses the date, never the CV.

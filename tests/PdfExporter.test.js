@@ -379,7 +379,7 @@ describe('the length of each role, and the day the PDF was made (#55)', () => {
     });
 
     expect(definition.footer(1, 2)).toBeFalsy();
-    expect(JSON.stringify(definition.footer(2, 2))).toContain('Generated September 13, 2026');
+    expect(JSON.stringify(definition.footer(2, 2))).toContain('Generated 13 September 2026');
   });
 
   test('a document built without a day of making names none', () => {

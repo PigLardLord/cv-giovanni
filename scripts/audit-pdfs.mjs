@@ -195,8 +195,11 @@ for (const filename of pdfFiles) {
           )
         )
       : [];
-  const room = lastPage?.lines.length
-    ? roomLeft(lastPage, isCoverLetter(filename) ? letterSettings : cvSettings)
+  const settings = isCoverLetter(filename) ? letterSettings : cvSettings;
+  // A last page can hold nothing but the date line in its bottom margin (#55): there is no content to measure
+  // from, and the page count is what fails.
+  const room = lastPage?.lines.some(({ top }) => top < lastPage.height - settings.bottomMargin)
+    ? roomLeft(lastPage, settings)
     : null;
   const pageTwo =
     pages > 1
