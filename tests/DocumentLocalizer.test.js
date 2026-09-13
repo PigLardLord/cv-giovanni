@@ -1,5 +1,6 @@
 import { JSDOM } from 'jsdom';
 import { DocumentLocalizer } from '../core/DocumentLocalizer.js';
+import { CvDocument } from '../domain/CvDocument.js';
 
 describe('DocumentLocalizer', () => {
   test('localizes text, attributes, metadata and HTML language', () => {
@@ -14,7 +15,7 @@ describe('DocumentLocalizer', () => {
     };
     const i18n = { language: 'de', t: (key) => messages[key] };
 
-    new DocumentLocalizer(i18n).apply(document, { name: 'Giovanni Trovato' });
+    new DocumentLocalizer(i18n).apply(document, new CvDocument({ name: 'Giovanni Trovato' }));
 
     expect(document.documentElement.lang).toBe('de');
     expect(document.title).toBe('Giovanni Trovato – Lebenslauf');

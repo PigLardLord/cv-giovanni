@@ -4,11 +4,11 @@ export class DocumentLocalizer {
     this.i18n = i18n;
   }
 
-  apply(root, data = {}) {
+  apply(root, cv = {}) {
     if (!root || !this.i18n) return;
 
     root.documentElement.lang = this.i18n.language;
-    root.title = this.i18n.t('meta.title', { name: data.name || '' });
+    root.title = this.i18n.t('meta.title', { name: cv.identity?.name || '' });
 
     root.querySelectorAll('[data-i18n]').forEach((element) => {
       const key = element.dataset.i18n;
@@ -22,7 +22,7 @@ export class DocumentLocalizer {
       element.dataset.i18nAttr.split(',').forEach((mapping) => {
         const [attribute, key] = mapping.split(':').map((part) => part.trim());
         if (attribute && key) {
-          element.setAttribute(attribute, this.i18n.t(key, { name: data.name || '' }));
+          element.setAttribute(attribute, this.i18n.t(key, { name: cv.identity?.name || '' }));
         }
       });
     });

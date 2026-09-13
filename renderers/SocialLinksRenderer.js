@@ -8,7 +8,7 @@ export class SocialLinksRenderer extends BaseRenderer {
     const container = this.querySelector(root, '.social-links');
     if (!container) return;
 
-    const anchors = data.social
+    const anchors = data.identity.social
       .filter((link) => !!link)
       .map((link) => this.createSocialLink(root, link));
 
@@ -32,6 +32,6 @@ export class SocialLinksRenderer extends BaseRenderer {
   }
 
   validate(data) {
-    return this.validateFields(data, ['social']) && Array.isArray(data.social);
+    return super.validate(data) && Array.isArray(data.identity?.social);
   }
 }

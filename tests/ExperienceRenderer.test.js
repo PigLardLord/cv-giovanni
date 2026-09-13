@@ -1,5 +1,6 @@
 import { ExperienceRenderer } from '../renderers/ExperienceRenderer.js';
 import { JSDOM } from 'jsdom';
+import { fedTheModel } from './support/model.js';
 
 describe('ExperienceRenderer', () => {
   let document;
@@ -15,7 +16,7 @@ describe('ExperienceRenderer', () => {
       </html>
     `);
     document = dom.window.document;
-    renderer = new ExperienceRenderer();
+    renderer = fedTheModel(new ExperienceRenderer());
   });
 
   test('holds every hyphenated compound on one line without touching the text', () => {

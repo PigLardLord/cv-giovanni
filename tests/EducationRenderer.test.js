@@ -1,5 +1,6 @@
 import { EducationRenderer } from '../renderers/EducationRenderer.js';
 import { JSDOM } from 'jsdom';
+import { fedTheModel } from './support/model.js';
 
 describe('EducationRenderer', () => {
   let document;
@@ -15,7 +16,7 @@ describe('EducationRenderer', () => {
       </html>
     `);
     document = dom.window.document;
-    renderer = new EducationRenderer();
+    renderer = fedTheModel(new EducationRenderer());
   });
 
   test('renders education entries correctly', () => {

@@ -12,7 +12,7 @@ export class ExperienceRenderer extends BaseRenderer {
     const container = this.getElement(root, 'experience');
     if (!container) return;
 
-    this.renderItems(container, data.relevant_experience, (job) => this.createJobEntry(root, job));
+    this.renderItems(container, data.experience, (job) => this.createJobEntry(root, job));
   }
 
   createJobEntry(root, job) {
@@ -49,8 +49,6 @@ export class ExperienceRenderer extends BaseRenderer {
   }
 
   validate(data) {
-    return (
-      this.validateFields(data, ['relevant_experience']) && Array.isArray(data.relevant_experience)
-    );
+    return this.validateFields(data, ['experience']) && Array.isArray(data.experience);
   }
 }
