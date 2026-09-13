@@ -126,6 +126,19 @@
     margin-left: -1px;
   }
 
+  /* Where an editor puts Run: the PDF at the right end of the toolbar, one click away at every scroll
+     position instead of at the footer, 4,000px down (#59). The toolbar is pinned, and so is this. */
+  body[data-layout='nerd'] .toolbar-download:not([hidden]) {
+    position: fixed;
+    top: calc((var(--x-toolbar) - 30px) / 2);
+    right: 18px;
+    z-index: 4;
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    padding: 0 12px;
+  }
+
   /* --- The three panes ------------------------------------------------------------------------ */
   body[data-layout='nerd'] .source-view {
     display: grid;
@@ -612,6 +625,18 @@
   body[data-layout='nerd'] .layout-switcher a {
     flex: 1 1 0;
     padding: 7px 4px;
+  }
+
+  /* On a phone the toolbar scrolls away with the page, so the PDF takes the row under it, still at the
+     top of the page. */
+  body[data-layout='nerd'] .toolbar-download:not([hidden]) {
+    position: static;
+    display: flex;
+    flex: none;
+    justify-content: center;
+    min-height: 44px;
+    margin: 10px 12px 0;
+    padding: 9px 12px;
   }
 
   body[data-layout='nerd'] .source-tabs,

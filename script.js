@@ -17,6 +17,7 @@ import { CertificationsRenderer } from './renderers/CertificationsRenderer.js';
 import { SocialLinksRenderer } from './renderers/SocialLinksRenderer.js';
 import { InterestsRenderer } from './renderers/InterestsRenderer.js';
 import { SourceRenderer } from './renderers/SourceRenderer.js';
+import { offerDownload } from './renderers/downloadLinks.js';
 
 /**
  * Lets the page paint. style.css holds the first paint until the CV is in the page, because what the
@@ -94,19 +95,21 @@ app.registerRenderer('source', new SourceRenderer(i18n));
 const currentData = await app.initialize(document);
 const pdfExporter = new PdfExporter(null, i18n);
 const pdfOptions = { profile: profileSelection.profile, locale, layout };
-const downloadLink = document.getElementById('download-pdf');
-if (downloadLink) {
+if (document.querySelector('[data-download-pdf]')) {
   const released = await fetch('generated/manifest.json')
     .then((response) => (response.ok ? response.json() : null))
     .then((manifest) => manifest?.released)
     .catch(() => null);
-  if (pdfExporter.isAvailable(released, currentData, pdfOptions)) {
-    downloadLink.href = pdfExporter.filePath(currentData, pdfOptions);
-    downloadLink.download = pdfExporter.downloadName(currentData);
-  } else {
-    // No file for this profile, locale and layout: a hidden button beats one that 404s.
-    downloadLink.hidden = true;
-  }
+  // No file for this profile, locale and layout: a hidden button beats one that 404s.
+  offerDownload(
+    document,
+    pdfExporter.isAvailable(released, currentData, pdfOptions)
+      ? {
+          href: pdfExporter.filePath(currentData, pdfOptions),
+          filename: pdfExporter.downloadName(currentData)
+        }
+      : null
+  );
 }
 document.getElementById('print-browser')?.addEventListener('click', () => window.print());
 await reveal();
