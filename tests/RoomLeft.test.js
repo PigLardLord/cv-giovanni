@@ -48,4 +48,13 @@ describe('the room left on a page', () => {
   test('a page with no text has nothing to measure from', () => {
     expect(() => roomLeft({ width: 612, height: 792, lines: [] }, settings)).toThrow(/no line/);
   });
+
+  // The downloadable PDF prints the day it was made in the bottom margin of its last page (#55). That line
+  // is not content, and the room is measured above the margin, not above it.
+  test('ignores a line printed in the bottom margin', () => {
+    const [full] = pages(extract);
+    const withFooter = { ...full, lines: [...full.lines, { top: 760, bottom: 770.5 }] };
+
+    expect(roomLeft(withFooter, settings)).toEqual(roomLeft(full, settings));
+  });
 });

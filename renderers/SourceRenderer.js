@@ -34,6 +34,7 @@ export class SourceRenderer extends BaseRenderer {
     if (!code || !this.validate(data)) return;
 
     const source = this.layout.compose(data, {
+      locale: this.i18n?.language || 'en',
       t: (key, options) => (this.i18n ? this.i18n.t(key, options) : key)
     });
 

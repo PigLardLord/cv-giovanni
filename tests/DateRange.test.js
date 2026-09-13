@@ -129,3 +129,11 @@ describe('what a career is made of', () => {
     expect(DateRange.shapes(['August 2018 – Present', '08/2018 – 07/2019', '2015 – 2018'])).toBe(3);
   });
 });
+
+// The page and the PDF write a role's length after its period (#55). What a reader compares is the dates.
+test('keeps the dates apart from the length that trails them', () => {
+  expect(DateRange.parse('September 2015 – July 2018 (2 years, 11 months)').span).toBe(
+    'September 2015 – July 2018'
+  );
+  expect(DateRange.parse('August 2018 – Present').span).toBe('August 2018 – Present');
+});

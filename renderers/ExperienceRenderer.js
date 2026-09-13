@@ -1,4 +1,5 @@
 import { BaseRenderer } from './BaseRenderer.js';
+import { periodText } from '../domain/Tenure.js';
 
 export class ExperienceRenderer extends BaseRenderer {
   constructor(i18n = null) {
@@ -12,10 +13,13 @@ export class ExperienceRenderer extends BaseRenderer {
     const container = this.getElement(root, 'experience');
     if (!container) return;
 
-    this.renderItems(container, data.experience, (job) => this.createJobEntry(root, job));
+    const locale = this.i18n?.language || 'en';
+    this.renderItems(container, data.experience, (job) =>
+      this.createJobEntry(root, job, periodText(data, job, locale))
+    );
   }
 
-  createJobEntry(root, job) {
+  createJobEntry(root, job, period = job.period) {
     const at = this.i18n ? this.i18n.t('experience.at', { ns: 'cv' }) : 'at';
     const entry = this.createElement(
       root,
@@ -26,7 +30,7 @@ export class ExperienceRenderer extends BaseRenderer {
         <span class="job-title">${job.title}</span> ${at}
         <span class="job-company">${job.company}</span>, ${job.location}
       </div>
-      <div class="job-period">${job.period}</div>
+      <div class="job-period">${period}</div>
       ${job.summary ? `<p class="job-summary">${job.summary}</p>` : ''}
       ${job.description ? `<p class="job-description">${job.description}</p>` : ''}
     `

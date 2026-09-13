@@ -219,6 +219,16 @@ export class DateRange {
     return year ? { year: Number(year[1]), month: null } : null;
   }
 
+  /**
+   * The range as written, without the length or note that trails it. The page and the PDF write a role's
+   * length after its period (#55), and what a reader compares is the dates.
+   */
+  get span() {
+    return this.trailing
+      ? this.raw.slice(0, this.raw.length - this.trailing.length).trim()
+      : this.raw;
+  }
+
   /** Months covered, inclusive of both ends — the tenure a CV means by "2015 – 2018". */
   get months() {
     return this.monthsAt(null);

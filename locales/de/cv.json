@@ -22,5 +22,8 @@
     "salutationAnonymous": "Sehr geehrte Damen und Herren",
     "closing": "Mit freundlichen Grüßen",
     "attachments": "Anlagen"
+  },
+  "pdf": {
+    "generated": "Erstellt am"
   }
 }

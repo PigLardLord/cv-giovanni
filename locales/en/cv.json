@@ -22,5 +22,8 @@
     "salutationAnonymous": "Dear Hiring Team",
     "closing": "Kind regards,",
     "attachments": "Enclosed"
+  },
+  "pdf": {
+    "generated": "Generated"
   }
 }

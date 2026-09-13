@@ -12,6 +12,7 @@
     "~4,800 Android tests, 82% of app screens UI-tested, 75% faster CI",
     "MDM clients in production across tens of thousands of managed devices"
   ],
+  "asOf": "2026-09",
   "relevant_experience": [
     {
       "title": "Mobile Software Engineer / Technical Owner, iOS & Android",
@@ -31,7 +32,7 @@
       "title": "Mobile Developer",
       "company": "Apparound",
       "location": "Pisa, Italy",
-      "period": "September 2015 – July 2018 (3 years)",
+      "period": "September 2015 – July 2018",
       "summary": "B2B sales-automation platform for enterprise field sales teams.",
       "highlights": [
         "Built native iOS and Android features with an offline-first architecture, keeping field sales teams productive without connectivity.",
@@ -43,7 +44,7 @@
       "title": "Mobile Developer Intern",
       "company": "Marte 5",
       "location": "Livorno, Italy",
-      "period": "May 2015 – August 2015 (4 months)",
+      "period": "May 2015 – August 2015",
       "summary": "Built production Android augmented-reality applications for manufacturing and automotive clients using Java, Vuforia and Wikitude.",
       "highlights": []
     }

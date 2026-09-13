@@ -15,7 +15,7 @@ Professional Experience
 
 Mobile Software Engineer / Technical Owner, iOS & Android
 Cortado Mobile Solutions · Berlin (remote)
-August 2018 – Present
+August 2018 – Present (8 years, 2 months)
 
 Enterprise mobility and device management (MDM, secure printing) in a mobile team
 of 3–7 engineers.
@@ -39,7 +39,7 @@ and SBOM generation, TestFlight and Play Store staged rollout.
 
 Mobile Developer
 Apparound · Pisa, Italy
-September 2015 – July 2018 (3 years)
+September 2015 – July 2018 (2 years, 11 months)
 
 B2B sales-automation platform for enterprise field sales teams.
 Built native iOS and Android features with an offline-first architecture, keeping

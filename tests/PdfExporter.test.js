@@ -340,3 +340,51 @@ describe('PdfExporter — what has to survive extraction and assistive reading',
     bodyColumns.forEach((column) => expect(column.width).toBeLessThanOrEqual(380));
   });
 });
+
+describe('the length of each role, and the day the PDF was made (#55)', () => {
+  const profile = {
+    name: 'Ada Lovelace',
+    title: 'Engineer',
+    asOf: '2026-09',
+    relevant_experience: [
+      {
+        title: 'Engineer',
+        company: 'Acme',
+        location: 'Berlin',
+        period: 'August 2018 – Present',
+        summary: 'Summary.',
+        highlights: []
+      }
+    ]
+  };
+  const exporter = new PdfExporter(null, {
+    t: (key) => (key === 'cv:pdf.generated' ? 'Generated' : key)
+  });
+
+  test('the role head gives the role its length, counted to the profile’s month', () => {
+    const definition = exporter.buildDocument(profile, { layout: 'technical', locale: 'en' });
+
+    expect(JSON.stringify(definition.content)).toContain(
+      'August 2018 – Present (8 years, 2 months)'
+    );
+  });
+
+  // In the bottom margin, where it takes no room from the CV: spotlight on LETTER has less than one body
+  // line to spare (#49).
+  test('the downloadable PDF says on its last page, in the margin, the day it was made', () => {
+    const definition = exporter.buildDocument(profile, {
+      layout: 'spotlight',
+      locale: 'en',
+      generatedOn: new Date(2026, 8, 13)
+    });
+
+    expect(definition.footer(1, 2)).toBeFalsy();
+    expect(JSON.stringify(definition.footer(2, 2))).toContain('Generated September 13, 2026');
+  });
+
+  test('a document built without a day of making names none', () => {
+    expect(
+      exporter.buildDocument(profile, { layout: 'nerd', locale: 'en' }).footer
+    ).toBeUndefined();
+  });
+});
