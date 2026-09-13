@@ -1,4 +1,5 @@
 import { DataLoader } from './DataLoader.js';
+import { CvDocument } from '../domain/CvDocument.js';
 import { RendererContainer } from './RendererContainer.js';
 import { ErrorRenderer } from '../renderers/ErrorRenderer.js';
 
@@ -12,13 +13,15 @@ export class CVApplication {
     rendererContainer = new RendererContainer(),
     documentLocalizer = null,
     i18n = null,
-    errorRenderer = new ErrorRenderer()
+    errorRenderer = new ErrorRenderer(),
+    documentFactory = (data) => new CvDocument(data)
   ) {
     this.dataLoader = dataLoader;
     this.rendererContainer = rendererContainer;
     this.documentLocalizer = documentLocalizer;
     this.i18n = i18n;
     this.errorRenderer = errorRenderer;
+    this.documentFactory = documentFactory;
     this.isInitialized = false;
   }
 
@@ -40,8 +43,12 @@ export class CVApplication {
       const data = await this.dataLoader.loadCVData();
       this.currentData = data;
       this.root = root;
-      if (this.documentLocalizer) this.documentLocalizer.apply(root, data);
-      this.rendererContainer.renderAll(root, data);
+      // Every part of the page reads the model, as the PDF, the cover letter and the audits do: a default
+      // or a renamed key added to CvDocument reaches the page and the PDF alike (#81). The profile itself
+      // is returned, because the PDF exporter builds its own model from it.
+      const cv = this.documentFactory(data);
+      if (this.documentLocalizer) this.documentLocalizer.apply(root, cv);
+      this.rendererContainer.renderAll(root, cv);
       this.isInitialized = true;
       return data;
     } catch (error) {
