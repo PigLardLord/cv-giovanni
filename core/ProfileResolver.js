@@ -10,6 +10,18 @@ export class ProfileResolver {
     return name && SAFE_NAME.test(name) ? name : null;
   }
 
+  /**
+   * The languages the requested profile, or the default one, is published in. The page takes a guessed
+   * language only from these (#103).
+   * @param {object|undefined} manifest - `config/cv-manifest.json`
+   * @param {string} search - The address's query
+   * @returns {string[]} Languages, none for a profile the manifest does not list
+   */
+  publishedLocales(manifest, search = '') {
+    const profileName = this.requestedProfile(search) || manifest?.defaultProfile;
+    return Object.keys(manifest?.profiles?.[profileName]?.locales || {});
+  }
+
   async loadManifest() {
     const response = await fetch(this.manifestUrl);
     if (!response.ok) throw new Error(`Unable to load CV manifest (${response.status})`);
