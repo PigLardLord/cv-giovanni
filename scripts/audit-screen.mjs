@@ -266,19 +266,36 @@ const selection = (start, end) => `(() => {
 })()`;
 
 /**
- * Every copy of the Download link, top copy first: whether it shows, how tall it renders, and where it spans
- * from the top of the page, so the first screen is the first screen whatever the page was scrolled to.
+ * Every copy of the Download link, top copy first: whether it shows, how tall it renders, where it spans from
+ * the top of the page, so the first screen is the first screen whatever the page was scrolled to, and on how
+ * many lines its label renders: the link's own text, not the icon `aria-hidden` hides, one rectangle per line
+ * box. Nothing marks the label to find it by, because script.js drops `data-i18n` once it translates (#107).
  */
-const downloadLinks = `[...document.querySelectorAll('[data-download-pdf]')].map((link) => {
-  const box = link.getBoundingClientRect();
-  return {
-    place: link.closest('footer') ? 'footer' : 'top',
-    display: getComputedStyle(link).display,
-    top: Math.round(box.top + scrollY),
-    bottom: Math.round(box.bottom + scrollY),
-    height: Math.round(box.height)
+const downloadLinks = `(() => {
+  const lines = (link) => {
+    const walker = document.createTreeWalker(link, NodeFilter.SHOW_TEXT);
+    const tops = [];
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      if (!node.textContent.trim() || node.parentElement.closest('[aria-hidden="true"]')) continue;
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      for (const rect of range.getClientRects()) if (rect.width > 0) tops.push(rect.top);
+    }
+    tops.sort((a, b) => a - b);
+    return tops.filter((top, index) => index === 0 || top - tops[index - 1] > 2).length;
   };
-})`;
+  return [...document.querySelectorAll('[data-download-pdf]')].map((link) => {
+    const box = link.getBoundingClientRect();
+    return {
+      place: link.closest('footer') ? 'footer' : 'top',
+      display: getComputedStyle(link).display,
+      top: Math.round(box.top + scrollY),
+      bottom: Math.round(box.bottom + scrollY),
+      height: Math.round(box.height),
+      lines: lines(link)
+    };
+  });
+})()`;
 
 /** The top copy after scrolling to the end: still inside the viewport, and what a tap on its middle would hit. */
 const afterScrolling = `new Promise((resolve) => {
@@ -456,11 +473,11 @@ const report = [
   '',
   '## The Download PDF link',
   '',
-  '| Layout | Width | Top copy | Heights | Focus ring |',
-  '|---|---:|---:|---:|---:|',
+  '| Layout | Width | Top copy | Heights | Label lines | Focus ring |',
+  '|---|---:|---:|---:|---:|---:|',
   ...rows.map(
     ({ layout, width, download }) =>
-      `| ${layout} | ${width}px | ${download.top} | ${download.heights} | ${download.ring} |`
+      `| ${layout} | ${width}px | ${download.top} | ${download.heights} | ${download.lines} | ${download.ring} |`
   ),
   '',
   'Checks, the four the product review of #59 measured by hand (#101): hidden without a PDF — loaded',
@@ -468,9 +485,10 @@ const report = [
   'top copy inside the first screen and, where the layout pins it, still inside the viewport and',
   'topmost after scrolling to the end; tappable — on a phone every visible copy renders at least 43px',
   'and the top copy 44px, ±1; and a visible focus — reached with Tab, a drawn ring that clears 3:1',
-  'against the background just outside the link, once its transitions finish. Top copy is where it',
-  'spans from the top of the page, heights are every visible copy in page order, and the ring is its',
-  'contrast.'
+  'against the background just outside the link, once its transitions finish. A fifth since #107:',
+  'every visible copy renders its label on one line, at both widths. Top copy is where it spans from',
+  'the top of the page; heights and label lines are every visible copy in page order; the ring is',
+  'its contrast.'
 ].join('\n');
 
 await writeReport(new URL(target.reportPath('SCREEN_AUDIT.md'), projectUrl), `${report}\n`);

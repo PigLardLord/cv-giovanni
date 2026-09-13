@@ -1209,4 +1209,19 @@ body[data-layout='technical'] {
     margin-bottom: 0.5rem;
     padding: 9px 12px;
   }
+
+  /* On a phone the footer's two buttons stack, full width and each as tall as the top copy. Side by side at
+     390px, 32px of padding a side left "Download PDF" 81px of the 102px its one line takes, and both labels
+     broke in two (#107). */
+  body[data-layout='spotlight'] .print-footer,
+  body[data-layout='technical'] .print-footer {
+    flex-direction: column;
+  }
+
+  body[data-layout='spotlight'] .print-footer .print-button,
+  body[data-layout='technical'] .print-footer .print-button {
+    justify-content: center;
+    min-height: 44px;
+    padding: 9px 12px;
+  }
 }

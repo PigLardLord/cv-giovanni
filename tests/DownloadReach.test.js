@@ -12,8 +12,8 @@ const phone = { width: 390, height: 844, mobile: true };
 const desktop = { width: 1280, height: 900, mobile: false };
 const measured = {
   links: [
-    { place: 'top', display: 'flex', top: 97, bottom: 141, height: 44 },
-    { place: 'footer', display: 'inline-flex', top: 5376, bottom: 5431, height: 55 }
+    { place: 'top', display: 'flex', top: 97, bottom: 141, height: 44, lines: 1 },
+    { place: 'footer', display: 'inline-flex', top: 5376, bottom: 5431, height: 55, lines: 1 }
   ],
   withoutPdf: [
     { place: 'top', display: 'none' },
@@ -49,7 +49,8 @@ describe('the Download link on one render', () => {
       hiddenWithoutPdf: true,
       reachable: true,
       tappable: true,
-      visibleFocus: true
+      visibleFocus: true,
+      labelOnOneLine: true
     });
   });
 
@@ -118,9 +119,30 @@ describe('the Download link on one render', () => {
     expect(downloadReach(measured, phone).measures).toEqual({
       top: '97–141px',
       heights: '44 · 55px',
+      lines: '1 · 1',
       ring: '6.82:1'
     });
     const nothing = downloadReach({ links: [], withoutPdf: [], focus: { focused: false } }, phone);
-    expect(nothing.measures).toEqual({ top: '—', heights: '—', ring: '—' });
+    expect(nothing.measures).toEqual({ top: '—', heights: '—', lines: '—', ring: '—' });
+  });
+
+  // #107: on a phone the footer's buttons broke "Download PDF" in two, and the button grew to 78px: tall enough
+  // to tap, so no height check saw it.
+  test('a copy that breaks its label onto a second line fails, at any width', () => {
+    const broken = {
+      ...measured,
+      links: [measured.links[0], { ...measured.links[1], height: 78, lines: 2 }]
+    };
+    const { checks, findings } = downloadReach(broken, desktop);
+
+    expect(checks.labelOnOneLine).toBe(false);
+    expect(findings.brokenLabel).toEqual(['the footer copy breaks its label onto 2 lines']);
+    expect(downloadReach(broken, phone).checks.tappable).toBe(true);
+  });
+
+  test('a copy that shows with no label rendered fails too', () => {
+    expect(downloadReach(withTop({ lines: 0 }), phone).findings.brokenLabel).toEqual([
+      'the top copy renders no label'
+    ]);
   });
 });
