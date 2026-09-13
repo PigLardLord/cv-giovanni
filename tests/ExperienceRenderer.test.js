@@ -121,4 +121,32 @@ describe('ExperienceRenderer', () => {
     ).toEqual(['Improved test coverage.', 'Automated releases.']);
     expect(document.querySelector('.job-description')).toBeNull();
   });
+
+  test('gives each role its length, counted to the month the profile is written as of (#55)', () => {
+    renderer.render(document, {
+      asOf: '2026-09',
+      relevant_experience: [
+        {
+          title: 'Engineer',
+          company: 'Acme',
+          location: 'Berlin',
+          period: 'August 2018 – Present',
+          highlights: []
+        },
+        { title: 'Intern', company: 'Marte 5', location: 'Livorno', period: '2015', highlights: [] }
+      ]
+    });
+
+    expect(
+      [...document.querySelectorAll('.job-period')].map((period) => period.textContent)
+    ).toEqual(['August 2018 – Present (8 years, 2 months)', '2015']);
+    // Its own element, so a narrow line breaks between the dates and the length, never inside the length.
+    expect(
+      [...document.querySelectorAll('.job-period .job-tenure')].map((tenure) => tenure.textContent)
+    ).toEqual(['(8 years, 2 months)']);
+    // Each unit stays whole, so a column too narrow for the length breaks after the comma, never inside "2 months".
+    expect(
+      [...document.querySelectorAll('.job-tenure .no-break')].map((unit) => unit.textContent)
+    ).toEqual(['8 years', '2 months']);
+  });
 });

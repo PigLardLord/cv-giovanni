@@ -1,4 +1,5 @@
 import { BaseRenderer } from './BaseRenderer.js';
+import { tenureText } from '../domain/Tenure.js';
 
 export class ExperienceRenderer extends BaseRenderer {
   constructor(i18n = null) {
@@ -12,10 +13,13 @@ export class ExperienceRenderer extends BaseRenderer {
     const container = this.getElement(root, 'experience');
     if (!container) return;
 
-    this.renderItems(container, data.experience, (job) => this.createJobEntry(root, job));
+    const locale = this.i18n?.language || 'en';
+    this.renderItems(container, data.experience, (job) =>
+      this.createJobEntry(root, job, tenureText(data.monthsIn(job), locale))
+    );
   }
 
-  createJobEntry(root, job) {
+  createJobEntry(root, job, tenure = '') {
     const at = this.i18n ? this.i18n.t('experience.at', { ns: 'cv' }) : 'at';
     const entry = this.createElement(
       root,
@@ -26,7 +30,7 @@ export class ExperienceRenderer extends BaseRenderer {
         <span class="job-title">${job.title}</span> ${at}
         <span class="job-company">${job.company}</span>, ${job.location}
       </div>
-      <div class="job-period">${job.period}</div>
+      <div class="job-period">${job.period}${tenure ? ` <span class="job-tenure">(${this.wholeUnits(tenure)})</span>` : ''}</div>
       ${job.summary ? `<p class="job-summary">${job.summary}</p>` : ''}
       ${job.description ? `<p class="job-description">${job.description}</p>` : ''}
     `
@@ -46,6 +50,16 @@ export class ExperienceRenderer extends BaseRenderer {
     }
 
     return entry;
+  }
+
+  /**
+   * A length with each number held to its unit: "8 years" and "2 months" never break inside, so a line too
+   * narrow for the whole length breaks after the comma (#55).
+   * @param {string} tenure - The length as Intl writes it
+   * @returns {string} Markup
+   */
+  wholeUnits(tenure) {
+    return tenure.replace(/(\d+)\s+(\p{L}+)/gu, '<span class="no-break">$1 $2</span>');
   }
 
   validate(data) {

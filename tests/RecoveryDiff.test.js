@@ -167,3 +167,11 @@ describe('each defect shows up as its own kind of damage', () => {
     expect(diff.links.every((link) => link.recovered)).toBe(false);
   });
 });
+
+// The page and the PDF write each role's length after its period, while the profile's period holds only the
+// dates (#55). The dates recovered are what is compared.
+test('a recovered period reads exact though the document wrote its length after it', () => {
+  expect(diffOf('clean-english').experience.map((role) => role.period)).toEqual(
+    document.experience.map(() => 'exact')
+  );
+});

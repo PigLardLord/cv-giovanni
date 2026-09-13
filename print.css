@@ -764,6 +764,13 @@ body[data-layout='nerd'] .job-period {
   color: #555 !important;
 }
 
+/* Nerd Mode prints the dates in a 52pt column, where the length cannot fit on the dates' line: it takes
+   its own lines under them rather than breaking the dates' last line in two (#55). */
+body[data-layout='nerd'] .job-tenure {
+  display: block;
+  white-space: normal;
+}
+
 body[data-layout='nerd'] .job-header {
   grid-row: 1;
 }

@@ -28,6 +28,7 @@
  * It takes the raw profile, as every page renderer does, and knows nothing about the DOM.
  */
 import { readableAddress } from '../domain/ReadableUrl.js';
+import { tenureText } from '../domain/Tenure.js';
 
 /**
  * Who the candidate is comes first, then the evidence — experience before skills — and last how
@@ -131,7 +132,7 @@ export class SwiftSourceLayout {
    *   and `current` on the line the editor opens on; `outline` is the sections written, in order;
    *   `card` is what the preview shows
    */
-  compose(data = {}, { t = (key) => key } = {}) {
+  compose(data = {}, { t = (key) => key, locale = 'en' } = {}) {
     const typeName = swiftTypeName(identityOf(data).name);
     const lines = [];
     const outline = [];
@@ -155,7 +156,7 @@ export class SwiftSourceLayout {
     this.identity(data).forEach(([depth, tokens, extra]) => push(1 + depth, tokens, extra));
 
     SECTIONS.forEach((key) => {
-      const block = this[key](data);
+      const block = this[key](data, { locale });
       if (block.length === 0) return;
       if (lines.length > body) push(0);
 
@@ -234,7 +235,7 @@ export class SwiftSourceLayout {
     return lines;
   }
 
-  experience(data) {
+  experience(data, { locale = 'en' } = {}) {
     return this.collection(
       'experience',
       'Role',
@@ -246,6 +247,11 @@ export class SwiftSourceLayout {
             ['company', role.company],
             ['location', role.location],
             ['period', role.period],
+            // How long it lasted, counted to the profile's asOf (#55); nothing for a period written to the year.
+            [
+              'duration',
+              typeof data.monthsIn === 'function' ? tenureText(data.monthsIn(role), locale) : ''
+            ],
             ['summary', role.summary],
             ['description', role.description]
           ],

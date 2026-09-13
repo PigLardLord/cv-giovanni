@@ -149,7 +149,8 @@ export class RecoveryDiff {
       return {
         title: RecoveryDiff.verdict(job.title, value(role.title)),
         employer: RecoveryDiff.verdict(job.company, value(role.employer)),
-        period: RecoveryDiff.verdict(job.period, role.period?.raw || null),
+        // The dates, without the length a document writes after them (#55).
+        period: RecoveryDiff.verdict(job.period, role.period?.span || null),
         tripleAdjacent: role.tripleAdjacent,
         // Bodies come back as lines, not achievements, so the question is whether each
         // achievement's text survives inside the block — not whether the blocks match.
