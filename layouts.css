@@ -135,7 +135,7 @@
     z-index: 4;
     display: inline-flex;
     align-items: center;
-    height: 30px;
+    min-height: 30px;
     padding: 0 12px;
   }
 
@@ -632,8 +632,9 @@
   body[data-layout='nerd'] .toolbar-download:not([hidden]) {
     position: static;
     display: flex;
+    flex: none;
     justify-content: center;
-    height: auto;
+    min-height: 44px;
     margin: 10px 12px 0;
     padding: 9px 12px;
   }

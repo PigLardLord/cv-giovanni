@@ -50,9 +50,22 @@ describe('the Download PDF link', () => {
     expect(links(document).map((link) => link.hidden)).toEqual([true, true]);
   });
 
+  // A screen reader lists links by name, and two names for one file sound like two files.
+  test('every copy has the same accessible name', () => {
+    const name = (link) => {
+      const copy = link.cloneNode(true);
+      copy.querySelectorAll('[aria-hidden="true"]').forEach((decoration) => decoration.remove());
+      return copy.textContent.replace(/\s+/g, ' ').trim();
+    };
+
+    expect(links(load()).map(name)).toEqual(['Download PDF', 'Download PDF']);
+  });
+
   // `.print-button` sets `display`, which beats the browser's own rule for `[hidden]`: a hidden link
   // still showed, and would have 404ed.
   test('a hidden button stays hidden whatever display its class gives it', () => {
-    expect(read('style.css')).toMatch(/\.print-button\[hidden\]\s*\{\s*display:\s*none;/);
+    expect(read('style.css')).toMatch(
+      /\.print-button\[hidden\]\s*\{\s*display:\s*none\s*!important;/
+    );
   });
 });
