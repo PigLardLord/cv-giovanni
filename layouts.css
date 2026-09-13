@@ -126,6 +126,19 @@
     margin-left: -1px;
   }
 
+  /* Where an editor puts Run: the PDF at the right end of the toolbar, one click away at every scroll
+     position instead of at the footer, 4,000px down (#59). The toolbar is pinned, and so is this. */
+  body[data-layout='nerd'] .toolbar-download:not([hidden]) {
+    position: fixed;
+    top: calc((var(--x-toolbar) - 30px) / 2);
+    right: 18px;
+    z-index: 4;
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    padding: 0 12px;
+  }
+
   /* --- The three panes ------------------------------------------------------------------------ */
   body[data-layout='nerd'] .source-view {
     display: grid;
@@ -612,6 +625,18 @@
   body[data-layout='nerd'] .layout-switcher a {
     flex: 1 1 0;
     padding: 7px 4px;
+  }
+
+  /* On a phone the toolbar scrolls away with the page, so the PDF takes the row under it, still at the
+     top of the page. */
+  body[data-layout='nerd'] .toolbar-download:not([hidden]) {
+    position: static;
+    display: flex;
+    flex: none;
+    justify-content: center;
+    min-height: 44px;
+    margin: 10px 12px 0;
+    padding: 9px 12px;
   }
 
   body[data-layout='nerd'] .source-tabs,
@@ -1149,5 +1174,39 @@ body[data-layout='technical'] {
 @media print {
   .layout-switcher {
     display: none !important;
+  }
+}
+
+/* Impact Spotlight and Technical Profile: the Download link under the layout switcher, centred and only as
+   wide as its label, so a recruiter meets it without scrolling to the footer. A link to the CV with no
+   ?layout= opens Spotlight (#59). Each skin's .print-button gives it its colours. */
+@media screen {
+  body[data-layout='spotlight'] .toolbar-download:not([hidden]),
+  body[data-layout='technical'] .toolbar-download:not([hidden]) {
+    display: flex;
+    width: fit-content;
+    margin: 0 auto 0.75rem;
+  }
+
+  /* The skins draw a focused link's ring in their bright tone, which on the page's tint behind this button
+     falls under the 3:1 WCAG 1.4.11 asks: 2.71:1 in Spotlight, 2.90:1 in Technical. The button's own deep
+     tone clears it (#59). */
+  body[data-layout='spotlight'] .toolbar-download:focus-visible {
+    outline-color: var(--e-ember-deep);
+  }
+
+  body[data-layout='technical'] .toolbar-download:focus-visible {
+    outline-color: var(--t-blue-deep);
+  }
+}
+
+@media screen and (max-width: 768px) {
+  body[data-layout='spotlight'] .toolbar-download:not([hidden]),
+  body[data-layout='technical'] .toolbar-download:not([hidden]) {
+    width: auto;
+    justify-content: center;
+    min-height: 44px;
+    margin-bottom: 0.5rem;
+    padding: 9px 12px;
   }
 }

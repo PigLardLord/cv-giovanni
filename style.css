@@ -592,6 +592,21 @@ section {
   box-shadow: var(--shadow-md);
 }
 
+/* A button the page hides stays hidden. `display` above beats the browser's own rule for `[hidden]`,
+   so a Download link with no file behind it showed anyway, and would have 404ed (#59). Every skin styles
+   `.print-button` more specifically than this, so this wins outright rather than by a point. */
+.print-button[hidden] {
+  display: none !important;
+}
+
+/* The copy of the Download link at the top of the page. Each layout places it: under the switcher in Impact
+   Spotlight and Technical Profile, in the toolbar in Nerd Mode. With no layout yet, it stays out of the way (#59). */
+.toolbar-download {
+  display: none;
+  /* Above the name, so a reader who selects the whole page and pastes it would start with the button's words. */
+  user-select: none;
+}
+
 /* =============================================================================
    RESPONSIVE DESIGN
    ============================================================================= */
