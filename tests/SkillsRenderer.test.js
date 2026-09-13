@@ -1,5 +1,6 @@
 import { JSDOM } from 'jsdom';
 import { SkillsRenderer } from '../renderers/SkillsRenderer.js';
+import { fedTheModel } from './support/model.js';
 
 describe('SkillsRenderer', () => {
   const document = new JSDOM('<!doctype html><html><body><div id="skills"></div></body></html>')
@@ -10,7 +11,7 @@ describe('SkillsRenderer', () => {
   });
 
   test('renders grouped skills as compact categorized text', () => {
-    new SkillsRenderer().render(document, {
+    fedTheModel(new SkillsRenderer()).render(document, {
       skills: [
         {
           category: 'iOS',
@@ -30,7 +31,7 @@ describe('SkillsRenderer', () => {
   });
 
   test('keeps the legacy flat profile readable without ratings', () => {
-    new SkillsRenderer().render(document, {
+    fedTheModel(new SkillsRenderer()).render(document, {
       skills: [
         { name: 'Swift', level: 5 },
         { name: 'Git', level: 5 }
@@ -47,7 +48,7 @@ test('gives every skill its own element while the line still reads as it did', (
   // separators stay real text nodes, so copy/paste and any parser still see "Swift, SwiftUI"
   // rather than "SwiftSwiftUI": the same failure the PDF hit on hyphenated compounds.
   document.body.innerHTML = '<div id="skills"></div>';
-  new SkillsRenderer().render(document, {
+  fedTheModel(new SkillsRenderer()).render(document, {
     skills: [{ category: 'iOS', items: [{ name: 'Swift' }, { name: 'SwiftUI' }] }]
   });
   const chips = [...document.querySelectorAll('.skill-chip')].map((chip) => chip.textContent);

@@ -1,5 +1,6 @@
 import { InterestsRenderer } from '../renderers/InterestsRenderer.js';
 import { JSDOM } from 'jsdom';
+import { fedTheModel } from './support/model.js';
 
 describe('InterestsRenderer', () => {
   let document;
@@ -15,7 +16,7 @@ describe('InterestsRenderer', () => {
       </html>
     `);
     document = dom.window.document;
-    renderer = new InterestsRenderer();
+    renderer = fedTheModel(new InterestsRenderer());
   });
 
   const container = () => document.getElementById('interests');
@@ -62,7 +63,9 @@ describe('InterestsRenderer', () => {
 
 test('gives every interest its own element while the line still reads as it did', () => {
   document.body.innerHTML = '<section><div id="interests"></div></section>';
-  new InterestsRenderer().render(document, { interests: ['Robotics & IoT', 'Mountain Hiking'] });
+  fedTheModel(new InterestsRenderer()).render(document, {
+    interests: ['Robotics & IoT', 'Mountain Hiking']
+  });
   const chips = [...document.querySelectorAll('.interest-chip')].map((chip) => chip.textContent);
   expect(chips).toEqual(['Robotics & IoT', 'Mountain Hiking']);
   expect(document.querySelector('.interests-line').textContent).toBe(

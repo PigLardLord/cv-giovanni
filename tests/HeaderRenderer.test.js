@@ -1,5 +1,7 @@
 import { HeaderRenderer } from '../renderers/HeaderRenderer.js';
+import { CvDocument } from '../domain/CvDocument.js';
 import { JSDOM } from 'jsdom';
+import { fedTheModel } from './support/model.js';
 
 describe('HeaderRenderer', () => {
   let document;
@@ -20,7 +22,7 @@ describe('HeaderRenderer', () => {
       </html>
     `);
     document = dom.window.document;
-    renderer = new HeaderRenderer();
+    renderer = fedTheModel(new HeaderRenderer());
   });
 
   test('renders header information correctly', () => {
@@ -41,8 +43,8 @@ describe('HeaderRenderer', () => {
   });
 
   test('validates data correctly', () => {
-    expect(renderer.validate({ name: 'John' })).toBe(true);
-    expect(renderer.validate({})).toBe(false);
+    expect(renderer.validate(new CvDocument({ name: 'John' }))).toBe(true);
+    expect(renderer.validate(new CvDocument({}))).toBe(false);
     expect(renderer.validate(null)).toBe(false);
   });
 
@@ -69,9 +71,11 @@ describe('HeaderRenderer', () => {
   });
 
   test('localizes contact labels', () => {
-    const localized = new HeaderRenderer({
-      t: (key) => ({ 'contacts.email': 'E-Mail', 'contacts.phone': 'Telefon' })[key]
-    });
+    const localized = fedTheModel(
+      new HeaderRenderer({
+        t: (key) => ({ 'contacts.email': 'E-Mail', 'contacts.phone': 'Telefon' })[key]
+      })
+    );
     localized.render(document, { name: 'John', email: 'john@example.com', phone: '123' });
 
     expect(document.getElementById('contacts').textContent).toContain('E-Mail:');

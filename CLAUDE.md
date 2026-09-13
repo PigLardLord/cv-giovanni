@@ -46,7 +46,9 @@ Ports and adapters. `AGENTS.md` holds the product rules and the settled decision
 A CV is `profile × locale × layout`. `config/cv-manifest.json` declares the supported combinations;
 `ProfileResolver` reads `?profile=` and refuses an unknown one rather than falling back. Content
 lives in `profiles/<profile>/<locale>.json`, labels in `locales/<lang>/`, and `domain/CvDocument.js`
-normalises the two into the model every output boundary consumes.
+normalises the two into the model every output boundary consumes. On the page, `CVApplication` builds
+it once and hands it to the localizer, every renderer and Nerd Mode's editor, and
+`tests/PageRendersTheModel.test.js` fails when one of them reads the profile JSON instead (#81).
 
 There are **two artefacts and they do not share a DOM**: the page renders through `renderers/`,
 while the PDF is composed from the model by `adapters/PdfLayout.js` and written by pdfmake. That is
