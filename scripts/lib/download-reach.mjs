@@ -1,0 +1,115 @@
+/**
+ * Whether the Download PDF link does its job on one render, judged from what the browser measured (#101).
+ *
+ * #59 put a copy of the link at the top of every layout and hid every copy when no PDF exists for the profile.
+ * Its product reviews measured four things by hand. First, that a link with no file behind it hides, which had
+ * never worked: `.print-button` set `display` over `[hidden]`. Second, that the top copy is on the first screen,
+ * and stays on top where a layout pins it. Third, that a phone can tap it. Fourth, that a keyboard user can see it
+ * has focus. These are those measurements, as checks.
+ */
+
+/** WCAG 1.4.11 asks 3:1 of a focus indicator against the colours next to it. */
+export const RING_MINIMUM = 3;
+
+/** The height the page renders its top copy at on a phone; every copy clears it, less a pixel of rounding. */
+export const TAP_TARGET = 44;
+
+const channels = (css) => {
+  const match = /rgba?\(([^)]+)\)/.exec(css || '');
+  if (!match) throw new Error(`not an rgb() colour: ${css}`);
+  return match[1]
+    .split(/[\s,/]+/)
+    .filter(Boolean)
+    .map(Number);
+};
+
+const luminance = (css) => {
+  const linear = (channel) => {
+    const value = channel / 255;
+    return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  };
+  const [red, green, blue] = channels(css);
+  return 0.2126 * linear(red) + 0.7152 * linear(green) + 0.0722 * linear(blue);
+};
+
+/**
+ * The WCAG contrast ratio between two colours, as a browser computes them: `rgb(138, 47, 15)`.
+ * @param {string} first - One colour
+ * @param {string} second - The other
+ * @returns {number} The ratio, from 1 to 21
+ */
+export function contrast(first, second) {
+  const [lighter, darker] = [luminance(first), luminance(second)].sort((a, b) => b - a);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+/**
+ * @param {object} measured - What the browser measured
+ * @param {{ place: string, display: string, top: number, bottom: number, height: number }[]} measured.links -
+ *   Every copy of the link, top copy first, on the page as it loads
+ * @param {{ place: string, display: string }[]} measured.withoutPdf - Every copy, loaded with no PDF to offer
+ * @param {{ inViewport: boolean, topmost: boolean }|null} measured.afterScroll - The top copy after scrolling to
+ *   the end, for a layout that pins it; null where it scrolls away by design
+ * @param {{ focused: boolean, style: string, width: number, ring: string, behind: string }} measured.focus -
+ *   The top copy reached with Tab: its outline, and the colour behind it
+ * @param {{ height: number, mobile?: boolean }} size - The screen the page was rendered on
+ * @returns {{ checks: Record<string, boolean>, findings: Record<string, string[]>, measures: Record<string, string> }}
+ *   Each check, what broke it, and what was measured
+ */
+export function downloadReach(
+  { links = [], withoutPdf = [], afterScroll = null, focus = null } = {},
+  size = {}
+) {
+  const top = links.find((link) => link.place === 'top');
+  const shown = links.filter((link) => link.display !== 'none');
+  const drawn = Boolean(focus?.focused) && focus.style !== 'none' && focus.width > 0;
+  const ratio = drawn ? contrast(focus.ring, focus.behind) : 0;
+
+  const findings = {
+    shownWithoutPdf: withoutPdf
+      .filter((link) => link.display !== 'none')
+      .map((link) => `the ${link.place} copy computes display: ${link.display} with no PDF`),
+    unreachable: [
+      ...(!top || top.display === 'none'
+        ? ['no top copy shows']
+        : top.top < 0 || top.bottom > size.height
+          ? [`the top copy spans ${top.top}–${top.bottom}px of a ${size.height}px screen`]
+          : []),
+      ...(afterScroll && !(afterScroll.inViewport && afterScroll.topmost)
+        ? ['the pinned top copy is not on top after scrolling to the end']
+        : [])
+    ],
+    untappable: size.mobile
+      ? [
+          ...shown
+            .filter((link) => link.height < TAP_TARGET - 1)
+            .map((link) => `the ${link.place} copy renders ${link.height}px`),
+          ...(top && top.display !== 'none' && Math.abs(top.height - TAP_TARGET) > 1
+            ? [`the top copy renders ${top.height}px, not ${TAP_TARGET}`]
+            : [])
+        ]
+      : [],
+    faintFocus: !focus?.focused
+      ? ['Tab never reached the top copy']
+      : !drawn
+        ? [`no ring is drawn: outline-style ${focus.style}, ${focus.width}px wide`]
+        : ratio < RING_MINIMUM
+          ? [`its ring ${focus.ring} on ${focus.behind} is ${ratio.toFixed(2)}:1`]
+          : []
+  };
+
+  return {
+    checks: {
+      hiddenWithoutPdf: findings.shownWithoutPdf.length === 0,
+      reachable: findings.unreachable.length === 0,
+      tappable: findings.untappable.length === 0,
+      visibleFocus: findings.faintFocus.length === 0
+    },
+    findings,
+    measures: {
+      top: top && top.display !== 'none' ? `${top.top}–${top.bottom}px` : '—',
+      heights: shown.length ? `${shown.map((link) => link.height).join(' · ')}px` : '—',
+      ring: drawn ? `${ratio.toFixed(2)}:1` : '—'
+    }
+  };
+}
