@@ -9,10 +9,12 @@ export class Refusal extends Error {
   /**
    * @param {number} status - The kind of refusal, as an HTTP status
    * @param {string} message - Why, for the person who asked
+   * @param {object[]} [details] - Each thing refused, when there is more than one to point at
    */
-  constructor(status, message) {
+  constructor(status, message, details) {
     super(message);
     this.name = 'Refusal';
     this.status = status;
+    if (details !== undefined) this.details = details;
   }
 }
