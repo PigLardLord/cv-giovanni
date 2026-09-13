@@ -298,8 +298,11 @@ mistake the grayscale check made when its filename pattern matched no files for 
   is a repository setting, and the owner's to switch on. `tests/BranchingModel.test.js` fails when the
   guard and this section stop agreeing.
 
-Until #45 deploys from CI after the gates, GitHub Pages still builds every push to `main` on its own. A
-green gate is the rule for merging, not yet what publishes.
+A merge to `main` is what publishes. `.github/workflows/gates.yml` runs every gate on that commit and
+only then deploys it to GitHub Pages: the tree as committed, with the PDFs that run built from the
+committed profile and audited. A red gate publishes nothing. The Pages source is that workflow, not the
+branch, so the legacy build that published every push to `main` on its own is gone, and with it the
+road #63 took (#45).
 
 One branch predates the model and stays: `archive/print-pagination-engine` keeps the print pagination
 engine that was removed reachable. It is never merged and never deployed.
