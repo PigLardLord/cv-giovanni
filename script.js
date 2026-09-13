@@ -31,11 +31,17 @@ const reveal = async () => {
   document.body.dataset.rendered = '';
 };
 
+// The manifest first: a language nobody put in the address is taken only from those the profile is published
+// in, so a German browser opening an English-only CV sees the CV, not an error (#103). A manifest that cannot
+// be read is reported below, once the page has a language to report it in.
+const profiles = new ProfileResolver();
+const manifest = await profiles.loadManifest().catch((error) => error);
 const resolver = new LocaleResolver();
 const locale = resolver.resolve({
   search: location.search,
   stored: localStorage.getItem('cv-locale'),
-  browserLanguages: navigator.languages
+  browserLanguages: navigator.languages,
+  published: manifest instanceof Error ? null : profiles.publishedLocales(manifest, location.search)
 });
 const i18n = await new I18nService().initialize(locale);
 const localizer = new DocumentLocalizer(i18n);
@@ -62,10 +68,8 @@ document.querySelectorAll('[data-i18n^="actions."]').forEach((element) => {
 });
 let profileSelection;
 try {
-  profileSelection = await new ProfileResolver().resolveRequested({
-    search: location.search,
-    locale
-  });
+  if (manifest instanceof Error) throw manifest;
+  profileSelection = profiles.resolve(manifest, { search: location.search, locale });
 } catch (error) {
   localizer.apply(document);
   new CVApplication(undefined, undefined, localizer, i18n).handleError(document, error);

@@ -10,6 +10,7 @@
  * about profiles, locales, filenames or where the bytes end up.
  */
 import { readableAddress } from '../domain/ReadableUrl.js';
+import { dateLocale, periodText } from '../domain/Tenure.js';
 
 export class PdfLayout {
   /**
@@ -18,7 +19,10 @@ export class PdfLayout {
    *   `t`, the translator, already bound by the caller
    * @returns {object} a pdfmake document definition
    */
-  compose(model, { layout = 'spotlight', format, theme, typography, t = (key) => key } = {}) {
+  compose(
+    model,
+    { layout = 'spotlight', format, theme, typography, t = (key) => key, locale = 'en' } = {}
+  ) {
     // The rail: a single-line label beside a wrapping block. That shape is the one the parser
     // handles — the label glues to the block's first line and nothing interleaves — so the
     // section headings can leave the vertical flow without lying to an extractor.
@@ -65,7 +69,7 @@ export class PdfLayout {
           stack: [
             { text: job.title, style: 'itemTitle' },
             { text: `${job.company} · ${job.location}`, style: 'employer' },
-            { text: job.period, style: 'meta' },
+            { text: periodText(model, job, locale), style: 'meta' },
             job.summary ? { text: this.unbreakableText(job.summary), margin: [0, 3, 0, 3] } : null
           ].filter(Boolean)
         },
@@ -164,6 +168,7 @@ export class PdfLayout {
       // pagination stay comparable; the extra width of LETTER goes into the margin, and 40pt
       // top and bottom clears the 12mm a printer can clip.
       pageMargins: [SIDE, 40, SIDE, 40],
+      ...(model.asOf ? { footer: this.asOfLine(model.asOf, t, locale, SIDE) } : {}),
       info: {
         title: `${model.identity.name} — ${model.identity.title}`,
         author: model.identity.name
@@ -249,5 +254,25 @@ export class PdfLayout {
         noWrap: true
       }
     ]);
+  }
+
+  /**
+   * The month every length in the PDF is counted to, on its last page (#55).
+   *
+   * The owner chose this over the day the PDF was made: CI rebuilds on every push to main, and a recent day
+   * printed beside lengths counted to an older month would contradict them. The line always agrees with the
+   * lengths, and the same commit makes the same document on any day. It sits in the bottom margin, where it
+   * takes no room from the CV: spotlight on LETTER has less than one body line to spare (#49).
+   * @param {{year: number, month: number}} asOf - The profile's month
+   * @param {(key: string) => string} t - The catalogue
+   * @param {string} locale - The CV's language, which `Intl` writes the month in
+   * @param {number} side - The page's side margin, which the line lines up with
+   * @returns {(page: number, pages: number) => object|null} pdfmake's footer
+   */
+  asOfLine(asOf, t, locale, side) {
+    const month = new Intl.DateTimeFormat(dateLocale(locale), { year: 'numeric', month: 'long' });
+    const text = `${t('cv:pdf.asOf')} ${month.format(new Date(asOf.year, asOf.month - 1, 1))}`;
+    return (page, pages) =>
+      page === pages ? { text, style: 'meta', margin: [side, 0, side, 0] } : null;
   }
 }

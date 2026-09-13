@@ -1,5 +1,6 @@
 import { ProfileRenderer } from '../renderers/ProfileRenderer.js';
 import { JSDOM } from 'jsdom';
+import { fedTheModel } from './support/model.js';
 
 describe('ProfileRenderer', () => {
   let document;
@@ -15,7 +16,7 @@ describe('ProfileRenderer', () => {
       </html>
     `);
     document = dom.window.document;
-    renderer = new ProfileRenderer();
+    renderer = fedTheModel(new ProfileRenderer());
   });
 
   test('renders profile text correctly', () => {

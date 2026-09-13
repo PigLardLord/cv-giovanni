@@ -7,12 +7,24 @@ import { PdfMakeRenderer } from '../adapters/PdfMakeRenderer.js';
 import { NodeDirectoryWriter } from '../adapters/NodeDirectoryWriter.js';
 import { GenerationTarget } from '../core/GenerationTarget.js';
 import { LetterExporter } from '../core/LetterExporter.js';
+import { CvDocument } from '../domain/CvDocument.js';
+import { countedPast } from '../domain/Tenure.js';
 
 const projectRoot = new URL('../', import.meta.url);
 const target = GenerationTarget.fromArguments(process.argv.slice(2));
 const { profile, locale } = target;
 const layouts = ['nerd', 'spotlight', 'technical'];
+// Lengths are counted to the profile's asOf, and the PDF says so on its last page (#55). Today is only the
+// limit: a month after it gives lengths nobody can check yet.
+const today = new Date();
 const data = JSON.parse(await readFile(new URL(target.dataPath, projectRoot)));
+const asOf = new CvDocument(data).asOf;
+if (countedPast(asOf, today)) {
+  throw new Error(
+    `${target.dataPath} counts lengths to ${asOf.year}-${String(asOf.month).padStart(2, '0')}, a month after ` +
+      `these PDFs are made: nobody can check those lengths yet. Set asOf to this month or an earlier one.`
+  );
+}
 const cvMessages = JSON.parse(await readFile(new URL(`locales/${locale}/cv.json`, projectRoot)));
 const lookup = (object, path) => path.split('.').reduce((value, key) => value?.[key], object);
 const i18n = {

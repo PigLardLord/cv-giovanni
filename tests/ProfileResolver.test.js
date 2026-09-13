@@ -39,3 +39,25 @@ describe('ProfileResolver', () => {
     expect(resolver.requestedProfile('?profile=../../secret')).toBeNull();
   });
 });
+
+// The languages a profile is published in decide which guessed language the page may take (#103).
+describe('the languages a profile is published in', () => {
+  const manifest = {
+    defaultProfile: 'general',
+    profiles: {
+      general: { locales: { en: 'profiles/general/en.json' } },
+      acme: { locales: { en: 'a', de: 'b' } }
+    }
+  };
+  const resolver = new ProfileResolver();
+
+  test("are the requested profile's, or the default profile's", () => {
+    expect(resolver.publishedLocales(manifest, '')).toEqual(['en']);
+    expect(resolver.publishedLocales(manifest, '?profile=acme')).toEqual(['en', 'de']);
+  });
+
+  test('are none for a profile the manifest does not list, which fails on its own', () => {
+    expect(resolver.publishedLocales(manifest, '?profile=nobody')).toEqual([]);
+    expect(resolver.publishedLocales(undefined, '')).toEqual([]);
+  });
+});

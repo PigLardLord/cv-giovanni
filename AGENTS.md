@@ -13,8 +13,11 @@ Ownership is strict, because every blurred line here has already produced a bug:
 - **The profile JSON** owns editorial content and achievements, and nothing else.
 - **URL state wins** over a saved preference, which wins over the browser's, which wins over
   English.
-- **An unsupported combination fails visibly.** `ProfileResolver` throws rather than falling back:
-  a CV that silently mixes languages is worse than one that refuses to load.
+- **An unsupported combination fails visibly, when someone asked for it.** A `?lang=` or `?profile=` the
+  manifest does not publish makes `ProfileResolver` throw rather than fall back: a CV that silently mixes
+  languages is worse than one that refuses to load. A saved preference or a browser's language is only a
+  guess, and a guess is taken from the languages the profile publishes: a German browser opening an
+  English-only CV gets the English CV, never an error (#103).
 
 **The public CV is `profiles/`. Everything tailored to one company is `applications/`, which is
 gitignored.** A CV written for a named employer names that employer, and this repository is public:
@@ -413,3 +416,7 @@ Settled, and not to be undone by someone reclaiming space:
   LETTER above it. That is the price of two pages at 9.3pt, and it is a deliberate trade: the
   previous layout ran to about 100. Buying the margin back means cutting content, which is the
   candidate's call.
+- **Nothing prints inside the 12mm a printer can clip, with one exception.** The 40pt top and bottom
+  margins clear it. The downloadable PDF's "As of" line (#55), the month every length is counted to, sits at the top of the bottom margin, 10.3mm from
+  the edge: moving it clear with a 46pt bottom margin pushed spotlight on LETTER to a third page. A printer
+  that clips 12mm loses that line, never the CV.

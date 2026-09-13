@@ -1,5 +1,6 @@
 import { CertificationsRenderer } from '../renderers/CertificationsRenderer.js';
 import { JSDOM } from 'jsdom';
+import { fedTheModel } from './support/model.js';
 
 describe('CertificationsRenderer', () => {
   let document;
@@ -15,7 +16,7 @@ describe('CertificationsRenderer', () => {
       </html>
     `);
     document = dom.window.document;
-    renderer = new CertificationsRenderer();
+    renderer = fedTheModel(new CertificationsRenderer());
   });
 
   test('renders certifications with URLs correctly', () => {

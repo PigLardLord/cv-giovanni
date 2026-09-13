@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { SwiftSourceLayout } from '../adapters/SwiftSourceLayout.js';
+import { composingTheModel } from './support/model.js';
 
 const labels = {
   'source.marks.profile': 'Profile',
@@ -100,7 +101,7 @@ const textOf = (line) =>
 const textLinesOf = ({ lines }) => lines.map(textOf).filter(Boolean);
 
 describe('SwiftSourceLayout', () => {
-  const layout = new SwiftSourceLayout();
+  const layout = composingTheModel(new SwiftSourceLayout());
 
   test('reads the CV as a Swift file: who, the profile, the evidence, then how to reach them', () => {
     expect(sourceOf(layout.compose(profile, { t }))).toBe(
@@ -427,4 +428,17 @@ describe('SwiftSourceLayout', () => {
       '    let skills: [String] = ["Swift", "Git"]'
     );
   });
+});
+
+// A role's length follows its period, counted to the month the profile is written as of. A period written to
+// the year has no length to give (#55).
+test('gives a role its length after its period', () => {
+  const source = sourceOf(
+    composingTheModel(new SwiftSourceLayout()).compose({ ...profile, asOf: '2026-09' }, { t })
+  );
+
+  expect(source).toContain(
+    '            period: "August 2018 – Present",\n            duration: "8 years, 2 months",'
+  );
+  expect(source).toContain('            period: "2015",\n            summary: "Built AR apps."');
 });

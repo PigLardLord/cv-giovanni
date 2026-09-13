@@ -14,18 +14,31 @@ export class LocaleResolver {
     return this.supported.includes(base) ? base : null;
   }
 
-  resolve({ search = '', stored = null, browserLanguages = [] } = {}) {
+  /**
+   * The language to show.
+   *
+   * One named in the address wins, and is kept even when the profile does not publish it, so asking for a
+   * combination nobody publishes fails visibly. A saved preference or a browser's language is a guess: when the
+   * profile's languages are known, a guess is taken only from among them, so a CV never refuses to load over a
+   * language nobody asked for (#103).
+   * @param {object} [options] - Where the language can come from
+   * @param {string} [options.search] - The address's query
+   * @param {string|null} [options.stored] - A saved preference
+   * @param {string[]} [options.browserLanguages] - `navigator.languages`
+   * @param {string[]|null} [options.published] - The languages the requested profile is published in
+   * @returns {string} A language
+   */
+  resolve({ search = '', stored = null, browserLanguages = [], published = null } = {}) {
     const requested = this.normalize(new URLSearchParams(search).get('lang'));
     if (requested) return requested;
 
-    const saved = this.normalize(stored);
-    if (saved) return saved;
+    const known = Array.isArray(published) && published.length > 0;
+    const guess = [stored, ...(browserLanguages || [])]
+      .map((candidate) => this.normalize(candidate))
+      .find((candidate) => candidate && (!known || published.includes(candidate)));
+    if (guess) return guess;
 
-    for (const candidate of browserLanguages || []) {
-      const normalized = this.normalize(candidate);
-      if (normalized) return normalized;
-    }
-
+    if (known) return published.includes(this.fallback) ? this.fallback : published[0];
     return this.fallback;
   }
 }

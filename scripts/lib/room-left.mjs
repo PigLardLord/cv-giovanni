@@ -43,7 +43,10 @@ export function pages(extract) {
  * @param {{ bottomMargin: number, lineHeight: number }} settings - What the document was laid out with
  * @returns {{ points: number, lines: number, bodyPitch: number }} The room left
  */
-export function roomLeft({ height, lines }, { bottomMargin, lineHeight }) {
+export function roomLeft({ height, lines: all }, { bottomMargin, lineHeight }) {
+  // A line that starts inside the bottom margin is not content: the downloadable PDF prints the day it was
+  // made there (#55), and the room is measured above the margin.
+  const lines = all.filter(({ top }) => top < height - bottomMargin);
   if (!lines.length) throw new Error('A page with no line has no last line to measure from.');
 
   const glyphHeights = new Map();

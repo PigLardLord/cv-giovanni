@@ -1,5 +1,6 @@
 import { JSDOM } from 'jsdom';
 import { SourceRenderer } from '../renderers/SourceRenderer.js';
+import { fedTheModel } from './support/model.js';
 
 const labels = {
   'source.marks.profile': 'Profile',
@@ -58,7 +59,7 @@ describe('SourceRenderer', () => {
     </body></html>`).window.document;
   });
 
-  const render = () => new SourceRenderer(i18n).render(document, profile);
+  const render = () => fedTheModel(new SourceRenderer(i18n)).render(document, profile);
   const code = () => document.getElementById('source-code');
 
   test('writes the syntax as drawing instructions and the CV as text', () => {
@@ -225,7 +226,7 @@ describe('SourceRenderer', () => {
   test('answers a tap on call with an alert: the number, and a nudge to dial it yourself', () => {
     // The candidate's easter egg. It is a real dialog, so it takes focus, is announced and closes
     // on Escape, and the button says what it opens.
-    new SourceRenderer(i18n).render(document, { ...profile, phone: '+49 30 1234' });
+    fedTheModel(new SourceRenderer(i18n)).render(document, { ...profile, phone: '+49 30 1234' });
 
     const call = document.querySelector('#source-card .app-action[data-icon="phone"]');
     expect([
@@ -287,7 +288,7 @@ describe('SourceRenderer — the section in view', () => {
     window = dom.window;
   });
 
-  const render = () => new SourceRenderer(i18n).render(document, profile);
+  const render = () => fedTheModel(new SourceRenderer(i18n)).render(document, profile);
   const place = (element, rect) => {
     element.getBoundingClientRect = () => ({ top: 0, bottom: 0, left: 0, right: 0, ...rect });
   };

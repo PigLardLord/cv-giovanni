@@ -1,5 +1,6 @@
 import { SocialLinksRenderer } from '../renderers/SocialLinksRenderer.js';
 import { JSDOM } from 'jsdom';
+import { fedTheModel } from './support/model.js';
 
 describe('SocialLinksRenderer', () => {
   let document;
@@ -15,7 +16,7 @@ describe('SocialLinksRenderer', () => {
       </html>
     `);
     document = dom.window.document;
-    renderer = new SocialLinksRenderer();
+    renderer = fedTheModel(new SocialLinksRenderer());
   });
 
   const links = () => document.querySelector('.social-links').querySelectorAll('a');

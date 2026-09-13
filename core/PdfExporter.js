@@ -65,12 +65,19 @@ export class PdfExporter {
 
   buildDocument(data, options = {}) {
     if (typeof options === 'string') options = { layout: options };
-    const { layout = 'spotlight', pageSize = 'A4', colorMode = 'color' } = options;
+    const { layout = 'spotlight', pageSize = 'A4', colorMode = 'color', locale = 'en' } = options;
     const model = this.documentFactory(data);
     const format = this.pageFormats.resolve(pageSize);
     const theme = this.themes.resolve(layout, colorMode);
     const t = (key) => this.i18n?.t(key) || key;
     const typography = this.designSystem.resolve(theme);
-    return this.layout.compose(model, { layout, format, theme, typography, t });
+    return this.layout.compose(model, {
+      layout,
+      format,
+      theme,
+      typography,
+      t,
+      locale
+    });
   }
 }

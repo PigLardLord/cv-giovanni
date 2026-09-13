@@ -28,6 +28,7 @@
  * It takes the raw profile, as every page renderer does, and knows nothing about the DOM.
  */
 import { readableAddress } from '../domain/ReadableUrl.js';
+import { tenureText } from '../domain/Tenure.js';
 
 /**
  * Who the candidate is comes first, then the evidence — experience before skills — and last how
@@ -60,6 +61,8 @@ const content = (value, kind, extra = {}) => ({ text: value, kind, ...extra });
 const between = (value) => content(value, 'plain');
 const clean = (value) => (value === undefined || value === null ? '' : String(value).trim());
 const list = (value) => (Array.isArray(value) ? value.filter(Boolean) : []);
+/** Who the CV is about: the model's identity, or nothing to show when there is none. */
+const identityOf = (data) => data.identity || {};
 
 /** A string literal. The quotes are syntax; what is between them is the data. */
 const quoted = (value, extra = {}) =>
@@ -122,15 +125,15 @@ export function swiftTypeName(name) {
 
 export class SwiftSourceLayout {
   /**
-   * @param {object} data - the profile, as the page renderers receive it
+   * @param {object} data - the model, `CvDocument`, as the page renderers receive it (#81)
    * @param {object} context - `t`, the translator, already bound by the caller
    * @returns {{ typeName: string, fileName: string, lines: object[], outline: object[],
    *   card: object }} `lines` are `{ depth, tokens }`, plus `heading` and `id` on a section mark
    *   and `current` on the line the editor opens on; `outline` is the sections written, in order;
    *   `card` is what the preview shows
    */
-  compose(data = {}, { t = (key) => key } = {}) {
-    const typeName = swiftTypeName(data.name);
+  compose(data = {}, { t = (key) => key, locale = 'en' } = {}) {
+    const typeName = swiftTypeName(identityOf(data).name);
     const lines = [];
     const outline = [];
     const push = (depth, tokens = [], extra = {}) =>
@@ -153,7 +156,7 @@ export class SwiftSourceLayout {
     this.identity(data).forEach(([depth, tokens, extra]) => push(1 + depth, tokens, extra));
 
     SECTIONS.forEach((key) => {
-      const block = this[key](data);
+      const block = this[key](data, { locale });
       if (block.length === 0) return;
       if (lines.length > body) push(0);
 
@@ -195,8 +198,8 @@ export class SwiftSourceLayout {
   }
 
   identity(data) {
-    const name = clean(data.name);
-    const title = clean(data.title);
+    const name = clean(identityOf(data).name);
+    const title = clean(identityOf(data).title);
     return [
       ...(name
         ? [
@@ -212,9 +215,11 @@ export class SwiftSourceLayout {
   }
 
   profile(data) {
-    const [focus, summary, availability] = [data.subtitle, data.profile, data.availability].map(
-      clean
-    );
+    const [focus, summary, availability] = [
+      identityOf(data).subtitle,
+      data.profile,
+      identityOf(data).availability
+    ].map(clean);
 
     const lines = [];
     if (focus) lines.push([0, [...declaration('let', 'focus'), ...quoted(focus)]]);
@@ -230,11 +235,11 @@ export class SwiftSourceLayout {
     return lines;
   }
 
-  experience(data) {
+  experience(data, { locale = 'en' } = {}) {
     return this.collection(
       'experience',
       'Role',
-      list(data.relevant_experience).map((role) =>
+      list(data.experience).map((role) =>
         this.call(
           'Role',
           [
@@ -242,6 +247,11 @@ export class SwiftSourceLayout {
             ['company', role.company],
             ['location', role.location],
             ['period', role.period],
+            // How long it lasted, counted to the profile's asOf (#55); nothing for a period written to the year.
+            [
+              'duration',
+              typeof data.monthsIn === 'function' ? tenureText(data.monthsIn(role), locale) : ''
+            ],
             ['summary', role.summary],
             ['description', role.description]
           ],
@@ -356,9 +366,9 @@ export class SwiftSourceLayout {
   }
 
   contact(data) {
-    const email = clean(data.email);
-    const phone = clean(data.phone);
-    const links = list(data.social)
+    const email = clean(identityOf(data).email);
+    const phone = clean(identityOf(data).phone);
+    const links = list(identityOf(data).social)
       .filter((link) => clean(link.url) !== '')
       .map((link) => {
         const address = readableAddress(link.url);
@@ -376,7 +386,7 @@ export class SwiftSourceLayout {
     return this.call(
       'Contact',
       [
-        ['location', data.location],
+        ['location', identityOf(data).location],
         ['email', email, email ? { element: 'a', href: `mailto:${email}` } : {}],
         ['phone', phone, phone ? { element: 'a', href: telephone(phone) } : {}],
         ['links', links]
@@ -449,9 +459,9 @@ export class SwiftSourceLayout {
    * card's details, so nobody who wants to call is kept from it.
    */
   card(data, t) {
-    const phone = clean(data.phone);
-    const email = clean(data.email);
-    const location = clean(data.location);
+    const phone = clean(identityOf(data).phone);
+    const email = clean(identityOf(data).email);
+    const location = clean(identityOf(data).location);
 
     const actions = [
       ...(phone
@@ -474,7 +484,7 @@ export class SwiftSourceLayout {
             }
           ]
         : []),
-      ...list(data.social)
+      ...list(identityOf(data).social)
         .filter((link) => clean(link.url) !== '' && clean(link.platform) !== '')
         .map((link) => ({
           icon: 'link',
@@ -505,6 +515,12 @@ export class SwiftSourceLayout {
       ? { title: phone, message: t('source.card.callJoke'), dismiss: t('source.card.callDismiss') }
       : null;
 
-    return { name: clean(data.name), title: clean(data.title), call, actions, rows };
+    return {
+      name: clean(identityOf(data).name),
+      title: clean(identityOf(data).title),
+      call,
+      actions,
+      rows
+    };
   }
 }

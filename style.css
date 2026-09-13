@@ -416,6 +416,11 @@ section {
   letter-spacing: 0.05em;
 }
 
+/* A role's length stays in one piece: a narrow line breaks between the dates and the length (#55). */
+.job-tenure {
+  white-space: nowrap;
+}
+
 .job-description {
   color: var(--text-secondary);
   line-height: 1.7;
