@@ -1176,3 +1176,24 @@ body[data-layout='technical'] {
     display: none !important;
   }
 }
+
+/* Impact Spotlight and Technical Profile: the Download link under the layout switcher, centred and only as
+   wide as its label, so a recruiter meets it without scrolling to the footer. A link to the CV with no
+   ?layout= opens Spotlight (#59). Each skin's .print-button gives it its colours. */
+@media screen {
+  body[data-layout='spotlight'] .toolbar-download:not([hidden]),
+  body[data-layout='technical'] .toolbar-download:not([hidden]) {
+    display: flex;
+    width: fit-content;
+    margin: 0 auto 0.75rem;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  body[data-layout='spotlight'] .toolbar-download:not([hidden]),
+  body[data-layout='technical'] .toolbar-download:not([hidden]) {
+    width: auto;
+    justify-content: center;
+    min-height: 44px;
+  }
+}

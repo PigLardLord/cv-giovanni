@@ -594,7 +594,8 @@ section {
   display: none !important;
 }
 
-/* The toolbar's copy of the Download link belongs to Nerd Mode alone (#59). */
+/* The copy of the Download link at the top of the page. Each layout places it: under the switcher in Impact
+   Spotlight and Technical Profile, in the toolbar in Nerd Mode. With no layout yet, it stays out of the way (#59). */
 .toolbar-download {
   display: none;
 }
