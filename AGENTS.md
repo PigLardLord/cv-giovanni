@@ -13,8 +13,11 @@ Ownership is strict, because every blurred line here has already produced a bug:
 - **The profile JSON** owns editorial content and achievements, and nothing else.
 - **URL state wins** over a saved preference, which wins over the browser's, which wins over
   English.
-- **An unsupported combination fails visibly.** `ProfileResolver` throws rather than falling back:
-  a CV that silently mixes languages is worse than one that refuses to load.
+- **An unsupported combination fails visibly, when someone asked for it.** A `?lang=` or `?profile=` the
+  manifest does not publish makes `ProfileResolver` throw rather than fall back: a CV that silently mixes
+  languages is worse than one that refuses to load. A saved preference or a browser's language is only a
+  guess, and a guess is taken from the languages the profile publishes: a German browser opening an
+  English-only CV gets the English CV, never an error (#103).
 
 **The public CV is `profiles/`. Everything tailored to one company is `applications/`, which is
 gitignored.** A CV written for a named employer names that employer, and this repository is public:
