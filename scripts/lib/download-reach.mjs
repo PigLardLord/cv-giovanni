@@ -53,16 +53,19 @@ export function contrast(first, second) {
  *   the end, for a layout that pins it; null where it scrolls away by design
  * @param {{ focused: boolean, style: string, width: number, ring: string, behind: string }} measured.focus -
  *   The top copy reached with Tab: its outline, and the colour behind it
+ * @param {{ place: string, label: string, display: string, lines: number }[]} [measured.buttons] - The
+ *   footer's other buttons, which stack with the link on a phone and must hold their labels as it does (#107)
  * @param {{ height: number, mobile?: boolean }} size - The screen the page was rendered on
  * @returns {{ checks: Record<string, boolean>, findings: Record<string, string[]>, measures: Record<string, string> }}
  *   Each check, what broke it, and what was measured
  */
 export function downloadReach(
-  { links = [], withoutPdf = [], afterScroll = null, focus = null } = {},
+  { links = [], withoutPdf = [], afterScroll = null, focus = null, buttons = [] } = {},
   size = {}
 ) {
   const top = links.find((link) => link.place === 'top');
   const shown = links.filter((link) => link.display !== 'none');
+  const shownButtons = buttons.filter((button) => button.display !== 'none');
   const drawn = Boolean(focus?.focused) && focus.style !== 'none' && focus.width > 0;
   const ratio = drawn ? contrast(focus.ring, focus.behind) : 0;
 
@@ -90,13 +93,22 @@ export function downloadReach(
             : [])
         ]
       : [],
-    brokenLabel: shown
-      .filter((link) => link.lines !== 1)
-      .map((link) =>
-        link.lines
-          ? `the ${link.place} copy breaks its label onto ${link.lines} lines`
-          : `the ${link.place} copy renders no label`
-      ),
+    brokenLabel: [
+      ...shown
+        .filter((link) => link.lines !== 1)
+        .map((link) =>
+          link.lines
+            ? `the ${link.place} copy breaks its label onto ${link.lines} lines`
+            : `the ${link.place} copy renders no label`
+        ),
+      ...shownButtons
+        .filter((button) => button.lines !== 1)
+        .map((button) =>
+          button.lines
+            ? `the ${button.place}'s "${button.label}" breaks its label onto ${button.lines} lines`
+            : `the ${button.place}'s "${button.label}" renders no label`
+        )
+    ],
     faintFocus: !focus?.focused
       ? ['Tab never reached the top copy']
       : !drawn
@@ -118,7 +130,7 @@ export function downloadReach(
     measures: {
       top: top && top.display !== 'none' ? `${top.top}–${top.bottom}px` : '—',
       heights: shown.length ? `${shown.map((link) => link.height).join(' · ')}px` : '—',
-      lines: shown.length ? shown.map((link) => link.lines).join(' · ') : '—',
+      lines: [...shown, ...shownButtons].map((control) => control.lines).join(' · ') || '—',
       ring: drawn ? `${ratio.toFixed(2)}:1` : '—'
     }
   };

@@ -266,24 +266,29 @@ const selection = (start, end) => `(() => {
 })()`;
 
 /**
+ * The lines a control's own text renders on: one rectangle per line box, leaving out the icon `aria-hidden`
+ * hides. Nothing marks a label to find it by, because script.js drops `data-i18n` once it translates (#107).
+ */
+const LINES = `(control) => {
+  const walker = document.createTreeWalker(control, NodeFilter.SHOW_TEXT);
+  const tops = [];
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    if (!node.textContent.trim() || node.parentElement.closest('[aria-hidden="true"]')) continue;
+    const range = document.createRange();
+    range.selectNodeContents(node);
+    for (const rect of range.getClientRects()) if (rect.width > 0) tops.push(rect.top);
+  }
+  tops.sort((a, b) => a - b);
+  return tops.filter((top, index) => index === 0 || top - tops[index - 1] > 2).length;
+}`;
+
+/**
  * Every copy of the Download link, top copy first: whether it shows, how tall it renders, where it spans from
  * the top of the page, so the first screen is the first screen whatever the page was scrolled to, and on how
- * many lines its label renders: the link's own text, not the icon `aria-hidden` hides, one rectangle per line
- * box. Nothing marks the label to find it by, because script.js drops `data-i18n` once it translates (#107).
+ * many lines its label renders.
  */
 const downloadLinks = `(() => {
-  const lines = (link) => {
-    const walker = document.createTreeWalker(link, NodeFilter.SHOW_TEXT);
-    const tops = [];
-    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-      if (!node.textContent.trim() || node.parentElement.closest('[aria-hidden="true"]')) continue;
-      const range = document.createRange();
-      range.selectNodeContents(node);
-      for (const rect of range.getClientRects()) if (rect.width > 0) tops.push(rect.top);
-    }
-    tops.sort((a, b) => a - b);
-    return tops.filter((top, index) => index === 0 || top - tops[index - 1] > 2).length;
-  };
+  const lines = ${LINES};
   return [...document.querySelectorAll('[data-download-pdf]')].map((link) => {
     const box = link.getBoundingClientRect();
     return {
@@ -295,6 +300,17 @@ const downloadLinks = `(() => {
       lines: lines(link)
     };
   });
+})()`;
+
+/** The footer's other buttons, which stack with the link on a phone: whether they show, and their label's lines (#107). */
+const footerButtons = `(() => {
+  const lines = ${LINES};
+  return [...document.querySelectorAll('footer .print-button:not([data-download-pdf])')].map((button) => ({
+    place: 'footer',
+    label: button.textContent.trim().replace(/\\s+/g, ' '),
+    display: getComputedStyle(button).display,
+    lines: lines(button)
+  }));
 })()`;
 
 /** The top copy after scrolling to the end: still inside the viewport, and what a tap on its middle would hit. */
@@ -379,6 +395,7 @@ try {
       // The Download link (#101): measured as the page loaded, reached with Tab the way a keyboard user reaches
       // it, scrolled past where a layout pins it, and loaded again with no PDF to offer.
       const links = await chrome.evaluate(downloadLinks);
+      const buttons = await chrome.evaluate(footerButtons);
       for (let press = 0; press < 10; press++) {
         for (const type of ['keyDown', 'keyUp']) {
           await chrome.send('Input.dispatchKeyEvent', {
@@ -417,7 +434,7 @@ try {
       );
       const withoutPdf = await chrome.evaluate(downloadLinks);
       await chrome.send('Fetch.disable');
-      const reach = downloadReach({ links, withoutPdf, afterScroll, focus }, size);
+      const reach = downloadReach({ links, withoutPdf, afterScroll, focus, buttons }, size);
 
       const checks = { ...copy.checks, holdsStill: shift.holdsStill, ...reach.checks };
       const findings = {
@@ -486,8 +503,9 @@ const report = [
   'topmost after scrolling to the end; tappable — on a phone every visible copy renders at least 43px',
   'and the top copy 44px, ±1; and a visible focus — reached with Tab, a drawn ring that clears 3:1',
   'against the background just outside the link, once its transitions finish. A fifth since #107:',
-  'every visible copy renders its label on one line, at both widths. Top copy is where it spans from',
-  'the top of the page; heights and label lines are every visible copy in page order; the ring is',
+  'every visible copy, and the footer button that stacks with it on a phone, renders its label on one',
+  'line, at both widths. Top copy is where it spans from the top of the page; heights are every',
+  'visible copy in page order, and label lines the same followed by the footer button; the ring is',
   'its contrast.'
 ].join('\n');
 

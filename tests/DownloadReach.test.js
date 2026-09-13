@@ -20,6 +20,7 @@ const measured = {
     { place: 'footer', display: 'none' }
   ],
   afterScroll: null,
+  buttons: [{ place: 'footer', label: 'Browser print', display: 'flex', lines: 1 }],
   focus: {
     focused: true,
     style: 'solid',
@@ -119,7 +120,7 @@ describe('the Download link on one render', () => {
     expect(downloadReach(measured, phone).measures).toEqual({
       top: '97–141px',
       heights: '44 · 55px',
-      lines: '1 · 1',
+      lines: '1 · 1 · 1',
       ring: '6.82:1'
     });
     const nothing = downloadReach({ links: [], withoutPdf: [], focus: { focused: false } }, phone);
@@ -144,5 +145,22 @@ describe('the Download link on one render', () => {
     expect(downloadReach(withTop({ lines: 0 }), phone).findings.brokenLabel).toEqual([
       'the top copy renders no label'
     ]);
+  });
+
+  // The product review of #107: stacked on a phone, Browser print broke its label as the link did, and a check
+  // of the link alone would not have seen it.
+  test('the footer button beside the link breaks its label, and that fails too', () => {
+    const broken = { ...measured, buttons: [{ ...measured.buttons[0], lines: 2 }] };
+    const { checks, findings } = downloadReach(broken, phone);
+
+    expect(checks.labelOnOneLine).toBe(false);
+    expect(findings.brokenLabel).toEqual([
+      `the footer's "Browser print" breaks its label onto 2 lines`
+    ]);
+    const hidden = {
+      ...measured,
+      buttons: [{ ...measured.buttons[0], display: 'none', lines: 0 }]
+    };
+    expect(downloadReach(hidden, phone).checks.labelOnOneLine).toBe(true);
   });
 });
