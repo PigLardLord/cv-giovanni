@@ -587,6 +587,17 @@ section {
   box-shadow: var(--shadow-md);
 }
 
+/* A button the page hides stays hidden. `display` above beats the browser's own rule for `[hidden]`,
+   so a Download link with no file behind it showed anyway, and would have 404ed (#59). */
+.print-button[hidden] {
+  display: none;
+}
+
+/* The toolbar's copy of the Download link belongs to Nerd Mode alone (#59). */
+.toolbar-download {
+  display: none;
+}
+
 /* =============================================================================
    RESPONSIVE DESIGN
    ============================================================================= */
