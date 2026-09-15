@@ -22,8 +22,8 @@ while it loads — every layout shift from navigation to fonts ready, added up, 
 
 | Layout | Width | Top copy | Heights | Label lines | Focus ring | Secondary button |
 |---|---:|---:|---:|---:|---:|---:|
-| nerd | 1280px | 11–41px | 30 · 35 · 32px | 1 · 1 · 1 | 12.77:1 | border 1.56:1 |
-| nerd | 390px | 62–106px | 44 · 44 · 44px | 1 · 1 · 1 | 14.01:1 | border 1.56:1 |
+| nerd | 1280px | 11–41px | 30 · 35 · 32px | 1 · 1 · 1 | 12.77:1 | border 1.56:1 (quiet) |
+| nerd | 390px | 62–106px | 44 · 44 · 44px | 1 · 1 · 1 | 14.01:1 | border 1.56:1 (quiet) |
 | spotlight | 1280px | 85–140px | 55 · 55 · 55px | 1 · 1 · 1 | 6.82:1 | border 4.99:1 |
 | spotlight | 390px | 97–141px | 44 · 44 · 44px | 1 · 1 · 1 | 6.82:1 | border 4.99:1 |
 | technical | 1280px | 85–140px | 55 · 55 · 55px | 1 · 1 · 1 | 6.87:1 | border 7.87:1 |
@@ -39,5 +39,6 @@ transitions finish. A fifth since #107: every visible copy, and the footer butto
 renders its label on one line, at both widths. Top copy is where it spans from the top of the page;
 heights and label lines are every visible copy in page order, then the footer button; the ring is
 its contrast. The secondary button in the footer is checked as well (#110): it carries no shadow in any
-layout, and where the layout outlines it, in Impact Spotlight and Technical Profile, its border clears
-3:1 against the footer as painted. Secondary button is that border and its contrast.
+layout, and its border clears 3:1 against the footer as painted in every layout that does not keep it
+quiet on purpose with a stated reason, as Nerd Mode does, marked (quiet). Secondary button is that border
+and its contrast.

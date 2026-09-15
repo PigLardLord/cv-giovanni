@@ -128,8 +128,8 @@ The review runs on the **rendered artefact**, not the diff. Run `npm run build:p
 `cv-reviewer` needs a PDF to extract text from, and a review of the source that never looked at
 the output is not a product review.
 
-The product reviews of #59 and #107 asked for five more rules, and the product review checks them by
-hand:
+The product reviews of #59 and #107 asked for five more rules. The product review checks them, by hand
+where the screen audit cannot:
 
 - **Anything added above the masthead comes with a measured list of what leaves the first screen**,
   at 390×844 and at 1280×720. Whatever goes above the name pushes the rest of the first screen down,
@@ -140,14 +140,18 @@ hand:
   primary first and in the page's order, each with a minimum height and never a fixed one. Cutting
   the padding holds one language at one width: #107 measured the footer's row 4px short at 320px in
   English, before any longer label.
-- **A modifier class comes after the rule it modifies, or is more specific, or it modifies nothing.**
-  `.print-button-secondary` sat above `.print-button` at the same specificity, so the base's border and
-  shadow won: Browser print drew no outline and took the primary button's shadow (#110).
-- **A secondary control carries no shadow in the primary's colour.** Colour marks the primary action,
-  and a coloured shadow under the lesser one says the opposite (#110).
+- **A modifier class comes after the rule it modifies, or is more specific; otherwise the base wins every
+  property both declare.** `.print-button-secondary` sat above `.print-button` at the same specificity, so
+  the base's `border: none` and shadow won. An override that sets part of a shorthand, such as
+  `border-color`, sets the whole shorthand unless it is certain which rule supplies the rest: the skins set
+  `border-color`, and it drew nothing (#110).
+- **The lesser of two paired actions carries no shadow, at rest or on hover.** Fill and shadow mark the
+  primary. The secondary may share its hue in its outline and its label, never its fill or its shadow (#110).
 
 What that review measured on the Download link itself — hidden without a PDF, reachable, tappable,
-a visible focus ring — `npm run audit:screen` checks on every render (#101).
+a visible focus ring — `npm run audit:screen` checks on every render (#101). Since #110 it also checks
+that the footer's secondary button carries no shadow and, in every layout that does not keep its outline
+quiet with a stated reason, draws a border that clears 3:1 against the footer.
 
 ### Linked pages are part of the CV
 
