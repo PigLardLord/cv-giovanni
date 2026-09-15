@@ -56,4 +56,23 @@ describe('the general profile, for the local app', () => {
     });
     expect(files.stored.get(GENERAL)).toBe(onDisk);
   });
+
+  test('refuses a profile without the shape the renderers read, with every problem, and writes nothing', async () => {
+    const files = project({ [GENERAL]: onDisk });
+    const profile = JSON.parse(onDisk);
+    profile.relevant_experience[1].period = 'September 2015 – July 2018 (3 years)';
+    profile.interests.push('');
+
+    const refusal = await new ProfileStore(files).write(profile).catch((error) => error);
+
+    expect(refusal).toMatchObject({ name: 'Refusal', status: 422 });
+    expect(refusal.details.map(({ path }) => path)).toEqual([
+      'relevant_experience[1].period',
+      'interests[6]'
+    ]);
+    expect(refusal.message).toMatch(
+      /relevant_experience\[1\]\.period carries more than its dates.*and 1 more/
+    );
+    expect(files.stored.get(GENERAL)).toBe(onDisk);
+  });
 });

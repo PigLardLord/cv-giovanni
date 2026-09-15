@@ -124,6 +124,23 @@ describe('what the local API answers when a request goes wrong', () => {
     expect(response.body).toEqual({ error: 'No application named "nobody".' });
   });
 
+  test('a refusal with problems hands them over, each with its path and its reason', async () => {
+    const problems = [
+      { path: 'relevant_experience[0].period', reason: 'carries more than its dates' }
+    ];
+    const { services } = recording({
+      'profile.write': async () => {
+        throw new Refusal(422, 'The profile cannot be saved.', problems);
+      }
+    });
+    await serve(services);
+
+    const response = await call('PUT', '/api/profile', { body: '{"name":"Giovanni Trovato"}' });
+
+    expect(response.status).toBe(422);
+    expect(response.body).toEqual({ error: 'The profile cannot be saved.', problems });
+  });
+
   test('any other failure is a 500 that gives away nothing about the machine', async () => {
     const quiet = jest.spyOn(console, 'error').mockImplementation(() => {});
     const { services } = recording({

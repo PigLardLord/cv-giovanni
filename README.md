@@ -106,18 +106,24 @@ adds a cover letter. A tailored CV leaves the machine only as an attached PDF.
 endpoint hands its request to one service in `core/` and answers with what that service returns, so the browser and
 the command line run the same code:
 
-| Endpoint                               | What it does                                                                    |
-| -------------------------------------- | ------------------------------------------------------------------------------- |
-| `GET /api/profile`                     | Reads `profiles/general/en.json`                                                |
-| `PUT /api/profile`                     | Writes it, refusing a profile the page would refuse to load                     |
-| `POST /api/applications`               | Creates an application: the advert, and a copy of the general profile to tailor |
-| `POST /api/applications/<name>/match`  | Runs `npm run audit:ats` with the application's profile and advert              |
-| `POST /api/applications/<name>/build`  | Runs `npm run build:pdf` with the application's profile                         |
-| `POST /api/applications/<name>/tailor` | Answers 501 until inference is connected                                        |
+| Endpoint                               | What it does                                                                           |
+| -------------------------------------- | -------------------------------------------------------------------------------------- |
+| `GET /api/profile`                     | Reads `profiles/general/en.json`                                                       |
+| `PUT /api/profile`                     | Writes it, refusing a profile without the shape the renderers read, with every problem |
+| `POST /api/applications`               | Creates an application: the advert, and a copy of the general profile to tailor        |
+| `POST /api/applications/<name>/match`  | Runs `npm run audit:ats` with the application's profile and advert                     |
+| `POST /api/applications/<name>/build`  | Runs `npm run build:pdf` with the application's profile                                |
+| `POST /api/applications/<name>/tailor` | Answers 501 until inference is connected                                               |
 
 It answers only this machine's browser holding the run's key, as `applications/` does, and only requests from the page
 the server serves. `adapters/LocalApi.js` holds the routes, and `tests/LocalApi.test.js` fails when a route does more
 than pass its request through.
+
+To edit the general CV without touching its JSON, open the editor address `npm run serve` prints, which carries the
+run's key. `editor.html` shows the profile as a form built from the shape in `core/ProfileShape.js`, beside the CV as
+the site renders it, in any of the three layouts. Saving checks the profile first and marks each problem beside its
+field; a save that is written updates `profiles/general/en.json` and the preview. The editor is not published with
+the site, because it can only work where the local API does.
 
 ## Working on it
 
