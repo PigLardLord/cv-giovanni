@@ -33,6 +33,20 @@ const luminance = (css) => {
 };
 
 /**
+ * A colour as it is painted over another: a translucent ring shows the background through it, and a fully
+ * transparent one shows nothing but the background.
+ * @param {string} over - The colour painted on top, `rgb()` or `rgba()`
+ * @param {string} under - The opaque colour beneath it
+ * @returns {string} What reaches the screen, as `rgb()`
+ */
+export function composite(over, under) {
+  const [red, green, blue, alpha = 1] = channels(over);
+  const beneath = channels(under);
+  const mix = (top, bottom) => Math.round(top * alpha + bottom * (1 - alpha));
+  return `rgb(${mix(red, beneath[0])}, ${mix(green, beneath[1])}, ${mix(blue, beneath[2])})`;
+}
+
+/**
  * The WCAG contrast ratio between two colours, as a browser computes them: `rgb(138, 47, 15)`.
  * @param {string} first - One colour
  * @param {string} second - The other
@@ -45,14 +59,15 @@ export function contrast(first, second) {
 
 /**
  * @param {object} measured - What the browser measured
- * @param {{ place: string, display: string, top: number, bottom: number, height: number }[]} measured.links -
- *   Every copy of the link, top copy first, on the page as it loads
+ * @param {{ place: string, display: string, top: number, bottom: number, left: number, right: number, height: number }[]} measured.links -
+ *   Every copy of the link, top copy first, on the page as it loads, in unrounded pixels: a value is rounded only
+ *   where it is reported, so 45.4px is not 45px when it is judged
  * @param {{ place: string, display: string }[]} measured.withoutPdf - Every copy, loaded with no PDF to offer
  * @param {{ inViewport: boolean, topmost: boolean }|null} measured.afterScroll - The top copy after scrolling to
  *   the end, for a layout that pins it; null where it scrolls away by design
  * @param {{ focused: boolean, style: string, width: number, ring: string, behind: string }} measured.focus -
  *   The top copy reached with Tab: its outline, and the colour behind it
- * @param {{ height: number, mobile?: boolean }} size - The screen the page was rendered on
+ * @param {{ width: number, height: number, mobile?: boolean }} size - The screen the page was rendered on
  * @returns {{ checks: Record<string, boolean>, findings: Record<string, string[]>, measures: Record<string, string> }}
  *   Each check, what broke it, and what was measured
  */
@@ -63,7 +78,9 @@ export function downloadReach(
   const top = links.find((link) => link.place === 'top');
   const shown = links.filter((link) => link.display !== 'none');
   const drawn = Boolean(focus?.focused) && focus.style !== 'none' && focus.width > 0;
-  const ratio = drawn ? contrast(focus.ring, focus.behind) : 0;
+  // Judged as painted: a translucent ring shows what is behind it, and a transparent one is only that.
+  const ratio = drawn ? contrast(composite(focus.ring, focus.behind), focus.behind) : 0;
+  const px = (value) => Math.round(value);
 
   const findings = {
     shownWithoutPdf: withoutPdf
@@ -72,9 +89,18 @@ export function downloadReach(
     unreachable: [
       ...(!top || top.display === 'none'
         ? ['no top copy shows']
-        : top.top < 0 || top.bottom > size.height
-          ? [`the top copy spans ${top.top}–${top.bottom}px of a ${size.height}px screen`]
-          : []),
+        : [
+            ...(top.top < 0 || top.bottom > size.height
+              ? [
+                  `the top copy spans ${px(top.top)}–${px(top.bottom)}px of a ${size.height}px screen`
+                ]
+              : []),
+            ...(top.left < 0 || top.right > size.width
+              ? [
+                  `the top copy spans ${px(top.left)}–${px(top.right)}px across a ${size.width}px screen`
+                ]
+              : [])
+          ]),
       ...(afterScroll && !(afterScroll.inViewport && afterScroll.topmost)
         ? ['the pinned top copy is not on top after scrolling to the end']
         : [])
@@ -83,9 +109,9 @@ export function downloadReach(
       ? [
           ...shown
             .filter((link) => link.height < TAP_TARGET - 1)
-            .map((link) => `the ${link.place} copy renders ${link.height}px`),
+            .map((link) => `the ${link.place} copy renders ${px(link.height)}px`),
           ...(top && top.display !== 'none' && Math.abs(top.height - TAP_TARGET) > 1
-            ? [`the top copy renders ${top.height}px, not ${TAP_TARGET}`]
+            ? [`the top copy renders ${px(top.height)}px, not ${TAP_TARGET}`]
             : [])
         ]
       : [],
@@ -107,8 +133,8 @@ export function downloadReach(
     },
     findings,
     measures: {
-      top: top && top.display !== 'none' ? `${top.top}–${top.bottom}px` : '—',
-      heights: shown.length ? `${shown.map((link) => link.height).join(' · ')}px` : '—',
+      top: top && top.display !== 'none' ? `${px(top.top)}–${px(top.bottom)}px` : '—',
+      heights: shown.length ? `${shown.map((link) => px(link.height)).join(' · ')}px` : '—',
       ring: drawn ? `${ratio.toFixed(2)}:1` : '—'
     }
   };

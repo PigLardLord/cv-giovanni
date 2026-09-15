@@ -249,6 +249,15 @@ const rendered = (layout, start, name, locale) => `new Promise((resolve) => {
   wait();
 })`;
 
+/**
+ * Resolves once the page reveals itself. script.js holds the first paint until the CV is in the page and the
+ * downloads are offered (#74), so nothing is selected, measured or tabbed to on a page still hidden.
+ */
+const revealed = `new Promise((resolve) => {
+  const wait = () => (document.body.hasAttribute('data-rendered') ? resolve() : setTimeout(wait, 50));
+  wait();
+})`;
+
 /** Selects the CV from its first element to its last, the way a reader drags across it, and reads it. */
 const selection = (start, end) => `(() => {
   const first = document.querySelector(${JSON.stringify(start)});
@@ -267,16 +276,19 @@ const selection = (start, end) => `(() => {
 
 /**
  * Every copy of the Download link, top copy first: whether it shows, how tall it renders, and where it spans
- * from the top of the page, so the first screen is the first screen whatever the page was scrolled to.
+ * down and across the page, so the first screen is the first screen whatever the page was scrolled to. The
+ * values are the browser's own, unrounded: rounding is the report's, and 45.4px is not 44px ±1.
  */
 const downloadLinks = `[...document.querySelectorAll('[data-download-pdf]')].map((link) => {
   const box = link.getBoundingClientRect();
   return {
     place: link.closest('footer') ? 'footer' : 'top',
     display: getComputedStyle(link).display,
-    top: Math.round(box.top + scrollY),
-    bottom: Math.round(box.bottom + scrollY),
-    height: Math.round(box.height)
+    top: box.top + scrollY,
+    bottom: box.bottom + scrollY,
+    left: box.left + scrollX,
+    right: box.right + scrollX,
+    height: box.height
   };
 })`;
 
@@ -287,25 +299,40 @@ const afterScrolling = `new Promise((resolve) => {
     const link = document.querySelector('[data-download-pdf]');
     const box = link.getBoundingClientRect();
     const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
-    resolve({ inViewport: box.top >= 0 && box.bottom <= innerHeight, topmost: Boolean(hit && link.contains(hit)) });
+    const inViewport = box.top >= 0 && box.bottom <= innerHeight && box.left >= 0 && box.right <= innerWidth;
+    resolve({ inViewport, topmost: Boolean(hit && link.contains(hit)) });
   }, 300);
 })`;
 
 /**
- * The focused top copy's ring, once its transitions finish, and the colour behind it: the first opaque
- * background under a point just outside the link's left edge, where the ring is drawn.
+ * The focused top copy's ring, once its transitions finish, and the colour behind it: the backgrounds under a
+ * point just outside the link's left edge, where the ring is drawn, painted one over another down to the first
+ * opaque one. A ring still changing after two seconds is not measured: the run stops and checks nothing, rather
+ * than judging a colour on its way somewhere else.
  */
 const focusRing = `(async () => {
   const link = document.querySelector('[data-download-pdf]');
   const settled = Promise.all(link.getAnimations().map((animation) => animation.finished));
-  await Promise.race([settled, new Promise((resolve) => setTimeout(resolve, 2000))]);
+  await Promise.race([
+    settled,
+    new Promise((resolve, reject) =>
+      setTimeout(() => reject(new Error('the focus ring was still changing after 2 seconds')), 2000)
+    )
+  ]);
   const box = link.getBoundingClientRect();
-  const opaque = (element) => {
+  const painted = (element) => {
+    const layers = [];
     for (let node = element; node; node = node.parentElement) {
-      const colour = getComputedStyle(node).backgroundColor;
-      if (!/^rgba\\(.*,\\s*0\\)$|^transparent$/.test(colour)) return colour;
+      const [red, green, blue, alpha = 1] = (getComputedStyle(node).backgroundColor.match(/[\\d.]+/g) || []).map(Number);
+      if (blue === undefined || alpha === 0) continue;
+      layers.push([red, green, blue, alpha]);
+      if (alpha >= 1) break;
     }
-    return 'rgb(255, 255, 255)';
+    const colour = layers.reverse().reduce(
+      (beneath, [red, green, blue, alpha]) => [red, green, blue].map((channel, index) => channel * alpha + beneath[index] * (1 - alpha)),
+      [255, 255, 255]
+    );
+    return 'rgb(' + colour.map(Math.round).join(', ') + ')';
   };
   const under = document
     .elementsFromPoint(Math.max(0, box.left - 3), box.top + box.height / 2)
@@ -316,7 +343,7 @@ const focusRing = `(async () => {
     style: outline.outlineStyle,
     width: parseFloat(outline.outlineWidth) || 0,
     ring: outline.outlineColor,
-    behind: opaque(under || document.body)
+    behind: painted(under || document.body)
   };
 })()`;
 
@@ -349,6 +376,7 @@ try {
         30000,
         `${layout} did not render its CV`
       );
+      await within(chrome.evaluate(revealed), 30000, `${layout} did not reveal its page`);
       // From navigation to the fonts being ready, which `rendered` waited for. A page that recorded
       // nothing did not run the recorder, and a shift nobody measured is not a page holding still.
       const recorded = await chrome.evaluate('window.__layoutShifts');
@@ -391,13 +419,7 @@ try {
       const { requestId } = await within(paused, 30000, `${layout} never asked which PDFs exist`);
       await chrome.send('Fetch.fulfillRequest', { requestId, responseCode: 404, body: '' });
       await within(reloaded, 30000, `${layout} did not load without a PDF`);
-      await within(
-        chrome.evaluate(
-          `new Promise((resolve) => { const wait = () => document.body.hasAttribute('data-rendered') ? resolve() : setTimeout(wait, 50); wait(); })`
-        ),
-        30000,
-        `${layout} did not render without a PDF`
-      );
+      await within(chrome.evaluate(revealed), 30000, `${layout} did not render without a PDF`);
       const withoutPdf = await chrome.evaluate(downloadLinks);
       await chrome.send('Fetch.disable');
       const reach = downloadReach({ links, withoutPdf, afterScroll, focus }, size);

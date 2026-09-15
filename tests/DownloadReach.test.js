@@ -1,4 +1,5 @@
 import {
+  composite,
   contrast,
   downloadReach,
   RING_MINIMUM,
@@ -12,8 +13,16 @@ const phone = { width: 390, height: 844, mobile: true };
 const desktop = { width: 1280, height: 900, mobile: false };
 const measured = {
   links: [
-    { place: 'top', display: 'flex', top: 97, bottom: 141, height: 44 },
-    { place: 'footer', display: 'inline-flex', top: 5376, bottom: 5431, height: 55 }
+    { place: 'top', display: 'flex', top: 97, bottom: 141, left: 16, right: 374, height: 44 },
+    {
+      place: 'footer',
+      display: 'inline-flex',
+      top: 5376,
+      bottom: 5431,
+      left: 37,
+      right: 353,
+      height: 55
+    }
   ],
   withoutPdf: [
     { place: 'top', display: 'none' },
@@ -40,6 +49,16 @@ describe('the contrast of two colours', () => {
     ['rgb(232, 100, 31)', 'rgb(239, 230, 219)', 2.71]
   ])('%s on %s is %s:1', (first, second, ratio) => {
     expect(contrast(first, second)).toBeCloseTo(ratio, 1);
+  });
+});
+
+describe('a colour painted over another', () => {
+  test.each([
+    ['rgba(0, 0, 0, 0)', 'rgb(255, 255, 255)', 'rgb(255, 255, 255)'],
+    ['rgba(0, 0, 0, 0.5)', 'rgb(255, 255, 255)', 'rgb(128, 128, 128)'],
+    ['rgb(138, 47, 15)', 'rgb(239, 230, 219)', 'rgb(138, 47, 15)']
+  ])('%s over %s is painted %s', (over, under, painted) => {
+    expect(composite(over, under)).toBe(painted);
   });
 });
 
@@ -122,5 +141,45 @@ describe('the Download link on one render', () => {
     });
     const nothing = downloadReach({ links: [], withoutPdf: [], focus: { focused: false } }, phone);
     expect(nothing.measures).toEqual({ top: '—', heights: '—', ring: '—' });
+  });
+
+  // The code review of #108 found the next four: each check could pass on a page that fails it.
+  test('a ring painted fully transparent is no ring, and a translucent one is judged as it is painted', () => {
+    const invisible = {
+      ...measured,
+      focus: { ...measured.focus, ring: 'rgba(0, 0, 0, 0)', behind: 'rgb(255, 255, 255)' }
+    };
+    expect(downloadReach(invisible, phone).checks.visibleFocus).toBe(false);
+    expect(downloadReach(invisible, phone).findings.faintFocus).toEqual([
+      'its ring rgba(0, 0, 0, 0) on rgb(255, 255, 255) is 1.00:1'
+    ]);
+    const faded = { ...measured, focus: { ...measured.focus, ring: 'rgba(138, 47, 15, 0.3)' } };
+    expect(downloadReach(faded, phone).checks.visibleFocus).toBe(false);
+  });
+
+  test('a top copy that runs off the side of the screen is not reachable', () => {
+    const clipped = withTop({ left: 1200, right: 1300 });
+    expect(downloadReach(clipped, desktop).checks.reachable).toBe(false);
+    expect(downloadReach(clipped, desktop).findings.unreachable).toEqual([
+      'the top copy spans 1200–1300px across a 1280px screen'
+    ]);
+    expect(downloadReach(withTop({ left: -4, right: 354 }), phone).checks.reachable).toBe(false);
+  });
+
+  test('a measurement is judged as measured, and rounded only where it is reported', () => {
+    expect(downloadReach(withTop({ height: 45.4 }), phone).findings.untappable).toEqual([
+      'the top copy renders 45px, not 44'
+    ]);
+    const short = {
+      ...measured,
+      links: [measured.links[0], { ...measured.links[1], height: 42.6 }]
+    };
+    expect(downloadReach(short, phone).findings.untappable).toEqual([
+      'the footer copy renders 43px'
+    ]);
+    expect(downloadReach(withTop({ height: 44.6 }), phone).checks.tappable).toBe(true);
+    expect(
+      downloadReach(withTop({ top: 97.4, bottom: 141.4, height: 44 }), phone).measures.top
+    ).toBe('97–141px');
   });
 });
