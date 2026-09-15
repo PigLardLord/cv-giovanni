@@ -210,6 +210,15 @@ describe('the Download link on one render', () => {
     expect(downloadReach(hidden, phone).checks.tappable).toBe(true);
   });
 
+  // The code review of #118: the page rounded the button's height before it was judged, so 42.6px passed as 43px.
+  test('a footer button is judged as measured, and 42.6px is under the tap floor', () => {
+    const short = { ...measured, buttons: [{ ...measured.buttons[0], height: 42.6 }] };
+
+    expect(downloadReach(short, phone).findings.untappable).toEqual([
+      `the footer's "Browser print" renders 43px`
+    ]);
+  });
+
   // The code review of #108 found the next four: each check could pass on a page that fails it.
   test('a ring painted fully transparent is no ring, and a translucent one is judged as it is painted', () => {
     const invisible = {

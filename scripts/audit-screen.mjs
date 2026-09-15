@@ -322,7 +322,7 @@ const footerButtons = `(() => {
     label: button.textContent.trim().replace(/\\s+/g, ' '),
     display: getComputedStyle(button).display,
     lines: lines(button),
-    height: Math.round(button.getBoundingClientRect().height)
+    height: button.getBoundingClientRect().height
   }));
 })()`;
 
