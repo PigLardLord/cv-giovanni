@@ -18,8 +18,9 @@ import { GenerationTarget } from '../core/GenerationTarget.js';
  *
  * The unit tests read the page through JSDOM, which applies no stylesheet, so nothing in the suite can
  * see what a selection holds. `audit-print.mjs` reads the printed text layer; this reads the screen's.
- * Each layout is opened in headless Chrome at a desktop and a phone width, its CV is selected, and the
- * selection is checked against the profile (#62).
+ * Each layout is opened in headless Chrome at a desktop width and two phone widths, its CV is selected, and the
+ * selection is checked against the profile (#62). Every control a keyboard reaches is then focused in turn, and
+ * its ring read from the screen's pixels (#111).
  */
 const projectUrl = new URL('..', import.meta.url);
 const target = GenerationTarget.fromArguments(process.argv.slice(2));
@@ -656,8 +657,8 @@ const failures = rows.filter((row) => Object.values(row.checks).some((value) => 
 const report = [
   '# Screen copy matrix',
   '',
-  'What a reader copies off the page: each layout opened in headless Chrome at a desktop and two phone',
-  'width, its CV selected, and the selection read. Regenerate with `npm run audit:screen`.',
+  'What a reader copies off the page: each layout opened in headless Chrome at a desktop width and two',
+  'phone widths, its CV selected, and the selection read. Regenerate with `npm run audit:screen`.',
   '',
   '| Layout | Width | Layout shift | Score |',
   '|---|---:|---:|---:|',

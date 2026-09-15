@@ -1,7 +1,7 @@
 # Screen copy matrix
 
-What a reader copies off the page: each layout opened in headless Chrome at a desktop and two phone
-width, its CV selected, and the selection read. Regenerate with `npm run audit:screen`.
+What a reader copies off the page: each layout opened in headless Chrome at a desktop width and two
+phone widths, its CV selected, and the selection read. Regenerate with `npm run audit:screen`.
 
 | Layout | Width | Layout shift | Score |
 |---|---:|---:|---:|
