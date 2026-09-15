@@ -30,10 +30,10 @@ const near = (pixel, colour) =>
  *   of the run is skipped, being neither, unless it is the only pixel between ring and control.
  * - **Which lines.** A link wrapped onto several lines has its outline drawn around the lines together, so the
  *   first line's top, the last line's bottom and every line's two ends are read, and no line where two lines meet.
- *   Corners are left out, where the ring bends.
+ *   Corners are left out, where the ring bends, and so is an end too short to be read clear of where two lines meet.
  * - **The verdict.** The worst tenth of the places read is let go, because a letter beside the ring is not a faint
  *   ring, and the contrast is the worst of the rest. A ring found at fewer than half the places is not painted.
- *   Each side is also held to itself, because a tenth of every place is more than the whole end of a wide button:
+ *   Each side of each line is also held to itself, because a tenth of every place is more than the whole end of a wide button:
  *   a side faint at more than half its places fails the ring, and a side the ring is missing from along more than
  *   half is not painted there.
  * @param {{ width: number, height: number, pixels: Uint8Array }} image - A screenshot around the control
@@ -51,14 +51,15 @@ export function ringOnPixels(image, { rects, colour, width, offset, radius = 0 }
   const inImage = ([x, y]) => x >= 0 && y >= 0 && x < image.width && y < image.height;
 
   const edges = rects.flatMap((rect, index) => [
-    ...(index === 0 ? [['top', rect]] : []),
-    ['right', rect],
-    ...(index === rects.length - 1 ? [['bottom', rect]] : []),
-    ['left', rect]
+    ...(index === 0 ? [['top', rect, index]] : []),
+    ['right', rect, index],
+    ...(index === rects.length - 1 ? [['bottom', rect, index]] : []),
+    ['left', rect, index]
   ]);
   const places = [];
+  const edgeOf = [];
   let found = 0;
-  for (const [side, rect] of edges) {
+  for (const [side, rect, box] of edges) {
     const point = {
       top: (along, distance) => [along, rect.top - distance],
       bottom: (along, distance) => [along, rect.bottom - 1 + distance],
@@ -67,10 +68,15 @@ export function ringOnPixels(image, { rects, colour, width, offset, radius = 0 }
     }[side];
     const [from, to] =
       side === 'top' || side === 'bottom' ? [rect.left, rect.right] : [rect.top, rect.bottom];
+    // Where two lines of a wrapped link meet, their outline turns a corner: an end too short to be read clear of it
+    // is not read, rather than read across the corner.
+    const meets = rects.length > 1 && (side === 'left' || side === 'right');
     const positions =
       to - from > 2 * corner
         ? Array.from({ length: to - from - 2 * corner }, (unused, index) => from + corner + index)
-        : [Math.floor((from + to - 1) / 2)];
+        : meets
+          ? []
+          : [Math.floor((from + to - 1) / 2)];
     for (const along of positions) {
       const line = [];
       for (let distance = -1; distance <= reach + 2; distance++) line.push(point(along, distance));
@@ -87,6 +93,7 @@ export function ringOnPixels(image, { rects, colour, width, offset, radius = 0 }
       );
       if (start < 0) {
         places.push({ side });
+        edgeOf.push(`${side}:${box}`);
         continue;
       }
       let end = start;
@@ -103,6 +110,7 @@ export function ringOnPixels(image, { rects, colour, width, offset, radius = 0 }
           ? { ratio: outside, ring: ringPixel, against: beyond, side, where: 'outside' }
           : { ratio: inside, ring: ringPixel, against: between, side, where: 'inside' }
       );
+      edgeOf.push(`${side}:${box}`);
     }
   }
   if (!places.length) return null;
@@ -111,8 +119,11 @@ export function ringOnPixels(image, { rects, colour, width, offset, radius = 0 }
   // A tenth of every place together is let go, but never most of a side: the whole end of a wide button is fewer
   // places than a tenth of all, and a ring faint or missing along it would go unjudged (the code review of #111).
   const sides = new Map();
-  for (const place of places) sides.set(place.side, [...(sides.get(place.side) || []), place]);
-  for (const [side, read] of sides) {
+  places.forEach((place, index) =>
+    sides.set(edgeOf[index], [...(sides.get(edgeOf[index]) || []), place])
+  );
+  for (const read of sides.values()) {
+    const { side } = read[0];
     const onSide = read
       .filter((place) => place.ratio !== undefined)
       .sort((a, b) => a.ratio - b.ratio);

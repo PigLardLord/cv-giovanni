@@ -128,6 +128,12 @@ describe('a focus ring, read from the pixels around it', () => {
     expect(ringOnPixels(crossed, ring(BRIGHT)).ratio).toBeLessThan(RING_MINIMUM);
   });
 
+  test('one mark beside a side is let go, where the rest of that side is clear', () => {
+    const marked = outline(control(), rect, ring(DEEP), DEEP);
+    paint(marked, [rect.right + 5, rect.top + 7, rect.right + 7, rect.top + 8], [40, 40, 40]);
+    expect(ringOnPixels(marked, ring(DEEP)).ratio).toBeGreaterThan(RING_MINIMUM);
+  });
+
   // The code review of #111: a tenth of every place together is more than the whole end of a wide button, so a
   // ring faint or missing along that end passed at its best side's contrast.
   test('each side is judged on its own: a faint end of a wide button fails the ring', () => {
@@ -162,6 +168,24 @@ describe('a focus ring, read from the pixels around it', () => {
 
     expect(
       ringOnPixels(image, { rects: [wide], colour: `rgb(${DEEP.join(', ')})`, width: 2, offset: 2 })
+    ).toMatchObject({ painted: false, side: 'left' });
+  });
+
+  // The re-review of #111's fix: a wrapped link's left ends were pooled into one side, so a ring missing along the
+  // second line's end hid among the first line's places.
+  test('each line of a wrapped link holds its ends to themselves', () => {
+    const lines = [
+      { left: 20, top: 10, right: 180, bottom: 50 },
+      { left: 20, top: 50, right: 120, bottom: 70 }
+    ];
+    const image = canvas(200, 90);
+    for (const line of lines) outline(image, line, { width: 2, offset: 2 }, DEEP);
+    for (const line of lines)
+      paint(image, [line.left - 2, line.top, line.right + 2, line.bottom], WHITE);
+    paint(image, [lines[1].left - 4, lines[1].top, lines[1].left - 2, lines[1].bottom + 4], WHITE);
+
+    expect(
+      ringOnPixels(image, { rects: lines, colour: `rgb(${DEEP.join(', ')})`, width: 2, offset: 2 })
     ).toMatchObject({ painted: false, side: 'left' });
   });
 
