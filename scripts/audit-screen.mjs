@@ -339,7 +339,7 @@ const footerButtons = `(() => {
     label: button.textContent.trim().replace(/\\s+/g, ' '),
     display: getComputedStyle(button).display,
     lines: lines(button),
-    height: Math.round(button.getBoundingClientRect().height)
+    height: button.getBoundingClientRect().height
   }));
 })()`;
 
@@ -415,7 +415,7 @@ const afterScrolling = `new Promise((resolve) => {
     const link = document.querySelector('[data-download-pdf]');
     const box = link.getBoundingClientRect();
     const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
-    const inViewport = box.top >= 0 && box.bottom <= innerHeight && box.left >= 0 && box.right <= innerWidth;
+    const inViewport = box.top > -1 && box.bottom < innerHeight + 1 && box.left > -1 && box.right < innerWidth + 1;
     resolve({ inViewport, topmost: Boolean(hit && link.contains(hit)) });
   }, 300);
 })`;
