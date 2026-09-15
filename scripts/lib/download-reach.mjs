@@ -15,6 +15,9 @@ export const RING_MINIMUM = 3;
 /** The height the page renders its top copy at on a phone; every copy clears it, less a pixel of rounding. */
 export const TAP_TARGET = 44;
 
+/** A box is measured in fractions of a pixel, and less than a pixel past a limit is within it: a pixel of rounding. */
+const ROUNDING = 1;
+
 const channels = (css) => {
   const match = /rgba?\(([^)]+)\)/.exec(css || '');
   if (!match) throw new Error(`not an rgb() colour: ${css}`);
@@ -85,6 +88,8 @@ export function downloadReach(
   // Judged as painted: a translucent ring shows what is behind it, and a transparent one is only that.
   const ratio = drawn ? contrast(composite(focus.ring, focus.behind), focus.behind) : 0;
   const px = (value) => Math.round(value);
+  // A finding says what was judged, to the hundredth: 42.6px fails a 43px floor, and "43px" would say it clears it.
+  const exact = (value) => Number(value.toFixed(2));
 
   const findings = {
     shownWithoutPdf: withoutPdf
@@ -94,14 +99,14 @@ export function downloadReach(
       ...(!top || top.display === 'none'
         ? ['no top copy shows']
         : [
-            ...(top.top < 0 || top.bottom > size.height
+            ...(top.top <= -ROUNDING || top.bottom >= size.height + ROUNDING
               ? [
-                  `the top copy spans ${px(top.top)}–${px(top.bottom)}px of a ${size.height}px screen`
+                  `the top copy spans ${exact(top.top)}–${exact(top.bottom)}px of a ${size.height}px screen`
                 ]
               : []),
-            ...(top.left < 0 || top.right > size.width
+            ...(top.left <= -ROUNDING || top.right >= size.width + ROUNDING
               ? [
-                  `the top copy spans ${px(top.left)}–${px(top.right)}px across a ${size.width}px screen`
+                  `the top copy spans ${exact(top.left)}–${exact(top.right)}px across a ${size.width}px screen`
                 ]
               : [])
           ]),
@@ -112,10 +117,10 @@ export function downloadReach(
     untappable: size.mobile
       ? [
           ...shown
-            .filter((link) => link.height < TAP_TARGET - 1)
-            .map((link) => `the ${link.place} copy renders ${px(link.height)}px`),
-          ...(top && top.display !== 'none' && Math.abs(top.height - TAP_TARGET) > 1
-            ? [`the top copy renders ${px(top.height)}px, not ${TAP_TARGET}`]
+            .filter((link) => link.height < TAP_TARGET - ROUNDING)
+            .map((link) => `the ${link.place} copy renders ${exact(link.height)}px`),
+          ...(top && top.display !== 'none' && Math.abs(top.height - TAP_TARGET) > ROUNDING
+            ? [`the top copy renders ${exact(top.height)}px, not ${TAP_TARGET}`]
             : [])
         ]
       : [],
