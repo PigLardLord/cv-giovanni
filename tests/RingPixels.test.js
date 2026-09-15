@@ -128,6 +128,43 @@ describe('a focus ring, read from the pixels around it', () => {
     expect(ringOnPixels(crossed, ring(BRIGHT)).ratio).toBeLessThan(RING_MINIMUM);
   });
 
+  // The code review of #111: a tenth of every place together is more than the whole end of a wide button, so a
+  // ring faint or missing along that end passed at its best side's contrast.
+  test('each side is judged on its own: a faint end of a wide button fails the ring', () => {
+    const wide = { left: 10, top: 10, right: 310, bottom: 40 };
+    const image = outline(
+      paint(canvas(320, 50), [wide.left, wide.top, wide.right, wide.bottom], CONTROL),
+      wide,
+      { width: 2, offset: 2 },
+      DEEP
+    );
+    paint(image, [0, 0, wide.left - 4, 50], [120, 40, 12]);
+
+    const result = ringOnPixels(image, {
+      rects: [wide],
+      colour: `rgb(${DEEP.join(', ')})`,
+      width: 2,
+      offset: 2
+    });
+    expect(result).toMatchObject({ side: 'left', where: 'outside' });
+    expect(result.ratio).toBeLessThan(RING_MINIMUM);
+  });
+
+  test('a ring missing along one whole side is not painted there, however clear the rest', () => {
+    const wide = { left: 10, top: 10, right: 310, bottom: 40 };
+    const image = outline(
+      paint(canvas(320, 50), [wide.left, wide.top, wide.right, wide.bottom], CONTROL),
+      wide,
+      { width: 2, offset: 2 },
+      DEEP
+    );
+    paint(image, [wide.left - 4, wide.top - 4, wide.left - 2, wide.bottom + 4], WHITE);
+
+    expect(
+      ringOnPixels(image, { rects: [wide], colour: `rgb(${DEEP.join(', ')})`, width: 2, offset: 2 })
+    ).toMatchObject({ painted: false, side: 'left' });
+  });
+
   test('a link wrapped onto two lines is read around the outline its lines make, not across them', () => {
     const lines = [
       { left: 12, top: 8, right: 50, bottom: 16 },
@@ -204,5 +241,16 @@ describe('the rings on one render', () => {
       '"Browser print": its ring could not be read from the screen'
     ]);
     expect(ringsReport([]).findings.faintRings).toEqual(['Tab reached no control']);
+  });
+
+  test('name the side a ring is not painted along, when one side is why', () => {
+    expect(
+      ringsReport([
+        {
+          name: 'Profile',
+          result: { ratio: 1, painted: false, side: 'left', found: 0.97, samples: 612 }
+        }
+      ]).findings.faintRings
+    ).toEqual(['"Profile": its ring is not painted along most of its left edge']);
   });
 });

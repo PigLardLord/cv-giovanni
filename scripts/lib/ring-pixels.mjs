@@ -27,12 +27,15 @@ const near = (pixel, colour) =>
  *   is not its ring.
  * - **What it is against.** The pixel just past the run, outside, and the one just before it, inside: the gap
  *   between ring and control, or the control itself where the ring touches it. The smoother pixel beside each end
- *   of the run is skipped, being neither.
+ *   of the run is skipped, being neither, unless it is the only pixel between ring and control.
  * - **Which lines.** A link wrapped onto several lines has its outline drawn around the lines together, so the
  *   first line's top, the last line's bottom and every line's two ends are read, and no line where two lines meet.
  *   Corners are left out, where the ring bends.
  * - **The verdict.** The worst tenth of the places read is let go, because a letter beside the ring is not a faint
  *   ring, and the contrast is the worst of the rest. A ring found at fewer than half the places is not painted.
+ *   Each side is also held to itself, because a tenth of every place is more than the whole end of a wide button:
+ *   a side faint at more than half its places fails the ring, and a side the ring is missing from along more than
+ *   half is not painted there.
  * @param {{ width: number, height: number, pixels: Uint8Array }} image - A screenshot around the control
  * @param {{ rects: { left: number, top: number, right: number, bottom: number }[], colour: string, width: number, offset: number, radius?: number }} outline -
  *   The control's line boxes in the image, in whole pixels with right and bottom exclusive, and its outline's
@@ -83,14 +86,16 @@ export function ringOnPixels(image, { rects, colour, width, offset, radius = 0 }
           near(pixel, target)
       );
       if (start < 0) {
-        places.push(null);
+        places.push({ side });
         continue;
       }
       let end = start;
       while (end + 1 < colours.length && near(colours[end + 1], target)) end += 1;
       const ringPixel = colours[Math.floor((start + end) / 2)];
       const beyond = colours[Math.min(colours.length - 1, end + 2)];
-      const between = colours[Math.max(0, start - 2)];
+      // Past the smoother pixel beside the run, unless one pixel is all that stands between ring and control: then
+      // that pixel, the gap, and not the control a box measured a pixel off would put in its place.
+      const between = colours[start >= 4 ? start - 2 : start === 3 ? 2 : 0];
       found += 1;
       const [outside, inside] = [contrast(ringPixel, beyond), contrast(ringPixel, between)];
       places.push(
@@ -103,7 +108,23 @@ export function ringOnPixels(image, { rects, colour, width, offset, radius = 0 }
   if (!places.length) return null;
   const share = found / places.length;
   if (share < 0.5) return { ratio: 1, painted: false, found: share, samples: places.length };
-  const judged = places.filter(Boolean).sort((a, b) => a.ratio - b.ratio);
+  // A tenth of every place together is let go, but never most of a side: the whole end of a wide button is fewer
+  // places than a tenth of all, and a ring faint or missing along it would go unjudged (the code review of #111).
+  const sides = new Map();
+  for (const place of places) sides.set(place.side, [...(sides.get(place.side) || []), place]);
+  for (const [side, read] of sides) {
+    const onSide = read
+      .filter((place) => place.ratio !== undefined)
+      .sort((a, b) => a.ratio - b.ratio);
+    if (onSide.length < read.length / 2) {
+      return { ratio: 1, painted: false, side, found: share, samples: places.length };
+    }
+    const middle = onSide[Math.floor(onSide.length / 2)];
+    if (middle.ratio < RING_MINIMUM) return { ...middle, found: share, samples: places.length };
+  }
+  const judged = places
+    .filter((place) => place.ratio !== undefined)
+    .sort((a, b) => a.ratio - b.ratio);
   const verdict = judged[Math.min(judged.length - 1, Math.floor(judged.length * SPARE))];
   return { ...verdict, found: share, samples: places.length };
 }
@@ -121,7 +142,9 @@ export function ringsReport(rings) {
         !result
           ? [`"${name}": its ring could not be read from the screen`]
           : result.painted === false
-            ? [`"${name}": its ring is not painted along most of its edge`]
+            ? [
+                `"${name}": its ring is not painted along most of its ${result.side ? `${result.side} ` : ''}edge`
+              ]
             : result.ratio < RING_MINIMUM
               ? [
                   `"${name}": its ring is ${result.ratio.toFixed(2)}:1 against ${result.against} ${result.where} it, at the ${result.side}`
