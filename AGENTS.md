@@ -156,7 +156,9 @@ where the screen audit cannot:
 What that review measured on the Download link itself — hidden without a PDF, reachable, tappable,
 a visible focus ring — `npm run audit:screen` checks on every render (#101). Since #110 it also checks
 that the footer's secondary button carries no shadow and, in every layout that does not keep its outline
-quiet with a stated reason, draws a border that clears 3:1 against the footer.
+quiet with a stated reason, draws a border that clears 3:1 against the footer. Since #111 it focuses every
+control a keyboard reaches, at 320px too, and reads each ring from the screen's pixels: a ring clears 3:1
+against what lies just outside it and against what it surrounds, or the render fails.
 
 ### Linked pages are part of the CV
 
