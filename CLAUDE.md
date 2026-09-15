@@ -67,8 +67,11 @@ why there are three audits.
   `I18nService`. No markup, no typography, no hex colours — `tests/CoreHasNoUI.test.js` enforces it.
 - `interfaces/` and `boundaries/` — the ports.
 - `renderers/` — the DOM implementations, all extending `BaseRenderer`.
-- `adapters/` — the PDF implementations: layout, design system, theme registry, pdfmake renderer.
-- `scripts/` — generation, the audits, and the no-store development server.
+- `adapters/` — the PDF implementations: layout, design system, theme registry, pdfmake renderer. And the
+  local app's: its API routes (`LocalApi.js`), the project's files and its scripts.
+- `scripts/` — generation, the audits, and the no-store development server, which also answers the local
+  app's API at `/api/` (#21). Each route passes its request to one service in `core/` (`ProfileStore`,
+  `Applications`), and `tests/LocalApi.test.js` fails when a route holds logic of its own.
 - `vendor/` — i18next and Inter, checked in so the page runs off the file tree with no install step.
 
 ### Testing Setup
