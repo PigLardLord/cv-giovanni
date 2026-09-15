@@ -1194,18 +1194,18 @@ body[data-layout='technical'] {
     margin: 0 auto 0.75rem;
   }
 
-  /* The skins draw a focused link's ring in their bright tone, which on the page's tint behind this button
-     falls under the 3:1 WCAG 1.4.11 asks: 2.71:1 in Spotlight, 2.90:1 in Technical. The button's own deep
-     tone clears it (#59). The footer's buttons take it too: stacked on a phone, Browser print's ring runs
-     along the Download button's coloured shadow, where the bright tone falls under 3:1 again (#107). */
-  body[data-layout='spotlight'] .toolbar-download:focus-visible,
-  body[data-layout='spotlight'] .print-footer .print-button:focus-visible {
-    outline-color: var(--e-ember-deep);
+  /* A focused link's ring runs 2px wide, 2px out. With 0.35rem between the switcher's links it met the next link's
+     fill, and no one tone clears 3:1 against both the light strip and the dark current link. With 8px between them
+     the ring meets only the strip, and each link gives the width back in its own padding, so the labels keep theirs
+     (#121). */
+  body[data-layout='spotlight'] .layout-switcher,
+  body[data-layout='technical'] .layout-switcher {
+    gap: 0.5rem;
   }
 
-  body[data-layout='technical'] .toolbar-download:focus-visible,
-  body[data-layout='technical'] .print-footer .print-button:focus-visible {
-    outline-color: var(--t-blue-deep);
+  body[data-layout='spotlight'] .layout-switcher a,
+  body[data-layout='technical'] .layout-switcher a {
+    padding-inline: 0.75rem;
   }
 }
 

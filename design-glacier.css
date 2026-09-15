@@ -725,9 +725,12 @@ body[data-layout='technical'] .hero-name {
     box-shadow: none;
   }
 
+  /* A ring is read like a word, so it is drawn in the deep tone, never in the bright one that marks geometry. In the
+     bright tone the rings measured 2.85:1 on the layout switcher's strip and 2.29:1 beside its current link (#121),
+     and 2.90:1 behind the Download link (#59). */
   body[data-layout='technical'] a:focus-visible,
   body[data-layout='technical'] button:focus-visible {
-    outline: 2px solid var(--t-blue-bright);
+    outline: 2px solid var(--t-blue-deep);
     outline-offset: 2px;
   }
 
@@ -1284,10 +1287,19 @@ body[data-layout='technical'] .hero-name {
     box-shadow: none;
   }
 
+  /* A ring is read like a word, so it is drawn in the deep tone, never in the bright one that marks geometry. In the
+     bright tone the rings measured 2.59:1 on the layout switcher's strip and 2.38:1 beside its current link (#121),
+     2.71:1 behind the Download link (#59) and 1.86:1 along its shadow (#107). */
   body[data-layout='spotlight'] a:focus-visible,
   body[data-layout='spotlight'] button:focus-visible {
-    outline: 2px solid var(--e-ember-bright);
+    outline: 2px solid var(--e-ember-deep);
     outline-offset: 2px;
+  }
+
+  /* On the ember masthead no dark ring can clear 3:1, the band running down to the deep tone itself. Its links take
+     the band's white, as its words do: 1.66:1 in the bright tone; white runs 5.4:1 at the band's lightest stop. */
+  body[data-layout='spotlight'] .social-links a:focus-visible {
+    outline-color: #fff;
   }
 
   /* On a narrow screen the discs would crowd the centred portrait; the darker one goes. */
