@@ -8,12 +8,12 @@ phone widths, its CV selected, and the selection read. Regenerate with `npm run 
 | nerd | 1280px | 0.000 | 13/13 |
 | nerd | 390px | 0.000 | 13/13 |
 | nerd | 320px | 0.000 | 13/13 |
-| spotlight | 1280px | 0.000 | 12/13 |
-| spotlight | 390px | 0.000 | 12/13 |
-| spotlight | 320px | 0.000 | 12/13 |
-| technical | 1280px | 0.000 | 12/13 |
-| technical | 390px | 0.000 | 12/13 |
-| technical | 320px | 0.000 | 12/13 |
+| spotlight | 1280px | 0.000 | 13/13 |
+| spotlight | 390px | 0.000 | 13/13 |
+| spotlight | 320px | 0.000 | 13/13 |
+| technical | 1280px | 0.000 | 13/13 |
+| technical | 390px | 0.000 | 13/13 |
+| technical | 320px | 0.000 | 13/13 |
 
 Checks: the CV captured whole — name, role, email and current employer; no two words the profile
 writes in sequence welded into one, and no contact detail run into the word beside it; every skill
@@ -56,12 +56,12 @@ and its contrast.
 | nerd | 1280px | 25 controls, worst 11.14:1 (Profile) |
 | nerd | 390px | 25 controls, worst 11.16:1 (Profile) |
 | nerd | 320px | 25 controls, worst 10.71:1 (Profile) |
-| spotlight | 1280px | 11 controls, worst 1.84:1 (piglardlord.github.io/cv-giovanni) |
-| spotlight | 390px | 11 controls, worst 1.67:1 (piglardlord.github.io/cv-giovanni) |
-| spotlight | 320px | 11 controls, worst 1.66:1 (piglardlord.github.io/cv-giovanni) |
-| technical | 1280px | 11 controls, worst 2.85:1 (Nerd Mode) |
-| technical | 390px | 11 controls, worst 2.29:1 (Impact Spotlight) |
-| technical | 320px | 11 controls, worst 2.85:1 (Nerd Mode) |
+| spotlight | 1280px | 11 controls, worst 4.23:1 (↓ Download PDF) |
+| spotlight | 390px | 11 controls, worst 4.23:1 (↓ Download PDF) |
+| spotlight | 320px | 11 controls, worst 4.23:1 (↓ Download PDF) |
+| technical | 1280px | 11 controls, worst 3.92:1 (↓ Download PDF) |
+| technical | 390px | 11 controls, worst 3.92:1 (↓ Download PDF) |
+| technical | 320px | 11 controls, worst 3.92:1 (↓ Download PDF) |
 
 Every control a keyboard reaches is focused with Tab, in order from the top of the page, and its ring read
 from a screenshot (#111): along its straight edges, each ring pixel against the pixel just outside the ring and
