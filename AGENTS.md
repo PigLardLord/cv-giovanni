@@ -128,7 +128,7 @@ The review runs on the **rendered artefact**, not the diff. Run `npm run build:p
 `cv-reviewer` needs a PDF to extract text from, and a review of the source that never looked at
 the output is not a product review.
 
-The product reviews of #59 and #107 asked for three more rules, and the product review checks them by
+The product reviews of #59 and #107 asked for five more rules, and the product review checks them by
 hand:
 
 - **Anything added above the masthead comes with a measured list of what leaves the first screen**,
@@ -140,6 +140,11 @@ hand:
   primary first and in the page's order, each with a minimum height and never a fixed one. Cutting
   the padding holds one language at one width: #107 measured the footer's row 4px short at 320px in
   English, before any longer label.
+- **A modifier class comes after the rule it modifies, or is more specific, or it modifies nothing.**
+  `.print-button-secondary` sat above `.print-button` at the same specificity, so the base's border and
+  shadow won: Browser print drew no outline and took the primary button's shadow (#110).
+- **A secondary control carries no shadow in the primary's colour.** Colour marks the primary action,
+  and a coloured shadow under the lesser one says the opposite (#110).
 
 What that review measured on the Download link itself — hidden without a PDF, reachable, tappable,
 a visible focus ring — `npm run audit:screen` checks on every render (#101).

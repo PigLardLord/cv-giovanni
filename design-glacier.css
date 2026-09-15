@@ -716,10 +716,13 @@ body[data-layout='technical'] .hero-name {
     box-shadow: 0 10px 20px -10px rgb(30 64 175 / 0.7);
   }
 
+  /* The lesser action, beside the Download button: outlined in its label's colour, which clears 3:1 on the footer,
+     and no shadow, which the rule above would give it (#110). */
   body[data-layout='technical'] .print-button-secondary {
-    border-color: var(--t-line);
+    border: 1px solid var(--t-blue);
     background: #fff;
     color: var(--t-blue);
+    box-shadow: none;
   }
 
   body[data-layout='technical'] a:focus-visible,
@@ -1272,10 +1275,13 @@ body[data-layout='technical'] .hero-name {
     box-shadow: 0 10px 20px -10px rgb(184 67 27 / 0.7);
   }
 
+  /* The lesser action, beside the Download button: outlined in its label's colour, which clears 3:1 on the cream
+     footer, and no shadow, which the rule above would give it (#110). */
   body[data-layout='spotlight'] .print-button-secondary {
-    border-color: var(--e-line);
+    border: 1px solid var(--e-ember);
     background: #fff;
     color: var(--e-ember);
+    box-shadow: none;
   }
 
   body[data-layout='spotlight'] a:focus-visible,
