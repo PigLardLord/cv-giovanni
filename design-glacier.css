@@ -1461,9 +1461,9 @@ body[data-layout='technical'] .hero-name {
     color: var(--x-ink);
   }
 
-  /* The links touch, each overlapping the one before by its border, so the next link's fill covered the right side
-     of a focused link's ring: "Impact Spotlight" lost it at every width (#121). Raised, a focused link's ring is
-     drawn whole, over its neighbour, as the current link's border already is. */
+  /* The links touch, each overlapping the one before by its border, and a static link paints under both its
+     neighbours: under the current link, which is raised, and under the link after it. So "Impact Spotlight", between
+     them, lost both sides of its ring at every width (#121). Raised too, a focused link's ring is drawn whole. */
   body[data-layout='nerd'] .layout-switcher a:focus-visible {
     position: relative;
     z-index: 1;
