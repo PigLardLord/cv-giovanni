@@ -1,13 +1,16 @@
 import { RING_MINIMUM, ringOnPixels, ringsReport } from '../scripts/lib/ring-pixels.mjs';
 
-// The screen audit judged the Download link's focus ring by one computed colour, and a ring drawn across a
-// button's coloured shadow scored 11/11 at 1.86:1 (#111). These rings are painted here, pixel by pixel, the way a
-// screenshot would hold them: a control, its ring two pixels out, and what the page paints around them.
+// The screen audit judged the Download link's focus ring by one computed colour. A ring drawn across a button's
+// coloured shadow scored 11/11 at 1.86:1 (#111). These rings are painted here, pixel by pixel, the way a
+// screenshot holds them: a control, its ring two pixels out, and what the page paints around them. The ring is
+// found on each line across its edge, not assumed at a distance, because a box measured in fractions lands a
+// pixel either way of where the ring is painted.
 const WHITE = [255, 255, 255];
 const CONTROL = [30, 64, 175];
 const DEEP = [138, 47, 15];
 const BRIGHT = [232, 100, 31];
 const SHADOW = [227, 184, 164];
+const TEXT = [248, 187, 160];
 
 const canvas = (width, height, colour = WHITE) => {
   const pixels = new Uint8Array(width * height * 4);
@@ -22,13 +25,13 @@ const paint = (image, [left, top, right, bottom], colour) => {
   }
   return image;
 };
-/** An outline `width` pixels wide, `offset` pixels out from the box, as a browser paints `outline`. */
-const outline = (image, box, { width, offset }, colour) => {
+/** An outline `width` pixels wide, `offset` pixels out from the rect, as a browser paints `outline`. */
+const outline = (image, rect, { width, offset }, colour) => {
   const [left, top, right, bottom] = [
-    box.left - offset - width,
-    box.top - offset - width,
-    box.right + offset + width,
-    box.bottom + offset + width
+    rect.left - offset - width,
+    rect.top - offset - width,
+    rect.right + offset + width,
+    rect.bottom + offset + width
   ];
   paint(image, [left, top, right, top + width], colour);
   paint(image, [left, bottom - width, right, bottom], colour);
@@ -36,22 +39,43 @@ const outline = (image, box, { width, offset }, colour) => {
   paint(image, [right - width, top, right, bottom], colour);
   return image;
 };
-const box = { left: 15, top: 12, right: 45, bottom: 28 };
-const geometry = { box, width: 2, offset: 2, radius: 0 };
-const control = () => paint(canvas(60, 40), [box.left, box.top, box.right, box.bottom], CONTROL);
+const rect = { left: 15, top: 12, right: 45, bottom: 28 };
+const ring = (colour, change = {}) => ({
+  rects: [rect],
+  colour: `rgb(${colour.join(', ')})`,
+  width: 2,
+  offset: 2,
+  radius: 0,
+  ...change
+});
+const control = () =>
+  paint(canvas(60, 40), [rect.left, rect.top, rect.right, rect.bottom], CONTROL);
 
 describe('a focus ring, read from the pixels around it', () => {
-  test('a deep ring on the plain page clears 3:1 on every side', () => {
-    const result = ringOnPixels(outline(control(), box, geometry, DEEP), geometry);
+  test('a deep ring on the plain page clears 3:1, found all the way round', () => {
+    const result = ringOnPixels(outline(control(), rect, ring(DEEP), DEEP), ring(DEEP));
 
     expect(RING_MINIMUM).toBe(3);
     expect(result.ratio).toBeGreaterThan(RING_MINIMUM);
+    expect(result.found).toBe(1);
     expect(result.samples).toBeGreaterThan(40);
   });
 
+  test('found where the box measured a pixel off from where the ring is painted', () => {
+    const painted = outline(
+      control(),
+      { ...rect, left: rect.left + 1, right: rect.right + 1, top: rect.top - 1 },
+      ring(DEEP),
+      DEEP
+    );
+
+    expect(ringOnPixels(painted, ring(DEEP))).toMatchObject({ found: 1 });
+    expect(ringOnPixels(painted, ring(DEEP)).ratio).toBeGreaterThan(RING_MINIMUM);
+  });
+
   test('a bright ring across a coloured shadow fails where it crosses it, and says where', () => {
-    const shadowed = paint(control(), [0, box.bottom, 60, box.bottom + 9], SHADOW);
-    const result = ringOnPixels(outline(shadowed, box, geometry, BRIGHT), geometry);
+    const shadowed = paint(control(), [0, rect.bottom, 60, rect.bottom + 9], SHADOW);
+    const result = ringOnPixels(outline(shadowed, rect, ring(BRIGHT), BRIGHT), ring(BRIGHT));
 
     expect(result).toMatchObject({
       side: 'bottom',
@@ -62,54 +86,84 @@ describe('a focus ring, read from the pixels around it', () => {
   });
 
   test('the deep ring across the same shadow clears it', () => {
-    const shadowed = paint(control(), [0, box.bottom, 60, box.bottom + 9], SHADOW);
+    const shadowed = paint(control(), [0, rect.bottom, 60, rect.bottom + 9], SHADOW);
 
-    expect(ringOnPixels(outline(shadowed, box, geometry, DEEP), geometry).ratio).toBeCloseTo(
+    expect(ringOnPixels(outline(shadowed, rect, ring(DEEP), DEEP), ring(DEEP)).ratio).toBeCloseTo(
       4.67,
       1
     );
   });
 
-  test('a ring that is not painted is 1:1, whatever the stylesheet says', () => {
-    expect(ringOnPixels(control(), geometry).ratio).toBeCloseTo(1, 2);
+  test('a button filled in its own ring’s colour is not taken for its ring: the ring is looked for where its offset puts it', () => {
+    const filled = paint(canvas(60, 40), [rect.left, rect.top, rect.right, rect.bottom], DEEP);
+    const result = ringOnPixels(outline(filled, rect, ring(DEEP), DEEP), ring(DEEP));
+
+    expect(result).toMatchObject({ found: 1 });
+    expect(result.ratio).toBeGreaterThan(RING_MINIMUM);
+  });
+
+  test('a ring that is not painted is not found, and is no ring, whatever the stylesheet says', () => {
+    expect(ringOnPixels(control(), ring(DEEP))).toMatchObject({ painted: false, ratio: 1 });
   });
 
   test('with no gap, the ring is judged against the control it touches', () => {
-    const touching = { ...geometry, offset: 0 };
-    const result = ringOnPixels(outline(control(), box, touching, DEEP), touching);
+    const touching = ring(DEEP, { offset: 0 });
+    const result = ringOnPixels(outline(control(), rect, touching, DEEP), touching);
 
     expect(result).toMatchObject({ where: 'inside', against: 'rgb(30, 64, 175)' });
     expect(result.ratio).toBeLessThan(RING_MINIMUM);
   });
 
-  test('a control too small for straight edges is read at the middle of each side, and one against the edge of the image skips what is not in it', () => {
-    const tiny = {
-      box: { left: 20, top: 15, right: 24, bottom: 19 },
-      width: 2,
-      offset: 2,
-      radius: 8
-    };
-    expect(ringOnPixels(outline(canvas(60, 40), tiny.box, tiny, DEEP), tiny).samples).toBe(4);
+  test('a few letters beside the ring do not fail it; a ring crossing text along a whole side does', () => {
+    const lettered = outline(control(), rect, ring(DEEP), DEEP);
+    paint(lettered, [20, rect.top - 7, 22, rect.top - 5], TEXT);
+    expect(ringOnPixels(lettered, ring(DEEP)).ratio).toBeGreaterThan(RING_MINIMUM);
 
-    const edge = {
-      box: { left: 2, top: 12, right: 30, bottom: 28 },
+    const crossed = outline(
+      paint(control(), [0, rect.top - 9, 60, rect.top - 4], TEXT),
+      rect,
+      ring(BRIGHT),
+      BRIGHT
+    );
+    expect(ringOnPixels(crossed, ring(BRIGHT)).ratio).toBeLessThan(RING_MINIMUM);
+  });
+
+  test('a link wrapped onto two lines is read around the outline its lines make, not across them', () => {
+    const lines = [
+      { left: 12, top: 8, right: 50, bottom: 16 },
+      { left: 6, top: 16, right: 30, bottom: 24 }
+    ];
+    const image = canvas(60, 40);
+    for (const line of lines) outline(image, line, { width: 2, offset: 2 }, DEEP);
+    for (const line of lines)
+      paint(image, [line.left - 2, line.top, line.right + 2, line.bottom], WHITE);
+    paint(
+      image,
+      [lines[1].left - 2, lines[0].bottom - 2, lines[0].right + 2, lines[1].top + 2],
+      WHITE
+    );
+
+    const result = ringOnPixels(image, {
+      rects: lines,
+      colour: 'rgb(138, 47, 15)',
       width: 2,
       offset: 2,
       radius: 0
-    };
-    const result = ringOnPixels(outline(canvas(60, 40), edge.box, edge, DEEP), edge);
+    });
+    expect(result.painted).not.toBe(false);
     expect(result.ratio).toBeGreaterThan(RING_MINIMUM);
   });
 
   test('nothing to read at all is no judgement', () => {
     const outOfView = {
-      box: { left: 1, top: 1, right: 3, bottom: 3 },
+      rects: [{ left: 1, top: 1, right: 3, bottom: 3 }],
+      colour: 'rgb(138, 47, 15)',
       width: 2,
       offset: 2,
       radius: 0
     };
 
-    expect(ringOnPixels(canvas(4, 4), outOfView)).toBeNull();
+    expect(ringOnPixels(canvas(3, 3), outOfView)).toBeNull();
   });
 });
 
@@ -133,18 +187,20 @@ describe('the rings on one render', () => {
     });
   });
 
-  test('fail on a faint ring, a ring that could not be read, and a page Tab reaches nothing on', () => {
+  test('fail on a faint ring, a ring not painted, a ring that could not be read, and a page Tab reaches nothing on', () => {
     const report = ringsReport([
       {
         name: 'Download PDF',
         result: { ratio: 1.86, side: 'bottom', where: 'outside', against: 'rgb(227, 184, 164)' }
       },
+      { name: 'GitHub', result: { ratio: 1, painted: false } },
       { name: 'Browser print', result: null }
     ]);
 
     expect(report.checks.ringsClear).toBe(false);
     expect(report.findings.faintRings).toEqual([
       '"Download PDF": its ring is 1.86:1 against rgb(227, 184, 164) outside it, at the bottom',
+      '"GitHub": its ring is not painted along most of its edge',
       '"Browser print": its ring could not be read from the screen'
     ]);
     expect(ringsReport([]).findings.faintRings).toEqual(['Tab reached no control']);

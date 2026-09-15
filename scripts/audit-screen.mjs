@@ -9,6 +9,8 @@ import { screenCopy } from './lib/screen-copy.mjs';
 import { RECORD_LAYOUT_SHIFTS, layoutShift } from './lib/layout-shift.mjs';
 import { downloadReach } from './lib/download-reach.mjs';
 import { secondaryButton } from './lib/footer-buttons.mjs';
+import { decodePng } from './lib/png.mjs';
+import { ringOnPixels, ringsReport } from './lib/ring-pixels.mjs';
 import { GenerationTarget } from '../core/GenerationTarget.js';
 
 /**
@@ -36,10 +38,14 @@ const profile = await readJson(target.dataPath);
 const labels = (await readJson(`locales/${target.locale}/cv.json`)).sections;
 const manifest = await readJson('config/cv-manifest.json');
 
-/** A desktop and a phone, the two ways a recruiter meets the page. */
+/**
+ * A desktop and two phones: the phone most readers hold, and 320px, the narrowest a page must reflow to without
+ * scrolling sideways (WCAG 1.4.10), where the case for stacking the footer rests (#107, #111).
+ */
 const SIZES = [
   { width: 1280, height: 900, mobile: false },
-  { width: 390, height: 844, mobile: true }
+  { width: 390, height: 844, mobile: true },
+  { width: 320, height: 844, mobile: true }
 ];
 
 /**
@@ -333,6 +339,71 @@ const footerButtons = `(() => {
   }));
 })()`;
 
+/** One press of Tab, the way a keyboard user moves focus. */
+const pressTab = async (chrome) => {
+  for (const type of ['keyDown', 'keyUp']) {
+    await chrome.send('Input.dispatchKeyEvent', {
+      type,
+      key: 'Tab',
+      code: 'Tab',
+      windowsVirtualKeyCode: 9
+    });
+  }
+};
+
+/**
+ * Puts where Tab starts back at the top of the page, as a page just loaded has it: a focusable point, out of the
+ * flow, before everything else. The page is loaded again after the walk, so it leaves nothing behind.
+ */
+const startOfPage = `(() => {
+  const start = document.createElement('span');
+  start.tabIndex = -1;
+  start.style.cssText = 'position: fixed; top: 0; left: 0; width: 1px; height: 1px; overflow: hidden;';
+  document.body.prepend(start);
+  start.focus({ preventScroll: true });
+  scrollTo(0, 0);
+  return true;
+})()`;
+
+/**
+ * The control Tab has just focused (#111): a name for it, where it is on the page, and its outline, once it has been
+ * scrolled to the middle of the screen and its transitions have finished. A ring still changing after two seconds
+ * stops the run. Null when focus is on nothing a keyboard reached.
+ */
+const focusedControl = `(async () => {
+  const control = document.activeElement;
+  if (!control || control === document.body || control === document.documentElement || control.tabIndex < 0) return null;
+  control.scrollIntoView({ block: 'center', inline: 'center' });
+  const settled = Promise.all(control.getAnimations().map((animation) => animation.finished));
+  await Promise.race([
+    settled,
+    new Promise((resolve, reject) =>
+      setTimeout(() => reject(new Error('a focus ring was still changing after 2 seconds')), 2000)
+    )
+  ]);
+  await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  if (!control.dataset.auditRing) {
+    control.dataset.auditRing = String(document.querySelectorAll('[data-audit-ring]').length + 1);
+  }
+  const rects = [...control.getClientRects()].map((rect) => ({
+    left: rect.left + scrollX,
+    top: rect.top + scrollY,
+    right: rect.right + scrollX,
+    bottom: rect.bottom + scrollY
+  }));
+  const style = getComputedStyle(control);
+  const name = control.getAttribute('aria-label') || control.textContent || control.getAttribute('title') || control.tagName;
+  return {
+    key: control.dataset.auditRing,
+    name: name.trim().replace(/\\s+/g, ' ').slice(0, 60),
+    rects,
+    colour: style.outlineColor,
+    width: parseFloat(style.outlineWidth) || 0,
+    offset: parseFloat(style.outlineOffset) || 0,
+    radius: parseFloat(style.borderTopLeftRadius) || 0
+  };
+})()`;
+
 /** The top copy after scrolling to the end: still inside the viewport, and what a tap on its middle would hit. */
 const afterScrolling = `new Promise((resolve) => {
   scrollTo(0, document.documentElement.scrollHeight);
@@ -459,14 +530,7 @@ try {
         outlined: Boolean(OUTLINED[layout])
       });
       for (let press = 0; press < 10; press++) {
-        for (const type of ['keyDown', 'keyUp']) {
-          await chrome.send('Input.dispatchKeyEvent', {
-            type,
-            key: 'Tab',
-            code: 'Tab',
-            windowsVirtualKeyCode: 9
-          });
-        }
+        await pressTab(chrome);
         if (
           await chrome.evaluate(
             `document.activeElement === document.querySelector('[data-download-pdf]')`
@@ -477,6 +541,52 @@ try {
       const focus = await chrome.evaluate(focusRing);
       const afterScroll =
         !size.mobile && PINNED[layout] ? await chrome.evaluate(afterScrolling) : null;
+
+      // Every control a keyboard reaches (#111), in order from the top of the page, each ring read from a
+      // screenshot of the pixels around it.
+      await chrome.evaluate(startOfPage);
+      const rings = [];
+      const reached = new Set();
+      for (let press = 0; press < 150; press++) {
+        await pressTab(chrome);
+        const control = await chrome.evaluate(focusedControl);
+        if (!control || reached.has(control.key)) break;
+        reached.add(control.key);
+        const margin = Math.ceil(control.offset + control.width) + 8;
+        const bounds = {
+          left: Math.min(...control.rects.map((rect) => rect.left)),
+          top: Math.min(...control.rects.map((rect) => rect.top)),
+          right: Math.max(...control.rects.map((rect) => rect.right)),
+          bottom: Math.max(...control.rects.map((rect) => rect.bottom))
+        };
+        const clip = {
+          x: Math.max(0, Math.floor(bounds.left) - margin),
+          y: Math.max(0, Math.floor(bounds.top) - margin),
+          width: Math.ceil(bounds.right - bounds.left) + 2 * margin,
+          height: Math.ceil(bounds.bottom - bounds.top) + 2 * margin,
+          scale: 1
+        };
+        // Page coordinates, and no capture beyond the viewport: the control is on screen, and capturing beyond it
+        // lays the page out again at its full height, where a sticky row and a screen-tall masthead are elsewhere.
+        const shot = await chrome.send('Page.captureScreenshot', { format: 'png', clip });
+        const rects = control.rects.map((rect) => ({
+          left: Math.round(rect.left) - clip.x,
+          top: Math.round(rect.top) - clip.y,
+          right: Math.round(rect.right) - clip.x,
+          bottom: Math.round(rect.bottom) - clip.y
+        }));
+        rings.push({
+          name: control.name,
+          result: ringOnPixels(decodePng(Buffer.from(shot.data, 'base64')), {
+            rects,
+            colour: control.colour,
+            width: control.width,
+            offset: control.offset,
+            radius: control.radius
+          })
+        });
+      }
+      const ringCheck = ringsReport(rings);
 
       await chrome.send('Fetch.enable', {
         patterns: [{ urlPattern: '*/generated/manifest.json*' }]
@@ -496,13 +606,15 @@ try {
         ...copy.checks,
         holdsStill: shift.holdsStill,
         ...reach.checks,
-        ...secondary.checks
+        ...secondary.checks,
+        ...ringCheck.checks
       };
       const findings = {
         ...copy.findings,
         movedWhileLoading: shift.holdsStill ? [] : shift.moved,
         ...reach.findings,
-        ...secondary.findings
+        ...secondary.findings,
+        ...ringCheck.findings
       };
       const passed = Object.values(checks).filter(Boolean).length;
       rows.push({
@@ -512,7 +624,8 @@ try {
         score: `${passed}/${Object.keys(checks).length}`,
         checks,
         findings,
-        download: { ...reach.measures, ...secondary.measures }
+        download: { ...reach.measures, ...secondary.measures },
+        rings: ringCheck.measures.rings
       });
     }
   }
@@ -535,7 +648,7 @@ const failures = rows.filter((row) => Object.values(row.checks).some((value) => 
 const report = [
   '# Screen copy matrix',
   '',
-  'What a reader copies off the page: each layout opened in headless Chrome at a desktop and a phone',
+  'What a reader copies off the page: each layout opened in headless Chrome at a desktop and two phone',
   'width, its CV selected, and the selection read. Regenerate with `npm run audit:screen`.',
   '',
   '| Layout | Width | Layout shift | Score |',
@@ -566,11 +679,22 @@ const report = [
   'beside it (#109), renders at least 43px, and the top copy 44px, ±1; and a visible focus — reached',
   'with Tab, a drawn ring that clears 3:1 against the background just outside the link, once its',
   'transitions finish. A fifth since #107: every visible copy, and the footer button beside it,',
-  'renders its label on one line, at both widths. Top copy is where it spans from the top of the page;',
+  'renders its label on one line, at every width. Top copy is where it spans from the top of the page;',
   'heights and label lines are every visible copy in page order, then the footer button; the ring is',
   'its contrast. The secondary button in the footer is checked as well (#110): it carries no shadow in any',
   'layout, and where the layout outlines it, in Impact Spotlight and Technical Profile, its border clears',
-  '3:1 against the footer as painted. Secondary button is that border and its contrast.'
+  '3:1 against the footer as painted. Secondary button is that border and its contrast.',
+  '',
+  '## Focus rings',
+  '',
+  '| Layout | Width | Rings |',
+  '|---|---:|---|',
+  ...rows.map(({ layout, width, rings }) => `| ${layout} | ${width}px | ${rings} |`),
+  '',
+  'Every control a keyboard reaches is focused with Tab, in order from the top of the page, and its ring read',
+  'from a screenshot (#111): along its straight edges, each ring pixel against the pixel just outside the ring and',
+  'the one between ring and control, or the control itself where the ring touches it. A ring under 3:1 anywhere',
+  'fails, and so does one that could not be read. Rings is how many controls Tab reached, and the worst ring.'
 ].join('\n');
 
 await writeReport(new URL(target.reportPath('SCREEN_AUDIT.md'), projectUrl), `${report}\n`);
