@@ -68,7 +68,8 @@ why there are three audits.
 - `interfaces/` and `boundaries/` — the ports.
 - `renderers/` — the DOM implementations, all extending `BaseRenderer`.
 - `adapters/` — the PDF implementations: layout, design system, theme registry, pdfmake renderer. And the
-  local app's: its API routes (`LocalApi.js`), the project's files and its scripts.
+  local app's: its API routes (`LocalApi.js`), the project's files and its scripts, and the two
+  inference backends, the claude CLI and an API key kept outside the repository (#22).
 - `scripts/` — generation, the audits, and the no-store development server, which also answers the local
   app's API at `/api/` (#21). Each route passes its request to one service in `core/` (`ProfileStore`,
   `Applications`), and `tests/LocalApi.test.js` fails when a route holds logic of its own.

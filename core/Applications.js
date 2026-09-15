@@ -13,8 +13,8 @@ const NAME = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/;
  * Each lives in `applications/<name>/`, which git ignores, because a CV written for a named employer names
  * that employer and this repository is public. It starts as a copy of the general profile, so matching and
  * building work on the application's own CV and write into its own `out/`, never over `generated/` or the
- * reports in `docs/`. Matching and building run the scripts the command line runs; tailoring needs
- * inference, which #22 connects.
+ * reports in `docs/`. Matching and building run the scripts the command line runs; tailoring is
+ * #24's, on the inference #22 connects.
  */
 export class Applications {
   /**
@@ -83,12 +83,12 @@ export class Applications {
     return this.scripts.run('generate-pdfs', [`--profile=${profile}`]);
   }
 
-  /** Nothing to tailor with until inference is connected (#22). */
+  /** Not built yet: #24 builds tailoring on the inference #22 connects. */
   async tailor(name) {
     await this.existing(name);
     throw new Refusal(
       501,
-      'Tailoring needs inference, which #22 connects: nothing can be tailored yet.'
+      'Nothing can be tailored yet: #24 builds tailoring on the inference #22 connects.'
     );
   }
 
