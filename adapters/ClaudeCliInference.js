@@ -15,25 +15,33 @@ const RESTRICTED = [
   '--no-session-persistence'
 ];
 
-/** Runs a command with `input` on stdin; resolves how it ended, and never rejects. */
-function run(command, args, { cwd, input = '', timeout }) {
+/**
+ * Runs a command with `input` on stdin; resolves how it ended, and never rejects. A run past `timeout` is asked
+ * to stop, and killed `grace` later if it has not: a process that ignores SIGTERM would otherwise hold the run,
+ * and the directory made for it, for ever.
+ */
+function run(command, args, { cwd, input = '', timeout, grace = 5 * 1000 }) {
   return new Promise((resolve) => {
     let stdout = '';
     let stderr = '';
     let timedOut = false;
+    let killer;
     const child = spawn(command, args, { cwd, stdio: ['pipe', 'pipe', 'pipe'] });
     const timer = setTimeout(() => {
       timedOut = true;
       child.kill('SIGTERM');
+      killer = setTimeout(() => child.kill('SIGKILL'), grace);
     }, timeout);
     child.stdout.on('data', (chunk) => (stdout += chunk));
     child.stderr.on('data', (chunk) => (stderr += chunk));
     child.on('error', (error) => {
       clearTimeout(timer);
+      clearTimeout(killer);
       resolve({ code: null, stdout, stderr, error, timedOut });
     });
     child.on('close', (code) => {
       clearTimeout(timer);
+      clearTimeout(killer);
       resolve({ code, stdout, stderr, timedOut });
     });
     child.stdin.on('error', () => {});
@@ -56,13 +64,20 @@ const firstLine = (text) => String(text).trim().split('\n')[0].slice(0, 300);
  */
 export class ClaudeCliInference {
   /**
-   * @param {{ command?: string, model?: string, timeout?: number }} [options] - The executable, the model alias,
-   *   and how long a run may take in milliseconds
+   * @param {{ command?: string, model?: string, timeout?: number, grace?: number }} [options] - The executable,
+   *   the model alias, how long a run may take in milliseconds, and how long a run past it has to stop before it
+   *   is killed
    */
-  constructor({ command = 'claude', model = 'sonnet', timeout = 5 * 60 * 1000 } = {}) {
+  constructor({
+    command = 'claude',
+    model = 'sonnet',
+    timeout = 5 * 60 * 1000,
+    grace = 5 * 1000
+  } = {}) {
     this.command = command;
     this.model = model;
     this.timeout = timeout;
+    this.grace = grace;
   }
 
   get name() {
@@ -99,7 +114,7 @@ export class ClaudeCliInference {
       const { code, stdout, stderr, timedOut } = await run(
         this.command,
         [...RESTRICTED, '--model', this.model, '--system-prompt', system],
-        { cwd, input: prompt, timeout: this.timeout }
+        { cwd, input: prompt, timeout: this.timeout, grace: this.grace }
       );
       if (timedOut) {
         throw new Refusal(502, `The claude CLI did not answer in time (${this.timeout} ms).`);

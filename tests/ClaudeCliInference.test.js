@@ -123,6 +123,16 @@ ${then}
     expect(existsSync(invocation('claude').cwd)).toBe(false);
   });
 
+  // The code review of #114: a run that ignored SIGTERM held complete() for ever, and its directory with it.
+  test('a run that ignores being asked to stop is killed, and its directory still removed', async () => {
+    const command = fake('claude', 'process.on("SIGTERM", () => {}); setTimeout(() => {}, 10000);');
+
+    await expect(
+      new ClaudeCliInference({ command, timeout: 1000, grace: 300 }).complete(REQUEST)
+    ).rejects.toMatchObject({ status: 502, message: expect.stringMatching(/time/) });
+    expect(existsSync(invocation('claude').cwd)).toBe(false);
+  });
+
   test('says how a run is charged before any run', () => {
     expect(new ClaudeCliInference().name).toBe('claude-cli');
     expect(new ClaudeCliInference().cost).toEqual({
