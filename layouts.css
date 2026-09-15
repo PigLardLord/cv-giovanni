@@ -660,6 +660,12 @@
     flex: 1 1 0;
     justify-content: center;
   }
+
+  /* Both footer buttons as tall as the top copy. Each was as tall as its own content, and the two contents
+     differ: Browser print rendered 40px beside a 43px Download button (#109). */
+  body[data-layout='nerd'] .print-footer .print-button {
+    min-height: 44px;
+  }
 }
 
 /* Impact Spotlight: the story leads. The masthead opens like a magazine profile — the portrait

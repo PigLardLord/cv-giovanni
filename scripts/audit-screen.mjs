@@ -314,14 +314,15 @@ const downloadLinks = `(() => {
   });
 })()`;
 
-/** The footer's other buttons, which stack with the link on a phone: whether they show, and their label's lines (#107). */
+/** The footer's other buttons: whether they show, how tall they render (#109), and their label's lines (#107). */
 const footerButtons = `(() => {
   const lines = ${LINES};
   return [...document.querySelectorAll('footer .print-button:not([data-download-pdf])')].map((button) => ({
     place: 'footer',
     label: button.textContent.trim().replace(/\\s+/g, ' '),
     display: getComputedStyle(button).display,
-    lines: lines(button)
+    lines: lines(button),
+    height: button.getBoundingClientRect().height
   }));
 })()`;
 
@@ -522,12 +523,12 @@ const report = [
   'Checks, the four the product review of #59 measured by hand (#101): hidden without a PDF — loaded',
   'with `generated/manifest.json` answered 404, every copy computes `display: none`; reachable — the',
   'top copy inside the first screen and, where the layout pins it, still inside the viewport and',
-  'topmost after scrolling to the end; tappable — on a phone every visible copy renders at least 43px',
-  'and the top copy 44px, ±1; and a visible focus — reached with Tab, a drawn ring that clears 3:1',
-  'against the background just outside the link, once its transitions finish. A fifth since #107:',
-  'every visible copy, and the footer button that stacks with it on a phone, renders its label on one',
-  'line, at both widths. Top copy is where it spans from the top of the page; heights are every',
-  'visible copy in page order, and label lines the same followed by the footer button; the ring is',
+  'topmost after scrolling to the end; tappable — on a phone every visible copy, and the footer button',
+  'beside it (#109), renders at least 43px, and the top copy 44px, ±1; and a visible focus — reached',
+  'with Tab, a drawn ring that clears 3:1 against the background just outside the link, once its',
+  'transitions finish. A fifth since #107: every visible copy, and the footer button beside it,',
+  'renders its label on one line, at both widths. Top copy is where it spans from the top of the page;',
+  'heights and label lines are every visible copy in page order, then the footer button; the ring is',
   'its contrast.'
 ].join('\n');
 

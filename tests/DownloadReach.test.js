@@ -39,7 +39,7 @@ const measured = {
     { place: 'footer', display: 'none' }
   ],
   afterScroll: null,
-  buttons: [{ place: 'footer', label: 'Browser print', display: 'flex', lines: 1 }],
+  buttons: [{ place: 'footer', label: 'Browser print', display: 'flex', lines: 1, height: 44 }],
   focus: {
     focused: true,
     style: 'solid',
@@ -148,7 +148,7 @@ describe('the Download link on one render', () => {
   test('what it measured goes to the report', () => {
     expect(downloadReach(measured, phone).measures).toEqual({
       top: '97–141px',
-      heights: '44 · 55px',
+      heights: '44 · 55 · 44px',
       lines: '1 · 1 · 1',
       ring: '6.82:1'
     });
@@ -191,6 +191,32 @@ describe('the Download link on one render', () => {
       buttons: [{ ...measured.buttons[0], display: 'none', lines: 0 }]
     };
     expect(downloadReach(hidden, phone).checks.labelOnOneLine).toBe(true);
+  });
+
+  // #109: in Nerd Mode on a phone, the footer's Browser print button rendered 40px beside a 43px Download
+  // button, and a check of the link alone never measured it.
+  test('on a phone, a footer button under the tap height fails as a copy of the link would', () => {
+    const short = { ...measured, buttons: [{ ...measured.buttons[0], height: 40 }] };
+
+    expect(downloadReach(short, phone).checks.tappable).toBe(false);
+    expect(downloadReach(short, phone).findings.untappable).toEqual([
+      `the footer's "Browser print" renders 40px`
+    ]);
+    expect(downloadReach(short, desktop).checks.tappable).toBe(true);
+    const hidden = {
+      ...measured,
+      buttons: [{ ...measured.buttons[0], display: 'none', height: 0 }]
+    };
+    expect(downloadReach(hidden, phone).checks.tappable).toBe(true);
+  });
+
+  // The code review of #118: the page rounded the button's height before it was judged, so 42.6px passed as 43px.
+  test('a footer button is judged as measured, and 42.6px is under the tap floor', () => {
+    const short = { ...measured, buttons: [{ ...measured.buttons[0], height: 42.6 }] };
+
+    expect(downloadReach(short, phone).findings.untappable).toEqual([
+      `the footer's "Browser print" renders 42.6px`
+    ]);
   });
 
   // The code review of #108 found the next four: each check could pass on a page that fails it.

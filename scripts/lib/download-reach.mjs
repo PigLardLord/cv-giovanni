@@ -6,7 +6,8 @@
  * never worked: `.print-button` set `display` over `[hidden]`. Second, that the top copy is on the first screen,
  * and stays on top where a layout pins it. Third, that a phone can tap it. Fourth, that a keyboard user can see it
  * has focus. These are those measurements, as checks. A fifth came from #107: on a phone the footer's copy broke
- * its label in two and grew to 78px, tall enough to tap, so no height check saw it.
+ * its label in two and grew to 78px, tall enough to tap, so no height check saw it. And #109 holds the footer button
+ * beside the link to the link's tap height.
  */
 
 /** WCAG 1.4.11 asks 3:1 of a focus indicator against the colours next to it. */
@@ -71,8 +72,8 @@ export function contrast(first, second) {
  *   the end, for a layout that pins it; null where it scrolls away by design
  * @param {{ focused: boolean, style: string, width: number, ring: string, behind: string }} measured.focus -
  *   The top copy reached with Tab: its outline, and the colour behind it
- * @param {{ place: string, label: string, display: string, lines: number }[]} [measured.buttons] - The
- *   footer's other buttons, which stack with the link on a phone and must hold their labels as it does (#107)
+ * @param {{ place: string, label: string, display: string, lines: number, height: number }[]} [measured.buttons] -
+ *   The footer's other buttons, which must hold their labels as the link does (#107), and its tap height (#109)
  * @param {{ width: number, height: number, mobile?: boolean }} size - The screen the page was rendered on
  * @returns {{ checks: Record<string, boolean>, findings: Record<string, string[]>, measures: Record<string, string> }}
  *   Each check, what broke it, and what was measured
@@ -119,6 +120,12 @@ export function downloadReach(
           ...shown
             .filter((link) => link.height < TAP_TARGET - ROUNDING)
             .map((link) => `the ${link.place} copy renders ${exact(link.height)}px`),
+          ...shownButtons
+            .filter((button) => button.height < TAP_TARGET - ROUNDING)
+            .map(
+              (button) =>
+                `the ${button.place}'s "${button.label}" renders ${exact(button.height)}px`
+            ),
           ...(top && top.display !== 'none' && Math.abs(top.height - TAP_TARGET) > ROUNDING
             ? [`the top copy renders ${exact(top.height)}px, not ${TAP_TARGET}`]
             : [])
@@ -160,7 +167,9 @@ export function downloadReach(
     findings,
     measures: {
       top: top && top.display !== 'none' ? `${px(top.top)}–${px(top.bottom)}px` : '—',
-      heights: shown.length ? `${shown.map((link) => px(link.height)).join(' · ')}px` : '—',
+      heights: [...shown, ...shownButtons].length
+        ? `${[...shown, ...shownButtons].map((control) => px(control.height)).join(' · ')}px`
+        : '—',
       lines: [...shown, ...shownButtons].map((control) => control.lines).join(' · ') || '—',
       ring: drawn ? `${ratio.toFixed(2)}:1` : '—'
     }
