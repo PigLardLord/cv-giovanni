@@ -149,8 +149,9 @@ where the screen audit cannot:
   primary. The secondary may share its hue in its outline and its label, never its fill or its shadow (#110).
 - **A focus ring takes the tone its surface cannot swallow, never a bright one.** Deep on a light surface,
   white on a dark one such as Spotlight's ember masthead. It is an outline, never a shadow, which forced
-  colours drop. And a focusable control stands at least the ring's offset and width, plus 3px, from the next
-  one, so its ring meets the surface and not the next control's fill (#121).
+  colours drop. And it is drawn whole: a focusable control stands at least the ring's offset and width, plus
+  3px, from the next one, so its ring meets the surface and not the next control's fill; where controls touch,
+  as in Nerd Mode's segmented switcher, the focused one is raised above its neighbours (#121).
 
 What that review measured on the Download link itself — hidden without a PDF, reachable, tappable,
 a visible focus ring — `npm run audit:screen` checks on every render (#101). Since #110 it also checks
