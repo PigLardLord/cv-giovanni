@@ -104,7 +104,14 @@ export async function handleApi(request, response, services, { maxBody = 1024 * 
       answer(response, 415, { error: 'Send JSON, as Content-Type: application/json.' });
       return;
     }
-    const text = await bodyOf(request, maxBody);
+    let text;
+    try {
+      text = await bodyOf(request, maxBody);
+    } catch {
+      // The client went away while it sent the body. There is no one to answer, and a rejection let out of here
+      // would take the server down, with every page and build it serves.
+      return;
+    }
     if (text === null) {
       answer(
         response,
