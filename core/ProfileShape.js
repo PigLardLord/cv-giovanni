@@ -23,7 +23,7 @@ export const PROFILE = group('Profile', {
   email: text('Email'),
   phone: text('Phone'),
   availability: text('Availability'),
-  portfolio: text('Portfolio'),
+  portfolio: address('Portfolio'),
   profile: text('Profile', { multiline: true }),
   career_highlights: list(
     'Career highlights',
@@ -120,7 +120,9 @@ function check(shape, value, path, found) {
           'is not a period the CV can read: write it as "May 2015 – August 2015", "2014 – 2016" or "since March 2021"'
         );
       } else if (range.trailing) {
-        problem('carries a duration: write the dates only, and the length is counted from them');
+        problem(
+          'carries more than its dates: write the dates only. The length is counted from them, and a note belongs in the summary'
+        );
       }
       return;
     }

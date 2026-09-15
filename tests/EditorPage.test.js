@@ -150,7 +150,7 @@ describe('the editor page', () => {
     const input = field('relevant_experience[1].period');
     expect(input.getAttribute('aria-invalid')).toBe('true');
     expect(document.getElementById(input.getAttribute('aria-describedby')).textContent).toMatch(
-      /duration/
+      /more than its dates/
     );
     expect(document.activeElement).toBe(input);
     expect(status()).toMatch(/Not saved/);

@@ -58,13 +58,15 @@ describe('the form over a profile', () => {
 
   test('a problem is placed on the field it is about, and one with no field is listed apart', () => {
     const problems = [
-      { path: 'relevant_experience[1].period', reason: 'carries a duration' },
+      { path: 'relevant_experience[1].period', reason: 'carries more than its dates' },
       { path: 'carrer_highlights', reason: 'is not a field the CV reads' }
     ];
 
     const fields = ProfileForm.fields(published, problems);
 
-    expect(find(fields, 'relevant_experience[1].period').problems).toEqual(['carries a duration']);
+    expect(find(fields, 'relevant_experience[1].period').problems).toEqual([
+      'carries more than its dates'
+    ]);
     expect(find(fields, 'name').problems).toEqual([]);
     expect(ProfileForm.unplaced(problems)).toEqual([problems[1]]);
   });

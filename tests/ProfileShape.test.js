@@ -52,7 +52,14 @@ describe('the shape of a profile', () => {
       'a period that carries a duration',
       (p) => (p.relevant_experience[1].period = 'September 2015 – July 2018 (3 years)'),
       'relevant_experience[1].period',
-      /carries a duration/
+      /carries more than its dates/
+    ],
+    // The code review of #115: a note after the dates was refused as a duration it is not.
+    [
+      'a period that carries a note',
+      (p) => (p.relevant_experience[1].period = 'September 2015 – July 2018 (remote)'),
+      'relevant_experience[1].period',
+      /carries more than its dates: write the dates only/
     ],
     [
       'a period no reader can decide',
@@ -106,6 +113,13 @@ describe('the shape of a profile', () => {
       'a social link with no scheme',
       (p) => (p.social[0].url = 'github.com/someone'),
       'social[0].url',
+      /web address/
+    ],
+    // The code review of #115: the PDF links the portfolio as it links a social profile, so it is held to the same.
+    [
+      'a portfolio that is not a web address',
+      (p) => (p.portfolio = 'see my website'),
+      'portfolio',
       /web address/
     ],
     [

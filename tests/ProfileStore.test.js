@@ -71,7 +71,7 @@ describe('the general profile, for the local app', () => {
       'interests[6]'
     ]);
     expect(refusal.message).toMatch(
-      /relevant_experience\[1\]\.period carries a duration.*and 1 more/
+      /relevant_experience\[1\]\.period carries more than its dates.*and 1 more/
     );
     expect(files.stored.get(GENERAL)).toBe(onDisk);
   });

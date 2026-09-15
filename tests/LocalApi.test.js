@@ -125,7 +125,9 @@ describe('what the local API answers when a request goes wrong', () => {
   });
 
   test('a refusal with problems hands them over, each with its path and its reason', async () => {
-    const problems = [{ path: 'relevant_experience[0].period', reason: 'carries a duration' }];
+    const problems = [
+      { path: 'relevant_experience[0].period', reason: 'carries more than its dates' }
+    ];
     const { services } = recording({
       'profile.write': async () => {
         throw new Refusal(422, 'The profile cannot be saved.', problems);
