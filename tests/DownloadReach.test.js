@@ -13,7 +13,16 @@ const phone = { width: 390, height: 844, mobile: true };
 const desktop = { width: 1280, height: 900, mobile: false };
 const measured = {
   links: [
-    { place: 'top', display: 'flex', top: 97, bottom: 141, left: 16, right: 374, height: 44 },
+    {
+      place: 'top',
+      display: 'flex',
+      top: 97,
+      bottom: 141,
+      left: 16,
+      right: 374,
+      height: 44,
+      lines: 1
+    },
     {
       place: 'footer',
       display: 'inline-flex',
@@ -21,7 +30,8 @@ const measured = {
       bottom: 5431,
       left: 37,
       right: 353,
-      height: 55
+      height: 55,
+      lines: 1
     }
   ],
   withoutPdf: [
@@ -29,6 +39,7 @@ const measured = {
     { place: 'footer', display: 'none' }
   ],
   afterScroll: null,
+  buttons: [{ place: 'footer', label: 'Browser print', display: 'flex', lines: 1 }],
   focus: {
     focused: true,
     style: 'solid',
@@ -68,7 +79,8 @@ describe('the Download link on one render', () => {
       hiddenWithoutPdf: true,
       reachable: true,
       tappable: true,
-      visibleFocus: true
+      visibleFocus: true,
+      labelOnOneLine: true
     });
   });
 
@@ -137,10 +149,48 @@ describe('the Download link on one render', () => {
     expect(downloadReach(measured, phone).measures).toEqual({
       top: '97–141px',
       heights: '44 · 55px',
+      lines: '1 · 1 · 1',
       ring: '6.82:1'
     });
     const nothing = downloadReach({ links: [], withoutPdf: [], focus: { focused: false } }, phone);
-    expect(nothing.measures).toEqual({ top: '—', heights: '—', ring: '—' });
+    expect(nothing.measures).toEqual({ top: '—', heights: '—', lines: '—', ring: '—' });
+  });
+
+  // #107: on a phone the footer's buttons broke "Download PDF" in two, and the button grew to 78px: tall enough
+  // to tap, so no height check saw it.
+  test('a copy that breaks its label onto a second line fails, at any width', () => {
+    const broken = {
+      ...measured,
+      links: [measured.links[0], { ...measured.links[1], height: 78, lines: 2 }]
+    };
+    const { checks, findings } = downloadReach(broken, desktop);
+
+    expect(checks.labelOnOneLine).toBe(false);
+    expect(findings.brokenLabel).toEqual(['the footer copy breaks its label onto 2 lines']);
+    expect(downloadReach(broken, phone).checks.tappable).toBe(true);
+  });
+
+  test('a copy that shows with no label rendered fails too', () => {
+    expect(downloadReach(withTop({ lines: 0 }), phone).findings.brokenLabel).toEqual([
+      'the top copy renders no label'
+    ]);
+  });
+
+  // The product review of #107: stacked on a phone, Browser print broke its label as the link did, and a check
+  // of the link alone would not have seen it.
+  test('the footer button beside the link breaks its label, and that fails too', () => {
+    const broken = { ...measured, buttons: [{ ...measured.buttons[0], lines: 2 }] };
+    const { checks, findings } = downloadReach(broken, phone);
+
+    expect(checks.labelOnOneLine).toBe(false);
+    expect(findings.brokenLabel).toEqual([
+      `the footer's "Browser print" breaks its label onto 2 lines`
+    ]);
+    const hidden = {
+      ...measured,
+      buttons: [{ ...measured.buttons[0], display: 'none', lines: 0 }]
+    };
+    expect(downloadReach(hidden, phone).checks.labelOnOneLine).toBe(true);
   });
 
   // The code review of #108 found the next four: each check could pass on a page that fails it.

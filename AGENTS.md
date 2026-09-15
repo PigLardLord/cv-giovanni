@@ -128,13 +128,18 @@ The review runs on the **rendered artefact**, not the diff. Run `npm run build:p
 `cv-reviewer` needs a PDF to extract text from, and a review of the source that never looked at
 the output is not a product review.
 
-The product review of #59 asked for two more rules, and the product review checks both by hand:
+The product reviews of #59 and #107 asked for three more rules, and the product review checks them by
+hand:
 
 - **Anything added above the masthead comes with a measured list of what leaves the first screen**,
   at 390×844 and at 1280×720. Whatever goes above the name pushes the rest of the first screen down,
   and the pull request says what it pushed out.
 - **A glyph that `aria-hidden` hides is not moved into generated content.** A `::before` or `::after`
   joins the control's accessible name, so a screen reader would read the icon as part of the label.
+- **A row of buttons that would break a label on a narrow screen stacks rather than squeezes**,
+  primary first and in the page's order, each with a minimum height and never a fixed one. Cutting
+  the padding holds one language at one width: #107 measured the footer's row 4px short at 320px in
+  English, before any longer label.
 
 What that review measured on the Download link itself — hidden without a PDF, reachable, tappable,
 a visible focus ring — `npm run audit:screen` checks on every render (#101).

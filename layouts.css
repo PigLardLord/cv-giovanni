@@ -1190,12 +1190,15 @@ body[data-layout='technical'] {
 
   /* The skins draw a focused link's ring in their bright tone, which on the page's tint behind this button
      falls under the 3:1 WCAG 1.4.11 asks: 2.71:1 in Spotlight, 2.90:1 in Technical. The button's own deep
-     tone clears it (#59). */
-  body[data-layout='spotlight'] .toolbar-download:focus-visible {
+     tone clears it (#59). The footer's buttons take it too: stacked on a phone, Browser print's ring runs
+     along the Download button's coloured shadow, where the bright tone falls under 3:1 again (#107). */
+  body[data-layout='spotlight'] .toolbar-download:focus-visible,
+  body[data-layout='spotlight'] .print-footer .print-button:focus-visible {
     outline-color: var(--e-ember-deep);
   }
 
-  body[data-layout='technical'] .toolbar-download:focus-visible {
+  body[data-layout='technical'] .toolbar-download:focus-visible,
+  body[data-layout='technical'] .print-footer .print-button:focus-visible {
     outline-color: var(--t-blue-deep);
   }
 }
@@ -1207,6 +1210,21 @@ body[data-layout='technical'] {
     justify-content: center;
     min-height: 44px;
     margin-bottom: 0.5rem;
+    padding: 9px 12px;
+  }
+
+  /* On a phone the footer's two buttons stack, full width and each as tall as the top copy. Side by side at
+     390px, 32px of padding a side left "Download PDF" 81px of the 102px its one line takes, and both labels
+     broke in two (#107). */
+  body[data-layout='spotlight'] .print-footer,
+  body[data-layout='technical'] .print-footer {
+    flex-direction: column;
+  }
+
+  body[data-layout='spotlight'] .print-footer .print-button,
+  body[data-layout='technical'] .print-footer .print-button {
+    justify-content: center;
+    min-height: 44px;
     padding: 9px 12px;
   }
 }

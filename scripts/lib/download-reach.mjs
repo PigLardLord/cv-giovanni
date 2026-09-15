@@ -5,7 +5,8 @@
  * Its product reviews measured four things by hand. First, that a link with no file behind it hides, which had
  * never worked: `.print-button` set `display` over `[hidden]`. Second, that the top copy is on the first screen,
  * and stays on top where a layout pins it. Third, that a phone can tap it. Fourth, that a keyboard user can see it
- * has focus. These are those measurements, as checks.
+ * has focus. These are those measurements, as checks. A fifth came from #107: on a phone the footer's copy broke
+ * its label in two and grew to 78px, tall enough to tap, so no height check saw it.
  */
 
 /** WCAG 1.4.11 asks 3:1 of a focus indicator against the colours next to it. */
@@ -62,24 +63,27 @@ export function contrast(first, second) {
 
 /**
  * @param {object} measured - What the browser measured
- * @param {{ place: string, display: string, top: number, bottom: number, left: number, right: number, height: number }[]} measured.links -
- *   Every copy of the link, top copy first, on the page as it loads, in unrounded pixels: a value is rounded only
- *   where it is reported, so 45.4px is not 45px when it is judged
+ * @param {{ place: string, display: string, top: number, bottom: number, left: number, right: number, height: number, lines: number }[]} measured.links -
+ *   Every copy of the link, top copy first, on the page as it loads, with the lines its label renders on, in
+ *   unrounded pixels: a value is rounded only where it is reported, so 45.4px is not 45px when it is judged
  * @param {{ place: string, display: string }[]} measured.withoutPdf - Every copy, loaded with no PDF to offer
  * @param {{ inViewport: boolean, topmost: boolean }|null} measured.afterScroll - The top copy after scrolling to
  *   the end, for a layout that pins it; null where it scrolls away by design
  * @param {{ focused: boolean, style: string, width: number, ring: string, behind: string }} measured.focus -
  *   The top copy reached with Tab: its outline, and the colour behind it
+ * @param {{ place: string, label: string, display: string, lines: number }[]} [measured.buttons] - The
+ *   footer's other buttons, which stack with the link on a phone and must hold their labels as it does (#107)
  * @param {{ width: number, height: number, mobile?: boolean }} size - The screen the page was rendered on
  * @returns {{ checks: Record<string, boolean>, findings: Record<string, string[]>, measures: Record<string, string> }}
  *   Each check, what broke it, and what was measured
  */
 export function downloadReach(
-  { links = [], withoutPdf = [], afterScroll = null, focus = null } = {},
+  { links = [], withoutPdf = [], afterScroll = null, focus = null, buttons = [] } = {},
   size = {}
 ) {
   const top = links.find((link) => link.place === 'top');
   const shown = links.filter((link) => link.display !== 'none');
+  const shownButtons = buttons.filter((button) => button.display !== 'none');
   const drawn = Boolean(focus?.focused) && focus.style !== 'none' && focus.width > 0;
   // Judged as painted: a translucent ring shows what is behind it, and a transparent one is only that.
   const ratio = drawn ? contrast(composite(focus.ring, focus.behind), focus.behind) : 0;
@@ -120,6 +124,22 @@ export function downloadReach(
             : [])
         ]
       : [],
+    brokenLabel: [
+      ...shown
+        .filter((link) => link.lines !== 1)
+        .map((link) =>
+          link.lines
+            ? `the ${link.place} copy breaks its label onto ${link.lines} lines`
+            : `the ${link.place} copy renders no label`
+        ),
+      ...shownButtons
+        .filter((button) => button.lines !== 1)
+        .map((button) =>
+          button.lines
+            ? `the ${button.place}'s "${button.label}" breaks its label onto ${button.lines} lines`
+            : `the ${button.place}'s "${button.label}" renders no label`
+        )
+    ],
     faintFocus: !focus?.focused
       ? ['Tab never reached the top copy']
       : !drawn
@@ -134,12 +154,14 @@ export function downloadReach(
       hiddenWithoutPdf: findings.shownWithoutPdf.length === 0,
       reachable: findings.unreachable.length === 0,
       tappable: findings.untappable.length === 0,
-      visibleFocus: findings.faintFocus.length === 0
+      visibleFocus: findings.faintFocus.length === 0,
+      labelOnOneLine: findings.brokenLabel.length === 0
     },
     findings,
     measures: {
       top: top && top.display !== 'none' ? `${px(top.top)}–${px(top.bottom)}px` : '—',
       heights: shown.length ? `${shown.map((link) => px(link.height)).join(' · ')}px` : '—',
+      lines: [...shown, ...shownButtons].map((control) => control.lines).join(' · ') || '—',
       ring: drawn ? `${ratio.toFixed(2)}:1` : '—'
     }
   };
