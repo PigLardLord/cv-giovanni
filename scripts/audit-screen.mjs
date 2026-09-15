@@ -7,6 +7,7 @@ import { writeReport } from './lib/write-report.mjs';
 import { findBrowser } from './lib/find-browser.mjs';
 import { screenCopy } from './lib/screen-copy.mjs';
 import { RECORD_LAYOUT_SHIFTS, layoutShift } from './lib/layout-shift.mjs';
+import { downloadReach } from './lib/download-reach.mjs';
 import { GenerationTarget } from '../core/GenerationTarget.js';
 
 /**
@@ -49,6 +50,12 @@ const BOUNDS = {
   spotlight: ['.hero-section', '.main-content'],
   technical: ['.hero-section', '.main-content']
 };
+
+/**
+ * Where a layout pins its top Download link, so it stays on screen as the page scrolls: Nerd Mode fixes it to the
+ * end of its toolbar from 769px up. The other layouts let it scroll away with the switcher (#59).
+ */
+const PINNED = { nerd: true };
 
 const unbounded = manifest.layouts.filter((layout) => !Object.hasOwn(BOUNDS, layout));
 if (unbounded.length) {
@@ -242,6 +249,15 @@ const rendered = (layout, start, name, locale) => `new Promise((resolve) => {
   wait();
 })`;
 
+/**
+ * Resolves once the page reveals itself. script.js holds the first paint until the CV is in the page and the
+ * downloads are offered (#74), so nothing is selected, measured or tabbed to on a page still hidden.
+ */
+const revealed = `new Promise((resolve) => {
+  const wait = () => (document.body.hasAttribute('data-rendered') ? resolve() : setTimeout(wait, 50));
+  wait();
+})`;
+
 /** Selects the CV from its first element to its last, the way a reader drags across it, and reads it. */
 const selection = (start, end) => `(() => {
   const first = document.querySelector(${JSON.stringify(start)});
@@ -256,6 +272,79 @@ const selection = (start, end) => `(() => {
   const text = selected.toString();
   selected.removeAllRanges();
   return text;
+})()`;
+
+/**
+ * Every copy of the Download link, top copy first: whether it shows, how tall it renders, and where it spans
+ * down and across the page, so the first screen is the first screen whatever the page was scrolled to. The
+ * values are the browser's own, unrounded: rounding is the report's, and 45.4px is not 44px ±1.
+ */
+const downloadLinks = `[...document.querySelectorAll('[data-download-pdf]')].map((link) => {
+  const box = link.getBoundingClientRect();
+  return {
+    place: link.closest('footer') ? 'footer' : 'top',
+    display: getComputedStyle(link).display,
+    top: box.top + scrollY,
+    bottom: box.bottom + scrollY,
+    left: box.left + scrollX,
+    right: box.right + scrollX,
+    height: box.height
+  };
+})`;
+
+/** The top copy after scrolling to the end: still inside the viewport, and what a tap on its middle would hit. */
+const afterScrolling = `new Promise((resolve) => {
+  scrollTo(0, document.documentElement.scrollHeight);
+  setTimeout(() => {
+    const link = document.querySelector('[data-download-pdf]');
+    const box = link.getBoundingClientRect();
+    const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+    const inViewport = box.top > -1 && box.bottom < innerHeight + 1 && box.left > -1 && box.right < innerWidth + 1;
+    resolve({ inViewport, topmost: Boolean(hit && link.contains(hit)) });
+  }, 300);
+})`;
+
+/**
+ * The focused top copy's ring, once its transitions finish, and the colour behind it: the backgrounds under a
+ * point just outside the link's left edge, where the ring is drawn, painted one over another down to the first
+ * opaque one. A ring still changing after two seconds is not measured: the run stops and checks nothing, rather
+ * than judging a colour on its way somewhere else.
+ */
+const focusRing = `(async () => {
+  const link = document.querySelector('[data-download-pdf]');
+  const settled = Promise.all(link.getAnimations().map((animation) => animation.finished));
+  await Promise.race([
+    settled,
+    new Promise((resolve, reject) =>
+      setTimeout(() => reject(new Error('the focus ring was still changing after 2 seconds')), 2000)
+    )
+  ]);
+  const box = link.getBoundingClientRect();
+  const painted = (element) => {
+    const layers = [];
+    for (let node = element; node; node = node.parentElement) {
+      const [red, green, blue, alpha = 1] = (getComputedStyle(node).backgroundColor.match(/[\\d.]+/g) || []).map(Number);
+      if (blue === undefined || alpha === 0) continue;
+      layers.push([red, green, blue, alpha]);
+      if (alpha >= 1) break;
+    }
+    const colour = layers.reverse().reduce(
+      (beneath, [red, green, blue, alpha]) => [red, green, blue].map((channel, index) => channel * alpha + beneath[index] * (1 - alpha)),
+      [255, 255, 255]
+    );
+    return 'rgb(' + colour.map(Math.round).join(', ') + ')';
+  };
+  const under = document
+    .elementsFromPoint(Math.max(0, box.left - 3), box.top + box.height / 2)
+    .find((element) => !link.contains(element));
+  const outline = getComputedStyle(link);
+  return {
+    focused: document.activeElement === link,
+    style: outline.outlineStyle,
+    width: parseFloat(outline.outlineWidth) || 0,
+    ring: outline.outlineColor,
+    behind: painted(under || document.body)
+  };
 })()`;
 
 // The browser this audit starts holds the run's key, so a tailored profile under applications/ loads (#71).
@@ -279,15 +368,15 @@ try {
       process.stderr.write(`audit-screen: ${layout} at ${size.width}px…\n`);
       await chrome.send('Emulation.setDeviceMetricsOverride', { ...size, deviceScaleFactor: 1 });
       const loaded = chrome.next('Page.loadEventFired');
-      await chrome.send('Page.navigate', {
-        url: `http://127.0.0.1:${port}/index.html?layout=${layout}&profile=${target.profile}&lang=${target.locale}&key=${key}`
-      });
+      const address = `http://127.0.0.1:${port}/index.html?layout=${layout}&profile=${target.profile}&lang=${target.locale}&key=${key}`;
+      await chrome.send('Page.navigate', { url: address });
       await within(loaded, 30000, `${layout} did not load`);
       await within(
         chrome.evaluate(rendered(layout, start, profile.name, target.locale)),
         30000,
         `${layout} did not render its CV`
       );
+      await within(chrome.evaluate(revealed), 30000, `${layout} did not reveal its page`);
       // From navigation to the fonts being ready, which `rendered` waited for. A page that recorded
       // nothing did not run the recorder, and a shift nobody measured is not a page holding still.
       const recorded = await chrome.evaluate('window.__layoutShifts');
@@ -297,8 +386,50 @@ try {
       if (copied === null) throw new Error(`${layout} has no ${start} or no ${end}`);
 
       const copy = screenCopy(copied, profile, { skillsLabel: labels.skills });
-      const checks = { ...copy.checks, holdsStill: shift.holdsStill };
-      const findings = { ...copy.findings, movedWhileLoading: shift.holdsStill ? [] : shift.moved };
+
+      // The Download link (#101): measured as the page loaded, reached with Tab the way a keyboard user reaches
+      // it, scrolled past where a layout pins it, and loaded again with no PDF to offer.
+      const links = await chrome.evaluate(downloadLinks);
+      for (let press = 0; press < 10; press++) {
+        for (const type of ['keyDown', 'keyUp']) {
+          await chrome.send('Input.dispatchKeyEvent', {
+            type,
+            key: 'Tab',
+            code: 'Tab',
+            windowsVirtualKeyCode: 9
+          });
+        }
+        if (
+          await chrome.evaluate(
+            `document.activeElement === document.querySelector('[data-download-pdf]')`
+          )
+        )
+          break;
+      }
+      const focus = await chrome.evaluate(focusRing);
+      const afterScroll =
+        !size.mobile && PINNED[layout] ? await chrome.evaluate(afterScrolling) : null;
+
+      await chrome.send('Fetch.enable', {
+        patterns: [{ urlPattern: '*/generated/manifest.json*' }]
+      });
+      const paused = chrome.next('Fetch.requestPaused');
+      const reloaded = chrome.next('Page.loadEventFired');
+      await chrome.send('Page.navigate', { url: address });
+      const { requestId } = await within(paused, 30000, `${layout} never asked which PDFs exist`);
+      await chrome.send('Fetch.fulfillRequest', { requestId, responseCode: 404, body: '' });
+      await within(reloaded, 30000, `${layout} did not load without a PDF`);
+      await within(chrome.evaluate(revealed), 30000, `${layout} did not render without a PDF`);
+      const withoutPdf = await chrome.evaluate(downloadLinks);
+      await chrome.send('Fetch.disable');
+      const reach = downloadReach({ links, withoutPdf, afterScroll, focus }, size);
+
+      const checks = { ...copy.checks, holdsStill: shift.holdsStill, ...reach.checks };
+      const findings = {
+        ...copy.findings,
+        movedWhileLoading: shift.holdsStill ? [] : shift.moved,
+        ...reach.findings
+      };
       const passed = Object.values(checks).filter(Boolean).length;
       rows.push({
         layout,
@@ -306,7 +437,8 @@ try {
         shift: shift.total,
         score: `${passed}/${Object.keys(checks).length}`,
         checks,
-        findings
+        findings,
+        download: reach.measures
       });
     }
   }
@@ -340,9 +472,27 @@ const report = [
   '',
   'Checks: the CV captured whole — name, role, email and current employer; no two words the profile',
   'writes in sequence welded into one, and no contact detail run into the word beside it; every skill',
-  'category followed by its own first skill; every language on a line with its level; and nothing on',
-  'a line the data did not write — no pictograph, no line number; and the first screen holding still',
-  'while it loads — every layout shift from navigation to fonts ready, added up, below 0.1.'
+  'category followed by its own first skill; every language on a line with its level; nothing on a',
+  'line the data did not write — no pictograph, no line number; and the first screen holding still',
+  'while it loads — every layout shift from navigation to fonts ready, added up, below 0.1.',
+  '',
+  '## The Download PDF link',
+  '',
+  '| Layout | Width | Top copy | Heights | Focus ring |',
+  '|---|---:|---:|---:|---:|',
+  ...rows.map(
+    ({ layout, width, download }) =>
+      `| ${layout} | ${width}px | ${download.top} | ${download.heights} | ${download.ring} |`
+  ),
+  '',
+  'Checks, the four the product review of #59 measured by hand (#101): hidden without a PDF — loaded',
+  'with `generated/manifest.json` answered 404, every copy computes `display: none`; reachable — the',
+  'top copy inside the first screen and, where the layout pins it, still inside the viewport and',
+  'topmost after scrolling to the end; tappable — on a phone every visible copy renders at least 43px',
+  'and the top copy 44px, ±1; and a visible focus — reached with Tab, a drawn ring that clears 3:1',
+  'against the background just outside the link, once its transitions finish. Top copy is where it',
+  'spans from the top of the page, heights are every visible copy in page order, and the ring is its',
+  'contrast.'
 ].join('\n');
 
 await writeReport(new URL(target.reportPath('SCREEN_AUDIT.md'), projectUrl), `${report}\n`);
