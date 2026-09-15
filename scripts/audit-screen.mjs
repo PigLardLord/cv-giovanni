@@ -8,6 +8,7 @@ import { findBrowser } from './lib/find-browser.mjs';
 import { screenCopy } from './lib/screen-copy.mjs';
 import { RECORD_LAYOUT_SHIFTS, layoutShift } from './lib/layout-shift.mjs';
 import { downloadReach } from './lib/download-reach.mjs';
+import { secondaryButton } from './lib/footer-buttons.mjs';
 import { GenerationTarget } from '../core/GenerationTarget.js';
 
 /**
@@ -56,6 +57,15 @@ const BOUNDS = {
  * end of its toolbar from 769px up. The other layouts let it scroll away with the switcher (#59).
  */
 const PINNED = { nerd: true };
+
+/**
+ * The layouts whose footer keeps Browser print's outline quiet on purpose, each with its reason (#110). Every other
+ * layout is held to a border that clears 3:1 against the footer, so a new layout is checked unless it is listed
+ * here, the way BOUNDS refuses a layout it does not know.
+ */
+const QUIET = {
+  nerd: 'its label names the button, and the skin keeps its signal colour for the primary (#109)'
+};
 
 const unbounded = manifest.layouts.filter((layout) => !Object.hasOwn(BOUNDS, layout));
 if (unbounded.length) {
@@ -339,6 +349,42 @@ const afterScrolling = `new Promise((resolve) => {
 })`;
 
 /**
+ * The colour painted behind an element: its background and its ancestors', one over another, down to the first
+ * opaque one, over the white of the page.
+ */
+const PAINTED = `(element) => {
+  const layers = [];
+  for (let node = element; node; node = node.parentElement) {
+    const [red, green, blue, alpha = 1] = (getComputedStyle(node).backgroundColor.match(/[\\d.]+/g) || []).map(Number);
+    if (blue === undefined || alpha === 0) continue;
+    layers.push([red, green, blue, alpha]);
+    if (alpha >= 1) break;
+  }
+  const colour = layers.reverse().reduce(
+    (beneath, [red, green, blue, alpha]) => [red, green, blue].map((channel, index) => channel * alpha + beneath[index] * (1 - alpha)),
+    [255, 255, 255]
+  );
+  return 'rgb(' + colour.map(Math.round).join(', ') + ')';
+}`;
+
+/** The footer's secondary button, as computed: its shadow, its outline, and the footer painted behind it (#110). */
+const secondaryStyle = `(() => {
+  const painted = ${PAINTED};
+  const button = document.querySelector('footer .print-button-secondary');
+  if (!button) return null;
+  const style = getComputedStyle(button);
+  return {
+    label: button.textContent.trim().replace(/\\s+/g, ' '),
+    display: style.display,
+    shadow: style.boxShadow,
+    borderStyle: style.borderTopStyle,
+    borderWidth: style.borderTopWidth,
+    borderColour: style.borderTopColor,
+    behind: painted(button.parentElement)
+  };
+})()`;
+
+/**
  * The focused top copy's ring, once its transitions finish, and the colour behind it: the backgrounds under a
  * point just outside the link's left edge, where the ring is drawn, painted one over another down to the first
  * opaque one. A ring still changing after two seconds is not measured: the run stops and checks nothing, rather
@@ -354,20 +400,7 @@ const focusRing = `(async () => {
     )
   ]);
   const box = link.getBoundingClientRect();
-  const painted = (element) => {
-    const layers = [];
-    for (let node = element; node; node = node.parentElement) {
-      const [red, green, blue, alpha = 1] = (getComputedStyle(node).backgroundColor.match(/[\\d.]+/g) || []).map(Number);
-      if (blue === undefined || alpha === 0) continue;
-      layers.push([red, green, blue, alpha]);
-      if (alpha >= 1) break;
-    }
-    const colour = layers.reverse().reduce(
-      (beneath, [red, green, blue, alpha]) => [red, green, blue].map((channel, index) => channel * alpha + beneath[index] * (1 - alpha)),
-      [255, 255, 255]
-    );
-    return 'rgb(' + colour.map(Math.round).join(', ') + ')';
-  };
+  const painted = ${PAINTED};
   const under = document
     .elementsFromPoint(Math.max(0, box.left - 3), box.top + box.height / 2)
     .find((element) => !link.contains(element));
@@ -425,6 +458,9 @@ try {
       // it, scrolled past where a layout pins it, and loaded again with no PDF to offer.
       const links = await chrome.evaluate(downloadLinks);
       const buttons = await chrome.evaluate(footerButtons);
+      const secondary = secondaryButton(await chrome.evaluate(secondaryStyle), {
+        outlined: !Object.hasOwn(QUIET, layout)
+      });
       for (let press = 0; press < 10; press++) {
         for (const type of ['keyDown', 'keyUp']) {
           await chrome.send('Input.dispatchKeyEvent', {
@@ -459,11 +495,17 @@ try {
       await chrome.send('Fetch.disable');
       const reach = downloadReach({ links, withoutPdf, afterScroll, focus, buttons }, size);
 
-      const checks = { ...copy.checks, holdsStill: shift.holdsStill, ...reach.checks };
+      const checks = {
+        ...copy.checks,
+        holdsStill: shift.holdsStill,
+        ...reach.checks,
+        ...secondary.checks
+      };
       const findings = {
         ...copy.findings,
         movedWhileLoading: shift.holdsStill ? [] : shift.moved,
-        ...reach.findings
+        ...reach.findings,
+        ...secondary.findings
       };
       const passed = Object.values(checks).filter(Boolean).length;
       rows.push({
@@ -473,7 +515,12 @@ try {
         score: `${passed}/${Object.keys(checks).length}`,
         checks,
         findings,
-        download: reach.measures
+        download: {
+          ...reach.measures,
+          secondary: Object.hasOwn(QUIET, layout)
+            ? `${secondary.measures.secondary} (quiet)`
+            : secondary.measures.secondary
+        }
       });
     }
   }
@@ -513,11 +560,11 @@ const report = [
   '',
   '## The Download PDF link',
   '',
-  '| Layout | Width | Top copy | Heights | Label lines | Focus ring |',
-  '|---|---:|---:|---:|---:|---:|',
+  '| Layout | Width | Top copy | Heights | Label lines | Focus ring | Secondary button |',
+  '|---|---:|---:|---:|---:|---:|---:|',
   ...rows.map(
     ({ layout, width, download }) =>
-      `| ${layout} | ${width}px | ${download.top} | ${download.heights} | ${download.lines} | ${download.ring} |`
+      `| ${layout} | ${width}px | ${download.top} | ${download.heights} | ${download.lines} | ${download.ring} | ${download.secondary} |`
   ),
   '',
   'Checks, the four the product review of #59 measured by hand (#101): hidden without a PDF — loaded',
@@ -529,7 +576,10 @@ const report = [
   'transitions finish. A fifth since #107: every visible copy, and the footer button beside it,',
   'renders its label on one line, at both widths. Top copy is where it spans from the top of the page;',
   'heights and label lines are every visible copy in page order, then the footer button; the ring is',
-  'its contrast.'
+  'its contrast. The secondary button in the footer is checked as well (#110): it carries no shadow in any',
+  'layout, and its border clears 3:1 against the footer as painted in every layout that does not keep it',
+  'quiet on purpose with a stated reason, as Nerd Mode does, marked (quiet). Secondary button is that border',
+  'and its contrast.'
 ].join('\n');
 
 await writeReport(new URL(target.reportPath('SCREEN_AUDIT.md'), projectUrl), `${report}\n`);
