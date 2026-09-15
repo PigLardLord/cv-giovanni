@@ -210,6 +210,15 @@ describe('the Download link on one render', () => {
     expect(downloadReach(hidden, phone).checks.tappable).toBe(true);
   });
 
+  // The code review of #118: the page rounded the button's height before it was judged, so 42.6px passed as 43px.
+  test('a footer button is judged as measured, and 42.6px is under the tap floor', () => {
+    const short = { ...measured, buttons: [{ ...measured.buttons[0], height: 42.6 }] };
+
+    expect(downloadReach(short, phone).findings.untappable).toEqual([
+      `the footer's "Browser print" renders 42.6px`
+    ]);
+  });
+
   // The code review of #108 found the next four: each check could pass on a page that fails it.
   test('a ring painted fully transparent is no ring, and a translucent one is judged as it is painted', () => {
     const invisible = {
@@ -233,20 +242,34 @@ describe('the Download link on one render', () => {
     expect(downloadReach(withTop({ left: -4, right: 354 }), phone).checks.reachable).toBe(false);
   });
 
-  test('a measurement is judged as measured, and rounded only where it is reported', () => {
+  test('a measurement is judged as measured, a finding says it as measured, and only the table rounds it', () => {
     expect(downloadReach(withTop({ height: 45.4 }), phone).findings.untappable).toEqual([
-      'the top copy renders 45px, not 44'
+      'the top copy renders 45.4px, not 44'
     ]);
     const short = {
       ...measured,
       links: [measured.links[0], { ...measured.links[1], height: 42.6 }]
     };
     expect(downloadReach(short, phone).findings.untappable).toEqual([
-      'the footer copy renders 43px'
+      'the footer copy renders 42.6px'
     ]);
     expect(downloadReach(withTop({ height: 44.6 }), phone).checks.tappable).toBe(true);
     expect(
       downloadReach(withTop({ top: 97.4, bottom: 141.4, height: 44 }), phone).measures.top
     ).toBe('97–141px');
+  });
+
+  // The re-review of #108's fix: rounding had given the screen's edges half a pixel of slack, and judging
+  // unrounded took it away, so a copy 0.4px past the bottom of a sound page was off the screen.
+  test('a copy less than a pixel past an edge of the screen is on it, and a pixel past is not', () => {
+    const tall = { ...phone, height: 900 };
+    expect(downloadReach(withTop({ top: 856.4, bottom: 900.4 }), tall).checks.reachable).toBe(true);
+    expect(downloadReach(withTop({ left: -0.6, right: 357.4 }), phone).checks.reachable).toBe(true);
+    expect(downloadReach(withTop({ top: 857, bottom: 901 }), tall).findings.unreachable).toEqual([
+      'the top copy spans 857–901px of a 900px screen'
+    ]);
+    expect(
+      downloadReach(withTop({ left: 16.25, right: 391.25 }), phone).findings.unreachable
+    ).toEqual(['the top copy spans 16.25–391.25px across a 390px screen']);
   });
 });
