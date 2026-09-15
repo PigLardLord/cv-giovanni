@@ -65,10 +65,13 @@ const BOUNDS = {
 const PINNED = { nerd: true };
 
 /**
- * The layouts whose footer draws Browser print as a light button on a light footer, so its outline is the only
- * thing that marks it (#110). Nerd Mode keeps its outline quiet on purpose, and its label names the button.
+ * The layouts whose footer keeps Browser print's outline quiet on purpose, each with its reason (#110). Every other
+ * layout is held to a border that clears 3:1 against the footer, so a new layout is checked unless it is listed
+ * here, the way BOUNDS refuses a layout it does not know.
  */
-const OUTLINED = { spotlight: true, technical: true };
+const QUIET = {
+  nerd: 'its label names the button, and the skin keeps its signal colour for the primary (#109)'
+};
 
 const unbounded = manifest.layouts.filter((layout) => !Object.hasOwn(BOUNDS, layout));
 if (unbounded.length) {
@@ -527,7 +530,7 @@ try {
       const links = await chrome.evaluate(downloadLinks);
       const buttons = await chrome.evaluate(footerButtons);
       const secondary = secondaryButton(await chrome.evaluate(secondaryStyle), {
-        outlined: Boolean(OUTLINED[layout])
+        outlined: !Object.hasOwn(QUIET, layout)
       });
       for (let press = 0; press < 10; press++) {
         await pressTab(chrome);
@@ -624,7 +627,12 @@ try {
         score: `${passed}/${Object.keys(checks).length}`,
         checks,
         findings,
-        download: { ...reach.measures, ...secondary.measures },
+        download: {
+          ...reach.measures,
+          secondary: Object.hasOwn(QUIET, layout)
+            ? `${secondary.measures.secondary} (quiet)`
+            : secondary.measures.secondary
+        },
         rings: ringCheck.measures.rings
       });
     }
@@ -682,8 +690,9 @@ const report = [
   'renders its label on one line, at every width. Top copy is where it spans from the top of the page;',
   'heights and label lines are every visible copy in page order, then the footer button; the ring is',
   'its contrast. The secondary button in the footer is checked as well (#110): it carries no shadow in any',
-  'layout, and where the layout outlines it, in Impact Spotlight and Technical Profile, its border clears',
-  '3:1 against the footer as painted. Secondary button is that border and its contrast.',
+  'layout, and its border clears 3:1 against the footer as painted in every layout that does not keep it',
+  'quiet on purpose with a stated reason, as Nerd Mode does, marked (quiet). Secondary button is that border',
+  'and its contrast.',
   '',
   '## Focus rings',
   '',
