@@ -135,7 +135,7 @@ describe("the parts of a printed letter, in a reader's order", () => {
 
 describe('the catalogue the audit reads the letter in', () => {
   const t = catalogueTranslator({
-    cv: { letter: { closing: 'Kind regards,' } },
+    cv: { letter: { closing: 'Kind regards,', salutationMs: 'Dear Ms {{surname}}' } },
     ui: { letter: { absent: 'No letter.' } }
   });
 
@@ -147,6 +147,21 @@ describe('the catalogue the audit reads the letter in', () => {
   test('gives back a key it cannot find, as i18next does', () => {
     expect(t('cv:letter.subject')).toBe('cv:letter.subject');
     expect(t('print:anything')).toBe('print:anything');
+  });
+
+  // The salutation greets by surname (#174): a translator that printed the placeholder would expect on the paper a line
+  // the page, through i18next, never wrote.
+  test('fills a placeholder with the value it is given, as i18next does', () => {
+    expect(t('cv:letter.salutationMs', { surname: 'Schmidt & Söhne' })).toBe(
+      'Dear Ms Schmidt & Söhne'
+    );
+    // A value is written as it is, never read as a replacement pattern.
+    expect(t('cv:letter.salutationMs', { surname: '$&' })).toBe('Dear Ms $&');
+  });
+
+  test('leaves a placeholder it has no value for as written, as i18next does', () => {
+    expect(t('cv:letter.salutationMs')).toBe('Dear Ms {{surname}}');
+    expect(t('cv:letter.salutationMs', { name: 'Anna Schmidt' })).toBe('Dear Ms {{surname}}');
   });
 });
 

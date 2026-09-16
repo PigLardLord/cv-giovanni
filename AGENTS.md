@@ -535,6 +535,14 @@ Settled on #151 by the owner: one system for both documents a recruiter receives
   both within a DL window envelope's window, 20–110mm across; a line outside is named with where it
   is. The sides are not compared, as a CV's are: form B is asymmetric by design. `npm run audit:ats`
   keeps asking a `-cover` file only whether the recipient and the subject survive extraction.
+- **The salutation follows the form of address the author writes (#174),** never one inferred from a
+  first name. The recipient carries `form` — `ms`, `mr` or `neutral`, codes the catalogue words in
+  each language — with `surname` and an optional `title` written as the letter's language writes
+  it: `ms` and `mr` greet by title and surname ("Sehr geehrte Frau Dr. Schmidt,", "Dear Dr Schmidt,"),
+  `neutral` greets `name` as the address writes it ("Guten Tag Anna Schmidt,"), and nobody named
+  gets the anonymous opening. A named recipient without a form, or a form without the surname it
+  needs, is greeted neutrally, since cutting a surname from a name is guessing, and
+  `CoverLetter.missing` names the field so the build warns.
 - **The build warns first.** A recipient past six lines runs out of the address zone onto the date's
   row, and the audit fails it; a letter missing a field it needs is weaker, and the audit may not see
   it. `CoverLetter.problems` names both — each field `missing` names, and a recipient longer than

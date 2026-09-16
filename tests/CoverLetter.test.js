@@ -1,8 +1,10 @@
-import { ADDRESS_ZONE_LINES, CoverLetter } from '../domain/CoverLetter.js';
+import { ADDRESS_ZONE_LINES, CoverLetter, FORMS_OF_ADDRESS } from '../domain/CoverLetter.js';
 
 const complete = {
   recipient: {
     name: 'Anna Weber',
+    form: 'ms',
+    surname: 'Weber',
     role: 'Talent Lead',
     company: 'ActAI',
     address: ['Chausseestraße 1', '10115 Berlin']
@@ -73,9 +75,110 @@ describe('a partial letter, which is the normal state', () => {
   test('it says who is addressed and never how', () => {
     const source = JSON.stringify(new CoverLetter(complete));
 
-    for (const wording of ['Dear', 'Sehr geehrte', 'Gentile', 'Hiring Team']) {
+    for (const wording of ['Dear', 'Sehr geehrte', 'Gentile', 'Hiring Team', 'Frau', 'Ms ']) {
       expect(source).not.toContain(wording);
     }
+  });
+});
+
+// How a named recipient is greeted is the author's to write, never inferred from a first name (#174): "Sehr geehrte(r)"
+// was the price of a model that knew only a name. The form is a code the catalogue words in each language, and the
+// surname is its own field, since splitting a name is guessing.
+describe('how the recipient is greeted', () => {
+  const recipient = (fields) => new CoverLetter({ ...complete, recipient: fields });
+  const named = { company: 'ActAI', name: 'Anna Schmidt' };
+
+  test('the forms of address are codes, not words of any language', () => {
+    expect(FORMS_OF_ADDRESS).toEqual(['ms', 'mr', 'neutral']);
+  });
+
+  test('keeps the form, the title and the surname as the data wrote them', () => {
+    const letter = recipient({ ...named, form: ' ms ', title: ' Dr. ', surname: ' Schmidt ' });
+
+    expect(letter.recipient).toMatchObject({ form: 'ms', title: 'Dr.', surname: 'Schmidt' });
+  });
+
+  test.each([
+    ['ms', 'Anna Schmidt'],
+    ['mr', 'Jonas Schmidt']
+  ])('a recipient marked %s with a surname is greeted by that form', (form, name) => {
+    const letter = recipient({ company: 'ActAI', name, form, surname: 'Schmidt' });
+
+    expect(letter.greeting).toEqual({ form, name, surname: 'Schmidt', title: '' });
+    expect(letter.problems).toEqual([]);
+  });
+
+  test('the title travels with the form', () => {
+    expect(recipient({ ...named, form: 'ms', title: 'Dr.', surname: 'Schmidt' }).greeting).toEqual({
+      form: 'ms',
+      name: 'Anna Schmidt',
+      surname: 'Schmidt',
+      title: 'Dr.'
+    });
+  });
+
+  test('the form is read whatever its case', () => {
+    expect(recipient({ ...named, form: 'Mr', surname: 'Schmidt' }).greeting.form).toBe('mr');
+  });
+
+  test('a recipient the author marks neutral is greeted by name, and nothing is missing', () => {
+    const letter = recipient({ ...named, form: 'neutral' });
+
+    expect(letter.greeting.form).toBe('neutral');
+    expect(letter.problems).toEqual([]);
+  });
+
+  // The neutral form is what a named recipient gets when nobody said how to address them, and the build says so.
+  test('a named recipient with no form of address is greeted neutrally, and the form is named as missing', () => {
+    const letter = recipient(named);
+
+    expect(letter.greeting).toEqual({
+      form: 'neutral',
+      name: 'Anna Schmidt',
+      surname: '',
+      title: ''
+    });
+    expect(letter.missing).toEqual(['recipient.form']);
+    expect(letter.problems).toEqual(['recipient.form: missing']);
+    expect(letter.isComplete).toBe(false);
+  });
+
+  // A surname is never cut from the name: "Anna Maria Schmidt" and "Schmidt Anna" both exist.
+  test('a form of address without a surname is greeted neutrally, and the surname is named as missing', () => {
+    const letter = recipient({ ...named, form: 'ms' });
+
+    expect(letter.greeting).toMatchObject({ form: 'neutral', surname: '' });
+    expect(letter.problems).toEqual(['recipient.surname: missing']);
+  });
+
+  test('a form of address the model does not know is named with what was written', () => {
+    const letter = recipient({ ...named, form: 'Frau', surname: 'Schmidt' });
+
+    expect(letter.greeting.form).toBe('neutral');
+    expect(letter.missing).toEqual(['recipient.form']);
+    expect(letter.problems).toEqual(['recipient.form: "Frau" is not ms, mr or neutral']);
+  });
+
+  test('a neutral form with no name to greet falls back to the anonymous opening, and the name is missing', () => {
+    const letter = recipient({ company: 'ActAI', form: 'neutral' });
+
+    expect(letter.greeting.form).toBe('anonymous');
+    expect(letter.problems).toEqual(['recipient.name: missing']);
+  });
+
+  test('a surname with no form of address is a person nobody said how to greet', () => {
+    const letter = recipient({ company: 'ActAI', surname: 'Schmidt' });
+
+    expect(letter.greeting.form).toBe('anonymous');
+    expect(letter.problems).toEqual(['recipient.form: missing']);
+  });
+
+  // Nobody named, nobody to greet: the anonymous opening is not a fallback but the letter as written.
+  test('a recipient nobody named is greeted anonymously, and needs no form of address', () => {
+    const letter = recipient({ company: 'ActAI' });
+
+    expect(letter.greeting).toEqual({ form: 'anonymous', name: '', surname: '', title: '' });
+    expect(letter.problems).toEqual([]);
   });
 });
 
