@@ -12,7 +12,7 @@ import { builtCv } from './lib/printed-cv.mjs';
 import { PRINTED_PAGE, bboxPages, printedRoom, roomReport } from './lib/page-room.mjs';
 import { MEASURE_LIMIT, longProseLines, overflowingPeriods, proseOf } from './lib/line-length.mjs';
 import { CvDocument } from '../domain/CvDocument.js';
-import { tenureText } from '../domain/Tenure.js';
+import { periodText } from '../domain/Tenure.js';
 import { GenerationTarget } from '../core/GenerationTarget.js';
 
 /**
@@ -36,11 +36,9 @@ const labels = (await readJson(`locales/${target.locale}/cv.json`)).sections;
 // The prose a reader follows along a line, and each role's dates as Nerd Mode prints them, with their length (#155).
 const prose = proseOf(profile);
 const cv = new CvDocument(profile);
-const periods = cv.experience.map((role) => {
-  // As the page prints it: the period, then its length in brackets when it has one.
-  const length = tenureText(cv.monthsIn(role), target.locale);
-  return length ? `${role.period} (${length})` : role.period;
-});
+// Each role's dates as the page writes them, the period with its length (Nerd Mode's print hides the length; a run of
+// the period still matches).
+const periods = cv.experience.map((role) => periodText(cv, role, target.locale));
 
 /** Read a file the audit cannot run without. Missing means unchecked, which is exit 2. */
 async function readJson(path) {
@@ -268,7 +266,7 @@ try {
       maxBuffer: 64 * 1024 * 1024
     });
     const faint = faintWords(bbox, pages);
-    const long = longProseLines(text, prose);
+    const long = longProseLines(text, prose, { periods });
     const overflow = layout === 'nerd' ? overflowingPeriods(bbox, periods) : [];
     // How close each page runs to its foot, reported and never gated: the page count is the gate (#162). A page with
     // no line has no room to measure.

@@ -51,20 +51,44 @@ export function proseOf(profile) {
 }
 
 /**
+ * The prose a printed line holds: the line itself when it is prose, or what follows the words of a period poppler set
+ * at its start. Nerd Mode prints the dates in a column beside the role, and poppler can join the column's last word to
+ * the prose beside it, "Present Enterprise mobility and…", which is then no sentence the profile writes (the code
+ * review of #177). A line that is prose as printed is never shortened.
+ * @param {string} line - One printed line, its whitespace squashed
+ * @param {string[]} prose - The prose the profile prints
+ * @param {string[]} periods - Each role's dates as they print
+ * @returns {string|null} The prose on the line, or null when it holds none
+ */
+const proseOn = (line, prose, periods) => {
+  if (prose.some((string) => string.includes(line))) return line;
+  const words = line.split(' ');
+  for (let cut = 1; cut < words.length; cut += 1) {
+    if (!periods.some((period) => period.includes(words.slice(0, cut).join(' ')))) break;
+    const rest = words.slice(cut).join(' ');
+    if (prose.some((string) => string.includes(rest))) return rest;
+  }
+  return null;
+};
+
+/**
  * The prose lines longer than the measure, each with its page.
  * @param {string} text - The text layer, from `pdftotext`, pages separated by form feeds
  * @param {string[]} prose - The prose the profile prints, from `proseOf`
- * @param {number} [limit] - The most characters a line may hold
- * @returns {{ page: number, length: number, line: string }[]} Every prose line past the limit
+ * @param {{ limit?: number, periods?: string[] }} [options] - The most characters a line may hold, and each role's
+ *   dates as they print, so a date poppler joined to a line of prose is not taken for part of it
+ * @returns {{ page: number, length: number, line: string }[]} Every prose line past the limit, as its prose
  */
-export function longProseLines(text, prose, limit = MEASURE_LIMIT) {
+export function longProseLines(text, prose, { limit = MEASURE_LIMIT, periods = [] } = {}) {
+  const written = periods.map(squash);
   return String(text)
     .split('\f')
     .flatMap((page, index) =>
       page
         .split('\n')
         .map(squash)
-        .filter((line) => line.length > limit && prose.some((string) => string.includes(line)))
+        .map((line) => proseOn(line, prose, written))
+        .filter((line) => line !== null && line.length > limit)
         .map((line) => ({ page: index + 1, length: line.length, line }))
     );
 }

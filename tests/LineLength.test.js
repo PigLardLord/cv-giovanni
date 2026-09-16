@@ -63,6 +63,30 @@ describe('the measure of the printed prose', () => {
     expect(longProseLines(text, proseOf(profile))).toEqual([]);
   });
 
+  // The code review of #177: with Nerd Mode's date column squeezed, poppler joined "Present", the last word of a period,
+  // to an 88-character line of a role's summary, and the joined line was no sentence the profile writes.
+  test('finds the prose on a line that begins with the last words of a period', () => {
+    const summary =
+      'Enterprise mobility and device management (MDM, secure printing) in a mobile team of 3–7 engineers.';
+    const line =
+      'Present Enterprise mobility and device management (MDM, secure printing) in a mobile team of 3–7';
+    const periods = ['August 2018 – Present (8 years, 2 months)'];
+
+    expect(longProseLines(line, [summary])).toEqual([]);
+    expect(longProseLines(line, [summary], { periods })).toEqual([
+      { page: 1, length: 88, line: line.slice('Present '.length) }
+    ]);
+  });
+
+  test('a line of prose that begins with a word a period uses is measured whole', () => {
+    const sentence = `Present ${'x'.repeat(80)} and more`;
+    const line = `Present ${'x'.repeat(80)}`;
+
+    expect(longProseLines(line, [sentence], { periods: ['August 2018 – Present'] })).toEqual([
+      { page: 1, length: 88, line }
+    ]);
+  });
+
   test('a line of 80 characters is within the measure, and one of 81 is not', () => {
     const eighty = 'x'.repeat(80);
     const prose = [`${eighty}x tail`];
