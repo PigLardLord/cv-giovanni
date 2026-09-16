@@ -229,6 +229,13 @@ export class SwiftSourceLayout {
       lines.push([1, [content(summary, 'string')]]);
       lines.push([1, [code('"""', 'string')]]);
     }
+    // The summary's evidence (#148): a list of strings, one a line, the way the languages are written.
+    const impact = list(data.careerHighlights).map(clean).filter(Boolean);
+    if (impact.length > 0) {
+      lines.push([0, [...declaration('let', 'impact', arrayOf('String')), code('[')]]);
+      impact.forEach((highlight) => lines.push([1, [...quoted(highlight), code(',')]]));
+      lines.push([0, [code(']')]]);
+    }
     if (availability) {
       lines.push([0, [...declaration('let', 'availability'), ...quoted(availability)]]);
     }

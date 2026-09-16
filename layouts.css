@@ -83,6 +83,7 @@
 
   /* The base sections step aside; the footer stays, as the editor's bottom bar. */
   body[data-layout='nerd'] .hero-section,
+  body[data-layout='nerd'] .career-highlights-section,
   body[data-layout='nerd'] .skills-spotlight,
   body[data-layout='nerd'] .main-content {
     display: none;
@@ -761,6 +762,11 @@
     display: none;
   }
 
+  /* --- Selected impact: a band between the masthead and the skills, with the body's measure --- */
+  body[data-layout='spotlight'] .career-highlights-section {
+    padding: 1.7rem 2.6rem 1.5rem;
+  }
+
   /* --- The skills band: one row per category, label left, names as chips ------------------ */
   body[data-layout='spotlight'] .skills-spotlight {
     padding: 1.5rem 2.6rem 1.7rem;
@@ -922,6 +928,7 @@
     justify-content: center;
   }
 
+  body[data-layout='spotlight'] .career-highlights-section,
   body[data-layout='spotlight'] .skills-spotlight,
   body[data-layout='spotlight'] .main-content {
     padding-left: 1.4rem;
@@ -985,11 +992,13 @@ body[data-layout='technical'] {
   body[data-layout='technical'] .container {
     display: grid;
     grid-template-columns: var(--rail-width) minmax(0, 1fr);
-    /* Row 3 is flexible so the evidence column, which spans rows 2 and 3, grows it and not row 2:
-       with two auto rows the surplus is shared out and a gap opens between skills and education. */
-    grid-template-rows: auto auto 1fr auto;
+    /* Row 4 is flexible so the evidence column, which spans rows 3 and 4, grows it and not row 3:
+       with two auto rows the surplus is shared out and a gap opens between skills and education.
+       Selected impact runs across both columns under the masthead, before the rail begins (#148). */
+    grid-template-rows: auto auto auto 1fr auto;
     grid-template-areas:
       'hero hero'
+      'impact impact'
       'skills evidence'
       'aside evidence'
       'footer footer';
@@ -998,6 +1007,11 @@ body[data-layout='technical'] {
 
   body[data-layout='technical'] .hero-section {
     grid-area: hero;
+  }
+
+  body[data-layout='technical'] .career-highlights-section {
+    grid-area: impact;
+    padding: 1.6rem 2.1rem 1.5rem;
   }
 
   body[data-layout='technical'] .skills-spotlight {
@@ -1143,6 +1157,7 @@ body[data-layout='technical'] {
     grid-template-rows: none;
     grid-template-areas:
       'hero'
+      'impact'
       'skills'
       'evidence'
       'aside'
@@ -1161,6 +1176,7 @@ body[data-layout='technical'] {
     max-width: 320px;
   }
 
+  body[data-layout='technical'] .career-highlights-section,
   body[data-layout='technical'] .skills-spotlight,
   body[data-layout='technical'] .secondary-column {
     padding-left: 1.25rem;

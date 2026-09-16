@@ -220,6 +220,28 @@ describe('what a reader copies when they select the CV', () => {
     ]);
   });
 
+  // The page shows the profile's career highlights now (#148), so a selection that lost them lost evidence.
+  test('a selection without the career highlights has not captured the CV', () => {
+    const highlighted = {
+      ...profile,
+      career_highlights: ['6 years owning an enterprise iOS MDM client', '75% faster CI']
+    };
+    const { checks, findings } = screenCopy(copy(...nerd), highlighted, options);
+
+    expect(checks.captured).toBe(false);
+    expect(findings.missing).toEqual([
+      '6 years owning an enterprise iOS MDM client',
+      '75% faster CI'
+    ]);
+    expect(
+      screenCopy(
+        copy(...nerd.slice(0, 3), ...highlighted.career_highlights, ...nerd.slice(3)),
+        highlighted,
+        options
+      ).checks.captured
+    ).toBe(true);
+  });
+
   test('a category named inside another group’s skills is not that category’s heading', () => {
     const mentioned = {
       ...profile,

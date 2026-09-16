@@ -684,6 +684,46 @@ body[data-layout='technical'] .hero-name {
     color: var(--t-blue-bright);
   }
 
+  /* --- Selected impact ---------------------------------------------------------------------- */
+  /* On the pale ground across both columns, under the masthead: its label wears the evidence column's
+     bar, and the list is a white card with the current role's deep spine, its bullets set as a role's
+     achievements are (#148). */
+  body[data-layout='technical'] .career-highlights-section {
+    background: var(--t-ground);
+  }
+
+  body[data-layout='technical'] .career-highlights-section .title-accent {
+    background: var(--t-blue-bright);
+  }
+
+  body[data-layout='technical'] .career-highlights-section .section-title span:last-child {
+    font-size: 0.84rem;
+  }
+
+  body[data-layout='technical'] .career-highlights {
+    padding: 0.95rem 1.3rem 0.95rem 2.45rem;
+    border-left: 4px solid var(--t-blue-deep);
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: var(--t-shadow-deep);
+    color: var(--t-body);
+    font-size: 0.9rem;
+    line-height: 1.55;
+  }
+
+  body[data-layout='technical'] .career-highlights li {
+    margin-bottom: 0.35rem;
+    padding-left: 0.15rem;
+  }
+
+  body[data-layout='technical'] .career-highlights li:last-child {
+    margin-bottom: 0;
+  }
+
+  body[data-layout='technical'] .career-highlights li::marker {
+    color: var(--t-blue-bright);
+  }
+
   body[data-layout='technical'] .certifications-list li {
     padding: 0.9rem 1.15rem 0.95rem;
     border-left: 4px solid var(--t-blue-bright);
@@ -1178,6 +1218,34 @@ body[data-layout='technical'] .hero-name {
   }
 
   body[data-layout='spotlight'] .job-highlights li::marker {
+    color: var(--e-ember-bright);
+  }
+
+  /* --- Selected impact ---------------------------------------------------------------------- */
+  /* A white band between the masthead and the cream skills band, under the section heading every other
+     section wears, its bullets set as a role's achievements are (#148). */
+  body[data-layout='spotlight'] .career-highlights-section {
+    background: #fff;
+    border-bottom: 1px solid var(--e-line);
+  }
+
+  body[data-layout='spotlight'] .career-highlights {
+    margin: 0 0 0 1.1rem;
+    color: var(--e-body);
+    font-size: 0.9rem;
+    line-height: 1.58;
+  }
+
+  body[data-layout='spotlight'] .career-highlights li {
+    margin-bottom: 0.38rem;
+    padding-left: 0.15rem;
+  }
+
+  body[data-layout='spotlight'] .career-highlights li:last-child {
+    margin-bottom: 0;
+  }
+
+  body[data-layout='spotlight'] .career-highlights li::marker {
     color: var(--e-ember-bright);
   }
 

@@ -71,10 +71,13 @@ html body * {
 
 /* The margins live on the page box alone. Padding on the container would reach only the first page's top,
    and splitting the side margin between the two, as this file used to, left nobody sure which one set it.
-   36pt at the head and foot, 39pt at the sides: a 517pt by 770pt text block on A4. */
+   33pt at the head and foot, 39pt at the sides: a 517pt by 776pt text block on A4. They were 36pt until Selected
+   Impact printed (#148). With the space above headings, under the masthead and between roles cut as well, 34pt
+   still left Nerd Mode on three pages, 1 to 2pt short: its bullets have a 362pt column, which wraps the third
+   highlight onto a line the other layouts do not spend. 33pt is 11.6mm, above the print audit's 10mm floor. */
 @page {
   size: A4;
-  margin: 36pt 39pt;
+  margin: 33pt 39pt;
   @top-center {
     content: none;
   }
@@ -164,15 +167,16 @@ body[data-layout='technical'] .container {
 /* =============================================================================
    THE MASTHEAD
    Name, title, skills line, summary, work authorisation, then the contacts on two lines: the order the
-   markup writes them in. The screen's two columns, its portrait and its contact card do not print.
+   markup writes them in. The screen's two columns, its portrait and its contact card do not print. No rule
+   under it: 12pt of space parts it from the first section, and the rule's 10.5pt went to Selected Impact (#148).
    ============================================================================= */
 
 .hero-section {
   background: white !important;
   color: #374151 !important;
-  padding: 0 0 10pt !important;
+  padding: 0 !important;
   margin: 0 0 12pt !important;
-  border-bottom: 0.5pt solid #d1d5db !important;
+  border: 0 !important;
   overflow: visible !important;
   break-inside: avoid !important;
 }
@@ -350,22 +354,26 @@ body[data-layout='spotlight'] .hero-name {
   display: block !important;
 }
 
-/* 15pt above every heading after the first. The project's own ATS parser recognises a heading only after a
-   blank line in the extracted text, and poppler writes one only where the gap is wide enough: at 15pt it
-   writes one before all six headings, in every layout. design-glacier.css puts 3rem between the sections
-   of a screen column, which this replaces. */
+/* 12pt above every heading after the first. The project's own ATS parser recognises a heading only after a
+   blank line in the extracted text, and poppler writes one only where the gap is wide enough: at 12pt it
+   still writes one before all seven headings, in every layout, measured when Selected Impact took the 3pt
+   this gap had at 15pt (#148). design-glacier.css puts 3rem between the sections of a screen column, which
+   this replaces. */
 section {
-  margin: 15pt 0 0 !important;
+  margin: 12pt 0 0 !important;
   padding: 0 !important;
   background: none !important;
   border: 0 !important;
 }
 
-.skills-spotlight {
+/* Selected Impact opens the sections when the profile has highlights, and Core Technologies when it has none. */
+.career-highlights-section,
+.career-highlights-section[hidden] + .skills-spotlight {
   margin-top: 0 !important;
 }
 
 /* Each of these fits on the page it starts on; Experience alone is long enough to cross a page break. */
+.career-highlights-section,
 .skills-spotlight,
 .education-section,
 .certifications-section,
@@ -403,6 +411,20 @@ section {
 
 .title-accent {
   display: none !important;
+}
+
+/* =============================================================================
+   SELECTED IMPACT
+   ============================================================================= */
+
+/* The profile's summary of evidence (#148), set as a role's achievements are: the same 13pt hanging indent,
+   colour and 11pt items, which share their rules below. It follows its heading directly, where a role's list
+   follows a summary. */
+.career-highlights {
+  margin: 0 0 0 13pt !important;
+  padding: 0 !important;
+  list-style: disc outside !important;
+  color: #374151 !important;
 }
 
 /* =============================================================================
@@ -476,8 +498,9 @@ section {
   break-inside: auto !important;
 }
 
+/* 9pt between two roles, 12pt until Selected Impact needed the room (#148). */
 .job-entry + .job-entry {
-  margin-top: 12pt !important;
+  margin-top: 9pt !important;
 }
 
 .job-header {
@@ -540,7 +563,8 @@ section {
   color: #374151 !important;
 }
 
-.job-highlights li {
+.job-highlights li,
+.career-highlights li {
   margin: 3pt 0 0 !important;
   font-size: 11pt !important;
   font-weight: 400 !important;
@@ -548,7 +572,8 @@ section {
   break-inside: avoid !important;
 }
 
-.job-highlights li:first-child {
+.job-highlights li:first-child,
+.career-highlights li:first-child {
   margin-top: 0 !important;
 }
 
@@ -766,7 +791,6 @@ body[data-layout='nerd'] .section-title::after {
    addresses pick up: two pixels of Tailwind slate were once the whole difference between "prints
    grey" and "prints achromatic". */
 body[data-layout='nerd'] .hero-section {
-  border-bottom-color: #d8d8d8 !important;
   color: #333 !important;
 }
 
@@ -816,6 +840,13 @@ body[data-layout='nerd'] .interests-line {
   margin-left: 142pt !important;
 }
 
+/* Selected Impact's items start where a role's achievements do, at the text column's edge plus their own 13pt
+   hanging indent, so both lists' bullets stand on one line. */
+body[data-layout='nerd'] .career-highlights {
+  margin-left: 155pt !important;
+  color: #333 !important;
+}
+
 /* --- The skills table -------------------------------------------------------------------------- */
 body[data-layout='nerd'] .skill-group {
   margin: 0 !important;
@@ -862,9 +893,10 @@ body[data-layout='nerd'] .job-entry {
   row-gap: 0 !important;
 }
 
+/* The same 9pt between two roles, either side of the hairline. */
 body[data-layout='nerd'] .job-entry + .job-entry {
-  margin-top: 6pt !important;
-  padding-top: 6pt !important;
+  margin-top: 4.5pt !important;
+  padding-top: 4.5pt !important;
   border-top: 0.5pt solid #ebebeb !important;
 }
 

@@ -45,15 +45,16 @@ const authored = (node) =>
 const spaced = (text) => String(text).replace(/\s+/g, ' ').trim();
 
 /**
- * What a selection of the whole CV must hold: the identity, and the evidence — every role, its
- * achievements, every degree and school, certification, skill, language and interest. Four identity
- * strings alone once passed a selection that had missed nearly all of it.
+ * What a selection of the whole CV must hold: the identity, and the evidence — the career highlights, every
+ * role, its achievements, every degree and school, certification, skill, language and interest. Four
+ * identity strings alone once passed a selection that had missed nearly all of it.
  */
 const substance = (profile) =>
   [
     profile.name,
     profile.title,
     profile.email,
+    ...(profile.career_highlights || []),
     ...(profile.relevant_experience || []).flatMap((job) => [
       job.title,
       job.company,

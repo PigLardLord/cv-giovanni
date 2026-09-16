@@ -7,6 +7,7 @@ import { CVApplication } from '../core/CVApplication.js';
 import { DocumentLocalizer } from '../core/DocumentLocalizer.js';
 import { RendererContainer } from '../core/RendererContainer.js';
 import { CvDocument } from '../domain/CvDocument.js';
+import { CareerHighlightsRenderer } from '../renderers/CareerHighlightsRenderer.js';
 import { CertificationsRenderer } from '../renderers/CertificationsRenderer.js';
 import { EducationRenderer } from '../renderers/EducationRenderer.js';
 import { ExperienceRenderer } from '../renderers/ExperienceRenderer.js';
@@ -42,6 +43,7 @@ const RENDERERS = [
   ['HeaderRenderer', () => new HeaderRenderer(i18n)],
   ['SocialLinksRenderer', () => new SocialLinksRenderer()],
   ['ProfileRenderer', () => new ProfileRenderer()],
+  ['CareerHighlightsRenderer', () => new CareerHighlightsRenderer()],
   ['ExperienceRenderer', () => new ExperienceRenderer(i18n)],
   ['EducationRenderer', () => new EducationRenderer()],
   ['CertificationsRenderer', () => new CertificationsRenderer()],
@@ -88,10 +90,17 @@ describe('the page reads the model, never the profile', () => {
     ]) {
       expect(text).toContain(written);
     }
+    // The page's own list, not the editor's copy of it: Nerd Mode's Swift file carries the highlights too (#148).
+    expect(
+      [...document.querySelectorAll('#career-highlights li')].map((item) => item.textContent)
+    ).toEqual(profile.career_highlights);
     expect(
       document.querySelector(`.social-links a[href="${profile.social[0].url}"]`)
     ).not.toBeNull();
     expect(document.getElementById('source-code').textContent).toContain(profile.name);
+    expect(document.getElementById('source-code').textContent).toContain(
+      profile.career_highlights[0]
+    );
   });
 
   test('the localizer names the candidate from the model', () => {

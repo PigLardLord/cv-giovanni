@@ -66,10 +66,15 @@ const strings = (node) =>
       ? Object.values(node).flatMap(strings)
       : [];
 
+// The profile's summary of evidence prints under its own heading, between the contacts and the skills (#148). A
+// profile without highlights prints no such section, so neither the heading nor a highlight is asked of it.
+const highlights = profile.career_highlights ?? [];
+
 const mustHave = [
   profile.name,
   profile.title,
   profile.email,
+  ...highlights.slice(0, 1),
   labels.experience,
   labels.skills,
   profile.relevant_experience[0].company,
@@ -286,6 +291,7 @@ try {
     const anchors = [
       profile.name,
       profile.email,
+      ...(highlights.length > 0 ? [labels.selectedImpact] : []),
       labels.skills,
       labels.experience,
       ...profile.relevant_experience.map((job) => job.title),
