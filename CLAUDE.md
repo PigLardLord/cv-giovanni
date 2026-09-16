@@ -58,8 +58,9 @@ it once and hands it to the localizer, every renderer and Nerd Mode's editor, an
 `tests/PageRendersTheModel.test.js` fails when one of them reads the profile JSON instead (#81).
 
 **The downloadable PDF is the page, printed**: `npm run build:pdf` prints each layout through
-`print.css` with a headless Chrome (#144, #149). The cover letter is still composed from the model by
-pdfmake until #151, and the CV's pdfmake path (`adapters/PdfLayout.js`) is dead code until #153.
+`print.css` with a headless Chrome (#144, #149). A tailored profile's cover letter is printed the same way
+from `letter.html` (#151), and pdfmake's CV and letter paths (`adapters/PdfLayout.js`,
+`adapters/LetterLayout.js`) are dead code until #153.
 
 ### Layers
 
@@ -77,6 +78,8 @@ pdfmake until #151, and the CV's pdfmake path (`adapters/PdfLayout.js`) is dead 
 - `editor.html` and `editor/` — the local app's editor (#23): the general profile as a form, built from
   `core/ProfileShape.js` by `core/ProfileForm.js`, beside the CV it renders. The page decides nothing; it is
   not published with the site, and `tests/EditorStaysLocal.test.js` holds the deploy to that.
+- `letter.html`, `letter.js` and `letter.css` — the cover letter's page, DIN 5008 form B in millimetres
+  (#151). `core/LetterContent.js` decides its words and `renderers/LetterRenderer.js` writes them.
 - `vendor/` — i18next and Inter, checked in so the page runs off the file tree with no install step.
 
 ### Testing Setup

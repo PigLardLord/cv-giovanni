@@ -31,7 +31,7 @@ headless Chrome and prints each layout through `print.css`, so the page and the 
 one design and one set of words. They used to be two artefacts: the page through `renderers/`, and a
 PDF composed from the model by `adapters/PdfLayout.js` in a design of its own. They drifted — the PDF
 carried career highlights and an as-of month the page never showed (#148) — and the owner chose one
-CV over two (#144). A cover letter is still composed by pdfmake, until it is a page too (#151).
+CV over two (#144). A cover letter is a page too, `letter.html`, printed the same way (#151).
 
 These rules outlived `docs/ROADMAP.md`, which described milestones that GitHub now tracks. What
 remains of that file's unfinished work is filed under the milestone _Carried over from the old
@@ -122,7 +122,8 @@ A ticket can pass `codex-cli` on the diff and still ship a CV that dies in a tex
 Extend step 7 with a product review whenever the ticket's diff touches what the CV says or how
 it renders: `profiles/`, `locales/`, `renderers/`, `index.html`, `style.css`, `layouts.css`,
 `print.css`, `core/PdfExporter.js`, `core/CvFiles.js` (the name the recruiter's inbox receives),
-`adapters/PdfDesignSystem.js`, `adapters/LayoutThemeRegistry.js`.
+`adapters/PdfDesignSystem.js`, `adapters/LayoutThemeRegistry.js`, and the cover letter's `letter.html`,
+`letter.css`, `core/LetterContent.js` and `renderers/LetterRenderer.js` (#151).
 
 A ticket touching only build tooling, scripts or tests does not need it — say that it was
 skipped and why, rather than skipping it silently.
@@ -303,8 +304,8 @@ nothing is noise.
 When a finding's prevention rule is mechanically checkable, the follow-up ticket should add the
 check rather than the reminder. `scripts/audit-print.mjs` already scores every printed layout on
 format, page count, required text, reading order in both of the orders a parser reads, contrast on
-the paper, margins, typefaces, Type 3 fonts and images — an eighteenth check there outlives any
-number of review comments.
+the paper, margins, typefaces, Type 3 fonts and images, and every printed cover letter on checks of
+its own — an eighteenth check there outlives any number of review comments.
 
 **One CV and three audits**, and they fail differently. `npm run audit:print` reads the PDFs
 `npm run build:pdf` printed — the files CI publishes, never a copy printed for the audit, which would
@@ -469,5 +470,41 @@ Settled on #144 by the owner, and not to be undone by someone reclaiming space:
 - **The gate** is `audit:print` green and `audit:ats`'s floors in both reading orders, on the files
   CI publishes.
 
-The cover letter keeps pdfmake's design system — `adapters/PdfDesignSystem.js`, Inter embedded from
-the same files, a missing face a hard error — until #151 makes it a page.
+## The cover letter
+
+Settled on #151 by the owner: one system for both documents a recruiter receives, so pdfmake can go
+(#153). A letter is far simpler than a CV, which kept the cost of re-expressing DIN 5008 small.
+
+- **A page, printed by Chrome.** `letter.html?profile=<name>&lang=<locale>&layout=<layout>` renders
+  the `letter` a tailored profile carries, and `npm run build:pdf` prints it beside each layout's CV,
+  in the same browser session, to `<name>-<profile>-<locale>-<layout>-cover.pdf`
+  (`CvFiles.letterFilename`). The `-cover` is what the audits tell a letter by. `core/LetterContent.js`
+  decides the words, once, for the page and the audit alike; `renderers/LetterRenderer.js` writes them
+  as text. The page never offers a letter for download, and `generated/manifest.json` lists only the
+  CV. A profile without a letter, the published one included, shows a notice saying so.
+- **DIN 5008 form B, in CSS millimetres.** `letter.css` sets A4 with the form's margins, 20mm and
+  24.1mm on the left, and lays the letter out as blocks of fixed height in normal flow: a 20mm
+  letterhead, the return line in the 5mm directly above an 85mm address field that starts 45mm from
+  the top edge, and the date right-aligned above the subject, which starts 98.46mm down. These are
+  the positions pdfmake's `adapters/LetterLayout.js` used. Nothing is positioned, floated or
+  reordered by a grid, so the text layer gives the letter in the order a reader meets it, in both of
+  the orders a parser reads. Measured on a probe letter with poppler: the text's left edge at 24.1mm,
+  the recipient's first line at 45.4mm, the subject's at 99.1mm (its line box at 98.46mm), one page.
+- **Inter from its static TrueType files, and no tracking,** as the CV prints, for the same reasons
+  (#143). `letter.css` declares only the faces the letter prints in and never loads
+  `vendor/fonts/fonts.css`. Impact Spotlight sets the sender's name in Instrument Serif, as
+  `print.css` sets the CV's name.
+- **Its audit.** `npm run audit:print` reads every letter the build wrote beside the CV, exits 2 when
+  one is missing, and scores each on checks of its own: A4, one page, the recipient's company, the
+  subject and the signature, the letter's parts in reading order in both orders, contrast on the
+  paper, no pictograph, the intended typefaces, no Type 3 font, no image, and every margin at least
+  10mm. The sides are not compared, as a CV's are: form B is asymmetric by design. `npm run audit:ats`
+  keeps asking a `-cover` file only whether the recipient and the subject survive extraction.
+- **CI never prints a letter.** The published profile carries none, so the gates build, audit and
+  publish no letter, and a change that breaks `letter.html` passes every gate. A letter is verified
+  only on a machine where an `applications/` profile carries one: `npm run build:pdf` with its
+  `--profile`, then both audits with the same one. The unit tests hold the words, the renderer, the
+  file names and the audit's rules; nothing holds the printed letter but that run. That is a limit,
+  and it is stated here so nobody reads a green CI as a checked letter.
+- **pdfmake's letter stays until #153,** unused: `core/LetterExporter.js`, `adapters/LetterLayout.js`,
+  their tests and `audit-pdfs`'s letter checks. Nothing runs them.

@@ -16,7 +16,7 @@ A CV is `profile × locale × layout`.
 - **The PDFs** are the page, printed. `npm run build:pdf` serves the site to a headless Chrome and prints each
   layout through `print.css` into `generated/`, where the page's Download PDF link finds them through
   `generated/manifest.json`. Nothing there is committed: CI builds, audits and publishes its own. A cover letter is
-  still composed by pdfmake, through `adapters/LetterLayout.js`, until it is a page too.
+  a page too: `letter.html`, printed beside each layout when a tailored profile carries one.
 
 The page and the PDF share one DOM, one design and one set of words. The audits measure the printed file on paper
 and as a stranger's parser reads it, and the page on screen.
@@ -62,13 +62,13 @@ The URL chooses the CV:
 Ports and adapters:
 
 - `domain/` — the CV model and the lexicons for dates, places and section names. No framework, no I/O.
-- `core/` — application services: loading and resolving the profile, the locale and the layout, exporting the PDFs
-  and the cover letter, parsing and scoring what an ATS recovers. No markup, typography or colour, which
+- `core/` — application services: loading and resolving the profile, the locale and the layout, naming the PDFs,
+  the cover letter's words, parsing and scoring what an ATS recovers. No markup, typography or colour, which
   `tests/CoreHasNoUI.test.js` enforces.
 - `interfaces/` and `boundaries/` — the ports.
 - `renderers/` — the page's DOM renderers, each extending `renderers/BaseRenderer.js`.
-- `adapters/` — the PDF layout, its design system and themes, the cover letter's layout, Nerd Mode's Swift source
-  layout, and pdfmake behind them.
+- `adapters/` — Nerd Mode's Swift source layout, and pdfmake's PDF and cover letter layouts with their design system
+  and themes, which nothing runs any more and which go with pdfmake (#153).
 - `scripts/` — generation, the audits and the development server.
 - `locales/` — labels and interface strings for i18next. `vendor/` — i18next and the fonts, checked in so the page
   runs straight off the file tree.
@@ -101,7 +101,8 @@ CI builds, audits and publishes its own.
 A CV tailored to a named employer lives in `applications/`, which git ignores: this repository is public, and a
 committed application would publish where the candidate applied. `npm run build:pdf -- --profile=<path>` builds
 from that profile into a folder beside it, the audits take the same `--profile`, and a `letter` in the profile
-adds a cover letter. A tailored CV leaves the machine only as an attached PDF.
+adds a cover letter, printed from `letter.html` and checked by `npm run audit:print` too. CI never prints one, since
+the published profile has none. A tailored CV leaves the machine only as an attached PDF.
 
 ## The local app
 

@@ -3,8 +3,8 @@
 Two uses, two formats.
 
 - **The PDF** is the page, printed by Chrome: `print.css` loads `inter/Inter-Regular.ttf` and `inter/Inter-Bold.ttf`,
-  static TrueType faces Chrome embeds as fonts a text extractor reads, never as Type 3 (#143). The cover letter embeds
-  the same two files through pdfmake until it is a page too.
+  static TrueType faces Chrome embeds as fonts a text extractor reads, never as Type 3 (#143). The cover letter is
+  printed the same way, and `letter.css` loads the same two files (#151).
 - **The page** loads `fonts.css`, which declares the faces below in `woff2`, latin and latin-ext
   subsets, with `unicode-range` so a browser fetches a subset only when the page uses a character in it.
 
