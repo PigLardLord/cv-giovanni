@@ -27,14 +27,17 @@ export class BaseRenderer extends Renderer {
   }
 
   /**
-   * Create DOM element with class and content
+   * Create DOM element with class and text.
+   *
+   * The text is text, never markup: a profile string set as HTML opened a tag at "<0.1%" and turned
+   * "AT&amp;T" into "AT&T" (#157). Structure is built node by node, from the renderer's own elements.
    * @param {Document} root - DOM root
    * @param {string} tag - HTML tag name
    * @param {string|string[]} className - CSS class(es)
-   * @param {string} content - innerHTML content
+   * @param {string} text - The element's text
    * @returns {Element} Created element
    */
-  createElement(root, tag, className = '', content = '') {
+  createElement(root, tag, className = '', text = '') {
     const element = root.createElement(tag);
     if (className) {
       if (Array.isArray(className)) {
@@ -43,8 +46,8 @@ export class BaseRenderer extends Renderer {
         element.className = className;
       }
     }
-    if (content) {
-      element.innerHTML = content;
+    if (text) {
+      element.textContent = text;
     }
     return element;
   }
@@ -79,6 +82,22 @@ export class BaseRenderer extends Renderer {
         return;
       }
       element.appendChild(root.createTextNode(part));
+    });
+    return element;
+  }
+
+  /**
+   * Append to an element each of its pieces in order: a string as text, an element as itself. How a renderer
+   * lays a line out of the data's strings and its own elements without writing markup (#157).
+   * @param {Document} root - DOM root
+   * @param {Element} element - Element to fill
+   * @param {(string|Node|null|undefined)[]} pieces - What the element holds; an empty piece adds nothing
+   * @returns {Element} The element that was filled
+   */
+  appendPieces(root, element, pieces) {
+    pieces.forEach((piece) => {
+      if (piece === null || piece === undefined || piece === '') return;
+      element.appendChild(typeof piece === 'string' ? root.createTextNode(piece) : piece);
     });
     return element;
   }
