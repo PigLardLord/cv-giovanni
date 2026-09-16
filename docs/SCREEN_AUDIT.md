@@ -5,18 +5,18 @@ width and two phone widths, its CV selected, and the selection read. Regenerate 
 
 | Layout | Width | Layout shift | Score |
 |---|---:|---:|---:|
-| nerd | 1280px | 0.000 | 15/15 |
-| nerd | 820px | 0.000 | 15/15 |
-| nerd | 390px | 0.000 | 15/15 |
-| nerd | 320px | 0.000 | 15/15 |
-| spotlight | 1280px | 0.000 | 15/15 |
-| spotlight | 820px | 0.000 | 15/15 |
-| spotlight | 390px | 0.000 | 15/15 |
-| spotlight | 320px | 0.000 | 15/15 |
-| technical | 1280px | 0.000 | 15/15 |
-| technical | 820px | 0.000 | 15/15 |
-| technical | 390px | 0.000 | 15/15 |
-| technical | 320px | 0.000 | 15/15 |
+| nerd | 1280px | 0.000 | 16/16 |
+| nerd | 820px | 0.000 | 16/16 |
+| nerd | 390px | 0.000 | 16/16 |
+| nerd | 320px | 0.000 | 16/16 |
+| spotlight | 1280px | 0.000 | 16/16 |
+| spotlight | 820px | 0.000 | 16/16 |
+| spotlight | 390px | 0.000 | 16/16 |
+| spotlight | 320px | 0.000 | 16/16 |
+| technical | 1280px | 0.000 | 16/16 |
+| technical | 820px | 0.000 | 16/16 |
+| technical | 390px | 0.000 | 16/16 |
+| technical | 320px | 0.000 | 16/16 |
 
 Checks: the CV captured whole — name, role, email and current employer; no two words the profile
 writes in sequence welded into one, and no contact detail run into the word beside it; every skill
@@ -56,7 +56,9 @@ layout, at rest or with :hover forced (#119), and its border clears 3:1 against 
 every layout that does not keep it quiet on purpose with a stated reason, as Nerd Mode does, marked
 (quiet). Secondary button is that border and its contrast. And with forced colours emulated, which drop
 fills and shadows and keep borders, every copy of the link and every footer button draws a border, the
-primary's no thinner than the secondary's (#119). Forced colours is each border's width, in page order.
+primary's no thinner than the secondary's (#119); and the current layout's link in the switcher is told
+from the others there by a marker the palette keeps, an underline or a wider border (#127). Forced colours
+is each border's width, in page order.
 
 ## Focus rings
 
