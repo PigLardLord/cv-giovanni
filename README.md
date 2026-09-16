@@ -47,15 +47,16 @@ The URL chooses the CV:
 
 ## Commands
 
-| Command                | What it does                                                                                           |
-| ---------------------- | ------------------------------------------------------------------------------------------------------ |
-| `npm test`             | Jest with JSDOM: the renderers, the domain, the rules the audits apply, and the repository's own rules |
-| `npm run build:pdf`    | Prints each layout from the page in headless Chrome, into the PDFs the page offers for download        |
-| `npm run verify:pdf`   | Prints them, then runs `npm run audit:print` and `npm run audit:ats` on what it printed                |
-| `npm run audit:print`  | Checks the printed PDFs on paper: the text layer and the pixels                                        |
-| `npm run audit:ats`    | Parses the PDF the way a stranger's parser would, and reports what it recovers                         |
-| `npm run audit:screen` | Opens each layout in headless Chrome and checks what a reader copies off the page                      |
-| `npm run format`       | Formats the tree with Prettier; `npm run format:check` only checks it                                  |
+| Command                  | What it does                                                                                           |
+| ------------------------ | ------------------------------------------------------------------------------------------------------ |
+| `npm test`               | Jest with JSDOM: the renderers, the domain, the rules the audits apply, and the repository's own rules |
+| `npm run build:pdf`      | Prints each layout from the page in headless Chrome, into the PDFs the page offers for download        |
+| `npm run verify:pdf`     | Prints them, then runs `npm run audit:print` and `npm run audit:ats` on what it printed                |
+| `npm run audit:print`    | Checks the printed PDFs on paper: the text layer and the pixels                                        |
+| `npm run audit:ats`      | Parses the PDF the way a stranger's parser would, and reports what it recovers                         |
+| `npm run audit:ats:base` | Reads the base branch's print and this one with the base branch's parser, when a change touches both   |
+| `npm run audit:screen`   | Opens each layout in headless Chrome and checks what a reader copies off the page                      |
+| `npm run format`         | Formats the tree with Prettier; `npm run format:check` only checks it                                  |
 
 ## How it is built
 
@@ -90,6 +91,10 @@ CI builds, audits and publishes its own.
   Report: `docs/PRINT_AUDIT.md`.
 - `npm run audit:ats` parses the generated PDF with no knowledge of the profile and diffs what it recovered against
   what was written. It reports Recoverability, never a pass mark. Report: `docs/ATS_AUDIT.md`.
+- `npm run audit:ats:base` asks what `audit:ats` cannot: whether a change to both the CV and the parser passes
+  because the grader moved. When the change touches both, it builds the base branch's print in a temporary worktree
+  and fails on a field the base branch's parser recovered from that print and loses from this one, unless the pull
+  request carries the label `ats-trade-accepted`. CI runs it on every pull request; it writes no report file.
 - `npm run audit:screen` selects the CV in headless Chrome, at a desktop, a tablet and two phone widths, and checks
   what a reader copies: the CV whole, no two words welded together, every skill under its own category, every
   language with its level, and nothing the data did not write. It checks that the first screen holds still while it
