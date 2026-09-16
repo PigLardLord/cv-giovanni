@@ -285,3 +285,20 @@ describe("the page's module graph", () => {
     expect(moduleGraph('script.js').filter((path) => COMPOSER.includes(path))).toEqual([]);
   });
 });
+
+// The cover letter is a page printed by Chrome (#151). pdfmake composed it before, through `LetterExporter` and
+// `LetterLayout`; the page that replaces them must not load them back.
+describe("the letter page's module graph", () => {
+  const LETTER_COMPOSER = [...COMPOSER, 'core/LetterExporter.js', 'adapters/LetterLayout.js'];
+
+  test('reaches the words and the renderer, so an empty graph cannot pass', () => {
+    const graph = moduleGraph('letter.js');
+
+    expect(graph).toContain('core/LetterContent.js');
+    expect(graph).toContain('renderers/LetterRenderer.js');
+  });
+
+  test("loads none of pdfmake's composer", () => {
+    expect(moduleGraph('letter.js').filter((path) => LETTER_COMPOSER.includes(path))).toEqual([]);
+  });
+});

@@ -68,28 +68,36 @@ describe('a versioned file that changes takes a new token', () => {
 
   // Against the base branch, the way tests/TicketsCloseByHand.test.js finds it: from where this branch began to the
   // files as they stand, uncommitted edits included, so a forgotten token fails before the commit that forgets it.
-  test('on this branch, every versioned file it changed carries a new token', () => {
-    // The remote's base branch only. A local one left behind by a week without a fetch can predate the tokens, and
-    // against a page that versions nothing every token reads as new and nothing is ever stale: a check that passes
-    // anything (the code review of #136). CI fetches the whole history, so the remote's branch is there.
-    const ref = `origin/${manifest.vcs.base_branch}`;
-    try {
-      git('rev-parse', '--verify', '--quiet', `${ref}^{commit}`);
-    } catch {
-      throw new Error(
-        `${ref} is not fetched, and against a local branch this check could pass anything.`
-      );
-    }
-    const began = git('merge-base', ref, 'HEAD');
-    const before = git('show', `${began}:index.html`);
-    expect(versionedFiles(before).length).toBeGreaterThan(0);
+  // Every page the site publishes with versioned files is read: the cover letter's page is one since #151.
+  test.each(['index.html', 'letter.html'])(
+    'on this branch, every versioned file %s loads that the branch changed carries a new token',
+    (page) => {
+      // The remote's base branch only. A local one left behind by a week without a fetch can predate the tokens, and
+      // against a page that versions nothing every token reads as new and nothing is ever stale: a check that passes
+      // anything (the code review of #136). CI fetches the whole history, so the remote's branch is there.
+      const ref = `origin/${manifest.vcs.base_branch}`;
+      try {
+        git('rev-parse', '--verify', '--quiet', `${ref}^{commit}`);
+      } catch {
+        throw new Error(
+          `${ref} is not fetched, and against a local branch this check could pass anything.`
+        );
+      }
+      const began = git('merge-base', ref, 'HEAD');
+      // A page the base branch does not have yet is new with this branch, and so is every token it carries.
+      const existed = git('ls-tree', '--name-only', began, page) === page;
+      const before = existed ? git('show', `${began}:${page}`) : '';
+      const after = readFileSync(new URL(`../${page}`, import.meta.url), 'utf8');
+      if (page === 'index.html') expect(versionedFiles(before).length).toBeGreaterThan(0);
+      expect(versionedFiles(after).length).toBeGreaterThan(0);
 
-    expect(
-      staleTokens({
-        changed: git('diff', '--name-only', began).split('\n').filter(Boolean),
-        before,
-        after: readFileSync(new URL('../index.html', import.meta.url), 'utf8')
-      })
-    ).toEqual([]);
-  });
+      expect(
+        staleTokens({
+          changed: git('diff', '--name-only', began).split('\n').filter(Boolean),
+          before,
+          after
+        })
+      ).toEqual([]);
+    }
+  );
 });
