@@ -24,7 +24,8 @@ const fromDisk = (path) => readFileSync(join(root, path), 'utf8');
  * Patterns over the raw text kept getting this wrong, in the reviews of #145: a string holding "/*", a
  * comment closing mid-line, a `//` comment naming an import. So the source is read the way the language
  * reads it, character by character, through strings, template literals, regular expressions and comments.
- * A `/` opens a regular expression where an operand is expected, after the condition of an `if` included,
+ * A `/` opens a regular expression where an operand is expected, after the condition of `if`, `while`, `for`,
+ * `with` or `catch` included,
  * which is the usual reading and holds for every module this test reaches; a template literal nesting another inside `${}` is not followed.
  * @param {string} source - A module's source
  * @returns {string} The same source, every comment character a space
@@ -80,7 +81,10 @@ function withoutComments(source) {
       state = 'pattern';
       out += char;
     } else {
-      if (char === '(') conditions.push(/\b(?:if|while|for|with|catch)\s*$/.test(out));
+      // Only the last few characters are read: a keyword is short, and reading all of `out` at every `(` made the
+      // largest vendored module six times slower. After a `.` it is a method, and its `)` closes a call.
+      if (char === '(')
+        conditions.push(/(?:^|[^.\w$])(?:if|while|for|with|catch)\s*$/.test(out.slice(-24)));
       out += char;
       if (char === ')' && conditions.pop()) last = ';';
       else if (!/\s/.test(char)) last = char;
@@ -203,6 +207,27 @@ describe('reading a module graph', () => {
     expect(moduleGraph('entry.js', (path) => tricky[path]).sort()).toEqual(
       ['dynamic-target.js', 'entry.js', 'top.js'].sort()
     );
+  });
+
+  // The review of that fix: `.catch(e)` is a method call, not the condition of a `catch`, and the `/` after it
+  // divides; read as a regular expression, it kept a comment naming an old import from being blanked.
+  test('reads a division after a method named like a keyword', () => {
+    const tricky = {
+      'entry.js': [
+        "import './a.js';",
+        'const half = p.catch(e) / 2;',
+        "/* once loaded with import('./ghost.js') */",
+        "import './b.js';"
+      ].join('\n'),
+      'a.js': '',
+      'b.js': ''
+    };
+    const read = (path) => {
+      if (!(path in tricky)) throw new Error(`no module ${path}`);
+      return tricky[path];
+    };
+
+    expect(moduleGraph('entry.js', read).sort()).toEqual(['a.js', 'b.js', 'entry.js']);
   });
 
   test('follows every import form the browser follows, through parent directories', () => {
