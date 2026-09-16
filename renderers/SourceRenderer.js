@@ -16,7 +16,8 @@ const LANDING_SLACK = 16;
  * and keeps the rules that make the editor safe to read:
  *
  * - Syntax is an empty, `aria-hidden` element whose `data-code` the stylesheet draws, and content
- *   is real text. The line numbers and the file's name are drawn the same way.
+ *   is real text. The line numbers and the file's name are drawn the same way, and so is an escape
+ *   inside a value, beside the text it escapes (#160).
  * - The card repeats what the file already says, so its words are drawn from `data-text` and kept
  *   from assistive technology. What looks like a button is one: each action is a link with a name
  *   of its own — or, for "call", a button that opens the alert — and nothing focusable sits inside
@@ -269,8 +270,22 @@ export class SourceRenderer extends BaseRenderer {
         ? this.createAddress(root, token.href, token.text)
         : this.createElement(root, token.element || 'span');
     element.classList.add('tok', `tok-${token.kind}`);
-    element.textContent = token.text;
+    if (!token.parts) {
+      element.textContent = token.text;
+      return element;
+    }
+    element.textContent = '';
+    token.parts.forEach((part) => element.appendChild(this.createPart(root, part, token.kind)));
     return element;
+  }
+
+  /** A piece of a value: an escape drawn like any syntax, a character kept in the text out of sight, or the text. */
+  createPart(root, part, kind) {
+    if ('code' in part) return this.createToken(root, { code: part.code, kind });
+    if (!part.unseen) return root.createTextNode(part.text);
+    const unseen = this.createElement(root, 'span', 'tok-unseen');
+    unseen.textContent = part.text;
+    return unseen;
   }
 
   /** A link to an address: a web page opens in a tab of its own; a mail or a call does not. */
