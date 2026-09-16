@@ -255,14 +255,14 @@ describe('the rings on one render', () => {
         result: { ratio: 1.86, side: 'bottom', where: 'outside', against: 'rgb(227, 184, 164)' }
       },
       { name: 'GitHub', result: { ratio: 1, painted: false } },
-      { name: 'Browser print', result: null }
+      { name: 'LinkedIn', result: null }
     ]);
 
     expect(report.checks.ringsClear).toBe(false);
     expect(report.findings.faintRings).toEqual([
       '"Download PDF": its ring is 1.86:1 against rgb(227, 184, 164) outside it, at the bottom',
       '"GitHub": its ring is not painted along most of its edge',
-      '"Browser print": its ring could not be read from the screen'
+      '"LinkedIn": its ring could not be read from the screen'
     ]);
     expect(ringsReport([]).findings.faintRings).toEqual(['Tab reached no control']);
   });
