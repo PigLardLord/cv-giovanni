@@ -5,8 +5,14 @@ import { join } from 'node:path';
 import { createStaticServer, previewKey } from './serve.mjs';
 import { writeReport } from './lib/write-report.mjs';
 import { findBrowser } from './lib/find-browser.mjs';
+import { devtoolsSession, within } from './lib/devtools-session.mjs';
 import { screenCopy } from './lib/screen-copy.mjs';
 import { RECORD_LAYOUT_SHIFTS, layoutShift } from './lib/layout-shift.mjs';
+import { downloadReach } from './lib/download-reach.mjs';
+import { secondaryButton } from './lib/footer-buttons.mjs';
+import { currentLayoutMarked, forcedBoundaries } from './lib/forced-colours.mjs';
+import { decodePng } from './lib/png.mjs';
+import { ringOnPixels, ringsReport } from './lib/ring-pixels.mjs';
 import { GenerationTarget } from '../core/GenerationTarget.js';
 
 /**
@@ -14,8 +20,9 @@ import { GenerationTarget } from '../core/GenerationTarget.js';
  *
  * The unit tests read the page through JSDOM, which applies no stylesheet, so nothing in the suite can
  * see what a selection holds. `audit-print.mjs` reads the printed text layer; this reads the screen's.
- * Each layout is opened in headless Chrome at a desktop and a phone width, its CV is selected, and the
- * selection is checked against the profile (#62).
+ * Each layout is opened in headless Chrome at a desktop width, a tablet width and two phone widths, its CV is selected, and the
+ * selection is checked against the profile (#62). Every control a keyboard reaches is then focused in turn, and
+ * its ring read from the screen's pixels (#111).
  */
 const projectUrl = new URL('..', import.meta.url);
 const target = GenerationTarget.fromArguments(process.argv.slice(2));
@@ -34,10 +41,16 @@ const profile = await readJson(target.dataPath);
 const labels = (await readJson(`locales/${target.locale}/cv.json`)).sections;
 const manifest = await readJson('config/cv-manifest.json');
 
-/** A desktop and a phone, the two ways a recruiter meets the page. */
+/**
+ * A desktop, a tablet and two phones: 820px, a tablet held upright, where Nerd Mode sets its footer's buttons side by
+ * side (#116); the phone most readers hold; and 320px, the narrowest a page must reflow to without scrolling sideways
+ * (WCAG 1.4.10), where the case for stacking the footer rests (#107, #111).
+ */
 const SIZES = [
   { width: 1280, height: 900, mobile: false },
-  { width: 390, height: 844, mobile: true }
+  { width: 820, height: 1180, mobile: false },
+  { width: 390, height: 844, mobile: true },
+  { width: 320, height: 844, mobile: true }
 ];
 
 /**
@@ -48,6 +61,21 @@ const BOUNDS = {
   nerd: ['#source-code', '#source-code'],
   spotlight: ['.hero-section', '.main-content'],
   technical: ['.hero-section', '.main-content']
+};
+
+/**
+ * Where a layout pins its top Download link, so it stays on screen as the page scrolls: Nerd Mode fixes it to the
+ * end of its toolbar from 769px up. The other layouts let it scroll away with the switcher (#59).
+ */
+const PINNED = { nerd: true };
+
+/**
+ * The layouts whose footer keeps Browser print's outline quiet on purpose, each with its reason (#110). Every other
+ * layout is held to a border that clears 3:1 against the footer, so a new layout is checked unless it is listed
+ * here, the way BOUNDS refuses a layout it does not know.
+ */
+const QUIET = {
+  nerd: 'its label names the button, and the skin keeps its signal colour for the primary (#109)'
 };
 
 const unbounded = manifest.layouts.filter((layout) => !Object.hasOwn(BOUNDS, layout));
@@ -65,17 +93,6 @@ if (!browser) {
   );
   process.exit(2);
 }
-
-/** Rejects after `ms`, and clears its timer either way, so no deadline holds the process open. */
-const within = (promise, ms, what) => {
-  let timer;
-  return Promise.race([
-    promise,
-    new Promise((_, reject) => {
-      timer = setTimeout(() => reject(new Error(`${what} within ${ms / 1000}s`)), ms);
-    })
-  ]).finally(() => clearTimeout(timer));
-};
 
 /**
  * Chrome with its DevTools socket open, and the three things this audit asks of it.
@@ -104,15 +121,7 @@ async function openBrowser(binary, dataDir) {
     child.once('exit', resolve);
     child.once('error', resolve);
   });
-  const pending = new Map();
-  const listeners = new Set();
   let socket;
-  let ended = null;
-  const failAll = (reason) => {
-    ended ??= reason;
-    for (const { reject } of pending.values()) reject(new Error(reason));
-    pending.clear();
-  };
   // Resolves once the browser has exited. Killed outright, its renderers outlived it and went on writing
   // into the profile directory the audit removes next: on the CI runner that removal failed with
   // ENOTEMPTY on every run, after every check had passed, and the audit exited 1 with no report (#89).
@@ -172,45 +181,11 @@ async function openBrowser(binary, dataDir) {
     throw error;
   }
 
-  child.on('exit', (code) => failAll(`the browser exited with ${code}`));
-  socket.addEventListener('close', () => failAll('the DevTools socket closed'));
-  socket.addEventListener('error', () => failAll('the DevTools socket failed'));
-  socket.addEventListener('message', (event) => {
-    const message = JSON.parse(event.data);
-    if (message.id && pending.has(message.id)) {
-      const { resolve, reject } = pending.get(message.id);
-      pending.delete(message.id);
-      if (message.error) reject(new Error(message.error.message));
-      else resolve(message.result);
-    } else if (message.method) {
-      listeners.forEach((listener) => listener(message));
-    }
-  });
-
-  let sequence = 0;
-  const send = (method, params = {}) =>
-    within(
-      new Promise((resolve, reject) => {
-        if (ended) {
-          reject(new Error(ended));
-          return;
-        }
-        const id = ++sequence;
-        pending.set(id, { resolve, reject });
-        socket.send(JSON.stringify({ id, method, params }));
-      }),
-      30000,
-      `${method} got no answer`
-    );
-  const next = (method) =>
-    new Promise((resolve) => {
-      const listener = (message) => {
-        if (message.method !== method) return;
-        listeners.delete(listener);
-        resolve(message.params);
-      };
-      listeners.add(listener);
-    });
+  const { send, next, receive, end } = devtoolsSession((frame) => socket.send(frame));
+  child.on('exit', (code) => end(`the browser exited with ${code}`));
+  socket.addEventListener('close', () => end('the DevTools socket closed'));
+  socket.addEventListener('error', () => end('the DevTools socket failed'));
+  socket.addEventListener('message', (event) => receive(JSON.parse(event.data)));
   const evaluate = async (expression) => {
     const { result, exceptionDetails } = await send('Runtime.evaluate', {
       expression,
@@ -242,6 +217,15 @@ const rendered = (layout, start, name, locale) => `new Promise((resolve) => {
   wait();
 })`;
 
+/**
+ * Resolves once the page reveals itself. script.js holds the first paint until the CV is in the page and the
+ * downloads are offered (#74), so nothing is selected, measured or tabbed to on a page still hidden.
+ */
+const revealed = `new Promise((resolve) => {
+  const wait = () => (document.body.hasAttribute('data-rendered') ? resolve() : setTimeout(wait, 50));
+  wait();
+})`;
+
 /** Selects the CV from its first element to its last, the way a reader drags across it, and reads it. */
 const selection = (start, end) => `(() => {
   const first = document.querySelector(${JSON.stringify(start)});
@@ -258,6 +242,232 @@ const selection = (start, end) => `(() => {
   return text;
 })()`;
 
+/**
+ * The lines a control's own text renders on: one rectangle per line box, leaving out the icon `aria-hidden`
+ * hides. Nothing marks a label to find it by, because script.js drops `data-i18n` once it translates (#107).
+ */
+const LINES = `(control) => {
+  const walker = document.createTreeWalker(control, NodeFilter.SHOW_TEXT);
+  const tops = [];
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    if (!node.textContent.trim() || node.parentElement.closest('[aria-hidden="true"]')) continue;
+    const range = document.createRange();
+    range.selectNodeContents(node);
+    for (const rect of range.getClientRects()) if (rect.width > 0) tops.push(rect.top);
+  }
+  tops.sort((a, b) => a - b);
+  return tops.filter((top, index) => index === 0 || top - tops[index - 1] > 2).length;
+}`;
+
+/**
+ * Every copy of the Download link, top copy first: whether it shows, how tall it renders, where it spans down
+ * and across the page, so the first screen is the first screen whatever the page was scrolled to, and on how
+ * many lines its label renders. The values are the browser's own, unrounded: rounding is the report's, and
+ * 45.4px is not 44px ±1.
+ */
+const downloadLinks = `(() => {
+  const lines = ${LINES};
+  return [...document.querySelectorAll('[data-download-pdf]')].map((link) => {
+    const box = link.getBoundingClientRect();
+    return {
+      place: link.closest('footer') ? 'footer' : 'top',
+      display: getComputedStyle(link).display,
+      top: box.top + scrollY,
+      bottom: box.bottom + scrollY,
+      left: box.left + scrollX,
+      right: box.right + scrollX,
+      height: box.height,
+      lines: lines(link)
+    };
+  });
+})()`;
+
+/** The footer's other buttons: whether they show, how tall they render (#109), and their label's lines (#107). */
+const footerButtons = `(() => {
+  const lines = ${LINES};
+  return [...document.querySelectorAll('footer .print-button:not([data-download-pdf])')].map((button) => ({
+    place: 'footer',
+    label: button.textContent.trim().replace(/\\s+/g, ' '),
+    display: getComputedStyle(button).display,
+    lines: lines(button),
+    height: button.getBoundingClientRect().height
+  }));
+})()`;
+
+/** One press of Tab, the way a keyboard user moves focus. */
+const pressTab = async (chrome) => {
+  for (const type of ['keyDown', 'keyUp']) {
+    await chrome.send('Input.dispatchKeyEvent', {
+      type,
+      key: 'Tab',
+      code: 'Tab',
+      windowsVirtualKeyCode: 9
+    });
+  }
+};
+
+/**
+ * Puts where Tab starts back at the top of the page, as a page just loaded has it: a focusable point, out of the
+ * flow, before everything else. The page is loaded again after the walk, so it leaves nothing behind.
+ */
+const startOfPage = `(() => {
+  const start = document.createElement('span');
+  start.tabIndex = -1;
+  start.style.cssText = 'position: fixed; top: 0; left: 0; width: 1px; height: 1px; overflow: hidden;';
+  document.body.prepend(start);
+  start.focus({ preventScroll: true });
+  scrollTo(0, 0);
+  return true;
+})()`;
+
+/**
+ * The control Tab has just focused (#111): a name for it, where it is on the page, and its outline, once it has been
+ * scrolled to the middle of the screen and its transitions have finished. A ring still changing after two seconds
+ * stops the run. Null when focus is on nothing a keyboard reached.
+ */
+const focusedControl = `(async () => {
+  const control = document.activeElement;
+  if (!control || control === document.body || control === document.documentElement || control.tabIndex < 0) return null;
+  control.scrollIntoView({ block: 'center', inline: 'center' });
+  const settled = Promise.all(control.getAnimations().map((animation) => animation.finished));
+  await Promise.race([
+    settled,
+    new Promise((resolve, reject) =>
+      setTimeout(() => reject(new Error('a focus ring was still changing after 2 seconds')), 2000)
+    )
+  ]);
+  await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  if (!control.dataset.auditRing) {
+    control.dataset.auditRing = String(document.querySelectorAll('[data-audit-ring]').length + 1);
+  }
+  const rects = [...control.getClientRects()].map((rect) => ({
+    left: rect.left + scrollX,
+    top: rect.top + scrollY,
+    right: rect.right + scrollX,
+    bottom: rect.bottom + scrollY
+  }));
+  const style = getComputedStyle(control);
+  const name = control.getAttribute('aria-label') || control.textContent || control.getAttribute('title') || control.tagName;
+  return {
+    key: control.dataset.auditRing,
+    name: name.trim().replace(/\\s+/g, ' ').slice(0, 60),
+    rects,
+    colour: style.outlineColor,
+    width: parseFloat(style.outlineWidth) || 0,
+    offset: parseFloat(style.outlineOffset) || 0,
+    radius: parseFloat(style.borderTopLeftRadius) || 0
+  };
+})()`;
+
+/** The top copy after scrolling to the end: still inside the viewport, and what a tap on its middle would hit. */
+const afterScrolling = `new Promise((resolve) => {
+  scrollTo(0, document.documentElement.scrollHeight);
+  setTimeout(() => {
+    const link = document.querySelector('[data-download-pdf]');
+    const box = link.getBoundingClientRect();
+    const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+    const inViewport = box.top > -1 && box.bottom < innerHeight + 1 && box.left > -1 && box.right < innerWidth + 1;
+    resolve({ inViewport, topmost: Boolean(hit && link.contains(hit)) });
+  }, 300);
+})`;
+
+/**
+ * The colour painted behind an element: its background and its ancestors', one over another, down to the first
+ * opaque one, over the white of the page.
+ */
+const PAINTED = `(element) => {
+  const layers = [];
+  for (let node = element; node; node = node.parentElement) {
+    const [red, green, blue, alpha = 1] = (getComputedStyle(node).backgroundColor.match(/[\\d.]+/g) || []).map(Number);
+    if (blue === undefined || alpha === 0) continue;
+    layers.push([red, green, blue, alpha]);
+    if (alpha >= 1) break;
+  }
+  const colour = layers.reverse().reduce(
+    (beneath, [red, green, blue, alpha]) => [red, green, blue].map((channel, index) => channel * alpha + beneath[index] * (1 - alpha)),
+    [255, 255, 255]
+  );
+  return 'rgb(' + colour.map(Math.round).join(', ') + ')';
+}`;
+
+/** The footer's secondary button, as computed: its shadow, its outline, and the footer painted behind it (#110). */
+const secondaryStyle = `(() => {
+  const painted = ${PAINTED};
+  const button = document.querySelector('footer .print-button-secondary');
+  if (!button) return null;
+  const style = getComputedStyle(button);
+  return {
+    label: button.textContent.trim().replace(/\\s+/g, ' '),
+    display: style.display,
+    shadow: style.boxShadow,
+    borderStyle: style.borderTopStyle,
+    borderWidth: style.borderTopWidth,
+    borderColour: style.borderTopColor,
+    behind: painted(button.parentElement)
+  };
+})()`;
+
+/**
+ * Every copy of the Download link and the footer's buttons as forced colours draw them: whether each is the primary,
+ * and its border, once a border the forced palette adds has finished its transition (#119).
+ */
+const forcedControls = `new Promise((resolve) => setTimeout(() => resolve(
+  [...document.querySelectorAll('.toolbar-download, footer .print-button')].map((control) => {
+    const style = getComputedStyle(control);
+    return {
+      place: control.classList.contains('toolbar-download') ? 'top' : 'footer',
+      label: control.textContent.trim().replace(/\\s+/g, ' '),
+      primary: !control.classList.contains('print-button-secondary'),
+      display: style.display,
+      borderStyle: style.borderTopStyle,
+      borderWidth: style.borderTopWidth
+    };
+  })
+), 400))`;
+
+/** The layout switcher's links as forced colours draw them: which is current, and what marks it besides colour (#127). */
+const switcherLinks = `[...document.querySelectorAll('.layout-switcher a')].map((link) => {
+  const style = getComputedStyle(link);
+  return {
+    label: link.textContent.trim().replace(/\\s+/g, ' '),
+    current: link.getAttribute('aria-current') === 'page',
+    display: style.display,
+    underline: style.textDecorationLine.includes('underline'),
+    borderStyle: style.borderTopStyle,
+    borderWidth: style.borderTopWidth
+  };
+})`;
+
+/**
+ * The focused top copy's ring, once its transitions finish, and the colour behind it: the backgrounds under a
+ * point just outside the link's left edge, where the ring is drawn, painted one over another down to the first
+ * opaque one. A ring still changing after two seconds is not measured: the run stops and checks nothing, rather
+ * than judging a colour on its way somewhere else.
+ */
+const focusRing = `(async () => {
+  const link = document.querySelector('[data-download-pdf]');
+  const settled = Promise.all(link.getAnimations().map((animation) => animation.finished));
+  await Promise.race([
+    settled,
+    new Promise((resolve, reject) =>
+      setTimeout(() => reject(new Error('the focus ring was still changing after 2 seconds')), 2000)
+    )
+  ]);
+  const box = link.getBoundingClientRect();
+  const painted = ${PAINTED};
+  const under = document
+    .elementsFromPoint(Math.max(0, box.left - 3), box.top + box.height / 2)
+    .find((element) => !link.contains(element));
+  const outline = getComputedStyle(link);
+  return {
+    focused: document.activeElement === link,
+    style: outline.outlineStyle,
+    width: parseFloat(outline.outlineWidth) || 0,
+    ring: outline.outlineColor,
+    behind: painted(under || document.body)
+  };
+})()`;
+
 // The browser this audit starts holds the run's key, so a tailored profile under applications/ loads (#71).
 const key = previewKey();
 const server = createStaticServer(undefined, { key });
@@ -271,6 +481,8 @@ try {
   chrome = await openBrowser(browser, dataDir);
   await chrome.send('Page.enable');
   await chrome.send('Runtime.enable');
+  await chrome.send('DOM.enable');
+  await chrome.send('CSS.enable');
   // Every document this tab opens records its layout shifts from its first byte (#74).
   await chrome.send('Page.addScriptToEvaluateOnNewDocument', { source: RECORD_LAYOUT_SHIFTS });
   for (const layout of manifest.layouts) {
@@ -279,15 +491,15 @@ try {
       process.stderr.write(`audit-screen: ${layout} at ${size.width}px…\n`);
       await chrome.send('Emulation.setDeviceMetricsOverride', { ...size, deviceScaleFactor: 1 });
       const loaded = chrome.next('Page.loadEventFired');
-      await chrome.send('Page.navigate', {
-        url: `http://127.0.0.1:${port}/index.html?layout=${layout}&profile=${target.profile}&lang=${target.locale}&key=${key}`
-      });
+      const address = `http://127.0.0.1:${port}/index.html?layout=${layout}&profile=${target.profile}&lang=${target.locale}&key=${key}`;
+      await chrome.send('Page.navigate', { url: address });
       await within(loaded, 30000, `${layout} did not load`);
       await within(
         chrome.evaluate(rendered(layout, start, profile.name, target.locale)),
         30000,
         `${layout} did not render its CV`
       );
+      await within(chrome.evaluate(revealed), 30000, `${layout} did not reveal its page`);
       // From navigation to the fonts being ready, which `rendered` waited for. A page that recorded
       // nothing did not run the recorder, and a shift nobody measured is not a page holding still.
       const recorded = await chrome.evaluate('window.__layoutShifts');
@@ -297,8 +509,128 @@ try {
       if (copied === null) throw new Error(`${layout} has no ${start} or no ${end}`);
 
       const copy = screenCopy(copied, profile, { skillsLabel: labels.skills });
-      const checks = { ...copy.checks, holdsStill: shift.holdsStill };
-      const findings = { ...copy.findings, movedWhileLoading: shift.holdsStill ? [] : shift.moved };
+
+      // The Download link (#101): measured as the page loaded, reached with Tab the way a keyboard user reaches
+      // it, scrolled past where a layout pins it, and loaded again with no PDF to offer.
+      const links = await chrome.evaluate(downloadLinks);
+      const buttons = await chrome.evaluate(footerButtons);
+      const atRest = await chrome.evaluate(secondaryStyle);
+      // A hover shadow would reach the secondary button unseen at rest, so it is read with :hover forced too (#119).
+      const { root } = await chrome.send('DOM.getDocument', { depth: 0 });
+      const { nodeId } = await chrome.send('DOM.querySelector', {
+        nodeId: root.nodeId,
+        selector: 'footer .print-button-secondary'
+      });
+      let hovered = null;
+      if (nodeId) {
+        await chrome.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: ['hover'] });
+        hovered = await chrome.evaluate(
+          `new Promise((resolve) => setTimeout(() => resolve(${secondaryStyle}), 400))`
+        );
+        await chrome.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: [] });
+      }
+      const secondary = secondaryButton(atRest, {
+        outlined: !Object.hasOwn(QUIET, layout),
+        hovered
+      });
+      // Forced colours drop fills and shadows and keep borders: every action keeps a boundary there (#119).
+      await chrome.send('Emulation.setEmulatedMedia', {
+        features: [{ name: 'forced-colors', value: 'active' }]
+      });
+      const forced = forcedBoundaries(await chrome.evaluate(forcedControls));
+      const marked = currentLayoutMarked(await chrome.evaluate(switcherLinks));
+      await chrome.send('Emulation.setEmulatedMedia', { features: [] });
+      for (let press = 0; press < 10; press++) {
+        await pressTab(chrome);
+        if (
+          await chrome.evaluate(
+            `document.activeElement === document.querySelector('[data-download-pdf]')`
+          )
+        )
+          break;
+      }
+      const focus = await chrome.evaluate(focusRing);
+      const afterScroll =
+        !size.mobile && PINNED[layout] ? await chrome.evaluate(afterScrolling) : null;
+
+      // Every control a keyboard reaches (#111), in order from the top of the page, each ring read from a
+      // screenshot of the pixels around it.
+      await chrome.evaluate(startOfPage);
+      const rings = [];
+      const reached = new Set();
+      for (let press = 0; press < 150; press++) {
+        await pressTab(chrome);
+        const control = await chrome.evaluate(focusedControl);
+        if (!control || reached.has(control.key)) break;
+        reached.add(control.key);
+        const margin = Math.ceil(control.offset + control.width) + 8;
+        const bounds = {
+          left: Math.min(...control.rects.map((rect) => rect.left)),
+          top: Math.min(...control.rects.map((rect) => rect.top)),
+          right: Math.max(...control.rects.map((rect) => rect.right)),
+          bottom: Math.max(...control.rects.map((rect) => rect.bottom))
+        };
+        const clip = {
+          x: Math.max(0, Math.floor(bounds.left) - margin),
+          y: Math.max(0, Math.floor(bounds.top) - margin),
+          width: Math.ceil(bounds.right - bounds.left) + 2 * margin,
+          height: Math.ceil(bounds.bottom - bounds.top) + 2 * margin,
+          scale: 1
+        };
+        // Page coordinates, and no capture beyond the viewport: the control is on screen, and capturing beyond it
+        // lays the page out again at its full height, where a sticky row and a screen-tall masthead are elsewhere.
+        const shot = await chrome.send('Page.captureScreenshot', { format: 'png', clip });
+        const rects = control.rects.map((rect) => ({
+          left: Math.round(rect.left) - clip.x,
+          top: Math.round(rect.top) - clip.y,
+          right: Math.round(rect.right) - clip.x,
+          bottom: Math.round(rect.bottom) - clip.y
+        }));
+        rings.push({
+          name: control.name,
+          result: ringOnPixels(decodePng(Buffer.from(shot.data, 'base64')), {
+            rects,
+            colour: control.colour,
+            width: control.width,
+            offset: control.offset,
+            radius: control.radius
+          })
+        });
+      }
+      const ringCheck = ringsReport(rings);
+
+      await chrome.send('Fetch.enable', {
+        patterns: [{ urlPattern: '*/generated/manifest.json*' }]
+      });
+      const paused = chrome.next('Fetch.requestPaused');
+      const reloaded = chrome.next('Page.loadEventFired');
+      await chrome.send('Page.navigate', { url: address });
+      const { requestId } = await within(paused, 30000, `${layout} never asked which PDFs exist`);
+      await chrome.send('Fetch.fulfillRequest', { requestId, responseCode: 404, body: '' });
+      await within(reloaded, 30000, `${layout} did not load without a PDF`);
+      await within(chrome.evaluate(revealed), 30000, `${layout} did not render without a PDF`);
+      const withoutPdf = await chrome.evaluate(downloadLinks);
+      await chrome.send('Fetch.disable');
+      const reach = downloadReach({ links, withoutPdf, afterScroll, focus, buttons }, size);
+
+      const checks = {
+        ...copy.checks,
+        holdsStill: shift.holdsStill,
+        ...reach.checks,
+        ...secondary.checks,
+        ...forced.checks,
+        ...marked.checks,
+        ...ringCheck.checks
+      };
+      const findings = {
+        ...copy.findings,
+        movedWhileLoading: shift.holdsStill ? [] : shift.moved,
+        ...reach.findings,
+        ...secondary.findings,
+        ...forced.findings,
+        ...marked.findings,
+        ...ringCheck.findings
+      };
       const passed = Object.values(checks).filter(Boolean).length;
       rows.push({
         layout,
@@ -306,7 +638,15 @@ try {
         shift: shift.total,
         score: `${passed}/${Object.keys(checks).length}`,
         checks,
-        findings
+        findings,
+        download: {
+          ...reach.measures,
+          secondary: Object.hasOwn(QUIET, layout)
+            ? `${secondary.measures.secondary} (quiet)`
+            : secondary.measures.secondary,
+          forced: forced.measures.forced
+        },
+        rings: ringCheck.measures.rings
       });
     }
   }
@@ -329,8 +669,8 @@ const failures = rows.filter((row) => Object.values(row.checks).some((value) => 
 const report = [
   '# Screen copy matrix',
   '',
-  'What a reader copies off the page: each layout opened in headless Chrome at a desktop and a phone',
-  'width, its CV selected, and the selection read. Regenerate with `npm run audit:screen`.',
+  'What a reader copies off the page: each layout opened in headless Chrome at a desktop width, a tablet',
+  'width and two phone widths, its CV selected, and the selection read. Regenerate with `npm run audit:screen`.',
   '',
   '| Layout | Width | Layout shift | Score |',
   '|---|---:|---:|---:|',
@@ -340,9 +680,48 @@ const report = [
   '',
   'Checks: the CV captured whole — name, role, email and current employer; no two words the profile',
   'writes in sequence welded into one, and no contact detail run into the word beside it; every skill',
-  'category followed by its own first skill; every language on a line with its level; and nothing on',
-  'a line the data did not write — no pictograph, no line number; and the first screen holding still',
-  'while it loads — every layout shift from navigation to fonts ready, added up, below 0.1.'
+  'category followed by its own first skill; every language on a line with its level; nothing on a',
+  'line the data did not write — no pictograph, no line number; and the first screen holding still',
+  'while it loads — every layout shift from navigation to fonts ready, added up, below 0.1.',
+  '',
+  '## The Download PDF link',
+  '',
+  '| Layout | Width | Top copy | Heights | Label lines | Focus ring | Secondary button | Forced colours |',
+  '|---|---:|---:|---:|---:|---:|---:|---:|',
+  ...rows.map(
+    ({ layout, width, download }) =>
+      `| ${layout} | ${width}px | ${download.top} | ${download.heights} | ${download.lines} | ${download.ring} | ${download.secondary} | ${download.forced} |`
+  ),
+  '',
+  'Checks, the four the product review of #59 measured by hand (#101): hidden without a PDF — loaded',
+  'with `generated/manifest.json` answered 404, every copy computes `display: none`; reachable — the',
+  'top copy inside the first screen and, where the layout pins it, still inside the viewport and',
+  'topmost after scrolling to the end; tappable — on a phone every visible copy, and the footer button',
+  'beside it (#109), renders at least 43px, and the top copy 44px, ±1; and a visible focus — reached',
+  'with Tab, a drawn ring that clears 3:1 against the background just outside the link, once its',
+  'transitions finish. A fifth since #107: every visible copy, and the footer button beside it,',
+  'renders its label on one line, at every width. A sixth since #116: the footer copy and the button',
+  'beside it render one height, within a pixel. Top copy is where it spans from the top of the page;',
+  'heights and label lines are every visible copy in page order, then the footer button; the ring is',
+  'its contrast. The secondary button in the footer is checked as well (#110): it carries no shadow in any',
+  'layout, at rest or with :hover forced (#119), and its border clears 3:1 against the footer as painted in',
+  'every layout that does not keep it quiet on purpose with a stated reason, as Nerd Mode does, marked',
+  '(quiet). Secondary button is that border and its contrast. And with forced colours emulated, which drop',
+  'fills and shadows and keep borders, every copy of the link and every footer button draws a border, the',
+  "primary's no thinner than the secondary's (#119); and the current layout's link in the switcher is told",
+  'from the others there by a marker the palette keeps, an underline or a wider border (#127). Forced colours',
+  "is each border's width, in page order.",
+  '',
+  '## Focus rings',
+  '',
+  '| Layout | Width | Rings |',
+  '|---|---:|---|',
+  ...rows.map(({ layout, width, rings }) => `| ${layout} | ${width}px | ${rings} |`),
+  '',
+  'Every control a keyboard reaches is focused with Tab, in order from the top of the page, and its ring read',
+  'from a screenshot (#111): along its straight edges, each ring pixel against the pixel just outside the ring and',
+  'the one between ring and control, or the control itself where the ring touches it. A ring under 3:1 anywhere',
+  'fails, and so does one that could not be read. Rings is how many controls Tab reached, and the worst ring.'
 ].join('\n');
 
 await writeReport(new URL(target.reportPath('SCREEN_AUDIT.md'), projectUrl), `${report}\n`);
