@@ -26,10 +26,19 @@ export class HeaderRenderer extends Renderer {
     if (contactsElement) {
       const email = this.i18n ? this.i18n.t('contacts.email', { ns: 'cv' }) : 'Email';
       const phone = this.i18n ? this.i18n.t('contacts.phone', { ns: 'cv' }) : 'Phone';
-      contactsElement.innerHTML = `
-        <strong>${email}:</strong> ${identity.email || ''}<br>
-        <strong>${phone}:</strong> ${identity.phone || ''}
-      `;
+      // Labels and values are text, never markup (#157).
+      const line = (label, value) => {
+        const strong = root.createElement('strong');
+        strong.textContent = `${label}:`;
+        return [strong, root.createTextNode(` ${value || ''}`)];
+      };
+      contactsElement.replaceChildren(
+        ...line(email, identity.email),
+        root.createElement('br'),
+        // The break the markup wrote after the line: collapsed on the page, a word boundary in the text.
+        root.createTextNode('\n'),
+        ...line(phone, identity.phone)
+      );
     }
   }
 
