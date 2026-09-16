@@ -74,7 +74,18 @@ html body * {
    33pt at the head and foot, 39pt at the sides: a 517pt by 776pt text block on A4. They were 36pt until Selected
    Impact printed (#148). With the space above headings, under the masthead and between roles cut as well, 34pt
    still left Nerd Mode on three pages, 1 to 2pt short: its bullets have a 362pt column, which wraps the third
-   highlight onto a line the other layouts do not spend. 33pt is 11.6mm, above the print audit's 10mm floor. */
+   highlight onto a line the other layouts do not spend. 33pt is 11.6mm, above the print audit's 10mm floor.
+
+   From page 2 on, the bottom margin's right-hand box says whose CV the page belongs to: "Giovanni Trovato · CV · 2/2"
+   (#158). Page 2 opened on a role, with nothing saying whose CV it was or that a page 1 existed, and a page that
+   reaches a desk on its own is read on its own. What the box says is not this file's: renderers/RunningFooterRenderer.js
+   writes its content from the profile's name, in the print catalogue's words, since a stylesheet that wrote a name
+   would print it on everyone's CV (#34). This file sets how it looks, and says nothing until the renderer has written.
+   It lives inside the 33pt margin because page 2 is full: 2.5pt of room in Nerd Mode, 11.5pt in the other two, so
+   neither margin can grow. Set at the margin's top, 10pt Inter prints below the text block and stays over 6mm clear of
+   the paper's edge, which office printers commonly leave unprinted. Chrome draws a margin box before the page's
+   content, so read in drawing order the line is page 2's first, and read as poppler lays the page out, its last:
+   never between two lines of the CV. The print audit checks all of it on the printed PDF. */
 @page {
   size: A4;
   margin: 33pt 39pt;
@@ -82,6 +93,22 @@ html body * {
     content: none;
   }
   @bottom-center {
+    content: none;
+  }
+  @bottom-right {
+    content: none;
+    vertical-align: top;
+    font-family: 'Inter', Arial, sans-serif;
+    font-size: 10pt;
+    font-weight: 400;
+    color: #4b5563;
+  }
+}
+
+/* Page 1 opens on the name and carries no footer. `:first` outranks a bare `@page`, so the renderer's rule, a bare
+   `@page` written after this file, cannot reach it whatever order the two arrive in. */
+@page :first {
+  @bottom-right {
     content: none;
   }
 }

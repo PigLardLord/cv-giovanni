@@ -1,6 +1,7 @@
 /**
  * @jest-environment node
  */
+import { readFileSync } from 'node:fs';
 import { PRINTED_PAGE, bboxPages } from '../scripts/lib/page-room.mjs';
 import {
   RUNNING_FOOTER_FLOOR_MM,
@@ -298,5 +299,44 @@ describe("the footer's ink, left out of the margin measure", () => {
     const page = raster();
 
     expect(inkAt(paintedWhite(page, [], 72))).toEqual(inkAt(page));
+  });
+});
+
+// The audit reads no CSS, so what the stylesheet promises is held to it here, as tests/PageRoom.test.js holds the
+// page box. The renderer writes only the footer's content; everything else is print.css's.
+describe('the running footer in print.css', () => {
+  // Without its comments, which name `@page` in their prose.
+  const css = readFileSync(new URL('../print.css', import.meta.url), 'utf8').replace(
+    /\/\*[\s\S]*?\*\//g,
+    ''
+  );
+  const pageRules = [...css.matchAll(/@page([^{]*)\{((?:[^{}]|\{[^{}]*\})*)\}/g)].map(
+    ([, selector, body]) => ({ selector: selector.trim(), body })
+  );
+  const box = (body) => /@bottom-right\s*\{([^{}]*)\}/.exec(body)?.[1] ?? '';
+
+  // `:first` outranks a bare `@page`, so the renderer's rule, a bare `@page` after this file, cannot reach page 1.
+  test('page 1 carries no footer', () => {
+    const first = pageRules.find(({ selector }) => selector === ':first');
+
+    expect(first).toBeDefined();
+    expect(box(first.body)).toMatch(/(?:^|[;\s])content:\s*none\s*;/);
+  });
+
+  // A stylesheet that wrote a name would print one candidate's name on everyone's CV (#34).
+  test('says nothing until the renderer writes what the footer says', () => {
+    const base = pageRules.find(({ selector }) => selector === '');
+
+    expect(box(base.body)).toMatch(/(?:^|[;\s])content:\s*none\s*;/);
+  });
+
+  test('sets the footer no smaller than the smallest text the page prints', () => {
+    const base = pageRules.find(({ selector }) => selector === '');
+    const size = (declarations) =>
+      [...declarations.matchAll(/font-size:\s*([\d.]+)pt/g)].map(([, points]) => Number(points));
+    const smallest = Math.min(...size(css.replace(/@page[^{]*\{(?:[^{}]|\{[^{}]*\})*\}/g, '')));
+
+    expect(size(box(base.body))).toHaveLength(1);
+    expect(size(box(base.body))[0]).toBeGreaterThanOrEqual(smallest);
   });
 });

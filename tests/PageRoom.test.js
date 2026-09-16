@@ -101,9 +101,13 @@ describe('the room left on a printed page', () => {
   // what print.css says, so a change to either is a change to both.
   // The review of #168: reading the first number of the shorthand passed a four-value margin whose bottom differed, and
   // a `@page :first` rule could change the bottom unseen. The shorthand is read the way CSS reads it, and no other page
-  // rule may set a margin.
+  // rule may set a margin. `@page :first` exists since #158, to keep the running footer off page 1, and sets none.
   test('counts in the page box and the running text print.css declares', () => {
-    const css = readFileSync(new URL('../print.css', import.meta.url), 'utf8');
+    // Without its comments, which name `@page` in their prose.
+    const css = readFileSync(new URL('../print.css', import.meta.url), 'utf8').replace(
+      /\/\*[\s\S]*?\*\//g,
+      ''
+    );
     const pageRules = [...css.matchAll(/@page([^{]*)\{((?:[^{}]|\{[^{}]*\})*)\}/g)];
     const [, , declarations] = pageRules.find(([, selector]) => selector.trim() === '');
     const values = /(?:^|[;\s])margin:\s*([^;]+);/
@@ -117,7 +121,13 @@ describe('the room left on a printed page', () => {
     const size = Number(/font-size:\s*([\d.]+)pt/.exec(body)[1]);
     const height = Number(/line-height:\s*([\d.]+)/.exec(body)[1]);
 
-    expect(pageRules.filter(([, selector]) => selector.trim() !== '')).toEqual([]);
+    // A margin box's own declarations are not the page's: its margin would space the box, not the page.
+    const pageLevel = (body) => body.replace(/@[\w-]+\s*\{[^{}]*\}/g, '');
+    expect(
+      pageRules
+        .filter(([, selector]) => selector.trim() !== '')
+        .filter(([, , body]) => /(?:^|[;{\s])margin(?:-[\w-]+)?\s*:/.test(pageLevel(body)))
+    ).toEqual([]);
     expect(declarations).not.toMatch(/margin-(top|bottom)\s*:/);
     expect(PRINTED_PAGE.bottomMargin).toBe(bottom);
     expect(PRINTED_PAGE.bodyLine).toBeCloseTo(size * height, 5);
