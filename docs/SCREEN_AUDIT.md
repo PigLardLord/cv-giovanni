@@ -32,14 +32,14 @@ while it loads — every layout shift from navigation to fonts ready, added up, 
 | nerd | 820px | 1 | 11–41px | 30px | 1 | 12.77:1 | 1px |
 | nerd | 390px | 1 | 62–106px | 44px | 1 | 14.01:1 | 1px |
 | nerd | 320px | 1 | 62–106px | 44px | 1 | 14.01:1 | 1px |
-| spotlight | 1280px | 1 | 85–140px | 55px | 1 | 6.82:1 | 3px |
-| spotlight | 820px | 1 | 85–140px | 55px | 1 | 6.82:1 | 3px |
-| spotlight | 390px | 1 | 97–141px | 44px | 1 | 6.82:1 | 3px |
-| spotlight | 320px | 1 | 97–141px | 44px | 1 | 6.82:1 | 3px |
-| technical | 1280px | 1 | 85–140px | 55px | 1 | 6.87:1 | 3px |
-| technical | 820px | 1 | 85–140px | 55px | 1 | 6.87:1 | 3px |
-| technical | 390px | 1 | 97–141px | 44px | 1 | 6.87:1 | 3px |
-| technical | 320px | 1 | 97–141px | 44px | 1 | 6.87:1 | 3px |
+| spotlight | 1280px | 1 | 85–140px | 55px | 1 | 14.22:1 | 3px |
+| spotlight | 820px | 1 | 85–140px | 55px | 1 | 14.22:1 | 3px |
+| spotlight | 390px | 1 | 97–141px | 44px | 1 | 14.22:1 | 3px |
+| spotlight | 320px | 1 | 97–141px | 44px | 1 | 14.22:1 | 3px |
+| technical | 1280px | 1 | 85–140px | 55px | 1 | 13.50:1 | 3px |
+| technical | 820px | 1 | 85–140px | 55px | 1 | 13.50:1 | 3px |
+| technical | 390px | 1 | 97–141px | 44px | 1 | 13.50:1 | 3px |
+| technical | 320px | 1 | 97–141px | 44px | 1 | 13.50:1 | 3px |
 
 Checks, the four the product review of #59 measured by hand (#101): hidden without a PDF — loaded
 with `generated/manifest.json` answered 404, every copy computes `display: none`; reachable — the
@@ -69,14 +69,14 @@ border no thinner than the secondary's (#119).
 | nerd | 820px | 23 controls, worst 10.71:1 (Profile) |
 | nerd | 390px | 23 controls, worst 11.16:1 (Profile) |
 | nerd | 320px | 23 controls, worst 10.71:1 (Profile) |
-| spotlight | 1280px | 9 controls, worst 4.23:1 (↓ Download PDF) |
-| spotlight | 820px | 9 controls, worst 4.23:1 (↓ Download PDF) |
-| spotlight | 390px | 9 controls, worst 4.23:1 (↓ Download PDF) |
-| spotlight | 320px | 9 controls, worst 4.23:1 (↓ Download PDF) |
-| technical | 1280px | 9 controls, worst 3.92:1 (↓ Download PDF) |
-| technical | 820px | 9 controls, worst 3.92:1 (↓ Download PDF) |
-| technical | 390px | 9 controls, worst 3.92:1 (↓ Download PDF) |
-| technical | 320px | 9 controls, worst 3.92:1 (↓ Download PDF) |
+| spotlight | 1280px | 9 controls, worst 6.16:1 (piglardlord.github.io/cv-giovanni) |
+| spotlight | 820px | 9 controls, worst 6.51:1 (Nerd Mode) |
+| spotlight | 390px | 9 controls, worst 5.59:1 (piglardlord.github.io/cv-giovanni) |
+| spotlight | 320px | 9 controls, worst 5.55:1 (piglardlord.github.io/cv-giovanni) |
+| technical | 1280px | 9 controls, worst 6.75:1 (Nerd Mode) |
+| technical | 820px | 9 controls, worst 6.75:1 (Nerd Mode) |
+| technical | 390px | 9 controls, worst 6.75:1 (Nerd Mode) |
+| technical | 320px | 9 controls, worst 6.75:1 (Nerd Mode) |
 
 Every control a keyboard reaches is focused with Tab, in order from the top of the page, and its ring read
 from a screenshot (#111): along its straight edges, each ring pixel against the pixel just outside the ring and
