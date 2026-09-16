@@ -24,6 +24,10 @@
     "salutationMrTitled": "Sehr geehrter Herr {{title}} {{surname}}",
     "salutationNeutral": "Guten Tag {{name}}",
     "salutationAnonymous": "Sehr geehrte Damen und Herren",
+    "addressMs": "Frau {{name}}",
+    "addressMr": "Herrn {{name}}",
+    "addressMsTitled": "Frau {{title}} {{name}}",
+    "addressMrTitled": "Herrn {{title}} {{name}}",
     "closing": "Mit freundlichen Grüßen",
     "attachments": "Anlagen"
   },

@@ -15,6 +15,10 @@ const strings = {
   'cv:letter.salutationMrTitled': 'Dear {{title}} {{surname}}',
   'cv:letter.salutationNeutral': 'Dear {{name}}',
   'cv:letter.salutationAnonymous': 'Dear Hiring Team',
+  'cv:letter.addressMs': 'Ms {{name}}',
+  'cv:letter.addressMr': 'Mr {{name}}',
+  'cv:letter.addressMsTitled': '{{title}} {{name}}',
+  'cv:letter.addressMrTitled': '{{title}} {{name}}',
   'cv:letter.closing': 'Kind regards,',
   'cv:letter.attachments': 'Enclosed',
   'ui:letter.absent': 'This profile carries no cover letter.'
@@ -215,6 +219,42 @@ describe('the salutation comes from the catalogue, the name from the model', () 
   });
 });
 
+// The address block carries the form of address on the name's line (#182), worded by the catalogue from the form the
+// model resolved. The line count the address zone limits does not change.
+describe('the name line of the address block comes from the catalogue, the form from the model', () => {
+  const addressed = (recipient, translate = t) =>
+    LetterContent.of(
+      profile({ recipient: { company: 'ActAI', name: 'Anna Weber', ...recipient } }),
+      { t: translate, locale: 'en' }
+    ).letter.recipient;
+
+  test('a recipient with a form of address is named by it, on the name’s own line', () => {
+    expect(addressed({ form: 'ms', address: ['Chausseestraße 1'] })).toEqual([
+      'ActAI',
+      'Ms Anna Weber',
+      'Chausseestraße 1'
+    ]);
+    expect(addressed({ name: 'Jonas Weber', form: 'mr' })).toEqual(['ActAI', 'Mr Jonas Weber']);
+  });
+
+  test('a title takes the wording the catalogue gives a titled recipient', () => {
+    expect(addressed({ form: 'ms', title: 'Dr' })).toEqual(['ActAI', 'Dr Anna Weber']);
+  });
+
+  test('the neutral form, or none, leaves the name as written, its title with it', () => {
+    expect(addressed({ form: 'neutral', title: 'Dr' })).toEqual(['ActAI', 'Anna Weber']);
+    expect(addressed({ title: 'Dr' })).toEqual(['ActAI', 'Anna Weber']);
+  });
+
+  // A language whose address block carries no form of address says so with an empty wording: data, not code.
+  test('an empty wording in the catalogue leaves the name as written', () => {
+    const none = (key, values) => (key.startsWith('cv:letter.address') ? '' : t(key, values));
+
+    expect(addressed({ form: 'ms', title: 'Dr' }, none)).toEqual(['ActAI', 'Anna Weber']);
+    expect(addressed({ form: 'mr' }, none)).toEqual(['ActAI', 'Anna Weber']);
+  });
+});
+
 describe('the date is formatted, never spelled', () => {
   // AGENTS.md gives dates to Intl. A German letter dated in American order was not written for its reader.
   test('English and German render the same date differently', () => {
@@ -407,6 +447,64 @@ describe('in the catalogues the page loads', () => {
     expect(LetterContent.of(data, { t: await page(locale), locale }).letter.salutation).toBe(
       salutation
     );
+  });
+
+  // German writes the form of address in the accusative on the name's line, "Herrn Dr. Max Mustermann", as the Duden
+  // and DIN 5008's examples do; British English writes "Ms Anna Schmidt", or the title in its place (#182).
+  test.each([
+    ['de', 'Frau', 'Frau Anna Schmidt', { ...anna, form: 'ms' }],
+    ['de', 'Herrn, in the accusative', 'Herrn Jonas Schmidt', { ...jonas, form: 'mr' }],
+    ['de', 'a titled Frau', 'Frau Dr. Anna Schmidt', { ...anna, form: 'ms', title: 'Dr.' }],
+    [
+      'de',
+      'a titled Herr',
+      'Herrn Prof. Dr. Jonas Schmidt',
+      { ...jonas, form: 'mr', title: 'Prof. Dr.' }
+    ],
+    ['de', 'a neutral form', 'Anna Schmidt', { ...anna, form: 'neutral', title: 'Dr.' }],
+    ['de', 'no form of address', 'Anna Schmidt', anna],
+    ['en', 'Ms', 'Ms Anna Schmidt', { ...anna, form: 'ms' }],
+    ['en', 'Mr', 'Mr Jonas Schmidt', { ...jonas, form: 'mr' }],
+    ['en', 'a titled Ms', 'Dr Anna Schmidt', { ...anna, form: 'ms', title: 'Dr' }],
+    ['en', 'a titled Mr', 'Dr Jonas Schmidt', { ...jonas, form: 'mr', title: 'Dr' }],
+    ['en', 'a neutral form', 'Anna Schmidt', { ...anna, form: 'neutral' }],
+    ['en', 'no form of address', 'Anna Schmidt', anna]
+  ])('in %s, the address block names %s "%s"', async (locale, what, line, recipient) => {
+    const data = profile({
+      recipient: { ...recipient, address: ['Musterstraße 12', '10115 Berlin'] }
+    });
+    const expected = ['Beispiel GmbH', line, 'Musterstraße 12', '10115 Berlin'];
+
+    expect(LetterContent.of(data, { t: catalogue(locale), locale }).letter.recipient).toEqual(
+      expected
+    );
+    expect(LetterContent.of(data, { t: await page(locale), locale }).letter.recipient).toEqual(
+      expected
+    );
+  });
+
+  // An empty wording is how a catalogue says its address block carries no form of address. i18next gives an empty
+  // string back as written, as the audit's translator does, so the page and the audit both expect the bare name.
+  test('an empty wording in a catalogue leaves the name as written, on the page and in the audit', async () => {
+    const namespaces = namespacesOf('en');
+    const letter = { ...namespaces.cv.letter, addressMs: '', addressMsTitled: '' };
+    const none = { ...namespaces, cv: { ...namespaces.cv, letter } };
+    const instance = i18next.createInstance();
+    await instance.init({
+      lng: 'en',
+      resources: { en: none },
+      ns: ['ui', 'cv'],
+      defaultNS: 'ui',
+      interpolation: { escapeValue: false }
+    });
+    const data = profile({ recipient: { ...anna, form: 'ms', title: 'Dr' } });
+
+    for (const t of [catalogueTranslator(none), (key, values) => instance.t(key, values)]) {
+      expect(LetterContent.of(data, { t, locale: 'en' }).letter.recipient).toEqual([
+        'Beispiel GmbH',
+        'Anna Schmidt'
+      ]);
+    }
   });
 
   test('no catalogue words a person with a bracketed ending', () => {
