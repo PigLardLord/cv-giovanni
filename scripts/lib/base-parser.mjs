@@ -257,3 +257,151 @@ export function outcome(losses, labels) {
   const accepted = labels.includes(TRADE_LABEL);
   return { exitCode: accepted ? 0 : 1, accepted };
 }
+
+/**
+ * The reading orders `audit:ats` extracts a print in: poppler's, which it scores; the content stream's, which PDFBox
+ * and Tika read and whose floors it gates on; and poppler's layout-aware one, where it looks for a serialised column.
+ * #179's first print lost the Pisa school in the first and the last, and merged both degrees in the second.
+ */
+export const READING_ORDERS = [
+  { name: 'default', args: [], title: "Poppler's order (`pdftotext`)", short: "poppler's order" },
+  {
+    name: 'raw',
+    args: ['-raw'],
+    title: 'Content-stream order (`pdftotext -raw`)',
+    short: 'content-stream order'
+  },
+  {
+    name: 'layout',
+    args: ['-layout'],
+    title: 'Layout order (`pdftotext -layout`)',
+    short: 'layout order'
+  }
+];
+
+const orderOf = (name) => READING_ORDERS.find((order) => order.name === name);
+
+/**
+ * Every loss over every print and reading order.
+ * @param {{ artefact: string, order: string, baseOnBase: Object[], baseOnHead: Object[] }[]} readings - One entry a
+ *   print in one order: the base's parser on the base's print, and on the new one
+ * @returns {Object[]} The losses, each with the print and the order it happened in
+ */
+export function readingLosses(readings) {
+  return readings.flatMap(({ artefact, order, baseOnBase, baseOnHead }) =>
+    lostFields(baseOnBase, baseOnHead).map((loss) => ({ artefact, order, ...loss }))
+  );
+}
+
+/** Where a loss happened: the prints, by reading order. */
+function where(losses) {
+  const byOrder = new Map();
+  for (const { artefact, order } of losses) {
+    if (!byOrder.has(order)) byOrder.set(order, []);
+    if (!byOrder.get(order).includes(artefact)) byOrder.get(order).push(artefact);
+  }
+  return [...byOrder.entries()]
+    .map(([order, artefacts]) => `${artefacts.join(', ')} in ${orderOf(order)?.short ?? order}`)
+    .join('; ');
+}
+
+/** One reading order's fields, a row each, beside what each parser recovered from each print. */
+function table(order, readings, lost) {
+  const columns = ['baseOnBase', 'baseOnHead', 'headOnHead'];
+  const rows = new Map();
+  for (const reading of readings) {
+    for (const column of columns) {
+      for (const field of reading[column]) {
+        if (!rows.has(field.key)) rows.set(field.key, { label: field.label, cells: {} });
+        const cells = rows.get(field.key).cells;
+        cells[column] ??= new Map();
+        cells[column].set(reading.artefact, field.verdict);
+      }
+    }
+  }
+  const artefacts = readings.map((reading) => reading.artefact);
+  const cell = (verdicts = new Map()) => {
+    const each = artefacts.map((artefact) => verdicts.get(artefact) ?? '—');
+    return new Set(each).size === 1
+      ? each[0]
+      : artefacts.map((artefact, index) => `${artefact}: ${each[index]}`).join('; ');
+  };
+  return [
+    `### ${order.title}`,
+    '',
+    '| Field | Base parser, base print | Base parser, this print | This parser, this print |',
+    '|---|---|---|---|',
+    ...[...rows.entries()].map(([key, { label, cells }]) => {
+      const name = lost.has(`${order.name}\0${key}`) ? `**${label}**` : label;
+      return `| ${name} | ${columns.map((column) => cell(cells[column])).join(' | ')} |`;
+    })
+  ];
+}
+
+/**
+ * The step's report, in Markdown: for the job summary in CI, and printed locally.
+ * @param {Object} run
+ * @param {{ ref: string, commit: string }} run.base - The base it compared against
+ * @param {ReturnType<typeof applicability>} run.decision - Whether it applied, and why
+ * @param {Object[]} [run.readings] - As `readingLosses` takes them, with `headOnHead` beside
+ * @param {Object[]} [run.losses] - What `readingLosses` returned
+ * @param {string[]} [run.labels] - The pull request's labels
+ * @param {number} [run.seconds] - How long the base's print took to build
+ * @returns {string} The report
+ */
+export function report({ base, decision, readings = [], losses = [], labels = [], seconds = 0 }) {
+  const heading = [
+    "## What the base branch's parser recovers from this print",
+    '',
+    "`audit:ats` grades this print with this branch's parser, which a change can move until it passes (#181)."
+  ];
+  const against = `\`${base.ref}\` at \`${base.commit}\``;
+  if (!decision.applies) {
+    return [...heading, '', `Not compared with ${against}: ${decision.reason}.`, ''].join('\n');
+  }
+
+  const artefacts = [...new Set(readings.map((reading) => reading.artefact))];
+  const orders = READING_ORDERS.filter((order) =>
+    readings.some((reading) => reading.order === order.name)
+  );
+  const grouped = new Map();
+  for (const loss of losses) {
+    const line = lossLine(loss);
+    if (!grouped.has(line)) grouped.set(line, []);
+    grouped.get(line).push(loss);
+  }
+  const { accepted } = outcome(losses, labels);
+  const verdict = !losses.length
+    ? ["No field the base's parser recovered from the base's print is lost from this one."]
+    : [
+        "The base's parser recovered these fields from the base's print, and recovers less of them from this one:",
+        '',
+        ...[...grouped.entries()].map(([line, each]) => `- ${line} — ${where(each)}`),
+        '',
+        accepted
+          ? `**The pull request carries \`${TRADE_LABEL}\`:** its owner accepted this trade, so the step passes.`
+          : `**The step fails.** A parser change and a layout change are reviewed apart. If this trade is deliberate and the owner accepts it, the label \`${TRADE_LABEL}\` records that; a re-run reads the labels its run started with, so push again, or close and reopen the pull request, after adding it.`
+      ];
+  const lost = new Set(losses.map((loss) => `${loss.order}\0${loss.key}`));
+
+  return [
+    ...heading,
+    '',
+    `- **Base:** ${against}.`,
+    `- **Why it ran:** ${decision.reason}.`,
+    `- **Read:** ${artefacts.join(', ')}, in ${orders.map((order) => order.short).join(', ')}; the base's print built in ${seconds.toFixed(1)} s.`,
+    '',
+    '### Losses',
+    '',
+    ...verdict,
+    '',
+    ...orders.flatMap((order) => [
+      ...table(
+        order,
+        readings.filter((reading) => reading.order === order.name),
+        lost
+      ),
+      ''
+    ])
+  ].join('\n');
+}

@@ -14,6 +14,8 @@ import {
   outcome,
   productReviewPaths,
   pullRequestLabels,
+  readingLosses,
+  report,
   TRADE_LABEL
 } from '../scripts/lib/base-parser.mjs';
 import { catalogueTranslator } from '../scripts/lib/printed-letter.mjs';
@@ -290,5 +292,115 @@ describe('a trade the owner accepted', () => {
   test('no loss passes, and the label accepts nothing', () => {
     expect(outcome([], [])).toEqual({ exitCode: 0, accepted: false });
     expect(outcome([], ['ats-trade-accepted'])).toEqual({ exitCode: 0, accepted: false });
+  });
+});
+
+describe('the report', () => {
+  const base = { ref: 'origin/main', commit: 'a16462e' };
+  const applies = applicability(['core/AtsTextParser.js', 'renderers/EducationRenderer.js'], {
+    parser: ['core/AtsTextParser.js'],
+    rendering: ['renderers/']
+  });
+  const nerd = read(print);
+  const nerdFirst = read(firstPlacement);
+  const readings = ['nerd', 'spotlight'].flatMap((artefact) => [
+    { artefact, order: 'default', baseOnBase: nerd, baseOnHead: nerdFirst, headOnHead: nerd },
+    { artefact, order: 'raw', baseOnBase: nerd, baseOnHead: nerd, headOnHead: nerd }
+  ]);
+
+  test('names each loss once, with every print and reading order it happened in', () => {
+    const losses = readingLosses(readings);
+    const text = report({ base, decision: applies, readings, losses, labels: [], seconds: 3.14 });
+
+    expect(losses.filter((loss) => loss.key === 'education.0.school')).toHaveLength(2);
+    const lines = text.split('\n').filter((line) => line.includes('education 1, school:'));
+    expect(lines).toEqual([
+      '- education 1, school: "Università degli Studi di Pisa" → "Development" (exact → wrong) — nerd, spotlight in poppler\'s order'
+    ]);
+    expect(text).toContain('`origin/main` at `a16462e`');
+    expect(text).toContain('3.1 s');
+    expect(text).toMatch(/\*\*The step fails\.\*\*/);
+    expect(text).toContain('`ats-trade-accepted`');
+  });
+
+  test("reports every field beside what this branch's parser recovers, collapsing a verdict every print shares", () => {
+    const mixed = [
+      {
+        artefact: 'nerd',
+        order: 'default',
+        baseOnBase: nerd,
+        baseOnHead: nerdFirst,
+        headOnHead: nerd
+      },
+      {
+        artefact: 'spotlight',
+        order: 'default',
+        baseOnBase: nerd,
+        baseOnHead: nerd,
+        headOnHead: nerd
+      }
+    ];
+    const text = report({
+      base,
+      decision: applies,
+      readings: mixed,
+      losses: readingLosses(mixed),
+      labels: [],
+      seconds: 1
+    });
+
+    expect(text).toContain(
+      '| Field | Base parser, base print | Base parser, this print | This parser, this print |'
+    );
+    expect(text).toContain('| name | exact | exact | exact |');
+    expect(text).toContain(
+      '| **education 1, school** | exact | nerd: wrong; spotlight: exact | exact |'
+    );
+  });
+
+  test('a trade the pull request declares accepted is reported as accepted', () => {
+    const losses = readingLosses(readings);
+    const text = report({
+      base,
+      decision: applies,
+      readings,
+      losses,
+      labels: ['ats-trade-accepted'],
+      seconds: 1
+    });
+
+    expect(text).toContain('education 1, school:');
+    expect(text).not.toMatch(/The step fails/);
+    expect(text).toMatch(/accepted/);
+  });
+
+  test('a print that loses nothing says so', () => {
+    const same = [
+      { artefact: 'nerd', order: 'default', baseOnBase: nerd, baseOnHead: nerd, headOnHead: nerd }
+    ];
+    const text = report({
+      base,
+      decision: applies,
+      readings: same,
+      losses: [],
+      labels: [],
+      seconds: 1
+    });
+
+    expect(text).toMatch(
+      /No field the base's parser recovered from the base's print is lost from this one/
+    );
+    expect(text).not.toMatch(/The step fails/);
+  });
+
+  test('a change the step does not apply to says why, and compares nothing', () => {
+    const decision = applicability(['scripts/audit-ats-base.mjs'], {
+      parser: ['core/AtsTextParser.js'],
+      rendering: ['renderers/']
+    });
+    const text = report({ base, decision });
+
+    expect(text).toContain('it changes neither the parser nor what renders the CV');
+    expect(text).not.toContain('| Field |');
   });
 });
