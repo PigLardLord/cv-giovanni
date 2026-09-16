@@ -1,6 +1,10 @@
 import { BANDS } from './AtsScore.js';
+import { RecoveryDiff } from './RecoveryDiff.js';
 
 const LADDER = ['exact', 'normalised', 'partial', 'wrong', 'lost'];
+
+/** A section as the report names it, where the diff's own key would read as code. */
+const SECTION_NAMES = { spokenLanguages: 'languages' };
 
 /**
  * The report, and the sentences that keep the number honest.
@@ -189,15 +193,45 @@ export class AtsReport {
     ];
   }
 
+  /**
+   * One field short of recovered, as a line of the list: where it is, its verdict, what was written and what came back.
+   *
+   * A field of the identity is named alone, "email"; any other by its section, its entry counted from one, and the
+   * field, "education 1, degree".
+   * @param {{ path: (string|number)[], verdict: string, written: *, recovered: * }} loss - One of `RecoveryDiff.losses`
+   * @returns {string} The line, without its bullet
+   */
+  static loss({ path, verdict, written, recovered }) {
+    const [part, index, field] = path;
+    const where =
+      field === undefined ? index : `${SECTION_NAMES[part] ?? part} ${index + 1}, ${field}`;
+    const wrote = written === null ? '' : ` — written ${AtsReport.quote(written)}`;
+    const got =
+      recovered === null ? 'nothing recovered' : `recovered ${AtsReport.quote(recovered)}`;
+    return `${where}: ${verdict}${wrote}${wrote ? '; ' : ' — '}${got}`;
+  }
+
+  /** Each value in quotation marks, a list of them separated by commas. */
+  static quote(values) {
+    return []
+      .concat(values)
+      .map((value) => `"${value}"`)
+      .join(', ');
+  }
+
   /** Everything that did not come back, quoted so the parser can be audited rather than trusted. */
   static findings(results) {
     const lines = ['## What did not come back', ''];
     let any = false;
     for (const { artefact, diff } of results) {
-      const problems = [];
-      for (const [field, verdict] of Object.entries(diff.identity)) {
-        if (verdict !== 'exact' && verdict !== 'normalised') problems.push(`${field}: ${verdict}`);
-      }
+      // Every graded field short of recovered, quoted as written and as it came back (#186).
+      const problems = RecoveryDiff.losses(diff).map((loss) => AtsReport.loss(loss));
+      diff.skills.forEach((group, index) => {
+        if (group.lost?.length)
+          problems.push(
+            `skills ${index + 1}, items not recovered with their category: ${AtsReport.quote(group.lost)}`
+          );
+      });
       for (const link of diff.links.filter((entry) => !entry.recovered)) {
         problems.push(`link not in the text layer: ${link.url}`);
       }
