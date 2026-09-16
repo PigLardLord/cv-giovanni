@@ -282,6 +282,18 @@ describe('the printed page, in the order poppler reads it', () => {
     ]);
   });
 
+  // Naming a year is not enough: an institution's facts carry years too (the second code review of #188).
+  test.each(['Campus 2000', 'Founded 2005', 'Est. 1999', '2000 students', 'Room 2024'])(
+    'a school line whose second segment is "%s" recovers no period',
+    (segment) => {
+      const cv = AtsTextParser.parse(educationAfterARole(`TU München · ${segment}`));
+
+      expect(cv.education.map((entry) => [entry.school.value, entry.period])).toEqual([
+        ['TU München', null]
+      ]);
+    }
+  );
+
   test('a school line whose period is followed by another segment still finds it', () => {
     const cv = AtsTextParser.parse(educationAfterARole('TU München · 2019 – 2021 · 120 ECTS'));
 
