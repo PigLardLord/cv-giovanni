@@ -49,7 +49,8 @@ export class LetterContent {
           name,
           contact: joined([identity.location, identity.email, identity.phone])
         },
-        // Above the window, where a postal sender belongs; the email and the phone are in the letterhead already.
+        // In the address field above the recipient, where a postal sender belongs; the email and the phone are in the
+        // letterhead already.
         returnAddress: joined([name, identity.location]),
         recipient: [
           letter.recipient.company,

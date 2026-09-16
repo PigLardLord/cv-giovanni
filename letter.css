@@ -110,9 +110,9 @@ body:not([data-rendered]) {
   white-space: nowrap;
 }
 
-/* The letterhead: 20mm, from the top margin to the return line. */
+/* The letterhead: 25mm, from the top margin to the address field, which starts 45mm from the top edge. */
 .letter-head {
-  height: 20mm;
+  height: 25mm;
 }
 
 .letter-name {
@@ -137,34 +137,47 @@ body[data-layout='spotlight'] .letter-name {
   color: #4b5563;
 }
 
-/* The address field is 85mm wide. The return line is the 5mm directly above it, small, so it can be returned
-   rather than read; it never wraps, so the recipient's first line always starts 45mm from the top edge. */
+/* Form B's address field: 85mm by 45mm, 45mm from the top edge and 20mm from the left, which is what a DL window
+   envelope shows. The text starts at the page's 24.1mm margin, so it has the 80.9mm that remain to the field's right
+   edge. No blank line inside it. */
 .letter-window {
-  width: 85mm;
+  width: 80.9mm;
+}
+
+/* The Zusatz- und Vermerkzone: the field's upper 17.7mm, from 45 to 62.7mm, filled from the bottom. The return line
+   sits at its foot, directly above the recipient, small so it is returned rather than read, and never wrapped. */
+.letter-remarks {
+  box-sizing: border-box;
+  height: 17.7mm;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
 }
 
 .letter-return {
-  box-sizing: border-box;
-  height: 5mm;
-  padding-top: 1.2mm;
-  font-size: 7.5pt;
-  line-height: 1.2;
+  font-size: 8pt;
+  line-height: 1.25;
   color: #374151;
   white-space: nowrap;
   text-decoration: underline;
   text-decoration-color: #9ca3af;
 }
 
+/* The Anschriftzone: the field's lower 27.3mm, from 62.7 to 90mm, filled from the top. Six lines at most, so each is
+   4.5mm, and 10pt, which the standard asks of sans-serif text at the address. */
 .letter-recipient {
-  height: 40mm;
+  height: 27.3mm;
+  font-size: 10pt;
+  line-height: 4.5mm;
   color: #111827;
 }
 
-/* The date, right-aligned above the subject, with the advert's reference beneath it. The block ends where the
-   subject begins, 98.46mm from the top edge. */
+/* The date, right-aligned under the address field, with the advert's reference beneath it, then the subject. The
+   subject starts 98.46mm from the top edge when the date stands alone; with a reference the two need more than the
+   8.46mm between the field and that line, and the subject moves down rather than overlap them. */
 .letter-dateline {
   box-sizing: border-box;
-  height: 13.46mm;
+  min-height: 8.46mm;
   padding-bottom: 2.5mm;
   display: flex;
   flex-direction: column;

@@ -37,8 +37,12 @@ export class LetterRenderer extends BaseRenderer {
       this.line(root, 'p', 'letter-contact', letter.sender.contact)
     ]);
 
+    // Form B's address field in its two zones: the remarks zone, which holds the return line at its foot, and the
+    // address zone, which holds the recipient.
     const addressField = this.block(root, 'div', 'letter-window', [
-      this.line(root, 'p', 'letter-return', letter.returnAddress),
+      this.block(root, 'div', 'letter-remarks', [
+        this.line(root, 'p', 'letter-return', letter.returnAddress)
+      ]),
       this.block(
         root,
         'div',

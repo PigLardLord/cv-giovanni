@@ -1,4 +1,6 @@
 import {
+  addressInWindow,
+  bboxLines,
   catalogueTranslator,
   letterAnchors,
   marginsClear
@@ -142,5 +144,150 @@ describe('the ink margins of a printed letter', () => {
 
   test('fail on a page with no ink measured at all', () => {
     expect(marginsClear([], 10)).toBe(false);
+  });
+});
+
+// DIN 5008 form B's address field is 85mm by 45mm, 45mm from the top edge and 20mm from the left: its upper 17.7mm hold
+// the return line at their foot, its lower 27.3mm the recipient. A window envelope shows that field and nothing else,
+// so a recipient printed anywhere else is a letter the post cannot deliver (#151).
+describe('the address in the window', () => {
+  const MM = 72 / 25.4;
+  /** One line of `pdftotext -bbox-layout`, placed in millimetres and written in points, as poppler writes it. */
+  const line = (text, top, left = 24.08, height = 4.27) => {
+    const words = text.split(' ');
+    const at = (mm) => (mm * MM).toFixed(6);
+    return [
+      `        <line xMin="${at(left)}" yMin="${at(top)}" xMax="${at(left + 3 * text.length)}" yMax="${at(top + height)}">`,
+      ...words.map(
+        (word) =>
+          `          <word xMin="${at(left)}" yMin="${at(top)}" xMax="${at(left + 3)}" yMax="${at(top + height)}">${word
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')}</word>`
+      ),
+      '        </line>'
+    ].join('\n');
+  };
+  const page = (...lines) =>
+    [
+      '<doc>',
+      '  <page width="594.959960" height="841.919980">',
+      '    <flow>',
+      '      <block>',
+      ...lines,
+      '      </block>',
+      '    </flow>',
+      '  </page>',
+      '</doc>'
+    ].join('\n');
+  const words = {
+    returnAddress: 'Ada Lovelace · London',
+    recipient: ['Beispiel GmbH', 'Anna Schmidt', 'Musterstraße 12 & Hof', '10115 Berlin']
+  };
+  const letterhead = [line('Ada Lovelace', 20), line('London · ada@example.com', 28)];
+  const inWindow = page(
+    ...letterhead,
+    line('Ada Lovelace · London', 58.9, 24.08, 3.4),
+    line('Beispiel GmbH', 62.8),
+    line('Anna Schmidt', 67.3),
+    line('Musterstraße 12 & Hof', 71.8),
+    line('10115 Berlin', 76.3),
+    line('London, September 16, 2026', 90.4, 125),
+    line('Application for Analyst', 102.7)
+  );
+
+  test('reads each line of the first page, in millimetres, its words decoded', () => {
+    const lines = bboxLines(inWindow);
+
+    expect(lines[5].text).toBe('Musterstraße 12 & Hof');
+    expect(lines[5].top).toBeCloseTo(71.8, 3);
+    expect(lines[5].bottom).toBeCloseTo(76.07, 3);
+    expect(lines[5].left).toBeCloseTo(24.08, 3);
+    expect(lines).toHaveLength(9);
+  });
+
+  test('a return line at the foot of the upper zone and a recipient in the lower one are in the window', () => {
+    expect(addressInWindow(bboxLines(inWindow), words)).toEqual([]);
+  });
+
+  // Where the layout put them before #151's review: the return line at 40mm and the recipient from 45mm.
+  test('names every line printed above the window, and where it is', () => {
+    const high = page(
+      ...letterhead,
+      line('Ada Lovelace · London', 41.4, 24.08, 3.2),
+      line('Beispiel GmbH', 45.4),
+      line('Anna Schmidt', 50.6),
+      line('Musterstraße 12 & Hof', 55.9),
+      line('10115 Berlin', 61.0)
+    );
+
+    expect(addressInWindow(bboxLines(high), words)).toEqual([
+      '"Ada Lovelace · London" is 41.4–44.6mm from the top, outside 45–62.7mm',
+      '"Beispiel GmbH" is 45.4–49.7mm from the top, outside 62.7–90mm',
+      '"Anna Schmidt" is 50.6–54.9mm from the top, outside 62.7–90mm',
+      '"Musterstraße 12 & Hof" is 55.9–60.2mm from the top, outside 62.7–90mm',
+      '"10115 Berlin" is 61.0–65.3mm from the top, outside 62.7–90mm'
+    ]);
+  });
+
+  test('names a seventh line that runs out of the bottom of the field', () => {
+    const long = {
+      ...words,
+      recipient: [...words.recipient, 'Haus 2', 'Eingang B', 'Germany']
+    };
+    const overflowing = page(
+      line('Ada Lovelace · London', 58.9, 24.08, 3.4),
+      ...long.recipient.map((text, index) => line(text, 62.8 + index * 4.5))
+    );
+
+    expect(addressInWindow(bboxLines(overflowing), long)).toEqual([
+      '"Germany" is 89.8–94.1mm from the top, outside 62.7–90mm'
+    ]);
+  });
+
+  // A DL envelope's window runs from 20mm to 110mm across.
+  test('names a line that runs past the side of the window', () => {
+    const wide = page(
+      line('Ada Lovelace · London', 58.9, 24.08, 3.4),
+      line('Beispiel GmbH', 62.8, 15),
+      line('Anna Schmidt', 67.3),
+      line('Musterstraße 12 & Hof', 71.8, 60),
+      line('10115 Berlin', 76.3)
+    );
+
+    expect(addressInWindow(bboxLines(wide), words)).toEqual([
+      '"Beispiel GmbH" is 15.0–54.0mm from the left, outside 20–110mm',
+      '"Musterstraße 12 & Hof" is 60.0–123.0mm from the left, outside 20–110mm'
+    ]);
+  });
+
+  // A company name too long for one line wraps inside the field, and is still the address.
+  test('follows a recipient line wrapped inside the field', () => {
+    const wrapped = {
+      ...words,
+      recipient: ['Beispiel Gesellschaft für Software mbH', '10115 Berlin']
+    };
+    const lines = page(
+      line('Ada Lovelace · London', 58.9, 24.08, 3.4),
+      line('Beispiel Gesellschaft für', 62.8),
+      line('Software mbH', 67.3),
+      line('10115 Berlin', 71.8)
+    );
+
+    expect(addressInWindow(bboxLines(lines), wrapped)).toEqual([]);
+  });
+
+  test('names a return line or an address the page does not carry', () => {
+    expect(addressInWindow(bboxLines(page(...letterhead)), words)).toEqual([
+      'the return line "Ada Lovelace · London" is not on the page',
+      'the address "Beispiel GmbH, Anna Schmidt, Musterstraße 12 & Hof, 10115 Berlin" is not on the page as lines of its own'
+    ]);
+  });
+
+  test('a letter without a return line still has its address checked', () => {
+    const bare = page(line('Beispiel GmbH', 45.4));
+
+    expect(
+      addressInWindow(bboxLines(bare), { returnAddress: '', recipient: ['Beispiel GmbH'] })
+    ).toEqual(['"Beispiel GmbH" is 45.4–49.7mm from the top, outside 62.7–90mm']);
   });
 });

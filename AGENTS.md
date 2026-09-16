@@ -483,22 +483,31 @@ Settled on #151 by the owner: one system for both documents a recruiter receives
   as text. The page never offers a letter for download, and `generated/manifest.json` lists only the
   CV. A profile without a letter, the published one included, shows a notice saying so.
 - **DIN 5008 form B, in CSS millimetres.** `letter.css` sets A4 with the form's margins, 20mm and
-  24.1mm on the left, and lays the letter out as blocks of fixed height in normal flow: a 20mm
-  letterhead, the return line in the 5mm directly above an 85mm address field that starts 45mm from
-  the top edge, and the date right-aligned above the subject, which starts 98.46mm down. These are
-  the positions pdfmake's `adapters/LetterLayout.js` used. Nothing is positioned, floated or
-  reordered by a grid, so the text layer gives the letter in the order a reader meets it, in both of
-  the orders a parser reads. Measured on a probe letter with poppler: the text's left edge at 24.1mm,
-  the recipient's first line at 45.4mm, the subject's at 99.1mm (its line box at 98.46mm), one page.
+  24.1mm on the left, and lays the letter out as blocks of fixed height in normal flow. The letterhead
+  fills the 25mm down to the address field, which is 85mm by 45mm, 45mm from the top edge and 20mm
+  from the left, and holds no blank line. Its upper 17.7mm, the Zusatz- und Vermerkzone, is filled
+  from the bottom: the return line sits at its foot in 8pt. Its lower 27.3mm, the Anschriftzone, from
+  62.7mm to 90mm, holds the recipient in at most six lines of 10pt at 4.5mm. The date follows,
+  right-aligned, with the reference beneath it, then the subject: at 98.46mm when the date stands
+  alone, lower when a reference joins it, rather than overlapping them. pdfmake's
+  `adapters/LetterLayout.js` had put the recipient at 45mm, where a window envelope does not show it;
+  the review of #151 found it against the standard. Nothing is positioned, floated or reordered by a
+  grid, so the text layer gives the letter in the order a reader meets it, in both of the orders a
+  parser reads. Measured on a probe letter with poppler: the text's left edge at 24.1mm, the return
+  line 59.2–62.6mm from the top, the recipient's five lines 62.7–85.0mm, the date and reference
+  90.6–99.2mm, the subject's glyphs from 102.5mm, one page.
 - **Inter from its static TrueType files, and no tracking,** as the CV prints, for the same reasons
   (#143). `letter.css` declares only the faces the letter prints in and never loads
   `vendor/fonts/fonts.css`. Impact Spotlight sets the sender's name in Instrument Serif, as
   `print.css` sets the CV's name.
 - **Its audit.** `npm run audit:print` reads every letter the build wrote beside the CV, exits 2 when
   one is missing, and scores each on checks of its own: A4, one page, the recipient's company, the
-  subject and the signature, the letter's parts in reading order in both orders, contrast on the
-  paper, no pictograph, the intended typefaces, no Type 3 font, no image, and every margin at least
-  10mm. The sides are not compared, as a CV's are: form B is asymmetric by design. `npm run audit:ats`
+  subject and the signature, the letter's parts in reading order in both orders, the address in the
+  window, contrast on the paper, no pictograph, the intended typefaces, no Type 3 font, no image, and
+  every margin at least 10mm. The address in the window is read from where poppler places each line:
+  the return line within 45–62.7mm of the top edge, every line of the recipient within 62.7–90mm, and
+  both within a DL window envelope's window, 20–110mm across; a line outside is named with where it
+  is. The sides are not compared, as a CV's are: form B is asymmetric by design. `npm run audit:ats`
   keeps asking a `-cover` file only whether the recipient and the subject survive extraction.
 - **CI never prints a letter.** The published profile carries none, so the gates build, audit and
   publish no letter, and a change that breaks `letter.html` passes every gate. A letter is verified

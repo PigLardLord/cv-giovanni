@@ -9,7 +9,13 @@ import { fallbackRuns, typefacesFor } from './lib/printed-typefaces.mjs';
 import { gluedPhrases, type3Fonts } from './lib/extractable-text.mjs';
 import { imageCount, outOfOrder } from './lib/section-order.mjs';
 import { builtCv, builtLetters } from './lib/printed-cv.mjs';
-import { catalogueTranslator, letterAnchors, marginsClear } from './lib/printed-letter.mjs';
+import {
+  addressInWindow,
+  bboxLines,
+  catalogueTranslator,
+  letterAnchors,
+  marginsClear
+} from './lib/printed-letter.mjs';
 import { GenerationTarget } from '../core/GenerationTarget.js';
 import { LetterContent } from '../core/LetterContent.js';
 import { CoverLetter } from '../domain/CoverLetter.js';
@@ -401,6 +407,16 @@ try {
         await measure(path, typefacesFor(layout, 'letter'), workspace);
       const parts = { read: outOfOrder(text, anchors), drawn: outOfOrder(drawn, anchors) };
       const flat = collapse(text);
+      // Where each line of the address landed on the paper, as poppler places it.
+      const address = addressInWindow(
+        bboxLines(
+          execFileSync('pdftotext', ['-bbox-layout', onDisk(path), '-'], {
+            encoding: 'utf8',
+            maxBuffer: 64 * 1024 * 1024
+          })
+        ),
+        words
+      );
 
       const checks = {
         format: isA4(info),
@@ -411,6 +427,9 @@ try {
         // signature and the attachments, as poppler reconstructs the page and as the PDF draws it.
         partsInOrder: parts.read.length === 0,
         partsInOrderDrawn: parts.drawn.length === 0,
+        // DIN 5008 form B: the return line at the foot of the address field's upper 17.7mm, the recipient in its
+        // lower 27.3mm, 62.7 to 90mm down, and both inside a DL window envelope's window, 20 to 110mm across.
+        addressInWindow: address.length === 0,
         contrast: faint.length === 0,
         // DIN 5008 form B is 24.1mm on the left and 20mm on the right by design, so the sides are not compared.
         margins: marginsClear(margins, MARGIN_FLOOR_MM),
@@ -431,6 +450,7 @@ try {
         fallback: fallback.slice(0, 8),
         type3,
         parts,
+        window: address,
         images,
         margins
       });
@@ -489,7 +509,9 @@ const report = [
         }),
         '',
         "Checks: A4, one page, the recipient's company, the subject and the signature, the letter's parts",
-        'in reading order both as poppler reconstructs the page and as the PDF draws it, every word at 4.5:1',
+        'in reading order both as poppler reconstructs the page and as the PDF draws it, the return line',
+        "within 45–62.7mm of the top edge and every line of the recipient's address within 62.7–90mm, both",
+        "inside a DL window envelope's window 20–110mm across (DIN 5008 form B), every word at 4.5:1",
         `on paper, every margin no narrower than ${MARGIN_FLOOR_MM}mm (form B is asymmetric by design, so the sides`,
         'are not compared), no pictograph in the text layer, every run of text set in a typeface its layout',
         'prints in, no Type 3 font, and no image.'
@@ -520,13 +542,14 @@ if (failures.length || letterFailures.length) {
           images
         })),
         ...letterFailures.map(
-          ({ layout, checks, faint, fallback, type3, parts, images, margins }) => ({
+          ({ layout, checks, faint, fallback, type3, parts, window, images, margins }) => ({
             letter: layout,
             failed: failedChecks(checks),
             faint,
             fallback,
             type3,
             parts,
+            window,
             images,
             margins
           })

@@ -93,8 +93,8 @@ describe('who writes', () => {
     );
   });
 
-  // The return line sits above the window, where only a postal sender belongs: the email and the phone are in the
-  // letterhead already.
+  // The return line sits in the address field above the recipient, where only a postal sender belongs: the email and
+  // the phone are in the letterhead already.
   test('the return line names the sender and the place', () => {
     expect(words(profile()).returnAddress).toBe('Giovanni Trovato · Bad Liebenstein');
   });

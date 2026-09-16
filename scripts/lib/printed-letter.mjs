@@ -66,3 +66,117 @@ export function marginsClear(boxes, floor) {
     boxes.every((box) => Math.min(box.left, box.top, box.right, box.bottom) >= floor)
   );
 }
+
+/**
+ * DIN 5008 form B's address field, in millimetres from the page's top and left edges: 85mm by 45mm, 45mm down and
+ * 20mm in. Its upper 17.7mm, the Zusatz- und Vermerkzone, is filled from the bottom and carries the return line at
+ * its foot; its lower 27.3mm, the Anschriftzone, carries the recipient in at most six lines. A DL window envelope
+ * shows it through a window running from 20mm to 110mm across.
+ */
+export const ADDRESS_FIELD = {
+  remarks: { top: 45, bottom: 62.7 },
+  address: { top: 62.7, bottom: 90 },
+  across: { left: 20, right: 110 }
+};
+
+/** Chrome snaps a box to whole device pixels, 0.26mm at 96 dpi; a line off by less than that is where it was put. */
+const TOLERANCE_MM = 0.3;
+
+const PT_TO_MM = 25.4 / 72;
+const ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
+const decoded = (text) =>
+  text.replace(/&(#x[\da-f]+|#\d+|[a-z]+);/gi, (entity, name) => {
+    if (name[0] !== '#') return ENTITIES[name] ?? entity;
+    const hex = name[1].toLowerCase() === 'x';
+    return String.fromCodePoint(hex ? parseInt(name.slice(2), 16) : Number(name.slice(1)));
+  });
+const collapse = (text) => text.replace(/\s+/g, ' ').trim();
+
+/**
+ * The lines of a PDF's first page as `pdftotext -bbox-layout` places them, in the order it gives them.
+ * @param {string} xml - What `pdftotext -bbox-layout` wrote
+ * @returns {{ text: string, top: number, bottom: number, left: number, right: number }[]} Each line's words joined
+ *   by single spaces, and its box in millimetres from the page's top and left edges
+ */
+export function bboxLines(xml) {
+  const first = String(xml).split(/<page\b/)[1] ?? '';
+  return [
+    ...first.matchAll(
+      /<line xMin="([\d.]+)" yMin="([\d.]+)" xMax="([\d.]+)" yMax="([\d.]+)">([\s\S]*?)<\/line>/g
+    )
+  ].map(([, left, top, right, bottom, body]) => ({
+    text: collapse(
+      [...body.matchAll(/<word\b[^>]*>([^<]*)<\/word>/g)].map(([, word]) => decoded(word)).join(' ')
+    ),
+    top: Number(top) * PT_TO_MM,
+    bottom: Number(bottom) * PT_TO_MM,
+    left: Number(left) * PT_TO_MM,
+    right: Number(right) * PT_TO_MM
+  }));
+}
+
+/**
+ * Whether a printed letter's address would show through a window envelope: the return line within the upper zone of
+ * form B's address field, and every line of the recipient within the lower zone, all inside the window across.
+ *
+ * The recipient's lines are the ones after the return line that together write the recipient the letter names, so a
+ * line wrapped inside the field is still the address, and a word elsewhere on the page is not.
+ * @param {{ text: string, top: number, bottom: number, left: number, right: number }[]} lines - From `bboxLines`
+ * @param {{ returnAddress: string, recipient: string[] }} letter - The letter's words, from `LetterContent`
+ * @returns {string[]} Every line outside its zone, named with where it is; or what the page does not carry
+ */
+export function addressInWindow(lines, { returnAddress, recipient }) {
+  const findings = [];
+  const range = (from, to) => `${from.toFixed(1)}–${to.toFixed(1)}mm`;
+  const place = (line, zone) => {
+    const { across } = ADDRESS_FIELD;
+    if (line.top < zone.top - TOLERANCE_MM || line.bottom > zone.bottom + TOLERANCE_MM) {
+      findings.push(
+        `"${line.text}" is ${range(line.top, line.bottom)} from the top, outside ${zone.top}–${zone.bottom}mm`
+      );
+    }
+    if (line.left < across.left - TOLERANCE_MM || line.right > across.right + TOLERANCE_MM) {
+      findings.push(
+        `"${line.text}" is ${range(line.left, line.right)} from the left, outside ${across.left}–${across.right}mm`
+      );
+    }
+  };
+
+  let from = 0;
+  const sender = collapse(returnAddress || '');
+  if (sender) {
+    const at = lines.findIndex((line) => line.text === sender);
+    if (at < 0) findings.push(`the return line "${sender}" is not on the page`);
+    else {
+      place(lines[at], ADDRESS_FIELD.remarks);
+      from = at + 1;
+    }
+  }
+
+  const target = collapse((recipient || []).join(' '));
+  if (!target) return findings;
+  const address = addressLines(lines, from, target);
+  if (!address) {
+    findings.push(`the address "${recipient.join(', ')}" is not on the page as lines of its own`);
+    return findings;
+  }
+  address.forEach((line) => place(line, ADDRESS_FIELD.address));
+  return findings;
+}
+
+/** The consecutive lines, from the first that can begin it, that together write the target and nothing more. */
+function addressLines(lines, from, target) {
+  const continues = (written) =>
+    target.startsWith(written) &&
+    (written.length === target.length || target[written.length] === ' ');
+  for (let start = from; start < lines.length; start += 1) {
+    let written = '';
+    for (let end = start; end < lines.length; end += 1) {
+      const next = written ? `${written} ${lines[end].text}` : lines[end].text;
+      if (!continues(next)) break;
+      written = next;
+      if (written === target) return lines.slice(start, end + 1);
+    }
+  }
+  return null;
+}

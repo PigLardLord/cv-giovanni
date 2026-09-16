@@ -36,6 +36,10 @@ describe('LetterRenderer', () => {
   test('writes every part of the letter, in reading order', () => {
     new LetterRenderer().render(document, words);
 
+    // The address field's two zones, as form B divides it: the return line in the upper, the recipient in the lower.
+    expect(texts('.letter-window > .letter-remarks > p')).toEqual(['Ada Lovelace · London']);
+    expect(texts('.letter-window > .letter-recipient > p')).toHaveLength(4);
+
     expect([...letter().querySelectorAll('h1, h2, p')].map((node) => node.textContent)).toEqual([
       'Ada Lovelace',
       'London · ada@example.com · +44 20 7946 0000',
@@ -65,16 +69,32 @@ describe('LetterRenderer', () => {
     expect(document.title).toBe('Ada Lovelace — Application for Analyst');
   });
 
-  // DIN 5008 geometry is fixed-height blocks in normal flow: each is there even when the data leaves it empty.
+  // DIN 5008 geometry is fixed-height blocks in normal flow: each is there even when the data leaves it empty, or the
+  // recipient would rise out of the envelope's window.
   test('keeps each block of the form, and writes no empty line into it', () => {
     new LetterRenderer().render(document, {
       ...words,
-      letter: { ...words.letter, reference: '', date: '', attachments: '', closingSentence: '' }
+      letter: {
+        ...words.letter,
+        returnAddress: '',
+        reference: '',
+        date: '',
+        attachments: '',
+        closingSentence: ''
+      }
     });
 
-    for (const block of ['letter-head', 'letter-window', 'letter-dateline', 'letter-close']) {
+    for (const block of [
+      'letter-head',
+      'letter-window',
+      'letter-remarks',
+      'letter-recipient',
+      'letter-dateline',
+      'letter-close'
+    ]) {
       expect(letter().querySelectorAll(`.${block}`)).toHaveLength(1);
     }
+    expect(letter().querySelector('.letter-remarks').children).toHaveLength(0);
     expect(letter().querySelector('.letter-dateline').children).toHaveLength(0);
     expect(texts('.letter-reference, .letter-date, .letter-attachments')).toEqual([]);
     expect(texts('.letter-close p')).toEqual(['Kind regards,', 'Ada Lovelace']);
