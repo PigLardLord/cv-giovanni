@@ -76,11 +76,10 @@ is a defect in the review.
 - **Check for raster text**: `pdfimages -list <file>`. A CV that is a picture of a CV fails
   every automated step.
 - **Check geometry and length**: `pdfinfo <file>`.
-- **In this repository**, `npm run verify:pdf` regenerates the twelve variants and scores each
-  on eleven checks, rewriting `docs/PDF_AUDIT.md`, and `npm run audit:print` scores what the browser
-  prints on twelve more, rewriting `docs/PRINT_AUDIT.md`. `npm run audit:ats` then parses the PDF
-  as a stranger's parser would and reports what structure it could rebuild — which is most of P0,
-  measured. Prefer all three over hand-rolled checks, and read `scripts/audit-pdfs.mjs`,
+- **In this repository**, `npm run verify:pdf` prints the CV from the page in each layout, then
+  `npm run audit:print` scores those PDFs on seventeen checks, rewriting `docs/PRINT_AUDIT.md`, and
+  `npm run audit:ats` parses them as a stranger's parser would and reports what structure it could
+  rebuild — which is most of P0, measured. Prefer both over hand-rolled checks, and read
   `scripts/audit-print.mjs` and `scripts/audit-ats.mjs` to see what they already guarantee so you
   do not re-report it in prose.
 

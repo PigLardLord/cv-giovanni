@@ -33,8 +33,9 @@ This is a static CV/resume website built with vanilla HTML, CSS, and JavaScript.
 
 ### Artefacts
 
-- **Generate the PDFs**: `npm run verify:pdf` (build, then audit the twelve variants)
-- **Audit what the browser prints**: `npm run audit:print` (needs Chrome; `CHROME_PATH` overrides)
+- **Print the PDFs from the page**: `npm run build:pdf` (needs Chrome; `CHROME_PATH` overrides)
+- **Build, then audit them**: `npm run verify:pdf` (the print audit, then the ATS audit)
+- **Audit what the browser printed**: `npm run audit:print` (reads the built files; run the build first)
 - **Audit what a reader copies off the screen**: `npm run audit:screen` (needs Chrome; `CHROME_PATH` overrides)
 
 ### Publishing
@@ -56,9 +57,9 @@ normalises the two into the model every output boundary consumes. On the page, `
 it once and hands it to the localizer, every renderer and Nerd Mode's editor, and
 `tests/PageRendersTheModel.test.js` fails when one of them reads the profile JSON instead (#81).
 
-There are **two artefacts and they do not share a DOM**: the page renders through `renderers/`,
-while the PDF is composed from the model by `adapters/PdfLayout.js` and written by pdfmake. That is
-why there are three audits.
+**The downloadable PDF is the page, printed**: `npm run build:pdf` prints each layout through
+`print.css` with a headless Chrome (#144, #149). The cover letter is still composed from the model by
+pdfmake until #151, and the CV's pdfmake path (`adapters/PdfLayout.js`) is dead code until #153.
 
 ### Layers
 

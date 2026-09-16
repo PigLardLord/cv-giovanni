@@ -23,10 +23,6 @@ traces to a 2012 sales pitch with no published method; it is not repeated here.
 |---|---|---|---|---|---|
 | generated/giovanni-trovato-general-en-nerd.pdf | normalised | ok | exact | 3/3 | yes |
 | generated/giovanni-trovato-general-en-spotlight.pdf | normalised | ok | exact | 3/3 | yes |
-| generated/giovanni-trovato-general-en-technical.pdf | normalised | ok | exact | 3/3 | yes |
-| generated/qa/giovanni-trovato-general-en-nerd-letter-color.pdf | normalised | ok | exact | 3/3 | yes |
-| generated/qa/giovanni-trovato-general-en-spotlight-letter-color.pdf | normalised | ok | exact | 3/3 | yes |
-| generated/qa/giovanni-trovato-general-en-technical-letter-color.pdf | normalised | ok | exact | 3/3 | yes |
 
 ## What did not come back
 
@@ -41,10 +37,6 @@ Four failures gate the audit whatever the number says: a document that did not s
 |---|---|---|
 | generated/giovanni-trovato-general-en-nerd.pdf | pass | pass |
 | generated/giovanni-trovato-general-en-spotlight.pdf | pass | pass |
-| generated/giovanni-trovato-general-en-technical.pdf | pass | pass |
-| generated/qa/giovanni-trovato-general-en-nerd-letter-color.pdf | pass | pass |
-| generated/qa/giovanni-trovato-general-en-spotlight-letter-color.pdf | pass | pass |
-| generated/qa/giovanni-trovato-general-en-technical-letter-color.pdf | pass | pass |
 
 ## The advert
 
@@ -63,14 +55,10 @@ Regenerate with `npm run audit:ats`.
 
 ## Distinct text streams
 
-15 artefacts, 6 distinct streams.
+3 artefacts, 2 distinct streams.
 
-- `64ed1f428819` — generated/giovanni-trovato-general-en-nerd.pdf, generated/qa/giovanni-trovato-general-en-nerd-a4-color.pdf, generated/qa/giovanni-trovato-general-en-nerd-a4-monochrome.pdf
-- `2947a8588007` — generated/giovanni-trovato-general-en-spotlight.pdf, generated/qa/giovanni-trovato-general-en-spotlight-a4-color.pdf, generated/qa/giovanni-trovato-general-en-spotlight-a4-monochrome.pdf
-- `fd765aba690f` — generated/giovanni-trovato-general-en-technical.pdf, generated/qa/giovanni-trovato-general-en-technical-a4-color.pdf, generated/qa/giovanni-trovato-general-en-technical-a4-monochrome.pdf
-- `9102ab829867` — generated/qa/giovanni-trovato-general-en-nerd-letter-color.pdf, generated/qa/giovanni-trovato-general-en-nerd-letter-monochrome.pdf
-- `b84888086b8c` — generated/qa/giovanni-trovato-general-en-spotlight-letter-color.pdf, generated/qa/giovanni-trovato-general-en-spotlight-letter-monochrome.pdf
-- `4560121a08ec` — generated/qa/giovanni-trovato-general-en-technical-letter-color.pdf, generated/qa/giovanni-trovato-general-en-technical-letter-monochrome.pdf
+- `3202f08045e8` — generated/giovanni-trovato-general-en-nerd.pdf
+- `18c49662bd40` — generated/giovanni-trovato-general-en-spotlight.pdf, generated/giovanni-trovato-general-en-technical.pdf
 
 
 A layout-aware read recovers the same structure everywhere, so no column is being serialised.
