@@ -11,6 +11,11 @@ import { Refusal } from '../core/Refusal.js';
 export const ROUTES = [
   { method: 'GET', path: /^\/api\/profile$/, call: (services) => services.profile.read() },
   {
+    method: 'GET',
+    path: /^\/api\/inference$/,
+    call: (services) => services.inference.status()
+  },
+  {
     method: 'PUT',
     path: /^\/api\/profile$/,
     call: (services, { body }) => services.profile.write(body)

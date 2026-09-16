@@ -5,7 +5,7 @@ import { Applications } from '../core/Applications.js';
 
 // An application is an advert and a CV tailored to it, under applications/, which git ignores (#21). The
 // local app creates one, matches its advert and builds its CV through this, with the same scripts the
-// command line runs; tailoring waits for inference (#22).
+// command line runs; tailoring is #24's.
 const MANIFEST = JSON.stringify({
   defaultProfile: 'general',
   profiles: { general: { locales: { en: 'profiles/general/en.json' } } }
@@ -149,12 +149,12 @@ describe('an application that exists', () => {
     expect(calls).toEqual([['generate-pdfs', ['--profile=applications/acme/en.json']]]);
   });
 
-  test('is not tailored yet: that needs inference, which #22 connects', async () => {
+  test('is not tailored yet: #24 builds that on the inference #22 connects', async () => {
     const { calls, applications } = setup(ACME);
 
     await expect(applications.tailor('acme')).rejects.toMatchObject({
       status: 501,
-      message: expect.stringContaining('#22')
+      message: expect.stringContaining('#24')
     });
     expect(calls).toEqual([]);
   });

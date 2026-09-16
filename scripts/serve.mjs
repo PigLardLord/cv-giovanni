@@ -8,6 +8,9 @@ import { ProfileStore } from '../core/ProfileStore.js';
 import { handleApi } from '../adapters/LocalApi.js';
 import { NodeProjectFiles } from '../adapters/NodeProjectFiles.js';
 import { NodeScripts } from '../adapters/NodeScripts.js';
+import { ClaudeCliInference } from '../adapters/ClaudeCliInference.js';
+import { AnthropicApiInference, keyFile } from '../adapters/AnthropicApiInference.js';
+import { Inference } from '../core/Inference.js';
 import { extname, isAbsolute, join, normalize, relative, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
@@ -124,15 +127,26 @@ export function listenSettings(args = [], env = {}) {
 
 /**
  * The services the local API calls (#21), over this project's files and scripts: the services and the
- * scripts the command line uses, so the browser and a shell cannot come to disagree.
+ * scripts the command line uses, so the browser and a shell cannot come to disagree. Inference (#22) asks the
+ * claude CLI first and an API key second; the key is kept outside the project, and `keyFile` refuses a
+ * place for it inside.
  * @param {string} root - The project root
- * @returns {{ profile: ProfileStore, applications: Applications }} The services
+ * @param {{ claude?: string, env?: object, apiKeyFile?: string }} [options] - The claude executable, the
+ *   environment the key's place is read from, and the key's file itself
+ * @returns {{ profile: ProfileStore, applications: Applications, inference: Inference }} The services
  */
-export function localServices(root) {
+export function localServices(
+  root,
+  { claude = 'claude', env = process.env, apiKeyFile = keyFile({ env, projectRoot: root }) } = {}
+) {
   const files = new NodeProjectFiles(root);
   return {
     profile: new ProfileStore(files),
-    applications: new Applications({ files, scripts: new NodeScripts(root) })
+    applications: new Applications({ files, scripts: new NodeScripts(root) }),
+    inference: new Inference([
+      new ClaudeCliInference({ command: claude }),
+      new AnthropicApiInference({ file: apiKeyFile })
+    ])
   };
 }
 
@@ -321,7 +335,15 @@ export function createStaticServer(
         notFound(response);
         return;
       }
-      api ??= localServices(root);
+      try {
+        api ??= localServices(root);
+      } catch (error) {
+        console.error(`local API: ${error.message}`);
+        response
+          .writeHead(500, { 'Cache-Control': 'no-store' })
+          .end('The local app could not start: the terminal running it says why.');
+        return;
+      }
       await handleApi(request, response, api);
       return;
     }
