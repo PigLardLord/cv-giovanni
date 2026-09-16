@@ -125,6 +125,10 @@ for (const [kind, byLanguage] of Object.entries(PLACES)) {
   }
 }
 
+// The German states that are a city as well. A location that starts with one of them names the city; one that starts
+// with any other state names no city a letter can be dated from (#122).
+const CITY_STATES = new Set(['Berlin', 'Bremen', 'Hamburg', 'Berlino', 'Amburgo'].map(fold));
+
 export class PlaceLexicon {
   /**
    * Whether a token names a place this list knows.
@@ -161,8 +165,9 @@ export class PlaceLexicon {
    * Only when every part after the first is a region or a country this list knows. Otherwise the
    * location comes back as written: an unknown part could be the city's region or the city itself,
    * and a letter dated from the wrong one is worse than a letter dated from all of it.
-   * A first part that is a country (`Germany, Berlin`) or carries a number (`Musterstraße 1, Berlin`)
-   * is not a city either, so that location comes back as written too.
+   * A first part that is a country (`Germany, Berlin`), a state that is not also a city (`Thuringia, Germany`),
+   * or one that carries a number (`Musterstraße 1, Berlin`) is not a city either, so that location comes back as
+   * written too.
    * @param {string} location - A location as the CV writes it
    * @returns {string} The city, or the location unchanged when that cannot be told
    */
@@ -172,8 +177,12 @@ export class PlaceLexicon {
     const places = ['countries', 'regions'];
     const known =
       rest.length > 0 && rest.every((part) => places.includes(PlaceLexicon.recognise(part)?.kind));
+    const first = PlaceLexicon.recognise(city)?.kind;
     const cityLike =
-      Boolean(city) && !/\d/.test(city) && PlaceLexicon.recognise(city)?.kind !== 'countries';
+      Boolean(city) &&
+      !/\d/.test(city) &&
+      first !== 'countries' &&
+      (first !== 'regions' || CITY_STATES.has(fold(city)));
     return cityLike && known ? city : text;
   }
 }
