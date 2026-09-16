@@ -1,27 +1,24 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
-import { homedir, tmpdir } from 'node:os';
+import { mkdtemp, readdir, readFile, rm, stat } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createStaticServer, previewKey } from './serve.mjs';
+import { fileURLToPath } from 'node:url';
 import { writeReport } from './lib/write-report.mjs';
 import { fallbackRuns, typefacesFor } from './lib/printed-typefaces.mjs';
 import { gluedPhrases, type3Fonts } from './lib/extractable-text.mjs';
-import { openBrowser } from './lib/chrome.mjs';
 import { imageCount, outOfOrder } from './lib/section-order.mjs';
-import { printPage } from './lib/print-page.mjs';
-import { rendered, revealed } from './lib/page-ready.mjs';
+import { builtCv } from './lib/printed-cv.mjs';
 import { GenerationTarget } from '../core/GenerationTarget.js';
 
 /**
  * What the browser prints, checked on the paper rather than on the stylesheet.
  *
- * `audit-pdfs.mjs` scores the documents pdfmake builds. This one scores the other
- * artefact: the page a reader gets from the browser's own Print. They are not the
- * same document and they fail in different ways — the printed page hid ten defects
- * that no existing check could see, among them a line of text that rendered white
- * on white and a skills table that extracted as two columns with every name torn
- * from its category.
+ * The CV a recruiter downloads is the page, printed by Chrome (#144), and this audit reads the
+ * files `npm run build:pdf` wrote — the ones CI publishes — rather than printing a copy of its
+ * own, which would pass whatever the generator wrote (#149). The printed page once hid ten
+ * defects no other check could see, among them a line of text that rendered white on white
+ * and a skills table that extracted as two columns with every name torn from its category.
  *
  * Nothing here reads CSS. Every check reads either the text layer poppler pulls out
  * of the PDF or the pixels the page actually put on the paper.
@@ -44,7 +41,7 @@ async function readJson(path) {
   }
 }
 const manifest = JSON.parse(await readFile(new URL('config/cv-manifest.json', projectUrl)));
-// A layout with no printed typefaces declared cannot have its text checked: exit 2, as for no browser.
+// A layout with no printed typefaces declared cannot have its text checked: exit 2, as for a file never built.
 try {
   manifest.layouts.forEach(typefacesFor);
 } catch (error) {
@@ -197,78 +194,28 @@ function faintWords(path, pages) {
   return faint;
 }
 
-/** Find a browser to print with. Guessing is not allowed to look like a pass. */
-function findBrowser() {
-  const named = ['google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser'];
-  const paths = [
-    process.env.CHROME_PATH,
-    '/opt/google/chrome/chrome',
-    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-    ...[
-      'chrome-linux64/chrome',
-      'chrome-linux/chrome',
-      'chrome-mac/Chromium.app/Contents/MacOS/Chromium'
-    ].flatMap((suffix) => {
-      const cache = join(homedir(), '.cache', 'ms-playwright');
-      if (!existsSync(cache)) return [];
-      try {
-        return execFileSync('ls', [cache], { encoding: 'utf8' })
-          .split('\n')
-          .filter((entry) => entry.startsWith('chromium-'))
-          .map((entry) => join(cache, entry, suffix));
-      } catch {
-        return [];
-      }
-    })
-  ].filter(Boolean);
-
-  for (const candidate of paths) {
-    if (existsSync(candidate)) return candidate;
-  }
-  for (const name of named) {
-    try {
-      return execFileSync('which', [name], { encoding: 'utf8' }).trim();
-    } catch {
-      /* keep looking */
-    }
-  }
-  return null;
-}
-
-const browser = findBrowser();
-if (!browser) {
-  console.error('audit-print: no browser found, so nothing was checked.');
-  console.error('Set CHROME_PATH to a Chrome or Chromium binary and run again.');
-  console.error(
-    'This exits non-zero on purpose: an audit that did not run must not read as a pass.'
-  );
+// The files the generator wrote for this profile, one per layout. One that is not there was never built, and an
+// audit of it would check nothing: exit 2, as every audit here does when it did not run.
+const onDisk = (path) => fileURLToPath(new URL(path, projectUrl));
+const { files, missing } = builtCv(target, profile, manifest.layouts, (path) =>
+  existsSync(onDisk(path))
+);
+if (missing.length) {
+  console.error(`audit-print: ${missing.join(', ')} not built — nothing was checked.`);
+  console.error('Run `npm run build:pdf` first, with the same --profile.');
   process.exit(2);
 }
 
-// The browser this audit starts holds the run's key, so a tailored profile under applications/ loads (#71).
-const key = previewKey();
-const server = createStaticServer(undefined, { key });
-await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
-const port = server.address().port;
 const workspace = await mkdtemp(join(tmpdir(), 'mycv-print-'));
 const rows = [];
-let chrome;
 
 try {
-  // Printed through DevTools rather than --print-to-pdf, so the fonts the print stylesheet asks for have
-  // loaded before the page is laid out for paper (#143).
-  chrome = await openBrowser(browser, join(workspace, 'browser'));
-  await chrome.send('Page.enable');
-  for (const layout of manifest.layouts) {
-    const pdf = join(workspace, `${layout}.pdf`);
-    process.stderr.write(`audit-print: printing ${layout}\u2026\n`);
-    const address = `http://127.0.0.1:${port}/index.html?layout=${layout}&profile=${target.profile}&lang=${target.locale}&key=${key}`;
-    await writeFile(
-      pdf,
-      await printPage(chrome, address, {
-        ready: [rendered(layout, '#name', profile.name, target.locale), revealed]
-      })
-    );
+  for (const { layout, path } of files) {
+    const pdf = onDisk(path);
+    // The files are read as they are: a build older than an edit audits the edit's predecessor. Say when each
+    // was written, where whoever runs this can see it; `npm run verify:pdf` builds first.
+    const { mtime } = await stat(pdf);
+    process.stderr.write(`audit-print: reading ${path}, written ${mtime.toISOString()}\n`);
 
     const info = execFileSync('pdfinfo', [pdf], { encoding: 'utf8' });
     const text = execFileSync('pdftotext', [pdf, '-'], { encoding: 'utf8' });
@@ -403,11 +350,7 @@ try {
     });
   }
 } finally {
-  await chrome?.close();
-  server.closeAllConnections?.();
-  server.close();
-  // What is left behind is a temporary directory, not a result: say so, and let the checks stand. A browser
-  // profile can still be written to for a moment after the browser exits, as audit-screen found (#89).
+  // What is left behind is a temporary directory of page images, not a result: say so, and let the checks stand.
   await rm(workspace, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }).catch(
     (error) => console.error(`audit-print: left ${workspace} behind — ${error.message}`)
   );
@@ -417,8 +360,8 @@ const failures = rows.filter((row) => Object.values(row.checks).some((value) => 
 const report = [
   '# Print quality matrix',
   '',
-  'What the browser prints, measured on the artefact: the text layer poppler extracts',
-  'and the pixels the page put on the paper. Regenerate with `npm run audit:print`.',
+  'The CV `npm run build:pdf` printed from the page, measured on the artefact: the text layer',
+  'poppler extracts and the pixels the page put on the paper. Regenerate with `npm run verify:pdf`.',
   '',
   `Layouts: ${rows.length}`,
   '',
