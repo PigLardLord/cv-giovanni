@@ -563,13 +563,6 @@ section {
   gap: var(--space-sm);
 }
 
-.print-button-secondary {
-  background: var(--bg-primary);
-  color: var(--primary-color);
-  border: 1px solid var(--border-color);
-  box-shadow: none;
-}
-
 .print-button {
   background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
   color: var(--text-white);
@@ -585,6 +578,15 @@ section {
   transition: all 0.2s ease;
   box-shadow: var(--shadow-sm);
   text-decoration: none;
+}
+
+/* After the rule it modifies, so that it modifies it. Declared above it at the same specificity, the base's border
+   and shadow won, and Browser print lost its outline and took the primary button's shadow (#110). */
+.print-button-secondary {
+  background: var(--bg-primary);
+  color: var(--primary-color);
+  border: 1px solid var(--border-color);
+  box-shadow: none;
 }
 
 .print-button:hover {
