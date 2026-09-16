@@ -20,7 +20,8 @@ const MEASURE_TOLERANCE = 0.5;
 /**
  * Every visible character of the CV, from the first bound to the last, in the page's order: the box Chrome drew it
  * in, and the room of the line it sits on — the content width of the block its line boxes fill. Text the page hides,
- * with `visibility` or clipped to a pixel the way text for a screen reader is, is left out.
+ * with `visibility` or clipped to a pixel the way text for a screen reader is, is left out. A space in a drawn element
+ * is kept even with no box: Chrome gives none to a space a line broke at when it is a text node of its own.
  * @param {string} start - Selector of the CV's first element, as the audit's bounds name it
  * @param {string} end - Selector of its last
  * @returns {string} An expression for the page, resolving to the glyphs, or null when a bound is missing
@@ -56,6 +57,7 @@ export const renderedGlyphs = (start, end) => `(() => {
     const drawn = parent.getBoundingClientRect();
     if (drawn.width <= 1 && drawn.height <= 1) continue;
     const room = roomOf(parent);
+    const shown = parent.getClientRects().length > 0;
     const text = node.data;
     for (let index = 0; index < text.length; ) {
       const size = text.codePointAt(index) > 0xffff ? 2 : 1;
@@ -71,6 +73,8 @@ export const renderedGlyphs = (start, end) => `(() => {
           right: box.right + scrollX,
           room
         });
+      } else if (shown && /^\\s+$/.test(text.slice(index, index + size))) {
+        glyphs.push({ text: text.slice(index, index + size), top: null, bottom: null, left: null, right: null, room });
       }
       index += size;
     }
@@ -138,12 +142,26 @@ const acrossBreak = (before, after) =>
     .join(' / ');
 
 /**
- * How wide a run of glyphs would be on one line. A space a break swallowed reports no width, and counts as wide as
- * the widest space the run kept.
+ * How wide a run of glyphs would be on one line. A run of spaces counts once, as the page collapses it, and as wide as
+ * the widest space the run kept a box for: a space a line broke at reports none.
  */
 const widthOnOneLine = (glyphs) => {
-  const space = Math.max(0, ...glyphs.filter(blank).map((glyph) => glyph.right - glyph.left));
-  return glyphs.reduce((sum, glyph) => sum + (blank(glyph) ? space : glyph.right - glyph.left), 0);
+  const space = Math.max(
+    0,
+    ...glyphs
+      .filter((glyph) => blank(glyph) && glyph.right > glyph.left)
+      .map((glyph) => glyph.right - glyph.left)
+  );
+  return glyphs.reduce(
+    (sum, glyph, index) =>
+      sum +
+      (!blank(glyph)
+        ? glyph.right - glyph.left
+        : index > 0 && blank(glyphs[index - 1])
+          ? 0
+          : space),
+    0
+  );
 };
 
 /**

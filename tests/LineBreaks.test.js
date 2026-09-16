@@ -133,6 +133,32 @@ describe('a line break that strands a separator or splits a period', () => {
       expect(lineBreaks(glyphs, profile).checks.periodsWhole).toBe(true);
     });
 
+    // Each end of a role's period is an element of its own, and the space between them a text node: where the line
+    // breaks, Chrome gives that space no box at all.
+    test('counts a space the break left no box for', () => {
+      const glyphs = [
+        ...run('May 2015 –', { top: 0, room: 158 }),
+        { text: ' ', top: null, bottom: null, left: null, right: null, room: 158 },
+        ...run('August 2015', { top: 20, room: 158 })
+      ];
+      const period = { period: 'May 2015 – August 2015' };
+
+      // 18 letters and 4 spaces: 160px, wider than 158px; without the space the break took, 156px would fit.
+      expect(lineBreaks(glyphs, period).checks.periodsWhole).toBe(true);
+    });
+
+    test('counts a run of spaces once, as the page collapses them', () => {
+      const glyphs = [
+        ...run('May 2015 – ', { top: 0, room: 162 }),
+        { text: ' ', top: null, bottom: null, left: null, right: null, room: 162 },
+        ...run('August 2015', { top: 20, room: 162 })
+      ];
+
+      expect(lineBreaks(glyphs, { period: 'May 2015 – August 2015' }).checks.periodsWhole).toBe(
+        false
+      );
+    });
+
     test('never breaks before its dash', () => {
       const { checks } = lineBreaks(narrow(['September 2015', '– July 2018'], 180), profile);
 
@@ -180,6 +206,7 @@ describe('the glyphs the audit collects from the page', () => {
 
   const originals = {
     rects: Object.getOwnPropertyDescriptor(Range.prototype, 'getClientRects'),
+    drawn: Object.getOwnPropertyDescriptor(Element.prototype, 'getClientRects'),
     box: Object.getOwnPropertyDescriptor(Element.prototype, 'getBoundingClientRect')
   };
 
@@ -189,8 +216,12 @@ describe('the glyphs the audit collects from the page', () => {
       <header id="start"><h1>Giovanni</h1><p style="visibility: hidden">Hidden</p></header>
       <main id="end"><span class="clipped">Unseen</span><div id="room" style="padding: 0 10px">Pisa</div></main>
       <p id="after">After</p>`;
+    // A space gets no box, the way Chrome gives none to the one a line broke at.
     Range.prototype.getClientRects = function () {
-      return [box(8)];
+      return /^\s+$/.test(this.toString()) ? [] : [box(8)];
+    };
+    Element.prototype.getClientRects = function () {
+      return this.classList.contains('undrawn') ? [] : [box(300)];
     };
     Element.prototype.getBoundingClientRect = function () {
       return this.classList.contains('clipped') ? box(1, 1) : box(300);
@@ -201,6 +232,7 @@ describe('the glyphs the audit collects from the page', () => {
     const restore = (prototype, name, original) =>
       original ? Object.defineProperty(prototype, name, original) : delete prototype[name];
     restore(Range.prototype, 'getClientRects', originals.rects);
+    restore(Element.prototype, 'getClientRects', originals.drawn);
     restore(Element.prototype, 'getBoundingClientRect', originals.box);
   });
 
@@ -215,6 +247,22 @@ describe('the glyphs the audit collects from the page', () => {
     ).toBe('Giovanni Pisa');
     expect(glyphs[0]).toEqual({ text: 'G', top: 0, bottom: 16, left: 0, right: 8, room: 300 });
     expect(glyphs.at(-1).room).toBe(280);
+  });
+
+  test('keep a space with no box, where its element is drawn, and leave out one whose element is not', () => {
+    document.getElementById('room').innerHTML =
+      'May 2015 –<span> </span>August<span class="undrawn"> </span>';
+    const glyphs = window.eval(renderedGlyphs('#room', '#room'));
+
+    expect(glyphs.map((glyph) => glyph.text).join('')).toBe('May 2015 – August');
+    expect(glyphs[3]).toEqual({
+      text: ' ',
+      top: null,
+      bottom: null,
+      left: null,
+      right: null,
+      room: 280
+    });
   });
 
   test('are null when a bound is missing', () => {

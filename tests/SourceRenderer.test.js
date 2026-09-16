@@ -109,6 +109,15 @@ describe('SourceRenderer', () => {
     expect(level.querySelector('.tok-unseen').textContent).toBe('\n');
   });
 
+  // A period is one piece in the editor as on the page: wrapped, "August 2018 –" / "Present" read as two dates (#180).
+  test('holds a value the layout marks whole on one row', () => {
+    render();
+
+    expect([...code().querySelectorAll('.tok.no-break')].map((value) => value.textContent)).toEqual(
+      ['2018 – Present']
+    );
+  });
+
   test('copies a line of names as a list, and a language as a name and its level', () => {
     render();
 

@@ -270,6 +270,8 @@ export class SourceRenderer extends BaseRenderer {
         ? this.createAddress(root, token.href, token.text)
         : this.createElement(root, token.element || 'span');
     element.classList.add('tok', `tok-${token.kind}`);
+    // A value the layout marks whole, a period, never wraps inside, however narrow the editor (#180).
+    if (token.whole) element.classList.add('no-break');
     if (!token.parts) {
       element.textContent = token.text;
       return element;

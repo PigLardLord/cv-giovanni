@@ -549,6 +549,13 @@ section {
   white-space: nowrap;
 }
 
+/* A degree's period is one unit, as a role's ends are (#180). Broken at its dash, Impact Spotlight's 1280px read
+   "Università degli Studi di Pisa (2014" / "– 2016)", two dates and a fragment. The period is already an element of
+   its own, and "(2014 – 2016)" measures 81px against the narrowest column's 206px, at 320px. */
+.edu-period {
+  white-space: nowrap;
+}
+
 /* =============================================================================
    PRINT BUTTON — the page's one download control, Download PDF (#150)
    ============================================================================= */

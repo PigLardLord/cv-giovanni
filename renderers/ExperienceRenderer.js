@@ -35,7 +35,7 @@ export class ExperienceRenderer extends BaseRenderer {
     );
     entry.appendChild(
       this.appendPieces(root, this.createElement(root, 'div', 'job-period'), [
-        String(job.period ?? ''),
+        ...this.wholeEnds(root, String(job.period ?? '')),
         ...(tenure
           ? [
               ' ',
@@ -82,6 +82,21 @@ export class ExperienceRenderer extends BaseRenderer {
           ? this.createElement(root, 'span', 'no-break', piece.replace(/\s+/u, ' '))
           : piece
       );
+  }
+
+  /**
+   * A period with each of its ends held together: "September 2015 –" and "July 2018" never break inside, so a line too
+   * narrow for the whole period breaks after its dash and nowhere else, and a period with no dash is one piece (#180).
+   * Broken before its dash, "(2014" / "– 2016)" read as two dates, and the line that opened on the dash as a fragment.
+   * @param {Document} root - DOM root
+   * @param {string} period - The period as the profile writes it
+   * @returns {(string|Element)[]} The period's pieces: a `no-break` span for each end, and the space between them
+   */
+  wholeEnds(root, period) {
+    if (period.trim() === '') return [period];
+    const [, before, space, after] = /^(.*?[–—])(\s*)(.+)$/su.exec(period) ?? [];
+    const held = (end) => this.createElement(root, 'span', 'no-break', end);
+    return before ? [held(before), space, held(after)] : [held(period)];
   }
 
   validate(data) {
