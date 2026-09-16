@@ -1,4 +1,4 @@
-import { DataLoader } from './DataLoader.js';
+import { ProfileShape } from './ProfileShape.js';
 import { Refusal } from './Refusal.js';
 
 /** The public CV's profile: what the page and every PDF read. */
@@ -8,9 +8,8 @@ const GENERAL = 'profiles/general/en.json';
  * The general profile, read and written for the local app (#21) and, later, its editor (#23).
  *
  * The file is the single source of truth for the page and the PDFs, so a write is checked before anything
- * reaches it, and refused with the reason rather than coerced. The check is the one the page applies when
- * it loads a profile — a JSON object with a name or a title — because a profile the page would refuse must
- * not be saved. The full shape the renderers expect is #23's to check.
+ * reaches it, and refused with every problem rather than coerced: against the shape the renderers and the
+ * PDF read (`ProfileShape`), which the editor builds its form from (#23).
  *
  * It is written the way the file is kept: two-space JSON and a closing newline, so saving the profile
  * unchanged changes no byte of it.
@@ -37,16 +36,17 @@ export class ProfileStore {
   /**
    * @param {unknown} profile - The profile to save, as a request sent it
    * @returns {Promise<{ path: string }>} Where it was written
-   * @throws {Refusal} 422, with the reason, for a profile the page would refuse to load
+   * @throws {Refusal} 422, with every problem, for a profile without the shape the renderers read
    */
   async write(profile) {
-    if (!profile || typeof profile !== 'object' || Array.isArray(profile)) {
-      throw new Refusal(422, 'A profile is a JSON object.');
-    }
-    if (!new DataLoader().validateCVData(profile)) {
+    const problems = ProfileShape.problems(profile);
+    if (problems.length) {
+      const [first] = problems;
+      const more = problems.length > 1 ? `, and ${problems.length - 1} more` : '';
       throw new Refusal(
         422,
-        'A profile needs a name or a title: the page refuses to load one with neither.'
+        `The profile cannot be saved: ${first.path || 'it'} ${first.reason}${more}.`,
+        problems
       );
     }
     await this.files.writeText(GENERAL, `${JSON.stringify(profile, null, 2)}\n`);

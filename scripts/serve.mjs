@@ -406,5 +406,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     console.log(
       `  a CV from applications/ needs this run's key, once: http://localhost:${port}/index.html?key=${key}`
     );
+    console.log(
+      `  edit the general CV, on this machine: http://localhost:${port}/editor.html?key=${key}`
+    );
   });
 }

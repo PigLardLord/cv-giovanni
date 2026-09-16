@@ -73,6 +73,9 @@ why there are three audits.
 - `scripts/` — generation, the audits, and the no-store development server, which also answers the local
   app's API at `/api/` (#21). Each route passes its request to one service in `core/` (`ProfileStore`,
   `Applications`), and `tests/LocalApi.test.js` fails when a route holds logic of its own.
+- `editor.html` and `editor/` — the local app's editor (#23): the general profile as a form, built from
+  `core/ProfileShape.js` by `core/ProfileForm.js`, beside the CV it renders. The page decides nothing; it is
+  not published with the site, and `tests/EditorStaysLocal.test.js` holds the deploy to that.
 - `vendor/` — i18next and Inter, checked in so the page runs off the file tree with no install step.
 
 ### Testing Setup

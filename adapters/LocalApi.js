@@ -141,7 +141,11 @@ export async function handleApi(request, response, services, { maxBody = 1024 * 
     answer(response, 200, await found.route.call(services, { body, name }));
   } catch (error) {
     if (error instanceof Refusal) {
-      answer(response, error.status, { error: error.message });
+      answer(
+        response,
+        error.status,
+        error.details ? { error: error.message, problems: error.details } : { error: error.message }
+      );
       return;
     }
     // The detail can carry a path on this machine: it goes to the terminal, not into the answer.
