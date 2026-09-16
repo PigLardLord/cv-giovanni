@@ -1,4 +1,4 @@
-import { PlaceLexicon } from '../domain/PlaceLexicon.js';
+import { PLACES, PlaceLexicon } from '../domain/PlaceLexicon.js';
 
 describe('the city a location names, for the line that dates a letter', () => {
   test.each([
@@ -34,5 +34,44 @@ describe('the city a location names, for the line that dates a letter', () => {
     ''
   ])('"%s" comes back as written', (location) => {
     expect(PlaceLexicon.cityOf(location)).toBe(location);
+  });
+});
+
+// German writes an umlaut as ae, oe or ue where it cannot type one, and a CV does: Thueringen, Oesterreich. The code
+// review of #133 found such a state read as a city, and such a country not read at all (#137).
+describe('a German place written without its umlauts, as German writes it', () => {
+  const digraphs = (name) =>
+    name.replace(
+      /[äöüÄÖÜ]/g,
+      (letter) => ({ ä: 'ae', ö: 'oe', ü: 'ue', Ä: 'Ae', Ö: 'Oe', Ü: 'Ue' })[letter]
+    );
+  const umlauted = Object.values(PLACES)
+    .flatMap((byLanguage) => Object.values(byLanguage).flat())
+    .filter((name) => /[äöüÄÖÜ]/.test(name));
+
+  test('the lexicon has names with umlauts to hold to this', () => {
+    expect(umlauted).toEqual(
+      expect.arrayContaining(['Thüringen', 'Österreich', 'Baden-Württemberg'])
+    );
+  });
+
+  test.each(umlauted)('%s is known in its ae, oe or ue spelling too', (name) => {
+    expect(PlaceLexicon.recognise(digraphs(name))).toEqual(PlaceLexicon.recognise(name));
+  });
+
+  test.each(['Thueringen, Germany', 'Baden-Wuerttemberg, Deutschland'])(
+    '"%s" comes back as written, a state and not a city',
+    (location) => {
+      expect(PlaceLexicon.cityOf(location)).toBe(location);
+    }
+  );
+
+  test('a city in a state spelt that way dates the letter, and a country spelt that way is a location', () => {
+    expect(PlaceLexicon.cityOf('Bad Liebenstein, Thueringen, Deutschland')).toBe('Bad Liebenstein');
+    expect(PlaceLexicon.locationIn('Wien, Oesterreich')).toBe('Wien, Oesterreich');
+  });
+
+  test('a word that is not an umlaut is left as it is', () => {
+    expect(PlaceLexicon.recognise('Michael')).toBeNull();
   });
 });

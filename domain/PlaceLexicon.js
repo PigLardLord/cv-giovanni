@@ -116,11 +116,18 @@ export const PLACES = {
   }
 };
 
+// German writes an umlaut as ae, oe or ue where it cannot type one, and a CV does: `Thueringen`. A name with an umlaut
+// is known in that spelling too (#137). A rule in `fold` would rewrite words that are not umlauts, such as `Michael`.
+const DIGRAPHS = { ä: 'ae', ö: 'oe', ü: 'ue', Ä: 'Ae', Ö: 'Oe', Ü: 'Ue' };
+const spellings = (name) => [name, name.replace(/[äöüÄÖÜ]/g, (letter) => DIGRAPHS[letter])];
+
 const INDEX = new Map();
 for (const [kind, byLanguage] of Object.entries(PLACES)) {
   for (const [language, names] of Object.entries(byLanguage)) {
     for (const name of names) {
-      if (!INDEX.has(fold(name))) INDEX.set(fold(name), { kind, language });
+      for (const spelling of spellings(name)) {
+        if (!INDEX.has(fold(spelling))) INDEX.set(fold(spelling), { kind, language });
+      }
     }
   }
 }
