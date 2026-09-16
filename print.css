@@ -800,8 +800,14 @@ body[data-layout='nerd'] .social-links a {
   font-size: 10pt !important;
 }
 
+/* The summary shares the masthead's left edge. Indented into the text column alone, it opened the page
+   142pt right of the lines above and below it, with nothing in the gutter to say why (the product review
+   of #156). It keeps the text column's width, so its lines stay as short as the rest of the prose. */
+body[data-layout='nerd'] .hero-summary {
+  max-width: 375pt !important;
+}
+
 /* --- The text column ------------------------------------------------------------------------- */
-body[data-layout='nerd'] .hero-summary,
 body[data-layout='nerd'] .skills-showcase,
 body[data-layout='nerd'] .education-content,
 body[data-layout='nerd'] .certifications-list,
@@ -834,10 +840,13 @@ body[data-layout='nerd'] .skill-list {
 /* --- The date column ---------------------------------------------------------------------------- */
 /* The dates hold a column of their own on paper too, so the career can still be scanned
    vertically. Each role is a grid of two columns; the period sits in the first, on the baseline of
-   the title line's first line, and everything else in the second. A grid draws its items in the
-   markup's order wherever it places them, so read in drawing order the title comes before the
-   period, as the markup writes it; poppler, which reads by position, gives the period on the line
-   above its title. Either way no period leaves its role, and every section stays in order.
+   the title line's first line, and everything else in the second. The period is drawn first
+   (`order: -1`), so read in drawing order a role reads "September 2015 – July 2018 Mobile Developer
+   at Apparound, Pisa, Italy". Drawn in the markup's order, a title short enough for one line ran its
+   location into the period on the same line, "Pisa, Italy September 2015", and no vertical offset
+   parted them: poppler joins text whose heights overlap (the product review of #156). Poppler, which
+   reads by position, gives the period on the line above its title. Either way no period leaves its
+   role, and every section stays in order.
 
    The period never wraps, so the length of service is not printed here: "September 2015 – July
    2018", the longest, measured 125.3pt of the column's 128pt, and "(2 years, 11 months)" could not
@@ -868,6 +877,7 @@ body[data-layout='nerd'] .job-header {
 body[data-layout='nerd'] .job-period {
   grid-column: 1 !important;
   grid-row: 1 !important;
+  order: -1 !important;
   align-self: baseline !important;
   margin: 0 !important;
   white-space: nowrap !important;
