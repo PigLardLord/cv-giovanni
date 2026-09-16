@@ -21,7 +21,8 @@ the tree, and Node runs the tests and `scripts/*.mjs`. No `engines` field pins a
 measured on Node 26.8.1 / npm 11.19.0.
 
 Runtime dependencies are vendored under `vendor/` (i18next, i18next-http-backend) so the page
-needs neither a CDN nor an install. `node_modules/` exists only for the test and PDF toolchain.
+needs neither a CDN nor an install. `node_modules/` exists only for the test and formatting
+toolchain; the PDFs are printed by Chrome and read by poppler, neither of which comes from npm.
 
 ## Architecture and frameworks
 - **UI:** no framework. Static `index.html`, imperative DOM writes from `renderers/`, styling in
@@ -29,10 +30,10 @@ needs neither a CDN nor an install. `node_modules/` exists only for the test and
 - **Dependency injection:** constructor injection throughout, plus `core/RendererContainer.js`
   (a `Map` from section name to renderer). `script.js` is the composition root and the only
   place that names concrete classes.
-- **Pattern:** ports and adapters. `domain/` holds the pure model (`CvDocument`, `PageFormat`);
-  `core/` holds the application services; `interfaces/Renderer.js` and `boundaries/PdfRenderer.js`
-  are the ports; `adapters/` and `renderers/` are the implementations. Renderers put data in the
-  DOM — decisions belong in `core/` or `domain/`.
+- **Pattern:** ports and adapters. `domain/` holds the pure model (`CvDocument`, `CoverLetter`);
+  `core/` holds the application services; `interfaces/Renderer.js` is the renderers' port;
+  `adapters/` and `renderers/` are the implementations. Renderers put data in the DOM —
+  decisions belong in `core/` or `domain/`.
 - **Navigation:** one page. State lives in the query string and is resolved by `LocaleResolver`
   (`?lang`), `LayoutResolver` (`?layout`) and `ProfileResolver` (`?profile`, validated against
   `^[a-z][a-z0-9-]*$` and `config/cv-manifest.json`). The locale preference persists in
@@ -62,14 +63,14 @@ renderer tests build their own DOM with `new JSDOM(...)` in `beforeEach` and ass
 
 Mocking is hand-rolled by default: `tests/DataLoader.test.js` swaps `global.fetch` in
 `beforeEach` and restores it in `afterEach`. Under ESM `jest.fn` needs
-`import { jest } from '@jest/globals'`, which only `PdfExporter.test.js` and
-`PdfGenerationService.test.js` do — reach for it when you need call assertions, not otherwise.
+`import { jest } from '@jest/globals'`, which only `LocalApi.test.js` and
+`InferenceKeyStaysOutOfReach.test.js` do — reach for it when you need call assertions, not otherwise.
 
 Fixtures are inline literals per test. The exception is `tests/LocaleCatalogs.test.js`, which
 reads the real catalogs off disk and compares leaf keys `en` against `de`: that is the guard on
 translations, not a unit test.
 
-No slow-test tagging exists because none is needed — 20 files, 60 tests, about one second. Keep
+No slow-test tagging exists because none is needed: the whole suite runs in seconds. Keep
 it that way. One test file per renderer, named after it.
 
 ## Idioms and conventions
@@ -77,17 +78,18 @@ it that way. One test file per renderer, named after it.
 Screen colours, spacing and typography come from the CSS custom properties in `:root` of
 `style.css`. Never write a hex or a size into a renderer or a rule; use the token.
 
-The PDF has a separate two-part system on purpose: `adapters/LayoutThemeRegistry.js` holds one
-theme per layout plus the monochrome theme, and `adapters/PdfDesignSystem.js` turns a theme into
-pdfmake styles. A new PDF colour or size goes there, never inline in `PdfExporter`.
+The PDF has no design system of its own: it is the page, printed through `print.css` (#149), and
+the cover letter is `letter.html` printed through `letter.css` (#151). A print colour or size goes
+in those stylesheets, never into a renderer.
 
 Localisation is i18next with the namespaces `ui`, `cv` and `print`, in `en` and `de`. Markup
 carries `data-i18n` keys and `DocumentLocalizer` applies them. No user-visible string belongs in
 JS or HTML: add the key to **both** catalogs or `LocaleCatalogs.test.js` fails. `I18nService`
 appends a `?v=` cache-buster to `backend.loadPath` — bump it when the catalogs change shape.
 
-The three layouts `nerd`, `spotlight` and `technical` are declared in three places that must
-agree: `LayoutResolver`, `LayoutThemeRegistry` and `config/cv-manifest.json`.
+The three layouts `nerd`, `spotlight` and `technical` are declared in two places that must
+agree, `LayoutResolver` and `config/cv-manifest.json`, and styled per layout in `layouts.css`,
+`design-glacier.css` and `print.css`.
 
 Accessibility and ATS rules are product decisions and live in `AGENTS.md`: every rating needs a
 textual equivalent, skill names stay plain text, and the reading order must survive PDF text
@@ -107,7 +109,7 @@ than assembling an anchor by hand.
   section's own output.
 - A print change that keeps the tests green and breaks the artefacts: the printed PDF is only
   verified by `npm run verify:pdf`.
-- A hardcoded colour or size instead of the CSS token or the PDF design system.
+- A hardcoded colour or size instead of the CSS token.
 
 **Known-good — do not re-flag:**
 - `vendor/i18next*` is checked in deliberately: the page must run off the file tree with no
@@ -139,10 +141,9 @@ filename is what tells the two documents apart.
 `npm run audit:print` scores the printed PDFs on seventeen checks, measured on the text layer and
 the rasterised page rather than on the stylesheet, and rewrites `docs/PRINT_AUDIT.md`. All three
 layouts must stay at 17/17. It reads the files the build wrote, and **exits 2 having checked
-nothing** when one is missing, which must never be read as a pass. `npm run audit:pdf` scored
-pdfmake's twelve variants; nothing runs it now, and it is removed with pdfmake (#153).
+nothing** when one is missing, which must never be read as a pass.
 
-`npm run audit:ats` is the third: it parses the generated PDF the way a stranger's parser would and
+`npm run audit:ats` is the second: it parses the generated PDF the way a stranger's parser would and
 diffs the recovered structure against the authored one, writing `docs/ATS_AUDIT.md`. It exits 1 on
 a floor — no segmentation, a lost email, a severed role, a chronology out of order — and 2 when it
 could not check. Its parser is pure and blind by test: `core/AtsTextParser.js` and the lexicons may

@@ -191,7 +191,7 @@ export class EditorPage {
     label.htmlFor = id;
     const input = this.element(node.multiline ? 'textarea' : 'input', 'editor-input');
     if (!node.multiline) input.type = node.kind === 'address' ? 'url' : 'text';
-    if (node.kind === 'year') input.inputMode = 'numeric';
+    if (node.kind === 'year' || node.kind === 'credits') input.inputMode = 'numeric';
     if (node.kind === 'month') input.placeholder = '2026-09';
     if (node.kind === 'period') input.placeholder = 'May 2015 – August 2015';
     input.id = id;

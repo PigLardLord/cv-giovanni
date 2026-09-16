@@ -100,6 +100,34 @@ describe('a change to the profile', () => {
     expect(ProfileShape.problems(typo).map(({ path }) => path)).toEqual(['certifications[0].year']);
   });
 
+  test('credits typed as digits are a number, cleared ones are gone, and anything else is kept for the check', () => {
+    expect(ProfileForm.set(published, 'education[0].credits', ' 60 ').education[0].credits).toBe(
+      60
+    );
+    expect(
+      ProfileForm.set(
+        ProfileForm.set(published, 'education[0].credits', '60'),
+        'education[0].credits',
+        ''
+      ).education[0]
+    ).not.toHaveProperty('credits');
+    const typo = ProfileForm.set(published, 'education[0].credits', '60 ECTS');
+    expect(typo.education[0].credits).toBe('60 ECTS');
+    expect(ProfileShape.problems(typo).map(({ path }) => path)).toEqual(['education[0].credits']);
+  });
+
+  test('a degree’s form holds its credits after its period', () => {
+    const degree = find(ProfileForm.fields(published), 'education[0]');
+    expect(degree.fields.map(({ key }) => key)).toEqual([
+      'degree',
+      'school',
+      'period',
+      'credits',
+      'description'
+    ]);
+    expect(find(degree.fields, 'education[0].credits')).toMatchObject({ kind: 'credits' });
+  });
+
   test('adding an entry appends one with its required fields empty', () => {
     const roles = ProfileForm.add(published, 'relevant_experience').relevant_experience;
     expect(roles).toHaveLength(published.relevant_experience.length + 1);

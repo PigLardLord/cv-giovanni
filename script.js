@@ -90,7 +90,7 @@ app.registerRenderer('socialLinks', new SocialLinksRenderer());
 app.registerRenderer('profile', new ProfileRenderer());
 app.registerRenderer('careerHighlights', new CareerHighlightsRenderer());
 app.registerRenderer('experience', new ExperienceRenderer(i18n));
-app.registerRenderer('education', new EducationRenderer());
+app.registerRenderer('education', new EducationRenderer(i18n));
 app.registerRenderer('certifications', new CertificationsRenderer());
 app.registerRenderer('skills', new SkillsRenderer());
 app.registerRenderer('languages', new LanguagesRenderer());

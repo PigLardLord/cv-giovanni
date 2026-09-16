@@ -6,15 +6,14 @@ import { dirname, join } from 'node:path';
 import { posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// The page asked `PdfExporter` for four naming rules, and that module imports pdfmake's composer, so
-// every visit downloaded the PDF layout, its design system and its theme registry to name a file
-// (#145). The page's module graph is read from its own import statements, as the browser follows them.
+// The page asked pdfmake's exporter for four naming rules, and that module imported pdfmake's composer, so
+// every visit downloaded a PDF layout, its design system and its theme registry to name a file (#145). The CV
+// and the cover letter are pages Chrome prints now, and pdfmake went with the composer (#153); what stays is
+// the rule, that no page loads it back. The page's module graph is read from its own import statements, as the
+// browser follows them, and every specifier in it is held to naming no pdfmake, whether as a package or as a
+// path to a copy of one.
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const COMPOSER = [
-  'adapters/PdfLayout.js',
-  'adapters/PdfDesignSystem.js',
-  'adapters/LayoutThemeRegistry.js'
-];
+const COMPOSER = /(?:^|\/)pdfmake(?:[/.]|$)/;
 const fromDisk = (path) => readFileSync(join(root, path), 'utf8');
 
 /**
@@ -96,6 +95,21 @@ function withoutComments(source) {
 }
 
 /**
+ * Every specifier a module imports, a relative path or a package's name, as the browser reads its source.
+ * @param {string} source - A module's source
+ * @returns {string[]} The specifiers, in the order they are written
+ */
+function importsOf(source) {
+  const code = withoutComments(source);
+  return [
+    ...code.matchAll(/^\s*(?:import|export)\s[^'"`]*?from\s*(['"])([^'"]+)\1/gm),
+    ...code.matchAll(/^\s*import\s*(['"])([^'"]+)\1/gm),
+    // A dynamic import's specifier may be a template literal, as long as nothing is interpolated into it.
+    ...code.matchAll(/import\(\s*(['"`])([^'"`$]+)\1\s*\)/g)
+  ].map((match) => match[2]);
+}
+
+/**
  * Every module the browser loads from an entry point, as paths from the repository root.
  * @param {string} entry - The entry module's path from the root
  * @param {(path: string) => string} read - A module's source by its path
@@ -106,17 +120,25 @@ function moduleGraph(entry, read = fromDisk) {
   const visit = (path) => {
     if (seen.has(path)) return;
     seen.add(path);
-    const source = withoutComments(read(path));
-    const specifiers = [
-      ...source.matchAll(/^\s*(?:import|export)\s[^'"`]*?from\s*(['"])(\.[^'"]+)\1/gm),
-      ...source.matchAll(/^\s*import\s*(['"])(\.[^'"]+)\1/gm),
-      // A dynamic import's specifier may be a template literal, as long as nothing is interpolated into it.
-      ...source.matchAll(/import\(\s*(['"`])(\.[^'"`$]+)\1\s*\)/g)
-    ].map((match) => match[2]);
-    for (const specifier of specifiers) visit(posix.join(posix.dirname(path), specifier));
+    for (const specifier of importsOf(read(path)).filter((name) => name.startsWith('.')))
+      visit(posix.join(posix.dirname(path), specifier));
   };
   visit(entry);
   return [...seen];
+}
+
+/**
+ * Each import in an entry point's module graph that names pdfmake, as `<module>: <specifier>`.
+ * @param {string} entry - The entry module's path from the root
+ * @param {(path: string) => string} read - A module's source by its path
+ * @returns {string[]} The imports found; none when the graph loads no pdfmake
+ */
+function composerImports(entry, read = fromDisk) {
+  return moduleGraph(entry, read).flatMap((path) =>
+    importsOf(read(path))
+      .filter((specifier) => COMPOSER.test(specifier))
+      .map((specifier) => `${path}: ${specifier}`)
+  );
 }
 
 describe('reading a module graph', () => {
@@ -271,6 +293,34 @@ describe('reading a module graph', () => {
       ['b.js', 'c.js', 'd.js', 'e.js', 'entry.js', 'sub/a.js', 'up/f.js'].sort()
     );
   });
+
+  // The check below has to be able to fail: pdfmake imported by its package's name, and a copy of it imported by
+  // path from a module the entry reaches, are both found; a comment naming it and a name that only starts like it
+  // are not.
+  test('finds pdfmake imported by name or by path anywhere in the graph, and nothing else', () => {
+    const tricky = {
+      'app/entry.js': [
+        "import pdfMake from 'pdfmake/build/pdfmake.js';",
+        "import './local.js';",
+        "// once loaded with import('pdfmake')"
+      ].join('\n'),
+      'app/local.js': [
+        "const fonts = await import('../vendor/pdfmake.js');",
+        "import { notes } from '../vendor/pdfmaker-notes.js';"
+      ].join('\n'),
+      'vendor/pdfmake.js': '',
+      'vendor/pdfmaker-notes.js': ''
+    };
+    const read = (path) => {
+      if (!(path in tricky)) throw new Error(`no module ${path}`);
+      return tricky[path];
+    };
+
+    expect(composerImports('app/entry.js', read)).toEqual([
+      'app/entry.js: pdfmake/build/pdfmake.js',
+      'app/local.js: ../vendor/pdfmake.js'
+    ]);
+  });
 });
 
 describe("the page's module graph", () => {
@@ -281,16 +331,14 @@ describe("the page's module graph", () => {
     expect(graph).toContain('renderers/downloadLinks.js');
   });
 
-  test("loads none of pdfmake's composer to name the file it offers", () => {
-    expect(moduleGraph('script.js').filter((path) => COMPOSER.includes(path))).toEqual([]);
+  test('loads no PDF composer to name the file it offers', () => {
+    expect(composerImports('script.js')).toEqual([]);
   });
 });
 
-// The cover letter is a page printed by Chrome (#151). pdfmake composed it before, through `LetterExporter` and
-// `LetterLayout`; the page that replaces them must not load them back.
+// The cover letter is a page printed by Chrome (#151). pdfmake composed it before; the page that replaced it must
+// not load it back.
 describe("the letter page's module graph", () => {
-  const LETTER_COMPOSER = [...COMPOSER, 'core/LetterExporter.js', 'adapters/LetterLayout.js'];
-
   test('reaches the words and the renderer, so an empty graph cannot pass', () => {
     const graph = moduleGraph('letter.js');
 
@@ -298,7 +346,7 @@ describe("the letter page's module graph", () => {
     expect(graph).toContain('renderers/LetterRenderer.js');
   });
 
-  test("loads none of pdfmake's composer", () => {
-    expect(moduleGraph('letter.js').filter((path) => LETTER_COMPOSER.includes(path))).toEqual([]);
+  test('loads no PDF composer', () => {
+    expect(composerImports('letter.js')).toEqual([]);
   });
 });

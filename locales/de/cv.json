@@ -8,6 +8,9 @@
     "certifications": "Zertifizierungen",
     "interests": "Interessen"
   },
+  "education": {
+    "credits": "{{count}} ECTS"
+  },
   "experience": {
     "at": "bei"
   },
