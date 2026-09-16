@@ -6,7 +6,7 @@ import { I18nService } from './core/I18nService.js';
 import { DocumentLocalizer } from './core/DocumentLocalizer.js';
 import { ProfileResolver } from './core/ProfileResolver.js';
 import { LayoutResolver } from './core/LayoutResolver.js';
-import { PdfExporter } from './core/PdfExporter.js';
+import { CvFiles } from './core/CvFiles.js';
 import { HeaderRenderer } from './renderers/HeaderRenderer.js';
 import { ProfileRenderer } from './renderers/ProfileRenderer.js';
 import { ExperienceRenderer } from './renderers/ExperienceRenderer.js';
@@ -97,7 +97,7 @@ app.registerRenderer('source', new SourceRenderer(i18n));
 
 // Start application
 const currentData = await app.initialize(document);
-const pdfExporter = new PdfExporter(null, i18n);
+const cvFiles = new CvFiles();
 const pdfOptions = { profile: profileSelection.profile, locale, layout };
 if (document.querySelector('[data-download-pdf]')) {
   const released = await fetch('generated/manifest.json')
@@ -107,10 +107,10 @@ if (document.querySelector('[data-download-pdf]')) {
   // No file for this profile, locale and layout: a hidden button beats one that 404s.
   offerDownload(
     document,
-    pdfExporter.isAvailable(released, currentData, pdfOptions)
+    cvFiles.isAvailable(released, currentData, pdfOptions)
       ? {
-          href: pdfExporter.filePath(currentData, pdfOptions),
-          filename: pdfExporter.downloadName(currentData)
+          href: cvFiles.filePath(currentData, pdfOptions),
+          filename: cvFiles.downloadName(currentData)
         }
       : null
   );
@@ -122,4 +122,4 @@ window.cvApp = app;
 window.cvI18n = i18n;
 window.cvSelection = profileSelection;
 window.cvLayout = layout;
-window.cvPdfExporter = pdfExporter;
+window.cvFiles = cvFiles;
