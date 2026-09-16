@@ -284,7 +284,9 @@ describe('the printed page, in the order poppler reads it', () => {
     ['a compact summer semester', 'SS16'],
     ['a range of compact semesters', 'WS16/17 – SS18'],
     ['a compact semester with a four-digit year', 'SoSe2016'],
-    ['an abbreviated semester with a two-digit year', 'WiSe 16/17']
+    ['an abbreviated semester with a two-digit year', 'WiSe 16/17'],
+    ['a season closing on a full stop', 'Fall 2014.'],
+    ['a range closing on a full stop', 'WS 2014/2015 – SS 2016.']
   ])('a school line whose second segment is %s keeps it as the period', (what, period) => {
     const cv = AtsTextParser.parse(educationAfterARole(`TU München · ${period}`));
 
