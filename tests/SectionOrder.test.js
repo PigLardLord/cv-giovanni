@@ -102,6 +102,59 @@ describe('the order a text layer gives the CV', () => {
   });
 });
 
+// A cover letter repeats its sender's name: in the letterhead, and again under the closing (#151). Found from the start
+// of the text, the signature would be the letterhead, and every letter would read as signed before it began.
+describe('an anchor the document also writes earlier', () => {
+  const letter = [
+    'Ada Lovelace',
+    'London · ada@example.com',
+    'Beispiel GmbH',
+    'Dear Anna Schmidt,',
+    'I write about the analyst role.',
+    'Kind regards,',
+    'Ada Lovelace',
+    'Enclosed: CV'
+  ].join('\n');
+  const anchors = [
+    'Ada Lovelace',
+    'Beispiel GmbH',
+    'Dear Anna Schmidt,',
+    { heading: 'Kind regards,' },
+    { following: 'Ada Lovelace' },
+    'Enclosed: CV'
+  ];
+
+  test('is found after the anchor before it', () => {
+    expect(outOfOrder(letter, anchors)).toEqual([]);
+  });
+
+  test('names a signature drawn before the close', () => {
+    const signedEarly = letter.replace(
+      'Kind regards,\nAda Lovelace',
+      'Ada Lovelace\nKind regards,'
+    );
+
+    expect(outOfOrder(signedEarly, anchors)).toContain(
+      '"Ada Lovelace" comes before "Kind regards,"'
+    );
+  });
+
+  test('names a signature the text does not carry at all', () => {
+    expect(
+      outOfOrder(letter, [{ heading: 'Kind regards,' }, { following: 'Grace Hopper' }])
+    ).toEqual(['"Grace Hopper" is missing']);
+  });
+
+  test('is found across a wrapped line, as a string is', () => {
+    expect(
+      outOfOrder('Ada\nLovelace\nKind regards,\nAda\nLovelace', [
+        { heading: 'Kind regards,' },
+        { following: 'Ada Lovelace' }
+      ])
+    ).toEqual([]);
+  });
+});
+
 describe('images in the PDF', () => {
   const list = (...rows) =>
     [
