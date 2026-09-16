@@ -332,6 +332,23 @@ describe('the running footer in print.css', () => {
     expect(box(base.body)).toMatch(/(?:^|[;\s])content:\s*none\s*;/);
   });
 
+  // Nerd Mode prints achromatic, every pixel's channels equal (print.css). In the meta grey #4b5563, its page 2 printed
+  // 1,562 pixels with a channel spread of 24, all of them the footer's.
+  test("prints in Nerd Mode's neutral grey, and in the meta grey elsewhere", () => {
+    const base = pageRules.find(({ selector }) => selector === '');
+    const nerd =
+      /html:has\(>\s*body\[data-layout='nerd'\]\)\s*\{[^}]*--running-footer-ink:\s*#([\da-f]{6}|[\da-f]{3})\s*;/i.exec(
+        css
+      );
+    const hex = nerd && (nerd[1].length === 3 ? [...nerd[1]].map((c) => c + c).join('') : nerd[1]);
+
+    expect(box(base.body)).toMatch(
+      /(?:^|[;\s])color:\s*var\(--running-footer-ink,\s*#4b5563\)\s*;/
+    );
+    expect(hex).not.toBeNull();
+    expect(new Set([hex.slice(0, 2), hex.slice(2, 4), hex.slice(4, 6)]).size).toBe(1);
+  });
+
   test('sets the footer no smaller than the smallest text the page prints', () => {
     const base = pageRules.find(({ selector }) => selector === '');
     const size = (declarations) =>

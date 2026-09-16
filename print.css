@@ -101,7 +101,7 @@ html body * {
     font-family: 'Inter', Arial, sans-serif;
     font-size: 10pt;
     font-weight: 400;
-    color: #4b5563;
+    color: var(--running-footer-ink, #4b5563);
   }
 }
 
@@ -791,6 +791,13 @@ body[data-layout='technical'] .skill-category {
 
 body[data-layout='nerd'] {
   color: #333 !important;
+}
+
+/* The running footer takes the ramp's metadata grey (#158). A page-margin box inherits from the root element, never
+   from body, so the grey reaches it as a custom property set on the root of a page whose body is in Nerd Mode. In the
+   other layouts' #4b5563, page 2 printed 1,562 pixels with a channel spread of 24, every one of them the footer's. */
+html:has(> body[data-layout='nerd']) {
+  --running-footer-ink: #555;
 }
 
 /* --- Section heads: a word, and a rule to the margin ----------------------------------------- */
