@@ -88,8 +88,17 @@ self-rating into the main evidence of competence.
 - **A foreign qualification uses the issuer's wording,** never a German- or English-style abbreviation
   the issuer does not award. The programme at the University of Pisa is a _First Level Professional
   Master's Programme in Mobile Applications Development_, and an abbreviated degree in its place claims
-  one nobody conferred. When the name holds a word the target market reads as a degree level —
-  _Master's_ — the rendered text states its scope (#48).
+  one nobody conferred.
+- **A qualification whose name contains a word the target market reads as a degree level states its
+  scope, in credits or duration** (#48). A German reader hears _Master_ as the Bologna second cycle,
+  typically 120 ECTS on top of a bachelor's, and fills a scope the line leaves out in upward; the
+  correction then arrives at the certificate check. The scope goes on the school's line, which costs
+  no printed line: a degree's `credits`, a whole number taken from its certificate, written after the
+  period in the catalogue's words — `education.credits`, `{{count}} ECTS` in English and in German —
+  with `Intl` writing the number: `Università degli Studi di Pisa (2014 – 2016) · 60 ECTS`. `period`
+  stays the dates alone, and the school and the period stay the line's first two segments, which the
+  print audit and the ATS parser read. The wording is the candidate's call.
+  `tests/QualificationsStateTheirScope.test.js` holds every published degree named a Master's to it.
 - **A certification's name is the title on the page its link opens.** Lower tiers it includes go in
   brackets after it — `Android Enterprise Expert (incl. Associate, Professional)` — never as equal names
   in one entry, which reads as a credential nobody issues.

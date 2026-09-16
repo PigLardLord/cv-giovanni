@@ -456,7 +456,8 @@ section {
   color: var(--text-primary);
 }
 
-.edu-period {
+.edu-period,
+.edu-credits {
   color: var(--text-muted);
   font-size: 0.85rem;
 }

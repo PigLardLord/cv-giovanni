@@ -613,7 +613,8 @@ section {
   color: #374151 !important;
 }
 
-.edu-period {
+.edu-period,
+.edu-credits {
   font-size: 10pt !important;
   font-weight: 400 !important;
   color: #4b5563 !important;
@@ -951,6 +952,7 @@ body[data-layout='nerd'] .interests-line {
 }
 
 body[data-layout='nerd'] .edu-period,
+body[data-layout='nerd'] .edu-credits,
 body[data-layout='nerd'] .cert-description {
   color: #555 !important;
 }
