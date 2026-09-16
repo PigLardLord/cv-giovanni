@@ -2,7 +2,7 @@
  * @jest-environment node
  */
 import { readFileSync } from 'node:fs';
-import { allowList, misspelt, wordsOf } from '../scripts/lib/spelling.mjs';
+import { PROFILE_NOT_WORDS, allowList, misspelt, wordsOf } from '../scripts/lib/spelling.mjs';
 
 // Spelling errors are the best-measured penalty in CV screening: five of them cut the probability of an interview
 // invitation by 18.5 percentage points, two by 7.3 (Sterkens et al., PLOS ONE 2023, 445 recruiters). Nothing checked
@@ -18,7 +18,7 @@ describe('the words a CV writes', () => {
       relevant_experience: [{ highlights: ["Built the team's offline-first app"] }]
     };
 
-    expect(wordsOf(profile)).toEqual([
+    expect(wordsOf(profile, { notWords: PROFILE_NOT_WORDS })).toEqual([
       { word: 'Ada', path: 'name' },
       { word: 'Lovelace', path: 'name' },
       { word: 'GitHub', path: 'social[0].platform' },
@@ -29,6 +29,25 @@ describe('the words a CV writes', () => {
       { word: 'first', path: 'relevant_experience[0].highlights[0]' },
       { word: 'app', path: 'relevant_experience[0].highlights[0]' }
     ]);
+  });
+
+  // The code review of #171: the profile's address fields were skipped by key name everywhere, and a catalogue names
+  // its printed labels "Email", "Phone" and "As of" with the same keys.
+  test('in a catalogue, a label keyed like a profile address is words all the same', () => {
+    const catalogue = { contacts: { email: 'Email', phone: 'Phone' }, pdf: { asOf: 'As of' } };
+
+    expect(wordsOf(catalogue).map(({ word, path }) => `${word}@${path}`)).toEqual([
+      'Email@contacts.email',
+      'Phone@contacts.phone',
+      'As@pdf.asOf',
+      'of@pdf.asOf'
+    ]);
+  });
+
+  test('an i18next placeholder is filled in when the string is used, so it is not a word', () => {
+    expect(
+      wordsOf({ footer: '{{name}} · {{documentKind}} · page {{page}}' }).map(({ word }) => word)
+    ).toEqual(['page']);
   });
 
   test('keep their accents, and lose no letter to a curly apostrophe', () => {

@@ -1,12 +1,13 @@
 /**
  * @jest-environment node
  */
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import nspell from 'nspell';
 import englishBritish from 'dictionary-en-gb';
-import { allowList, misspelt, wordsOf } from '../scripts/lib/spelling.mjs';
+import { PROFILE_NOT_WORDS, allowList, misspelt, wordsOf } from '../scripts/lib/spelling.mjs';
 
-// Every published profile, and the labels printed beside it, spelled in its locale (#152). A locale with no dictionary
+// Every published profile, and every catalogue of its locale, spelled in its locale (#152): the labels, the page's own
+// words and the print's are the CV's text as much as the profile is (the code review of #171). A locale with no dictionary
 // fails rather than passing unchecked: German is enabled only once its CV is written, and a check that silently skipped
 // it would read as a pass.
 const DICTIONARIES = { en: englishBritish };
@@ -32,16 +33,22 @@ const spellerFor = (locale) => {
 
 describe('the published CV is spelled right', () => {
   test.each(published)(
-    '$profile in $locale, with the labels printed beside it',
+    '$profile in $locale, with every catalogue of its locale',
     ({ locale, path }) => {
+      const catalogues = readdirSync(new URL(`../locales/${locale}/`, import.meta.url))
+        .filter((name) => name.endsWith('.json'))
+        .sort();
       const words = [
-        ...wordsOf(JSON.parse(read(path))),
-        ...wordsOf(JSON.parse(read(`locales/${locale}/cv.json`))).map(({ word, path: key }) => ({
-          word,
-          path: `locales/${locale}/cv.json ${key}`
-        }))
+        ...wordsOf(JSON.parse(read(path)), { notWords: PROFILE_NOT_WORDS }),
+        ...catalogues.flatMap((name) =>
+          wordsOf(JSON.parse(read(`locales/${locale}/${name}`))).map(({ word, path: key }) => ({
+            word,
+            path: `locales/${locale}/${name} ${key}`
+          }))
+        )
       ];
 
+      expect(catalogues).toEqual(expect.arrayContaining(['cv.json', 'print.json', 'ui.json']));
       expect(misspelt(words, spellerFor(locale))).toEqual([]);
     }
   );
@@ -51,7 +58,7 @@ describe('the published CV is spelled right', () => {
     profile.relevant_experience[0].highlights[0] =
       profile.relevant_experience[0].highlights[0].replace(/\bthe\b/, 'teh');
 
-    expect(misspelt(wordsOf(profile), spellerFor('en'))).toEqual([
+    expect(misspelt(wordsOf(profile, { notWords: PROFILE_NOT_WORDS }), spellerFor('en'))).toEqual([
       '"teh" at relevant_experience[0].highlights[0]'
     ]);
   });
