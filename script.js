@@ -18,6 +18,7 @@ import { CertificationsRenderer } from './renderers/CertificationsRenderer.js';
 import { SocialLinksRenderer } from './renderers/SocialLinksRenderer.js';
 import { InterestsRenderer } from './renderers/InterestsRenderer.js';
 import { SourceRenderer } from './renderers/SourceRenderer.js';
+import { RunningFooterRenderer } from './renderers/RunningFooterRenderer.js';
 import { offerDownload } from './renderers/downloadLinks.js';
 
 /**
@@ -96,6 +97,8 @@ app.registerRenderer('skills', new SkillsRenderer());
 app.registerRenderer('languages', new LanguagesRenderer());
 app.registerRenderer('interests', new InterestsRenderer());
 app.registerRenderer('source', new SourceRenderer(i18n));
+// From page 2 on, paper says whose CV it is (#158): the renderer hands print.css the line, from the model's name.
+app.registerRenderer('runningFooter', new RunningFooterRenderer(i18n));
 
 // Start application
 const currentData = await app.initialize(document);

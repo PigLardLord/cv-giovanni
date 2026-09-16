@@ -18,6 +18,7 @@ import { ProfileRenderer } from '../renderers/ProfileRenderer.js';
 import { SkillsRenderer } from '../renderers/SkillsRenderer.js';
 import { SocialLinksRenderer } from '../renderers/SocialLinksRenderer.js';
 import { SourceRenderer } from '../renderers/SourceRenderer.js';
+import { RunningFooterRenderer } from '../renderers/RunningFooterRenderer.js';
 
 // The PDF, the cover letter and the audits read CvDocument. The page's renderers used to read the
 // profile JSON as loaded, each its own raw keys, so a default or a renamed key added to the model reached
@@ -50,7 +51,8 @@ const RENDERERS = [
   ['SkillsRenderer', () => new SkillsRenderer()],
   ['LanguagesRenderer', () => new LanguagesRenderer()],
   ['InterestsRenderer', () => new InterestsRenderer()],
-  ['SourceRenderer', () => new SourceRenderer(i18n)]
+  ['SourceRenderer', () => new SourceRenderer(i18n)],
+  ['RunningFooterRenderer', () => new RunningFooterRenderer(i18n)]
 ];
 
 describe('the page reads the model, never the profile', () => {
