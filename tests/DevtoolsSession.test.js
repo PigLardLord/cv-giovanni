@@ -44,4 +44,16 @@ describe('a DevTools session', () => {
     await expect(waiting).rejects.toThrow('the browser exited with 1');
     await expect(send('Page.enable')).rejects.toThrow('the browser exited with 1');
   });
+
+  // #125: a wait for an event was kept apart from the commands, and the end of the connection never failed it. The one
+  // wait the audit makes sat inside a 30-second deadline, so a browser that died after navigating was reported half a
+  // minute later as a page that did not load, not as the browser exiting.
+  test('fails every wait for an event still pending when the connection ends, and every one begun after', async () => {
+    const { next, end } = session();
+    const loaded = next('Page.loadEventFired');
+    end('the DevTools socket closed');
+
+    await expect(loaded).rejects.toThrow('the DevTools socket closed');
+    await expect(next('Page.loadEventFired')).rejects.toThrow('the DevTools socket closed');
+  });
 });

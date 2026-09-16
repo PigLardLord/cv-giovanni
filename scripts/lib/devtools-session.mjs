@@ -21,13 +21,15 @@ export const within = (promise, ms, what) => {
  */
 export function devtoolsSession(write) {
   const pending = new Map();
-  const listeners = new Set();
+  const waits = new Set();
   let ended = null;
   let sequence = 0;
   const end = (reason) => {
     ended ??= reason;
     for (const { reject } of pending.values()) reject(new Error(reason));
     pending.clear();
+    for (const { reject } of waits) reject(new Error(reason));
+    waits.clear();
   };
   const receive = (message) => {
     if (message.id && pending.has(message.id)) {
@@ -36,7 +38,11 @@ export function devtoolsSession(write) {
       if (message.error) reject(new Error(message.error.message));
       else resolve(message.result);
     } else if (message.method) {
-      listeners.forEach((listener) => listener(message));
+      for (const wait of [...waits]) {
+        if (wait.method !== message.method) continue;
+        waits.delete(wait);
+        wait.resolve(message.params);
+      }
     }
   };
   const send = (method, params = {}) =>
@@ -53,14 +59,15 @@ export function devtoolsSession(write) {
       30000,
       `${method} got no answer`
     );
+  // A wait for an event is failed by the end of the connection as a command is: kept apart from the commands, it used
+  // to outlive the browser (#125).
   const next = (method) =>
-    new Promise((resolve) => {
-      const listener = (message) => {
-        if (message.method !== method) return;
-        listeners.delete(listener);
-        resolve(message.params);
-      };
-      listeners.add(listener);
+    new Promise((resolve, reject) => {
+      if (ended) {
+        reject(new Error(ended));
+        return;
+      }
+      waits.add({ method, resolve, reject });
     });
   return { send, next, receive, end };
 }
