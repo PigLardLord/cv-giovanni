@@ -91,7 +91,7 @@ self-rating into the main evidence of competence.
   one nobody conferred.
 - **A qualification whose name contains a word the target market reads as a degree level states its
   scope, in credits or duration** (#48). A German reader hears _Master_ as the Bologna second cycle,
-  typically 120 ECTS on top of a bachelor's, and fills a scope the line leaves out in upward; the
+  typically 120 ECTS on top of a bachelor's, and assumes that scope when the line states none; the
   correction then arrives at the certificate check. The scope follows the degree's name, in brackets
   and set as the period is: a degree's `credits`, a whole number taken from its certificate, in the
   catalogue's words — `education.credits`, `{{count}} ECTS` in English and in German — with `Intl`

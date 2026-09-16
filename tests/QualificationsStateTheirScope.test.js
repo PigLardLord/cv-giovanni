@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 
 // A qualification whose name holds a word the target market reads as a degree level states its scope, in credits or
 // duration (#48). A German reader hears "Master" as the Bologna second cycle, 120 ECTS on top of a bachelor's, and
-// fills a scope the line leaves out in upward: the Pisa programme carries 60. The correction would arrive at the
+// assumes that scope when the line states none: the Pisa programme carries 60. The correction would arrive at the
 // certificate check.
 //
 // What the check can see is the word. It cannot tell a name that claims a level from one that holds it, so it holds
