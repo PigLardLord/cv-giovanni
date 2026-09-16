@@ -26,8 +26,22 @@ export function outOfOrder(text, anchors) {
     .map((line) => line.replace(/\s+/g, ' ').trim())
     .join('\n');
   const flat = lines.replace(/\n/g, ' ');
+  const strings = anchors
+    .filter((anchor) => typeof anchor === 'string')
+    .map((anchor) => anchor.replace(/\s+/g, ' ').trim());
   const locate = (anchor) => {
-    if (typeof anchor === 'string') return flat.indexOf(anchor.replace(/\s+/g, ' ').trim());
+    if (typeof anchor === 'string') {
+      // An occurrence that begins a longer anchor is that anchor, not this one: "Mobile Developer" is not found at
+      // the start of "Mobile Developer Intern" (the review of #156).
+      const wanted = anchor.replace(/\s+/g, ' ').trim();
+      const longer = strings.filter(
+        (other) => other.length > wanted.length && other.startsWith(wanted)
+      );
+      for (let at = flat.indexOf(wanted); at >= 0; at = flat.indexOf(wanted, at + 1)) {
+        if (!longer.some((other) => flat.startsWith(other, at))) return at;
+      }
+      return -1;
+    }
     const line = new RegExp(`(^|\\n)${escapeForRegExp(anchor.heading)}(?=\\n|$)`).exec(lines);
     return line ? line.index + line[1].length : -1;
   };
