@@ -15,19 +15,16 @@ export class EducationRenderer extends BaseRenderer {
   createEducationEntry(root, edu) {
     const description = typeof edu.description === 'string' ? edu.description.trim() : '';
 
-    return this.createElement(
-      root,
-      'div',
-      'edu-entry',
-      `
-      <div class="edu-degree">${edu.degree}</div>
-      <div>
-        <span class="edu-school">${edu.school}</span>
-        <span class="edu-period">(${edu.period})</span>
-      </div>
-      ${description ? `<p class="edu-description">${description}</p>` : ''}
-    `
-    );
+    // Every string from the data is text (#157).
+    return this.appendPieces(root, this.createElement(root, 'div', 'edu-entry'), [
+      this.createElement(root, 'div', 'edu-degree', String(edu.degree ?? '')),
+      this.appendPieces(root, this.createElement(root, 'div'), [
+        this.createElement(root, 'span', 'edu-school', String(edu.school ?? '')),
+        ' ',
+        this.createElement(root, 'span', 'edu-period', `(${edu.period ?? ''})`)
+      ]),
+      description ? this.createElement(root, 'p', 'edu-description', description) : null
+    ]);
   }
 
   validate(data) {
