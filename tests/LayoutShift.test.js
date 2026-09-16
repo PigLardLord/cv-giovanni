@@ -57,13 +57,26 @@ describe('the layout shift a page records while it loads', () => {
     );
     return page;
   };
-  const shift = {
+  // A shift the browser reports is often of an element removed since, and rarely sits on whole pixels; and a load reports
+  // its shifts over several callbacks. The code review of #132 found three broken recorders a simpler fixture passed.
+  const removed = {
+    value: 0.05,
+    hadRecentInput: false,
+    sources: [
+      {
+        node: null,
+        previousRect: { x: 10, y: 10, width: 50, height: 50 },
+        currentRect: { x: 0, y: 0, width: 50, height: 50 }
+      }
+    ]
+  };
+  const moved = {
     value: 0.694,
     hadRecentInput: true,
     sources: [
       {
         node: { nodeName: 'DIV', id: '', className: 'container' },
-        previousRect: { x: 157, y: 72, width: 966, height: 828 },
+        previousRect: { x: 157.4, y: 72.6, width: 966, height: 828 },
         currentRect: { x: 0, y: 0, width: 0, height: 0 }
       }
     ]
@@ -73,9 +86,12 @@ describe('the layout shift a page records while it loads', () => {
     const page = record(RECORD_LAYOUT_SHIFTS);
     expect(page.observed).toEqual({ type: 'layout-shift', buffered: true });
 
-    page.report({ getEntries: () => [shift] });
+    page.report({ getEntries: () => [moved, removed] });
+    page.report({ getEntries: () => [removed] });
     expect(page.window.__layoutShifts).toEqual([
-      { value: 0.694, hadRecentInput: true, sources: ['div.container 157,72,966,828 → 0,0,0,0'] }
+      { value: 0.694, hadRecentInput: true, sources: ['div.container 157,73,966,828 → 0,0,0,0'] },
+      { value: 0.05, hadRecentInput: false, sources: ['(removed) 10,10,50,50 → 0,0,50,50'] },
+      { value: 0.05, hadRecentInput: false, sources: ['(removed) 10,10,50,50 → 0,0,50,50'] }
     ]);
   });
 
