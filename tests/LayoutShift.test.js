@@ -70,14 +70,21 @@ describe('the layout shift a page records while it loads', () => {
       }
     ]
   };
+  // Its re-review found three more: an element named without its id, a width and height left unrounded, and the
+  // elements of one shift reordered.
   const moved = {
     value: 0.694,
     hadRecentInput: true,
     sources: [
       {
-        node: { nodeName: 'DIV', id: '', className: 'container' },
-        previousRect: { x: 157.4, y: 72.6, width: 966, height: 828 },
+        node: { nodeName: 'DIV', id: 'hero', className: 'container wide' },
+        previousRect: { x: 157.4, y: 72.6, width: 966.2, height: 827.6 },
         currentRect: { x: 0, y: 0, width: 0, height: 0 }
+      },
+      {
+        node: { nodeName: 'P', id: '', className: 'hero-summary' },
+        previousRect: { x: 38, y: 520, width: 313, height: 311 },
+        currentRect: { x: 38, y: 475, width: 313, height: 311 }
       }
     ]
   };
@@ -89,7 +96,14 @@ describe('the layout shift a page records while it loads', () => {
     page.report({ getEntries: () => [moved, removed] });
     page.report({ getEntries: () => [removed] });
     expect(page.window.__layoutShifts).toEqual([
-      { value: 0.694, hadRecentInput: true, sources: ['div.container 157,73,966,828 → 0,0,0,0'] },
+      {
+        value: 0.694,
+        hadRecentInput: true,
+        sources: [
+          'div#hero.container.wide 157,73,966,828 → 0,0,0,0',
+          'p.hero-summary 38,520,313,311 → 38,475,313,311'
+        ]
+      },
       { value: 0.05, hadRecentInput: false, sources: ['(removed) 10,10,50,50 → 0,0,50,50'] },
       { value: 0.05, hadRecentInput: false, sources: ['(removed) 10,10,50,50 → 0,0,50,50'] }
     ]);
