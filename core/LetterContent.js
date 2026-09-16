@@ -85,21 +85,37 @@ function joined(parts) {
 }
 
 /**
- * The place and the date, as a German reader expects them: the city alone, since the region and the country are
- * in the letterhead (#36), and the date formatted by `Intl`, never by hand. A date `Date` cannot read is printed
- * as the data wrote it, and a letter the data does not date is not dated.
+ * The place and the date, as a German reader expects them: the city alone, since the region and the country are in
+ * the letterhead (#36), and the date formatted by `Intl`, never by hand. A letter the data does not date is not dated.
+ *
+ * Only a bare calendar date, `2026-09-16`, is formatted, built from its own year, month and day and formatted in UTC,
+ * so it is that day in every zone. Anything else is printed exactly as the data wrote it, and never handed to
+ * `Date`'s parser: that reads "September 16, 2026" as midnight where the build runs and a time at +02:00 in UTC, and
+ * printed the 15th for both (the review of #151). A date that does not exist, such as 2026-02-30, is not a date.
  */
 function dateLine(date, location, locale) {
   if (!date) return '';
-  const parsed = new Date(date);
-  const formatted = Number.isNaN(parsed.valueOf())
-    ? date
-    : new Intl.DateTimeFormat(locale, {
+  const day = calendarDate(date);
+  const formatted = day
+    ? new Intl.DateTimeFormat(locale, {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
-        // A date written as 2026-09-16 is read as midnight UTC; formatted in a zone west of it, it would be the 15th.
         timeZone: 'UTC'
-      }).format(parsed);
+      }).format(day)
+    : date;
   return [PlaceLexicon.cityOf(location), formatted].filter(Boolean).join(', ');
+}
+
+/** The instant a bare `YYYY-MM-DD` names at midnight UTC, or null for anything else, a day that does not exist included. */
+function calendarDate(text) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
+  if (!match) return null;
+  const [year, month, day] = match.slice(1).map(Number);
+  const instant = new Date(Date.UTC(year, month - 1, day));
+  return instant.getUTCFullYear() === year &&
+    instant.getUTCMonth() === month - 1 &&
+    instant.getUTCDate() === day
+    ? instant
+    : null;
 }

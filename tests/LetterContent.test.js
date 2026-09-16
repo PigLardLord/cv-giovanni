@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { LetterContent } from '../core/LetterContent.js';
 
@@ -204,6 +205,68 @@ describe('the date is formatted, never spelled', () => {
   test('a letter the data did not date is not dated', () => {
     expect(words(profile({ date: '' })).date).toBe('');
   });
+
+  // The review of #151: `Date` reads "September 16, 2026" as local midnight, so formatting it in UTC printed the 15th in
+  // Berlin, and a time past midnight at +02:00 is the 15th in UTC anywhere. Only a bare calendar date is formatted.
+  test.each([
+    'September 16, 2026',
+    '16 September 2026',
+    '2026-09-16T00:30:00+02:00',
+    '2026-02-30',
+    '2026-9-16'
+  ])('"%s" is not a bare calendar date, and is printed exactly as written', (date) => {
+    expect(words(profile({ date }), 'en').date).toBe(`Bad Liebenstein, ${date}`);
+    expect(words(profile({ date }), 'de').date).toBe(`Bad Liebenstein, ${date}`);
+  });
+
+  test('a bare calendar date is formatted for the letter’s language', () => {
+    expect(words(profile({ date: '2026-09-16' }), 'en').date).toBe(
+      'Bad Liebenstein, September 16, 2026'
+    );
+    expect(words(profile({ date: '2026-09-16' }), 'de').date).toBe(
+      'Bad Liebenstein, 16. September 2026'
+    );
+    expect(words(profile({ date: '2024-02-29' }), 'de').date).toBe(
+      'Bad Liebenstein, 29. Februar 2024'
+    );
+  });
+
+  // Jest keeps the zone the run started in, so each zone gets a process of its own: 10 hours west of UTC, 14 east, and
+  // the owner's.
+  test.each(['Pacific/Honolulu', 'Pacific/Kiritimati', 'Europe/Berlin'])(
+    'prints the same day in %s',
+    (zone) => {
+      const module = new URL('../core/LetterContent.js', import.meta.url).href;
+      const dates = ['2026-09-16', 'September 16, 2026', '2026-09-16T00:30:00+02:00'];
+      const script = `
+        import { LetterContent } from ${JSON.stringify(module)};
+        const letter = (date, locale) =>
+          LetterContent.of({ name: 'Ada', location: 'Bad Liebenstein', letter: { date } }, { t: (key) => key, locale })
+            .letter.date;
+        const dates = ${JSON.stringify(dates)};
+        console.log(JSON.stringify([
+          new Date(2026, 8, 16).getTimezoneOffset(),
+          ...dates.map((date) => letter(date, 'en')),
+          letter('2026-09-16', 'de')
+        ]));`;
+      const [offset, ...printed] = JSON.parse(
+        execFileSync(process.execPath, ['--input-type=module', '-e', script], {
+          env: { ...process.env, TZ: zone },
+          encoding: 'utf8'
+        })
+      );
+
+      expect(offset).toBe(
+        { 'Pacific/Honolulu': 600, 'Pacific/Kiritimati': -840, 'Europe/Berlin': -120 }[zone]
+      );
+      expect(printed).toEqual([
+        'Bad Liebenstein, September 16, 2026',
+        'Bad Liebenstein, September 16, 2026',
+        'Bad Liebenstein, 2026-09-16T00:30:00+02:00',
+        'Bad Liebenstein, 16. September 2026'
+      ]);
+    }
+  );
 });
 
 describe('what travels with the letter', () => {
