@@ -1,6 +1,8 @@
 import { PROFILE } from './ProfileShape.js';
 
 const isGroup = (value) => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+/** The kinds of field a profile writes as a number, and the digits typed that are one. */
+const DIGITS = { year: /^\d{4}$/, credits: /^\d+$/ };
 const join = (path, key) => (path ? `${path}.${key}` : key);
 
 /**
@@ -111,8 +113,8 @@ function node(shape, value, path, key, problems) {
  * change. A change returns a new profile and leaves the one it was given as it was: the editor keeps the
  * profile, not the form, so a field the form does not show — a cover letter, or a malformed list the shape
  * refuses — is saved back exactly as it was loaded. Nothing typed is coerced into something else, with one
- * exception: a year typed as digits is the number the profile writes, and a cleared year is no year.
- * Anything else typed stays as typed, for `ProfileShape` to refuse with the reason.
+ * exception: a year or a degree's credits typed as digits is the number the profile writes (#48), and a cleared
+ * one is none. Anything else typed stays as typed, for `ProfileShape` to refuse with the reason.
  */
 export class ProfileForm {
   /**
@@ -137,9 +139,9 @@ export class ProfileForm {
       throw new Error(`not a field the form sets: "${path}"`);
     }
     let value = input;
-    if (shape.kind === 'year') {
+    if (Object.hasOwn(DIGITS, shape.kind)) {
       const typed = String(input ?? '').trim();
-      value = typed === '' ? undefined : /^\d{4}$/.test(typed) ? Number(typed) : input;
+      value = typed === '' ? undefined : DIGITS[shape.kind].test(typed) ? Number(typed) : input;
     }
     return writeAt(profile, segments(path), value);
   }
