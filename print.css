@@ -1,7 +1,10 @@
 /* =============================================================================
-   PROFESSIONAL PRINT STYLESHEET - GIOVANNI TROVATO CV
-   Optimized for PDF generation and recruiter requirements
-   Maximum 2 pages, clean layout, high readability
+   PRINT STYLESHEET - THE DOWNLOADABLE CV
+   What the browser prints is the only PDF a reader downloads, so paper is set as one reading column
+   on two A4 pages (#142). Every text in it is drawn in the order the markup writes it: no grid moves
+   a section, nothing is positioned or floated, and nothing is an image. A parser that reads the page
+   as poppler reconstructs it and one that reads it in drawing order, as PDFBox and Tika do, both meet
+   the name, the contacts, the skills, every role, then the credentials.
    ============================================================================= */
 
 /* Inter prints from its static TrueType files (#143). The page's variable woff2 carries every weight in
@@ -9,7 +12,9 @@
    text extractors mishandle, with headings that read in drawing order as "MobileSoftwareEngineer". Declared
    in this print-only stylesheet, after vendor/fonts/fonts.css, so screen never loads the TrueType files and
    print never uses the variable one. The files carry two weights: 300 to 500 print Regular, 600 to 800 Bold,
-   and font-synthesis stays off. */
+   and font-synthesis stays off. Every rule below asks for 400 or 700 itself; the other four faces are here
+   for a screen rule that reaches paper with its own weight, which would otherwise match the variable face
+   fonts.css declares at that weight, and print as Type 3. */
 
 @font-face {
   font-family: 'Inter';
@@ -54,7 +59,7 @@
 }
 
 /* =============================================================================
-   PRINT RESET & BASE STYLES
+   THE PAGE
    ============================================================================= */
 
 /* No tracking in print (#143). A parser that reads in drawing order finds a word's end only in the gap the
@@ -64,9 +69,12 @@ html body * {
   letter-spacing: 0 !important;
 }
 
+/* The margins live on the page box alone. Padding on the container would reach only the first page's top,
+   and splitting the side margin between the two, as this file used to, left nobody sure which one set it.
+   36pt at the head and foot, 39pt at the sides: a 517pt by 770pt text block on A4. */
 @page {
   size: A4;
-  margin: 0.6in 0.5in;
+  margin: 36pt 39pt;
   @top-center {
     content: none;
   }
@@ -75,21 +83,41 @@ html body * {
   }
 }
 
-/* Reset print-specific issues */
 * {
   -webkit-print-color-adjust: exact !important;
   color-adjust: exact !important;
   print-color-adjust: exact !important;
+  font-synthesis: none !important;
+  -webkit-font-smoothing: auto !important;
+  -moz-osx-font-smoothing: auto !important;
 }
 
+/* 11pt is the running text's size, and its floor: the role summaries and achievements are set in it. */
 body {
   background: white !important;
   padding: 0 !important;
   margin: 0 !important;
   font-size: 11pt !important;
+  font-weight: 400 !important;
   line-height: 1.4 !important;
-  color: #1f2937 !important;
+  color: #374151 !important;
   font-family: 'Inter', Arial, sans-serif !important;
+}
+
+/* Nothing on paper is positioned. style.css positions the container, the masthead, its text (at z-index 2),
+   the portrait's wrapper and every section title for the screen's decorations, and a positioned box is
+   drawn after the unpositioned text around it. With that positioning restored for a measurement, the
+   one-column page drew Core Technologies first, then the first role, the contacts, and the name after
+   them; and with only the section titles positioned, "Professional Experience" was the last text drawn on
+   page one, after the role it heads. */
+.container,
+.hero-section,
+.hero-text,
+.profile-image-wrapper,
+.section-title {
+  position: static !important;
+  z-index: auto !important;
+  transform: none !important;
 }
 
 .container {
@@ -98,99 +126,33 @@ body {
   border-radius: 0 !important;
   background: white !important;
   margin: 0 !important;
-  padding: 0 8pt !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+
+/* Impact Spotlight and Technical Profile set one 405pt column in the middle of the text block. Its longest
+   11pt line measured 76 characters, under the 80 WCAG 1.4.8 sets as a ceiling and this project already holds
+   the pdfmake PDF to; set across the full 517pt, the same text measured 99. Centred, the two side margins are
+   equal by construction, at 95pt, which the print audit's symmetry check asks for. */
+body[data-layout='spotlight'] .container,
+body[data-layout='technical'] .container {
+  width: 405pt !important;
+  margin: 0 auto !important;
 }
 
 /* =============================================================================
    HIDE WEB-ONLY ELEMENTS
    ============================================================================= */
 
-/* Nerd Mode's editor is a screen rendering of the same profile; paper prints the base DOM. */
+/* Nerd Mode's editor is a screen rendering of the same profile; paper prints the base DOM. The portrait is
+   not printed at all (#144): a picture is the one thing on the page no parser can read. */
 .print-footer,
 .print-button,
-.source-view {
+.source-view,
+.profile-image-wrapper,
+.hero-section::before,
+.container::before {
   display: none !important;
-}
-
-/* =============================================================================
-   HERO SECTION - PRINT OPTIMIZATION
-   ============================================================================= */
-
-.hero-section {
-  background: white !important;
-  color: #1f2937 !important;
-  padding: 0 0 10pt 0 !important;
-  margin-bottom: 12pt !important;
-  border-bottom: 2pt solid #e5e7eb !important;
-  page-break-inside: avoid !important;
-  position: relative !important;
-}
-
-.hero-section::before {
-  display: none !important;
-}
-
-.hero-content {
-  display: grid !important;
-  /* The sidebar has to hold "piglardlord.github.io/cv-giovanni" on one line: broken at the
-     hyphen it extracts as "cv-giovanni" welded together, and a reader who copies it gets a URL
-     that does not resolve. */
-  grid-template-columns: 1.75fr 1fr !important;
-  gap: 20pt !important;
-  align-items: start !important;
-}
-
-.hero-text {
-  padding-right: 8pt !important;
-}
-
-.hero-name {
-  font-size: 24pt !important;
-  font-weight: 800 !important;
-  color: #1e40af !important;
-  margin-bottom: 4pt !important;
-  line-height: 1.1 !important;
-  letter-spacing: 0 !important;
-}
-
-.hero-title {
-  font-size: 13pt !important;
-  font-weight: 600 !important;
-  color: #475569 !important;
-  margin-bottom: 12pt !important;
-  /* The role must fit one line: wrapped after "Platform" it no longer matches the string a
-     parser searches for, and the title is the first thing anyone searches for. */
-  letter-spacing: 0 !important;
-  white-space: nowrap !important;
-  /* style.css uppercases this line and applies to paper as well as to screen. "Senior iOS
-     Engineer" must not reach an iOS hiring manager as "SENIOR IOS ENGINEER" — the override has
-     to be explicit, because deleting the declaration here just hands the rule back. */
-  text-transform: none !important;
-}
-
-.hero-summary {
-  font-size: 10pt !important;
-  line-height: 1.5 !important;
-  color: #374151 !important;
-  margin: 0 !important;
-}
-
-/* Neither line was ever given a print colour, so both inherited a screen value: the subtitle
-   came out at 1.9:1 and the availability line at 1.0:1 — white on white, present in the text
-   layer and absent from the paper. Measured on the rendered page, not assumed. */
-.hero-subtitle {
-  color: #374151 !important;
-  font-size: 9pt !important;
-  font-weight: 500 !important;
-  letter-spacing: 0 !important;
-  margin: 0 0 6pt !important;
-}
-
-.hero-availability {
-  color: #4b5563 !important;
-  font-size: 9pt !important;
-  line-height: 1.4 !important;
-  margin: 6pt 0 0 !important;
 }
 
 /* A colour emoji is the one thing on the page that cannot be read by anything — not a parser,
@@ -199,96 +161,256 @@ body {
   display: none !important;
 }
 
-.hero-sidebar {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  gap: 12pt !important;
-}
-
-.profile-image-wrapper img {
-  width: 80pt !important;
-  height: 80pt !important;
-  border-radius: 50% !important;
-  border: 2pt solid #e5e7eb !important;
-  object-fit: cover !important;
-  object-position: center top !important;
-}
-
-.contact-card {
-  background: #f8fafc !important;
-  border: 1pt solid #e5e7eb !important;
-  border-radius: 6pt !important;
-  padding: 12pt !important;
-  text-align: center !important;
-  width: 100% !important;
-}
-
-.contact-item {
-  margin-bottom: 6pt !important;
-  font-size: 9pt !important;
-  color: #374151 !important;
-}
-
-.contact-details {
-  font-size: 9pt !important;
-  line-height: 1.4 !important;
-  margin-bottom: 8pt !important;
-  color: #4b5563 !important;
-}
-
-/* One address per line. Wrapped, the row left a separator stranded at the end of a line, where
-   a middot beside nothing reads as a typo — and the glyph is decoration the renderer already
-   marks aria-hidden, so paper does not need it at all. */
-.social-links {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  gap: 4pt !important;
-}
-
-.social-links .inline-separator {
-  display: none !important;
-}
-
-.social-links a {
-  color: #1e40af !important;
-  text-decoration: none !important;
-  padding: 2pt 6pt !important;
-  background: #e0e7ff !important;
-  border-radius: 3pt !important;
-  font-size: 9pt !important;
-  font-weight: 500 !important;
-  border: 0.5pt solid #c7d2fe !important;
-  white-space: nowrap !important;
-}
-
 /* =============================================================================
-   SKILLS SPOTLIGHT - PRINT OPTIMIZATION
+   THE MASTHEAD
+   Name, title, skills line, summary, work authorisation, then the contacts on two lines: the order the
+   markup writes them in. The screen's two columns, its portrait and its contact card do not print.
    ============================================================================= */
 
-.skills-spotlight {
+.hero-section {
   background: white !important;
-  padding: 12pt 0 !important;
-  margin-bottom: 16pt !important;
-  border-bottom: 1pt solid #e5e7eb !important;
-  page-break-inside: avoid !important;
+  color: #374151 !important;
+  padding: 0 0 10pt !important;
+  margin: 0 0 12pt !important;
+  border-bottom: 0.5pt solid #d1d5db !important;
+  overflow: visible !important;
+  break-inside: avoid !important;
 }
 
-.spotlight-title {
-  text-align: center !important;
-  font-size: 11pt !important;
+.hero-content,
+.hero-text,
+.hero-sidebar {
+  display: block !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.hero-name {
+  font-family: 'Inter', Arial, sans-serif !important;
+  font-size: 24pt !important;
   font-weight: 700 !important;
-  color: #374151 !important;
-  margin-bottom: 10pt !important;
-  letter-spacing: 0 !important;
+  line-height: 1.1 !important;
+  color: #1e40af !important;
+  margin: 0 !important;
+}
+
+/* Impact Spotlight sets its name in Instrument Serif, whose word space is narrow: at 31pt the gap between
+   the two words measured 4pt, 0.13em, and a parser reading in drawing order joined them into
+   "GiovanniTrovato" where Inter's 0.2em gap read as two words (#143). */
+body[data-layout='spotlight'] .hero-name {
+  font-family: 'Instrument Serif', Georgia, serif !important;
+  font-size: 28pt !important;
+  font-weight: 400 !important;
+  word-spacing: 0.1em !important;
+}
+
+.hero-title {
+  font-size: 14pt !important;
+  font-weight: 700 !important;
+  line-height: 1.25 !important;
+  color: #1f2937 !important;
+  margin: 3pt 0 0 !important;
+  /* The role must fit one line: wrapped after "Platform" it no longer matches the string a
+     parser searches for, and the title is the first thing anyone searches for. */
+  white-space: nowrap !important;
+  /* style.css uppercases this line and applies to paper as well as to screen. "Senior iOS
+     Engineer" must not reach an iOS hiring manager as "SENIOR IOS ENGINEER" — the override has
+     to be explicit, because deleting the declaration here just hands the rule back. */
   text-transform: none !important;
 }
 
+/* Neither the skills line nor the availability line was ever given a print colour, so both inherited
+   a screen value: the subtitle came out at 1.9:1 and the availability line at 1.0:1 — white on
+   white, present in the text layer and absent from the paper. Measured on the rendered page, not
+   assumed. Every line of the masthead now states its own size and colour. */
+.hero-subtitle {
+  font-size: 10pt !important;
+  font-weight: 400 !important;
+  line-height: 1.4 !important;
+  color: #374151 !important;
+  margin: 3pt 0 0 !important;
+}
+
+/* style.css holds the summary to 500px for the screen, which reached paper as a narrower column than
+   the page's own. */
+.hero-summary {
+  max-width: none !important;
+  font-size: 11pt !important;
+  font-weight: 400 !important;
+  line-height: 1.4 !important;
+  color: #374151 !important;
+  margin: 8pt 0 0 !important;
+}
+
+.hero-availability {
+  font-size: 9pt !important;
+  font-weight: 400 !important;
+  line-height: 1.4 !important;
+  color: #4b5563 !important;
+  margin: 6pt 0 0 !important;
+}
+
+/* --- The contacts: two lines of text -------------------------------------------------------- */
+/* Location, email and phone on the first line, the three addresses on the second, each item parted from
+   the next by a middle dot. No "Email:" or "Phone:": a parser knows an address and a number by their
+   shape, and the pdfmake masthead writes none either. The dot is not decoration on the first line: the
+   ATS parser finds the location by splitting that line on it, and rejects a piece holding an "@" or a
+   digit, so without the dot the location is lost.
+
+   Neither line may wrap, and the first is the longer. Measured on the printed PDF, it runs 375.5pt of Impact
+   Spotlight's and Technical Profile's 405pt at 9pt, and 417pt of Nerd Mode's 517pt at 10pt. Both extraction
+   orders read it as "Germany · trovato.giovanni@gmail.com · +39 329 8484 046", with no label. */
+.contact-card {
+  display: block !important;
+  width: auto !important;
+  margin: 2pt 0 0 !important;
+  padding: 0 !important;
+  background: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  backdrop-filter: none !important;
+  text-align: left !important;
+  white-space: nowrap !important;
+  font-size: 9pt !important;
+  font-weight: 400 !important;
+  line-height: 1.4 !important;
+  color: #374151 !important;
+}
+
+.contact-item,
+.contact-details {
+  display: inline !important;
+  margin: 0 !important;
+  font-size: 9pt !important;
+  line-height: 1.4 !important;
+  color: #374151 !important;
+}
+
+.contact-details br {
+  display: none !important;
+}
+
+/* HeaderRenderer writes each label in a <strong> in front of its value, and the value as bare text, so the
+   label is the one element standing where each separator belongs. The label's own text is hidden and takes
+   no room; the dot is drawn in its place, between the real spaces the markup already has on either side. */
+.contact-details strong {
+  visibility: hidden !important;
+  font-size: 0 !important;
+}
+
+.contact-details strong::before {
+  content: '·';
+  visibility: visible !important;
+  font-size: 9pt !important;
+  font-weight: 400 !important;
+  color: #4b5563 !important;
+}
+
+.social-links {
+  display: block !important;
+  margin: 1pt 0 0 !important;
+}
+
+/* Printed as the address a reader can retype, in the text colour and without an underline: paper cannot be
+   clicked, the PDF keeps the link itself, and an underline cuts the descenders of "piglardlord". */
+.social-links a,
+.contact-card a {
+  display: inline !important;
+  padding: 0 !important;
+  background: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  font-size: 9pt !important;
+  font-weight: 400 !important;
+  color: #374151 !important;
+  text-decoration: none !important;
+}
+
+/* The renderer writes the dot as an element of its own, with no space in it, so the room either side is
+   its margin. */
+.social-links .inline-separator {
+  display: inline !important;
+  margin: 0 0.3em !important;
+  color: #4b5563 !important;
+}
+
+/* =============================================================================
+   SECTIONS
+   ============================================================================= */
+
+.main-content {
+  padding: 0 !important;
+}
+
+/* One column. The two wrappers stay in the markup and print as plain blocks, so the sections follow each
+   other in the order index.html writes them: Experience, Certifications, Education, Languages, Interests. */
+.content-grid,
+.primary-column,
+.secondary-column {
+  display: block !important;
+}
+
+/* 15pt above every heading after the first. The project's own ATS parser recognises a heading only after a
+   blank line in the extracted text, and poppler writes one only where the gap is wide enough: at 15pt it
+   writes one before all six headings, in every layout. design-glacier.css puts 3rem between the sections
+   of a screen column, which this replaces. */
+section {
+  margin: 15pt 0 0 !important;
+  padding: 0 !important;
+  background: none !important;
+  border: 0 !important;
+}
+
+.skills-spotlight {
+  margin-top: 0 !important;
+}
+
+/* Each of these fits on the page it starts on; Experience alone is long enough to cross a page break. */
+.skills-spotlight,
+.education-section,
+.certifications-section,
+.languages-section,
+.interests-section {
+  break-inside: avoid !important;
+}
+
+/* A section heading: 13pt Bold against the role's 11pt, with the rule and the space above to carry the rest
+   of the step. Left-aligned like everything else on the page. */
+.spotlight-title,
+.section-title {
+  display: block !important;
+  margin: 0 0 6pt !important;
+  padding: 0 0 2pt !important;
+  border: 0 !important;
+  border-bottom: 0.75pt solid #1e40af !important;
+  font-size: 13pt !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+  color: #1e40af !important;
+  text-align: left !important;
+  break-after: avoid !important;
+}
+
+/* A section label extracts as it is drawn. Drawn in caps it reaches a parser as
+   "PROFESSIONAL EXPERIENCE" and no longer matches the string the catalogue wrote. */
+.spotlight-title,
+.section-title span:last-child {
+  font-size: 13pt !important;
+  font-weight: 700 !important;
+  color: inherit !important;
+  text-transform: none !important;
+}
+
+.title-accent {
+  display: none !important;
+}
+
+/* =============================================================================
+   CORE TECHNOLOGIES
+   ============================================================================= */
+
 .skills-showcase {
-  display: grid !important;
-  grid-template-columns: 1fr !important;
-  gap: 0 !important;
+  display: block !important;
   max-width: none !important;
   margin: 0 !important;
 }
@@ -303,300 +425,251 @@ body {
    because it is punctuation, not content — the same reason the colon left the renderer. */
 .skill-group {
   display: block !important;
-  padding: 2.5pt 0 !important;
-  border-bottom: 0.5pt solid #ebebeb !important;
-  font-size: 9pt !important;
+  margin: 3pt 0 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  font-size: 10pt !important;
   line-height: 1.45 !important;
+  break-inside: avoid !important;
+}
+
+.skill-group:first-child {
+  margin-top: 0 !important;
 }
 
 .skill-category {
   display: inline !important;
   font-weight: 700 !important;
-  color: #1e3a8a !important;
+  color: #1f2937 !important;
 }
 
-/* #4b5563, not #6b7280: printed in Inter's static Regular (#143) the thin dash measured 4.35:1 on the paper at
-   #6b7280, under the 4.5:1 every printed word is held to. */
+/* The dash takes the list's colour. In Inter's static Regular (#143) the thin dash measured 4.35:1 on the
+   paper at #6b7280, under the 4.5:1 every printed word is held to. */
 .skill-category::after {
   content: ' — ';
   font-weight: 400 !important;
-  color: #4b5563 !important;
+  color: #374151 !important;
 }
 
 .skill-list {
   display: inline !important;
+  font-weight: 400 !important;
   color: #374151 !important;
 }
 
 /* =============================================================================
-   MAIN CONTENT - PRINT LAYOUT
+   EXPERIENCE
    ============================================================================= */
 
-.main-content {
-  padding: 0 !important;
-}
-
-.content-grid {
-  display: grid !important;
-  /* 62% + 36% + a 16pt gap came to more than the page box, which is where the 2mm of
-     asymmetry in the printed margins came from — fr units take the gap out first. The evidence
-     column also takes the wider share: at 62/36 the certifications section missed the foot of
-     page two by a few millimetres and opened a third page for four lines. Measured. */
-  grid-template-columns: minmax(0, 68fr) minmax(0, 30fr) !important;
-  gap: 16pt !important;
-}
-
-/* =============================================================================
-   SECTION STYLING - PRINT
-   ============================================================================= */
-
-section {
-  margin-bottom: 11pt !important;
-  page-break-inside: avoid !important;
-}
-
-.section-title {
-  display: flex !important;
-  align-items: center !important;
-  gap: 6pt !important;
-  margin-bottom: 7pt !important;
-  padding-bottom: 3pt !important;
-  border-bottom: 1pt solid #e5e7eb !important;
-}
-
-.title-accent {
-  width: 3pt !important;
-  height: 16pt !important;
-  background: #1e40af !important;
-  border-radius: 1pt !important;
-}
-
-.section-title span:last-child {
-  font-size: 11pt !important;
-  font-weight: 700 !important;
-  color: #1f2937 !important;
-  letter-spacing: 0 !important;
-  /* A section label extracts as it is drawn. Drawn in caps it reaches a parser as
-     "PROFESSIONAL EXPERIENCE" and no longer matches the string the catalogue wrote. */
-  text-transform: none !important;
-}
-
-/* =============================================================================
-   EXPERIENCE SECTION - PRINT
-   ============================================================================= */
-
-.experience-section {
-  page-break-inside: auto !important;
-}
-
+/* A role is never unbreakable: the first one runs to about 385pt, and page one leaves it about 330pt below
+   its title line. What stays together is its identity — the title line, the period and the summary — and
+   the first achievement after it, so no page ends on a bare heading and none opens mid-sentence. Pushed to
+   the foot of page one for a measurement, the first role moved whole to page two, heading and all. */
 .job-entry {
-  background: white !important;
-  border: none !important;
-  border-left: 2pt solid #e5e7eb !important;
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: none !important;
+  border: 0 !important;
   border-radius: 0 !important;
-  padding: 5pt 0 5pt 12pt !important;
-  margin-bottom: 7pt !important;
   box-shadow: none !important;
-  page-break-inside: avoid !important;
+  break-inside: auto !important;
+}
+
+.job-entry + .job-entry {
+  margin-top: 12pt !important;
 }
 
 .job-header {
-  margin-bottom: 4pt !important;
+  margin: 0 !important;
+  font-size: 11pt !important;
+  font-weight: 400 !important;
+  line-height: 1.4 !important;
+  color: #374151 !important;
 }
 
 .job-title {
+  display: inline !important;
+  font-size: 11pt !important;
   font-weight: 700 !important;
   color: #1e40af !important;
-  font-size: 11pt !important;
-  display: inline !important;
 }
 
+/* The employer is one name and never breaks. At 405pt the first role's line broke after "Cortado", and
+   "Cortado Mobile Solutions" was no longer a string a parser could find in the text layer. */
 .job-company {
-  font-weight: 600 !important;
-  color: #1f2937 !important;
   font-size: 11pt !important;
+  font-weight: 700 !important;
+  color: #1f2937 !important;
+  white-space: nowrap !important;
 }
 
+/* #4b5563, not the screen's #6b7280: at that grey the period's thin en dash measured 4.48:1 on paper, under
+   the 4.5:1 every printed word is held to. At #4b5563 it measures 6.79:1. */
 .job-period {
+  margin: 1pt 0 0 !important;
   font-size: 9pt !important;
-  color: #6b7280 !important;
-  font-weight: 500 !important;
-  margin-bottom: 6pt !important;
-  text-transform: none !important;
-  letter-spacing: 0 !important;
-}
-
-.job-description {
-  color: #374151 !important;
+  font-weight: 400 !important;
   line-height: 1.4 !important;
-  margin: 0 !important;
-  font-size: 10pt !important;
+  color: #4b5563 !important;
+  text-transform: none !important;
+}
+
+.job-summary,
+.job-description {
+  margin: 3pt 0 0 !important;
+  font-size: 11pt !important;
+  font-weight: 400 !important;
+  line-height: 1.4 !important;
+  color: #374151 !important;
+}
+
+.job-header,
+.job-period,
+.job-summary {
+  break-inside: avoid !important;
+  break-after: avoid !important;
+}
+
+/* A 13pt hanging indent. The achievements' text is 392pt wide, and its longest line measured 76
+   characters. */
+.job-highlights {
+  margin: 3pt 0 0 13pt !important;
+  padding: 0 !important;
+  list-style: disc outside !important;
+  color: #374151 !important;
+}
+
+.job-highlights li {
+  margin: 3pt 0 0 !important;
+  font-size: 11pt !important;
+  font-weight: 400 !important;
+  line-height: 1.4 !important;
+  break-inside: avoid !important;
+}
+
+.job-highlights li:first-child {
+  margin-top: 0 !important;
 }
 
 /* =============================================================================
-   SECONDARY COLUMN - PRINT
-   ============================================================================= */
-
-.secondary-column section {
-  margin-bottom: 14pt !important;
-}
-
-/* =============================================================================
-   EDUCATION SECTION - PRINT
+   EDUCATION, CERTIFICATIONS, LANGUAGES AND INTERESTS
    ============================================================================= */
 
 .edu-entry {
-  background: white !important;
-  border: 0.5pt solid #e5e7eb !important;
-  border-radius: 3pt !important;
-  padding: 8pt !important;
-  margin-bottom: 8pt !important;
-  page-break-inside: avoid !important;
+  margin: 6pt 0 0 !important;
+  padding: 0 !important;
+  background: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  break-inside: avoid !important;
+}
+
+.edu-entry:first-child {
+  margin-top: 0 !important;
 }
 
 .edu-degree {
+  margin: 0 !important;
+  font-size: 11pt !important;
   font-weight: 700 !important;
-  color: #1e40af !important;
-  margin-bottom: 2pt !important;
+  line-height: 1.4 !important;
+  color: #1f2937 !important;
+}
+
+.edu-entry > div:not(.edu-degree) {
   font-size: 10pt !important;
+  line-height: 1.4 !important;
+  color: #374151 !important;
 }
 
 .edu-school {
-  font-weight: 600 !important;
-  color: #1f2937 !important;
-  font-size: 9pt !important;
+  font-size: 10pt !important;
+  font-weight: 400 !important;
+  color: #374151 !important;
 }
 
 .edu-period {
-  color: #6b7280 !important;
-  font-size: 9pt !important;
+  font-size: 10pt !important;
+  font-weight: 400 !important;
+  color: #4b5563 !important;
 }
 
 .edu-description {
-  color: #374151 !important;
+  margin: 2pt 0 0 !important;
   font-size: 9pt !important;
-  line-height: 1.3 !important;
-  margin-top: 4pt !important;
-  margin-bottom: 0 !important;
-}
-
-/* =============================================================================
-   CERTIFICATIONS - PRINT
-   ============================================================================= */
-
-.certifications-list {
-  list-style: none !important;
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
-.certifications-list li {
-  background: #f8fafc !important;
-  border-radius: 3pt !important;
-  padding: 4pt !important;
-  margin-bottom: 3pt !important;
-  border-left: 2pt solid #3b82f6 !important;
-  page-break-inside: avoid !important;
-  font-size: 9pt !important;
-}
-
-.certifications-list strong {
-  color: #1e40af !important;
-  font-weight: 700 !important;
-}
-
-.certifications-list a {
-  color: #1e40af !important;
-  text-decoration: none !important;
-}
-
-.cert-description {
-  display: block !important;
-  margin-top: 2pt !important;
-  font-size: 9pt !important;
+  font-weight: 400 !important;
+  line-height: 1.35 !important;
   color: #4b5563 !important;
-  line-height: 1.3 !important;
 }
 
-/* =============================================================================
-   LANGUAGES & INTERESTS - PRINT
-   ============================================================================= */
-
+.certifications-list,
 .languages-list {
   list-style: none !important;
   margin: 0 !important;
   padding: 0 !important;
 }
 
+.certifications-list li,
 .languages-list li {
-  padding: 4pt 0 !important;
-  border-bottom: 0.5pt solid #f3f4f6 !important;
+  margin: 2pt 0 0 !important;
+  padding: 0 !important;
+  background: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  font-size: 10pt !important;
+  font-weight: 400 !important;
+  line-height: 1.4 !important;
+  color: #374151 !important;
+  break-inside: avoid !important;
+}
+
+.certifications-list li:first-child,
+.languages-list li:first-child {
+  margin-top: 0 !important;
+}
+
+.certifications-list strong,
+.languages-list strong {
+  font-weight: 700 !important;
+  color: #1f2937 !important;
+}
+
+.certifications-list a {
+  color: inherit !important;
+  text-decoration: none !important;
+}
+
+.cert-description {
+  display: block !important;
+  margin: 1pt 0 0 !important;
   font-size: 9pt !important;
+  font-weight: 400 !important;
+  line-height: 1.35 !important;
+  color: #4b5563 !important;
+}
+
+/* 10pt, like the other short lists. It printed at 11pt only because nothing gave it a size and body's
+   reached it. */
+.interests-line {
+  display: block !important;
+  font-size: 10pt !important;
+  font-weight: 400 !important;
+  line-height: 1.4 !important;
   color: #374151 !important;
 }
 
-.languages-list li:last-child {
-  border-bottom: none !important;
-}
-
-.interests-tags {
-  display: flex !important;
-  flex-wrap: wrap !important;
-  gap: 3pt !important;
-}
-
-.tag {
-  background: #e0e7ff !important;
-  color: #1e40af !important;
-  padding: 2pt 4pt !important;
-  border-radius: 2pt !important;
-  font-size: 9pt !important;
-  font-weight: 500 !important;
-  border: 0.5pt solid #c7d2fe !important;
-}
-
 /* =============================================================================
-   PAGE BREAK CONTROL
+   PAGE BREAKS
    ============================================================================= */
 
-.hero-section {
-  page-break-after: avoid !important;
-}
-
-.skills-spotlight {
-  page-break-after: avoid !important;
-}
-
-.experience-section {
-  page-break-before: avoid !important;
-}
-
-.job-entry:nth-child(n + 3) {
-  page-break-before: auto !important;
-}
-
-.secondary-column {
-  page-break-before: avoid !important;
-}
-
-/* Ensure content fits in 2 pages maximum */
-.main-content {
-  orphans: 2 !important;
-  widows: 2 !important;
-}
-
-/* =============================================================================
-   PRINT QUALITY ENHANCEMENTS
-   ============================================================================= */
-
-/* Ensure clean borders and text */
 h1,
 h2,
 h3,
 h4,
 h5,
 h6 {
-  page-break-after: avoid !important;
+  break-after: avoid !important;
 }
 
 p,
@@ -605,232 +678,205 @@ li {
   widows: 2 !important;
 }
 
-/* Remove any web-specific decorative elements */
-.hero-section::before,
-.container::before {
-  display: none !important;
+/* =============================================================================
+   TECHNICAL PROFILE ON PAPER
+   Inter throughout, the name in blue, and the section labels in ink behind a short blue bar, over a grey
+   rule. The skill categories carry the blue, the one trace on paper of a layout where the stack leads.
+   ============================================================================= */
+
+/* A flex line with no gap, so the bar stands 5pt from every label. "Core Technologies" has no accent span
+   in its heading and the other five do: set as a block, the space the markup leaves beside that span put
+   their labels 3.1pt further from the bar, and set as a flex line, the screen's gap put them 6.6pt
+   further. Measured on the printed PDF with pdftotext -bbox. */
+body[data-layout='technical'] .spotlight-title,
+body[data-layout='technical'] .section-title {
+  display: flex !important;
+  align-items: baseline !important;
+  gap: 0 !important;
+  color: #1f2937 !important;
+  border-bottom: 0.5pt solid #d1d5db !important;
 }
 
-/* Ensure consistent font rendering */
-* {
-  font-synthesis: none !important;
-  -webkit-font-smoothing: auto !important;
-  -moz-osx-font-smoothing: auto !important;
+/* The bar is drawn as a border on an empty box, so nothing of it reaches the text layer. */
+body[data-layout='technical'] .spotlight-title::before,
+body[data-layout='technical'] .section-title::before {
+  content: '';
+  display: inline-block;
+  width: 0;
+  height: 10pt;
+  margin-right: 5pt;
+  border-left: 3pt solid #1e40af;
+}
+
+body[data-layout='technical'] .job-title {
+  color: #1f2937 !important;
+}
+
+body[data-layout='technical'] .skill-category {
+  color: #1e40af !important;
 }
 
 /* =============================================================================
    NERD MODE ON PAPER
    The anthracite is a screen decision and does not reach the printer: this layout prints as ink
    on white, like the other two. What does survive the crossing is the structure the layout is
-   made of — numbered section heads, hairline rules and the dates in a column of their own —
-   because a printed page that kept only the colour would have kept nothing.
+   made of — hairline rules and the dates in a column of their own — because a printed page that
+   kept only the colour would have kept nothing.
 
    Achromatic in the strict sense the project's own PDF audit uses: every rendered pixel comes
    out with R == G == B. The palette this file gives the other two layouts is Tailwind's slate,
    which is a blue-leaning grey — neutral enough to the eye, but `rgb(55, 65, 81)` is not grey
    to an auditor — so `nerd` restates the whole ramp in true neutrals: #111 ink, #333 body, #555
    metadata, #d8d8d8 rules, #ebebeb the quieter ones. Measured on the artefact with pdftoppm at
-   24dpi: maximum channel spread 0 across both pages, the portrait included, which is what the
-   `grayscale(1)` filter below is for.
+   24dpi and at 150dpi: maximum channel spread 0 across both pages.
 
-   Every selector is scoped to `nerd`. `spotlight` and `technical` print exactly as they did,
-   which is checked by fingerprinting all three under print emulation.
+   The text block is 517pt: a 128pt date column, a 14pt gap and a 375pt text column, whose longest
+   11pt line measured 69 characters. The masthead's lines and the section labels start at the date
+   column's edge; the summary and every section's body sit in the text column.
    ============================================================================= */
 
 body[data-layout='nerd'] {
   color: #333 !important;
 }
 
-/* --- Section heads: a number, a word, and a rule to the margin ------------------------------ */
-body[data-layout='nerd'] .container {
-  counter-reset: nerd-section !important;
-}
-
+/* --- Section heads: a word, and a rule to the margin ----------------------------------------- */
+/* No section number on paper. The ATS parser's SectionLexicon reads "01 Professional Experience" as
+   "01 professional experience", which matches no heading it knows, and a document in which it recognises
+   fewer than two headings did not segment at all. */
 body[data-layout='nerd'] .spotlight-title,
 body[data-layout='nerd'] .section-title {
   display: flex !important;
   align-items: center !important;
   gap: 6pt !important;
-  margin: 0 0 6pt !important;
   padding: 0 !important;
   border: 0 !important;
-  text-align: left !important;
-  counter-increment: nerd-section;
-}
-
-/* The index is a screen device. On paper the two columns reorder the sections, so the numbers
-   came out 01, 02, 04, 05, 06, 03 — and each one also landed in the text layer as a bare line
-   of digits. A number that lies about the order is worse than no number. */
-body[data-layout='nerd'] .spotlight-title::before,
-body[data-layout='nerd'] .section-title::before {
-  content: none !important;
+  color: #111 !important;
 }
 
 body[data-layout='nerd'] .spotlight-title::after,
 body[data-layout='nerd'] .section-title::after {
   content: '';
   flex: 1;
-  height: 0.5pt;
-  background: #d8d8d8;
-}
-
-body[data-layout='nerd'] .spotlight-title,
-body[data-layout='nerd'] .section-title span:last-child {
-  font-size: 9pt !important;
-  font-weight: 700 !important;
-  letter-spacing: 0 !important;
-  color: #111 !important;
-}
-
-/* The bar beside the label belongs to the other two layouts; this one never had one. */
-body[data-layout='nerd'] .title-accent {
-  display: none !important;
+  height: 0;
+  border-top: 0.5pt solid #d8d8d8;
 }
 
 /* --- The masthead ---------------------------------------------------------------------------- */
 /* The masthead sets its own inherited colour, which is what the decorative middots between the
-   three addresses were picking up: two pixels of Tailwind slate were the whole difference
-   between "prints grey" and "prints achromatic". */
+   addresses pick up: two pixels of Tailwind slate were once the whole difference between "prints
+   grey" and "prints achromatic". */
 body[data-layout='nerd'] .hero-section {
   border-bottom-color: #d8d8d8 !important;
   color: #333 !important;
 }
 
-body[data-layout='nerd'] .hero-name {
-  font-family: 'Inter', Arial, sans-serif !important;
-  font-weight: 700 !important;
+body[data-layout='nerd'] .hero-name,
+body[data-layout='nerd'] .hero-title {
   color: #111 !important;
 }
 
-/* The role line keeps the case the data wrote: "Senior iOS Engineer" must not reach an iOS
-   hiring manager as "SENIOR IOS ENGINEER", on paper any more than on screen. */
-body[data-layout='nerd'] .hero-title {
-  color: #333 !important;
-  text-transform: none !important;
-  letter-spacing: 0 !important;
-}
-
-/* The shared rules now colour both of these lines for every layout; what stays here is only
-   this layout's own tone. */
-body[data-layout='nerd'] .hero-subtitle {
-  color: #333 !important;
-  font-size: 9pt !important;
-  font-weight: 500 !important;
-  margin-top: 3pt !important;
-}
-
-body[data-layout='nerd'] .hero-availability {
-  color: #555 !important;
-  font-size: 9pt !important;
-  line-height: 1.4 !important;
-  margin-top: 6pt !important;
-}
-
-body[data-layout='nerd'] .hero-summary {
-  color: #333 !important;
-}
-
-body[data-layout='nerd'] .profile-image-wrapper img {
-  border: 0.5pt solid #d8d8d8 !important;
-  border-radius: 0 !important;
-  filter: grayscale(1) !important;
-}
-
-body[data-layout='nerd'] .contact-card {
-  background: #fff !important;
-  border: 0.5pt solid #d8d8d8 !important;
-}
-
-/* Kept scoped for clarity; the shared rule hides the pin for every layout now. */
-body[data-layout='nerd'] .contact-icon {
-  display: none !important;
-}
-
-body[data-layout='nerd'] .contact-item {
-  color: #333 !important;
-}
-
-body[data-layout='nerd'] .contact-details {
-  color: #555 !important;
-}
-
+body[data-layout='nerd'] .hero-subtitle,
+body[data-layout='nerd'] .hero-summary,
+body[data-layout='nerd'] .contact-card,
+body[data-layout='nerd'] .contact-item,
+body[data-layout='nerd'] .contact-details,
 body[data-layout='nerd'] .contact-card a,
 body[data-layout='nerd'] .social-links a {
-  background: #fff !important;
-  border: 0 !important;
-  color: #111 !important;
-  text-decoration: underline !important;
+  color: #333 !important;
+}
+
+body[data-layout='nerd'] .hero-availability,
+body[data-layout='nerd'] .contact-details strong::before,
+body[data-layout='nerd'] .social-links .inline-separator {
+  color: #555 !important;
+}
+
+/* The contacts run across the whole text block at 10pt. */
+body[data-layout='nerd'] .contact-card,
+body[data-layout='nerd'] .contact-item,
+body[data-layout='nerd'] .contact-details,
+body[data-layout='nerd'] .contact-details strong::before,
+body[data-layout='nerd'] .social-links a {
+  font-size: 10pt !important;
+}
+
+/* --- The text column ------------------------------------------------------------------------- */
+body[data-layout='nerd'] .hero-summary,
+body[data-layout='nerd'] .skills-showcase,
+body[data-layout='nerd'] .education-content,
+body[data-layout='nerd'] .certifications-list,
+body[data-layout='nerd'] .languages-list,
+body[data-layout='nerd'] .interests-line {
+  margin-left: 142pt !important;
 }
 
 /* --- The skills table -------------------------------------------------------------------------- */
-body[data-layout='nerd'] .skills-spotlight {
-  border-bottom-color: #d8d8d8 !important;
+body[data-layout='nerd'] .skill-group {
+  margin: 0 !important;
+  padding: 2.5pt 0 !important;
+  border-top: 0.5pt solid #ebebeb !important;
 }
 
-body[data-layout='nerd'] .skill-group {
-  padding: 3pt 0 !important;
-  border-bottom: 0.5pt solid #ebebeb !important;
+body[data-layout='nerd'] .skill-group:first-child {
+  padding-top: 0 !important;
+  border-top: 0 !important;
 }
 
 body[data-layout='nerd'] .skill-category {
   color: #111 !important;
 }
 
+body[data-layout='nerd'] .skill-category::after,
 body[data-layout='nerd'] .skill-list {
   color: #333 !important;
 }
 
 /* --- The date column ---------------------------------------------------------------------------- */
 /* The dates hold a column of their own on paper too, so the career can still be scanned
-   vertically. The DOM keeps the role first, so a text extractor meets the title before the
-   period whichever way the columns fall.
+   vertically. Each role is a grid of two columns; the period sits in the first, on the baseline of
+   the title line's first line, and everything else in the second. A grid draws its items in the
+   markup's order wherever it places them, so read in drawing order the title comes before the
+   period, as the markup writes it; poppler, which reads by position, gives the period on the line
+   above its title. Either way no period leaves its role, and every section stays in order.
 
-   The rail has to be paid for out of the measure, and the evidence column is where it comes
-   from: at the shared 62/36 split the three roles ran to a third page. The credentials in the
-   right-hand column are short lines that do not miss the width, so the split moves. Measured on
-   the artefact — two pages, the same as before the rail existed. */
-body[data-layout='nerd'] .content-grid {
-  grid-template-columns: minmax(0, 70fr) minmax(0, 28fr) !important;
-}
-
+   The period never wraps, so the length of service is not printed here: "September 2015 – July
+   2018", the longest, measured 125.3pt of the column's 128pt, and "(2 years, 11 months)" could not
+   fit beside it. The role's identity stays with its first achievement inside the grid as well:
+   pushed to the foot of page one, the first role moved whole to page two with its heading. */
 body[data-layout='nerd'] .job-entry {
   display: grid !important;
-  grid-template-columns: 52pt minmax(0, 1fr) !important;
-  column-gap: 8pt !important;
+  grid-template-columns: 128pt minmax(0, 1fr) !important;
+  column-gap: 14pt !important;
   row-gap: 0 !important;
-  align-items: start !important;
-  padding: 0 !important;
-  margin: 0 0 10pt !important;
-  border: 0 !important;
 }
 
 body[data-layout='nerd'] .job-entry + .job-entry {
-  padding-top: 8pt !important;
+  margin-top: 6pt !important;
+  padding-top: 6pt !important;
   border-top: 0.5pt solid #ebebeb !important;
 }
 
 body[data-layout='nerd'] .job-entry > * {
-  grid-column: 2;
-}
-
-body[data-layout='nerd'] .job-period {
-  grid-column: 1;
-  grid-row: 1;
-  margin: 0 !important;
-  font-size: 9pt !important;
-  line-height: 1.35 !important;
-  color: #555 !important;
-}
-
-/* Nerd Mode prints the dates in a 52pt column, where the length cannot fit on the dates' line: it takes
-   its own lines under them rather than breaking the dates' last line in two (#55). */
-body[data-layout='nerd'] .job-tenure {
-  display: block;
-  white-space: normal;
+  grid-column: 2 !important;
 }
 
 body[data-layout='nerd'] .job-header {
-  grid-row: 1;
+  grid-row: 1 !important;
+  align-self: baseline !important;
+}
+
+body[data-layout='nerd'] .job-period {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  align-self: baseline !important;
+  margin: 0 !important;
+  white-space: nowrap !important;
+  font-variant-numeric: tabular-nums !important;
+  color: #555 !important;
+}
+
+body[data-layout='nerd'] .job-tenure {
+  display: none !important;
 }
 
 body[data-layout='nerd'] .job-title,
@@ -838,129 +884,30 @@ body[data-layout='nerd'] .job-company {
   color: #111 !important;
 }
 
+body[data-layout='nerd'] .job-header,
 body[data-layout='nerd'] .job-summary,
-body[data-layout='nerd'] .job-description {
-  color: #333 !important;
-}
-
+body[data-layout='nerd'] .job-description,
 body[data-layout='nerd'] .job-highlights {
-  margin-top: 4pt !important;
   color: #333 !important;
 }
 
 /* --- The credentials --------------------------------------------------------------------------- */
-body[data-layout='nerd'] .edu-entry {
-  border: 0 !important;
-  border-top: 0.5pt solid #ebebeb !important;
-  border-radius: 0 !important;
-  padding: 6pt 0 !important;
-}
-
 body[data-layout='nerd'] .edu-degree,
-body[data-layout='nerd'] .edu-school {
-  color: #111 !important;
-}
-
-body[data-layout='nerd'] .edu-period {
-  color: #555 !important;
-}
-
-body[data-layout='nerd'] .edu-description {
-  color: #333 !important;
-}
-
-body[data-layout='nerd'] .certifications-list li {
-  background: #fff !important;
-  border-radius: 0 !important;
-  border-left: 0 !important;
-  border-top: 0.5pt solid #ebebeb !important;
-  padding: 6pt 0 !important;
-  color: #333 !important;
-}
-
 body[data-layout='nerd'] .certifications-list strong,
-body[data-layout='nerd'] .certifications-list a {
-  color: #111 !important;
-}
-
-body[data-layout='nerd'] .cert-description {
-  color: #555 !important;
-}
-
-/* A language is a name and a CEFR level, both as text: no dot, no bar, nothing to decode. */
-body[data-layout='nerd'] .languages-list li {
-  border-bottom-color: #ebebeb !important;
-  color: #333 !important;
-}
-
 body[data-layout='nerd'] .languages-list strong {
   color: #111 !important;
 }
 
-body[data-layout='nerd'] .interests-line,
-body[data-layout='nerd'] .interests-tags {
+body[data-layout='nerd'] .edu-entry > div:not(.edu-degree),
+body[data-layout='nerd'] .edu-school,
+body[data-layout='nerd'] .edu-description,
+body[data-layout='nerd'] .certifications-list li,
+body[data-layout='nerd'] .languages-list li,
+body[data-layout='nerd'] .interests-line {
   color: #333 !important;
 }
 
-body[data-layout='nerd'] .tag {
-  background: #fff !important;
-  border: 0.5pt solid #d8d8d8 !important;
-  color: #111 !important;
-}
-
-/* =============================================================================
-   THE CREDENTIALS COLUMN
-   =============================================================================
-   The two columns are the markup's, not the paper's: experience and
-   certifications on the left, education, languages and interests on the right.
-   Experience is an order of magnitude longer than all of them together, so the
-   right-hand column ran out after about 94mm of page two and left roughly 190mm
-   of blank paper beside the last two roles, while certifications queued at the
-   foot of the left column and came within half a millimetre of opening a third
-   page for four lines.
-
-   On paper the short sections all go right and experience keeps the whole left
-   column. Both wrappers become `display: contents` so their children are grid
-   items in their own right — the same technique the screen layouts use — and
-   each one is placed explicitly. The four content rows take their height from
-   the credentials; the fifth absorbs whatever experience still needs, so the
-   right column stacks from the top instead of being distributed down the page.
-
-   The markup does not move, so the reading order a parser sees is unchanged. */
-.primary-column,
-.secondary-column {
-  display: contents !important;
-}
-
-.content-grid {
-  grid-template-rows: repeat(4, min-content) 1fr !important;
-}
-
-.experience-section {
-  grid-column: 1 !important;
-  grid-row: 1 / span 5 !important;
-}
-
-.education-section {
-  grid-column: 2 !important;
-  grid-row: 1 !important;
-}
-.languages-section {
-  grid-column: 2 !important;
-  grid-row: 2 !important;
-}
-.interests-section {
-  grid-column: 2 !important;
-  grid-row: 3 !important;
-}
-.certifications-section {
-  grid-column: 2 !important;
-  grid-row: 4 !important;
-}
-
-/* Impact Spotlight sets its name in Instrument Serif, whose word space is narrow: at 31pt the gap between
-   the two words measured 4pt, 0.13em, and a parser reading in drawing order joined them into
-   "GiovanniTrovato" where Inter's 0.2em gap read as two words (#143). */
-body[data-layout='spotlight'] .hero-name {
-  word-spacing: 0.1em !important;
+body[data-layout='nerd'] .edu-period,
+body[data-layout='nerd'] .cert-description {
+  color: #555 !important;
 }
