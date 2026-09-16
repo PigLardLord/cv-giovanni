@@ -382,6 +382,7 @@ export class SwiftSourceLayout {
           ['title', degree.degree],
           ['school', degree.school],
           ['period', degree.period],
+          ['credits', degree.credits],
           ['description', degree.description]
         ])
       )

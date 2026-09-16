@@ -34,13 +34,15 @@ function neighbours(profile) {
   ].filter(([first, second]) => first && second);
 }
 
-/** Every string the profile writes, however deep. */
+/** Every string the profile writes, however deep, and every number as it is written: a degree's credits (#48). */
 const authored = (node) =>
   typeof node === 'string'
     ? [node]
-    : node && typeof node === 'object'
-      ? Object.values(node).flatMap(authored)
-      : [];
+    : typeof node === 'number'
+      ? [String(node)]
+      : node && typeof node === 'object'
+        ? Object.values(node).flatMap(authored)
+        : [];
 
 const spaced = (text) => String(text).replace(/\s+/g, ' ').trim();
 

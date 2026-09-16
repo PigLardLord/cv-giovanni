@@ -68,7 +68,12 @@ const profile = {
     }
   ],
   education: [
-    { degree: 'B.Sc. Computer Engineering', school: 'Università di Catania', period: '2009' }
+    {
+      degree: 'B.Sc. Computer Engineering',
+      school: 'Università di Catania',
+      period: '2009',
+      credits: 180
+    }
   ],
   languages: [
     { name: 'Italian', level: 'Native' },
@@ -235,7 +240,8 @@ describe('SwiftSourceLayout', () => {
         '        Degree(',
         '            title: "B.Sc. Computer Engineering",',
         '            school: "Università di Catania",',
-        '            period: "2009"',
+        '            period: "2009",',
+        '            credits: 180',
         '        ),',
         '    ]',
         '',
@@ -310,6 +316,7 @@ describe('SwiftSourceLayout', () => {
       'B.Sc. Computer Engineering',
       'Università di Catania',
       '2009',
+      '180',
       'Languages',
       'Italian: Native',
       'English: C1 — professional',

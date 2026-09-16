@@ -30,15 +30,24 @@ export function roleHeader({ title, company, location }, at) {
 }
 
 /**
- * "School (period)", and the school alone when the degree names no period.
- * @param {{ school?: string, period?: string }} degree - One degree of the education
+ * "School (period)", and the school alone when the degree names no period. A degree that states its scope in credits
+ * goes on "· 60 ECTS" (#48): a Master's programme a German reader would otherwise take for the Bologna second cycle.
+ *
+ * The words for the credits are the caller's, which has the catalogue and the CV's language; the line carries them
+ * only for a count of credits, a whole number above zero. A count nobody can read reads as nothing, never as a guess,
+ * and a caller that gives no words gets no bare number.
+ * @param {{ school?: string, period?: string, credits?: number }} degree - One degree of the education
+ * @param {{ credits?: (count: number) => string }} [words] - How the CV writes a count of credits
  * @returns {(string|{ field: string, text: string })[]} The line's pieces
  */
-export function schoolLine({ school, period }) {
+export function schoolLine({ school, period, credits }, { credits: creditsText } = {}) {
   const when = valueOf(period);
+  const scope =
+    Number.isInteger(credits) && credits > 0 && creditsText ? valueOf(creditsText(credits)) : '';
   return [
     { field: 'school', text: valueOf(school) },
-    ...(when ? [' ', { field: 'period', text: `(${when})` }] : [])
+    ...(when ? [' ', { field: 'period', text: `(${when})` }] : []),
+    ...(scope ? [' · ', { field: 'credits', text: scope }] : [])
   ];
 }
 
