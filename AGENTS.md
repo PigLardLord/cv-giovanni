@@ -317,8 +317,11 @@ number of review comments.
 pass whatever the generator wrote — through the text layer poppler extracts and the pixels that
 reached the paper: contrast per word against the printed page, ink margins per page, every skill
 still attached to its category, nothing in the text layer the data did not write, and, read in the
-order the PDF draws it, every name spaced and every section in its place. A check on the stylesheet
-passed a page that printed a line of white on white. `npm run audit:screen` reads what a reader
+order the PDF draws it, every name spaced and every section in its place. It also reports how much
+room each page has left above its foot, and marks a last page with less than one line of running
+text free, as a warning and never a failure: the page count is the gate, and the warning is the
+notice that it is close (#162). A check on the stylesheet passed a page that printed a line of
+white on white. `npm run audit:screen` reads what a reader
 copies off the screen, and the page's controls. `npm run audit:pdf` scored the twelve variants
 pdfmake composed; nothing runs it any more, and it goes with pdfmake (#153). `npm run verify:pdf`
 builds, then runs the print and ATS audits: run it before claiming the document is sound.

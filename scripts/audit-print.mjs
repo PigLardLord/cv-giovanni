@@ -9,6 +9,7 @@ import { fallbackRuns, typefacesFor } from './lib/printed-typefaces.mjs';
 import { gluedPhrases, type3Fonts } from './lib/extractable-text.mjs';
 import { imageCount, outOfOrder } from './lib/section-order.mjs';
 import { builtCv } from './lib/printed-cv.mjs';
+import { PRINTED_PAGE, bboxPages, printedRoom, roomReport } from './lib/page-room.mjs';
 import { GenerationTarget } from '../core/GenerationTarget.js';
 
 /**
@@ -153,11 +154,7 @@ function inkMargins(page) {
 }
 
 /** Every word whose darkest pixel is lighter than the contrast floor allows. */
-function faintWords(path, pages) {
-  const xml = execFileSync('pdftotext', ['-bbox-layout', path, '-'], {
-    encoding: 'utf8',
-    maxBuffer: 64 * 1024 * 1024
-  });
+function faintWords(xml, pages) {
   const scale = DPI / 72;
   const faint = [];
   let pageIndex = -1;
@@ -255,7 +252,16 @@ try {
     const raster = await mkdtemp(join(workspace, 'raster-'));
     const pages = await renderPages(pdf, raster);
     const margins = pages.map(inkMargins).filter(Boolean);
-    const faint = faintWords(pdf, pages);
+    const bbox = execFileSync('pdftotext', ['-bbox-layout', pdf, '-'], {
+      encoding: 'utf8',
+      maxBuffer: 64 * 1024 * 1024
+    });
+    const faint = faintWords(bbox, pages);
+    // How close each page runs to its foot, reported and never gated: the page count is the gate (#162). A page with
+    // no line has no room to measure.
+    const room = bboxPages(bbox).map((page) =>
+      page.lines.length ? printedRoom(page, PRINTED_PAGE) : null
+    );
     await rm(raster, { recursive: true, force: true });
 
     const order = [profile.name, profile.title, labels.experience].map((term) =>
@@ -346,7 +352,8 @@ try {
       glued,
       sections,
       images,
-      margins
+      margins,
+      room
     });
   }
 } finally {
@@ -357,6 +364,9 @@ try {
 }
 
 const failures = rows.filter((row) => Object.values(row.checks).some((value) => !value));
+const tight = rows
+  .filter((row) => roomReport(row.room).lastPageTight)
+  .map((row) => `${row.layout} (${row.room[row.room.length - 1].points.toFixed(1)}pt)`);
 const report = [
   '# Print quality matrix',
   '',
@@ -365,14 +375,19 @@ const report = [
   '',
   `Layouts: ${rows.length}`,
   '',
-  '| Layout | Pages | Score | Worst side margin |',
-  '|---|---:|---:|---:|',
+  '| Layout | Pages | Score | Worst side margin | Room left |',
+  '|---|---:|---:|---:|---|',
   ...rows.map((row) => {
     const worst = row.margins.length
       ? Math.min(...row.margins.flatMap((box) => [box.left, box.right])).toFixed(1)
       : '—';
-    return `| ${row.layout} | ${row.pages} | ${row.score} | ${worst}mm |`;
+    return `| ${row.layout} | ${row.pages} | ${row.score} | ${worst}mm | ${roomReport(row.room).column} |`;
   }),
+  '',
+  `Room left is the space between each page's lowest line and its ${PRINTED_PAGE.bottomMargin}pt bottom margin. A last`,
+  `page with less than one ${PRINTED_PAGE.bodyLine.toFixed(1)}pt line of running text free is marked ⚠: the next line`,
+  'added to it has nowhere to go. It is a warning, never a failure, since the page count is the gate.',
+  ...(tight.length ? ['', `⚠ Tight last page: ${tight.join(', ')}.`] : []),
   '',
   'Checks: A4, at most two pages, required ATS text in the case the catalogue wrote it,',
   'reading order, canonical hyphenated compounds, degree beside its school, every skill',
