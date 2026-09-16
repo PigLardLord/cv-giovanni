@@ -2,7 +2,7 @@
  * @jest-environment node
  */
 import { readFileSync } from 'node:fs';
-import { pages, roomLeft } from '../scripts/lib/room-left.mjs';
+import { bodyGlyph, pages, roomLeft } from '../scripts/lib/room-left.mjs';
 
 // `pdftotext -bbox-layout` of a document pdfmake built from 46 one-line paragraphs on LETTER, set the
 // way the CV sets its body: Inter at 9.3pt, a line height of 1.4, 40pt top and bottom margins. Page one
@@ -56,5 +56,27 @@ describe('the room left on a page', () => {
     const withFooter = { ...full, lines: [...full.lines, { top: 760, bottom: 770.5 }] };
 
     expect(roomLeft(withFooter, settings)).toEqual(roomLeft(full, settings));
+  });
+
+  // The code review of #49's merge: a heading line and a body line tie, once each, and the sort kept whichever the
+  // extract listed first, so the same page read 3.38 or 4.21 lines left (#124).
+  const body = (top) => ({ top, bottom: top + 11.253 });
+  const heading = (top) => ({ top, bottom: top + 14 });
+  const sparse = (lines) => ({ width: 612, height: 792, lines });
+
+  test("a page whose glyph heights tie reads the same in either order, with its document's body type", () => {
+    const [full] = pages(extract);
+    const glyph = bodyGlyph([full, sparse([heading(700), body(720)])]);
+    const listed = roomLeft(sparse([heading(700), body(720)]), { ...settings, glyph });
+    const reversed = roomLeft(sparse([body(720), heading(700)]), { ...settings, glyph });
+
+    expect(glyph).toBeCloseTo(11.25, 2);
+    expect(listed).toEqual(reversed);
+    expect(listed.bodyPitch).toBeCloseTo(15.75, 1);
+  });
+
+  test('read alone, a page whose glyph heights tie has no body type to count in, and says so', () => {
+    expect(() => roomLeft(sparse([heading(700), body(720)]), settings)).toThrow(/equally common/);
+    expect(() => roomLeft(sparse([body(720), heading(700)]), settings)).toThrow(/equally common/);
   });
 });

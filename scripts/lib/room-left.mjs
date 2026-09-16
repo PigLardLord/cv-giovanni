@@ -34,28 +34,53 @@ export function pages(extract) {
 }
 
 /**
+ * The glyph height of the type most lines are set in, across the pages given: the body type, since titles, labels
+ * and dates come in other sizes.
+ *
+ * A page alone can tie. A sparse last page with one heading line and one body line has two heights, once each, and
+ * a sort kept whichever the extract listed first, so the same page measured differently in another order (#124).
+ * Read across a whole document, the body type outnumbers every other. Where heights still tie, no body type can be
+ * told, and this says so rather than pick one.
+ * @param {{ lines: { top: number, bottom: number }[] }[]} pages - Pages from `pages`
+ * @returns {number} The glyph height, in points
+ * @throws {Error} When the pages hold no line, or two heights are equally common
+ */
+export function bodyGlyph(pages) {
+  const counts = new Map();
+  for (const { lines } of pages) {
+    for (const { top, bottom } of lines) {
+      const glyph = (bottom - top).toFixed(2);
+      counts.set(glyph, (counts.get(glyph) || 0) + 1);
+    }
+  }
+  const ranked = [...counts].sort((a, b) => b[1] - a[1]);
+  if (!ranked.length) throw new Error('Pages with no line have no body type.');
+  if (ranked.length > 1 && ranked[0][1] === ranked[1][1]) {
+    throw new Error(
+      `No body type can be told: ${ranked[0][0]}pt and ${ranked[1][0]}pt glyphs are equally common.`
+    );
+  }
+  return Number(ranked[0][0]);
+}
+
+/**
  * The room between a page's lowest line and its bottom margin, in points and in body lines.
  *
- * A body line is the pitch of the type most of the page is set in: the commonest glyph height, times
- * the line height. Titles, labels and dates come in other sizes, but the lines a copy change adds to a
- * CV are body lines.
+ * A body line is the pitch of the body type: its glyph height, times the line height. Titles, labels and dates
+ * come in other sizes, but the lines a copy change adds to a CV are body lines. The glyph height is the document's,
+ * from `bodyGlyph`, when the caller has it; a page read alone takes its own, and refuses a tie.
  * @param {{ height: number, lines: { top: number, bottom: number }[] }} page - One page, from `pages`
- * @param {{ bottomMargin: number, lineHeight: number }} settings - What the document was laid out with
+ * @param {{ bottomMargin: number, lineHeight: number, glyph?: number }} settings - What the document was laid out
+ *   with, and the glyph height of its body type
  * @returns {{ points: number, lines: number, bodyPitch: number }} The room left
  */
-export function roomLeft({ height, lines: all }, { bottomMargin, lineHeight }) {
+export function roomLeft({ height, lines: all }, { bottomMargin, lineHeight, glyph }) {
   // A line that starts inside the bottom margin is not content: the downloadable PDF prints the day it was
   // made there (#55), and the room is measured above the margin.
   const lines = all.filter(({ top }) => top < height - bottomMargin);
   if (!lines.length) throw new Error('A page with no line has no last line to measure from.');
 
-  const glyphHeights = new Map();
-  for (const { top, bottom } of lines) {
-    const glyph = (bottom - top).toFixed(2);
-    glyphHeights.set(glyph, (glyphHeights.get(glyph) || 0) + 1);
-  }
-  const [[commonest]] = [...glyphHeights].sort((a, b) => b[1] - a[1]);
-  const bodyPitch = Number(commonest) * lineHeight;
+  const bodyPitch = (glyph ?? bodyGlyph([{ lines }])) * lineHeight;
 
   const lowest = Math.max(...lines.map(({ top, bottom }) => top + (bottom - top) * lineHeight));
   const points = height - bottomMargin - lowest;

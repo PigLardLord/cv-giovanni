@@ -7,7 +7,7 @@ import { readableAddress } from '../domain/ReadableUrl.js';
 import { CoverLetter } from '../domain/CoverLetter.js';
 import { certificationProblems } from './lib/certification-lines.mjs';
 import { pdfVariant } from './lib/pdf-variant.mjs';
-import { pages as bboxPages, roomLeft } from './lib/room-left.mjs';
+import { bodyGlyph, pages as bboxPages, roomLeft } from './lib/room-left.mjs';
 import { PdfExporter } from '../core/PdfExporter.js';
 import { LetterExporter } from '../core/LetterExporter.js';
 
@@ -183,23 +183,17 @@ for (const filename of pdfFiles) {
   const sizeOk = expectedLetter ? /612 x 792 pts/.test(info) : /595\.28 x 841\.89 pts/.test(info);
   const pages = Number(info.match(/Pages:\s+(\d+)/)?.[1]);
   // How much of the last page is left: whether a copy change fits, known before anyone builds it (#49).
-  const [lastPage] =
+  // Every page, so the body type is read across the document: a sparse last page alone can tie (#124).
+  const laidOut =
     pages > 0
-      ? bboxPages(
-          execFileSync(
-            'pdftotext',
-            ['-bbox-layout', '-f', `${pages}`, '-l', `${pages}`, path, '-'],
-            {
-              encoding: 'utf8'
-            }
-          )
-        )
+      ? bboxPages(execFileSync('pdftotext', ['-bbox-layout', path, '-'], { encoding: 'utf8' }))
       : [];
+  const lastPage = laidOut.at(-1);
   const settings = isCoverLetter(filename) ? letterSettings : cvSettings;
   // A last page can hold nothing but the date line in its bottom margin (#55): there is no content to measure
   // from, and the page count is what fails.
   const room = lastPage?.lines.some(({ top }) => top < lastPage.height - settings.bottomMargin)
-    ? roomLeft(lastPage, settings)
+    ? roomLeft(lastPage, { ...settings, glyph: bodyGlyph(laidOut) })
     : null;
   const pageTwo =
     pages > 1
