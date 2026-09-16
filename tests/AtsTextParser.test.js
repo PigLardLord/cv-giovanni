@@ -236,6 +236,45 @@ describe('the printed page, in the order poppler reads it', () => {
     }
   );
 
+  /** A CV of a name, one role and one degree, whose school line is the one given. */
+  const educationAfterARole = (schoolLine) =>
+    [
+      'Ada Lovelace',
+      'Experience',
+      'Engineer at Acme',
+      '2015 – 2018',
+      '',
+      'Education',
+      '',
+      'M.Sc. Informatics',
+      schoolLine
+    ].join('\n');
+
+  // With no line in a paragraph closing on a period, the school line's second segment was taken for the period
+  // unread: a city or a credit count came back as the period (#187).
+  test.each([
+    ['a city', 'Technische Universität München · Munich', 'Technische Universität München'],
+    [
+      'a credit count',
+      'Università degli Studi di Pisa · 120 ECTS',
+      'Università degli Studi di Pisa'
+    ]
+  ])('a school line whose second segment is %s recovers no period', (what, line, school) => {
+    const cv = AtsTextParser.parse(educationAfterARole(line));
+
+    expect(
+      cv.education.map((entry) => [entry.degree.value, entry.school.value, entry.period])
+    ).toEqual([['M.Sc. Informatics', school, null]]);
+  });
+
+  test('a school line whose segments hold a period after something else still finds it', () => {
+    const cv = AtsTextParser.parse(educationAfterARole('TU München · 2019 – 2021 · 120 ECTS'));
+
+    expect(cv.education.map((entry) => [entry.school.value, entry.period])).toEqual([
+      ['TU München', '2019 – 2021']
+    ]);
+  });
+
   test.each(['page-print-spotlight', 'page-print-nerd'])(
     '%s: "Category — items" keeps each list with its category, across wrapped lines',
     (fixture) => {

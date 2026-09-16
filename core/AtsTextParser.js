@@ -468,11 +468,13 @@ export class AtsTextParser {
         .map((entry, index) => ({ index, ...AtsTextParser.schoolAndPeriod(entry.text) }))
         .filter((candidate) => candidate.period);
       if (!closers.length) {
-        const [school, period] = (group[1]?.text || '').split(SEPARATORS);
+        // The school line's second segment is its period only when it reads as one: a city or a credit count is
+        // neither the school nor the period (#187).
+        const [school, second] = (group[1]?.text || '').split(SEPARATORS);
         entries.push({
           degree: RecoveredCv.field(group[0]?.text || null, group[0]?.line ?? -1),
           school: RecoveredCv.field(school || null, group[1]?.line ?? -1),
-          period: period || null,
+          period: second && DateRange.parse(second) ? second : null,
           line: group[0]?.line ?? -1
         });
         continue;
