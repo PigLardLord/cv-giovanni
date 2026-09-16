@@ -145,7 +145,8 @@ body[data-layout='spotlight'] .letter-name {
 }
 
 /* The Zusatz- und Vermerkzone: the field's upper 17.7mm, from 45 to 62.7mm, filled from the bottom. The return line
-   sits at its foot, directly above the recipient, small so it is returned rather than read, and never wrapped. */
+   sits at its foot, directly above the recipient, small so it is returned rather than read. A long one wraps within
+   the field's width and grows upward, five lines at most, so the recipient still starts at 62.7mm. */
 .letter-remarks {
   box-sizing: border-box;
   height: 17.7mm;
@@ -158,7 +159,6 @@ body[data-layout='spotlight'] .letter-name {
   font-size: 8pt;
   line-height: 1.25;
   color: #374151;
-  white-space: nowrap;
   text-decoration: underline;
   text-decoration-color: #9ca3af;
 }

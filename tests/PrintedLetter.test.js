@@ -57,7 +57,7 @@ describe("the parts of a printed letter, in a reader's order", () => {
     const contact = 'London, United Kingdom · ada@example.com · +44 20 7946 0012';
     const reachable = { ...letter, sender: { ...letter.sender, contact } };
 
-    expect(letterAnchors(reachable)).toContainEqual({ heading: '12' });
+    expect(letterAnchors(reachable)).toContainEqual({ lines: '12' });
     expect(
       outOfOrder(
         printed.replace('London, United Kingdom · ada@example.com', contact),
@@ -83,6 +83,27 @@ describe("the parts of a printed letter, in a reader's order", () => {
     );
   });
 
+  // The date is dated from the whole location when the lexicon does not know its places, and a long one wraps on the
+  // right (the review of #151). A wrapped line is still the date; a date run into another line is not.
+  test('a date or a reference wrapped over two lines is still in its place', () => {
+    const long = {
+      ...letter,
+      date: 'Upper Slaughter near Stow-on-the-Wold, Gloucestershire, September 16, 2026',
+      reference: 'Job 2026-17 / Senior Analyst / Hub'
+    };
+    const wrapped = printed
+      .replace(
+        'London, September 16, 2026',
+        'Upper Slaughter near Stow-on-the-Wold,\nGloucestershire, September 16, 2026'
+      )
+      .replace('\n12\n', '\nJob 2026-17 / Senior\nAnalyst / Hub\n');
+
+    expect(outOfOrder(wrapped, letterAnchors(long))).toEqual([]);
+    expect(
+      outOfOrder(wrapped.replace('\nJob 2026-17', ' Job 2026-17'), letterAnchors(long))
+    ).toContain('"Job 2026-17 / Senior Analyst / Hub" is missing');
+  });
+
   test('names the signature drawn before the close', () => {
     const signedEarly = printed.replace(
       'Kind regards,\nAda Lovelace',
@@ -106,7 +127,7 @@ describe("the parts of a printed letter, in a reader's order", () => {
       'Dear Anna Schmidt,',
       'I write about the analyst role.',
       'I built an engine-agnostic notation.',
-      { heading: 'Kind regards,' },
+      { lines: 'Kind regards,' },
       { following: 'Ada Lovelace' }
     ]);
   });
@@ -153,11 +174,11 @@ describe('the ink margins of a printed letter', () => {
 describe('the address in the window', () => {
   const MM = 72 / 25.4;
   /** One line of `pdftotext -bbox-layout`, placed in millimetres and written in points, as poppler writes it. */
-  const line = (text, top, left = 24.08, height = 4.27) => {
+  const line = (text, top, left = 24.08, height = 4.27, width = 3 * text.length) => {
     const words = text.split(' ');
     const at = (mm) => (mm * MM).toFixed(6);
     return [
-      `        <line xMin="${at(left)}" yMin="${at(top)}" xMax="${at(left + 3 * text.length)}" yMax="${at(top + height)}">`,
+      `        <line xMin="${at(left)}" yMin="${at(top)}" xMax="${at(left + width)}" yMax="${at(top + height)}">`,
       ...words.map(
         (word) =>
           `          <word xMin="${at(left)}" yMin="${at(top)}" xMax="${at(left + 3)}" yMax="${at(top + height)}">${word
@@ -280,6 +301,32 @@ describe('the address in the window', () => {
     expect(addressInWindow(bboxLines(page(...letterhead)), words)).toEqual([
       'the return line "Ada Lovelace · London" is not on the page',
       'the address "Beispiel GmbH, Anna Schmidt, Musterstraße 12 & Hof, 10115 Berlin" is not on the page as lines of its own'
+    ]);
+  });
+
+  // The return line wraps inside the field and fills the upper zone from its foot (the review of #151).
+  test('follows a return line wrapped upward inside the upper zone', () => {
+    const sender = {
+      ...words,
+      returnAddress:
+        'Ada Lovelace · Upper Slaughter near Stow-on-the-Wold, Gloucestershire, England'
+    };
+    const wrapped = page(
+      ...letterhead,
+      line('Ada Lovelace · Upper Slaughter near Stow-on-the-Wold,', 55.5, 24.08, 3.4, 78),
+      line('Gloucestershire, England', 58.9, 24.08, 3.4, 34),
+      ...words.recipient.map((text, index) => line(text, 62.8 + index * 4.5))
+    );
+    const risen = page(
+      ...letterhead,
+      line('Ada Lovelace · Upper Slaughter near Stow-on-the-Wold,', 43.8, 24.08, 3.4, 78),
+      line('Gloucestershire, England', 47.2, 24.08, 3.4, 34),
+      ...words.recipient.map((text, index) => line(text, 62.8 + index * 4.5))
+    );
+
+    expect(addressInWindow(bboxLines(wrapped), sender)).toEqual([]);
+    expect(addressInWindow(bboxLines(risen), sender)).toEqual([
+      '"Ada Lovelace · Upper Slaughter near Stow-on-the-Wold," is 43.8–47.2mm from the top, outside 45–62.7mm'
     ]);
   });
 

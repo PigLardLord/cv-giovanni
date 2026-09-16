@@ -14,11 +14,12 @@ const escapeForRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /**
  * @param {string} text - A text layer, from `pdftotext` or `pdftotext -raw`
- * @param {(string | { heading: string } | { following: string })[]} anchors - What the CV writes, in the order a
+ * @param {(string | { heading: string } | { lines: string } | { following: string })[]} anchors - What the CV writes, in the order a
  *   reader meets it. A string is found anywhere in the text, across line breaks; a heading only as a line of its own,
  *   so a word in the body is not taken for the section (the reviews of #156). A `following` is a string found only
  *   after the anchor before it, for text the document also writes earlier: a cover letter's signature repeats the
- *   name in its letterhead (#151). Everything else is found from the start, so a misplaced part cannot pass on a
+ *   name in its letterhead (#151). A `lines` is text that fills whole lines, one or several: a heading the layout may
+ *   wrap, such as a letter's date. Everything else is found from the start, so a misplaced part cannot pass on a
  *   later copy of its words
  * @returns {string[]} Every anchor the text lacks, or gives before the anchor it should follow
  */
@@ -36,6 +37,11 @@ export function outOfOrder(text, anchors) {
   const locate = (anchor, previous) => {
     if (typeof anchor.following === 'string') {
       return flat.indexOf(normalised(anchor.following), previous ? previous.at + 1 : 0);
+    }
+    if (typeof anchor.lines === 'string') {
+      const words = normalised(anchor.lines).split(' ').map(escapeForRegExp);
+      const whole = new RegExp(`(^|\\n)${words.join('[ \\n]')}(?=\\n|$)`).exec(lines);
+      return whole ? whole.index + whole[1].length : -1;
     }
     if (typeof anchor === 'string') {
       // An occurrence that begins a longer anchor is that anchor, not this one: "Mobile Developer" is not found at
@@ -55,7 +61,8 @@ export function outOfOrder(text, anchors) {
   const findings = [];
   let previous = null;
   for (const anchor of anchors) {
-    const name = typeof anchor === 'string' ? anchor : (anchor.heading ?? anchor.following);
+    const name =
+      typeof anchor === 'string' ? anchor : (anchor.heading ?? anchor.lines ?? anchor.following);
     const at = locate(anchor, previous);
     if (at < 0) {
       // Not after the part it follows, but in the text: it was drawn too early.

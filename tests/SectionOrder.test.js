@@ -155,6 +155,29 @@ describe('an anchor the document also writes earlier', () => {
   });
 });
 
+// A line the layout may wrap, a cover letter's date among them, is still whole lines of its own: it begins a line and ends
+// one, and nothing else shares them (the review of #151).
+describe('an anchor that fills whole lines', () => {
+  test('is found on one line, or wrapped over several', () => {
+    const anchors = ['Beispiel GmbH', { lines: 'Bad Liebenstein, September 16, 2026' }];
+
+    expect(outOfOrder('Beispiel GmbH\nBad Liebenstein, September 16, 2026', anchors)).toEqual([]);
+    expect(outOfOrder('Beispiel GmbH\nBad Liebenstein,\nSeptember 16, 2026', anchors)).toEqual([]);
+  });
+
+  test('is not found inside a longer line', () => {
+    expect(
+      outOfOrder('Call +49 12 345\n12 Main Street', ['Call', { lines: '12' }, { lines: 'Main' }])
+    ).toEqual(['"12" is missing', '"Main" is missing']);
+  });
+
+  test('names one drawn before the anchor it follows', () => {
+    expect(
+      outOfOrder('16 September\nBeispiel GmbH', ['Beispiel GmbH', { lines: '16 September' }])
+    ).toEqual(['"16 September" comes before "Beispiel GmbH"']);
+  });
+});
+
 describe('images in the PDF', () => {
   const list = (...rows) =>
     [

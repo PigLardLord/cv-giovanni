@@ -13,14 +13,14 @@
  *
  * Each is chosen so it cannot be found somewhere it is not. The address block is anchored by its first line, since a
  * later one, a country or a city, can also be in the sender's own letterhead; the date, the reference and the closing
- * are lines of their own, so a short reference is not found inside a phone number; and the signature, which repeats
- * the letterhead's name, is looked for only after the closing.
+ * fill whole lines of their own, one or, wrapped, several, so a short reference is not found inside a phone number;
+ * and the signature, which repeats the letterhead's name, is looked for only after the closing.
  * @param {object} letter - The letter's words, from `LetterContent.of(...).letter`
- * @returns {(string | { heading: string } | { following: string })[]} The anchors, parts the letter leaves out
+ * @returns {(string | { lines: string } | { following: string })[]} The anchors, parts the letter leaves out
  *   left out
  */
 export function letterAnchors(letter) {
-  const line = (text) => text && { heading: text };
+  const line = (text) => text && { lines: text };
   return [
     letter.sender.name,
     letter.sender.contact,
@@ -145,17 +145,18 @@ export function addressInWindow(lines, { returnAddress, recipient }) {
   let from = 0;
   const sender = collapse(returnAddress || '');
   if (sender) {
-    const at = lines.findIndex((line) => line.text === sender);
-    if (at < 0) findings.push(`the return line "${sender}" is not on the page`);
+    // Wrapped, it fills the upper zone from its foot: every line of it has to be inside.
+    const written = consecutiveLines(lines, 0, sender);
+    if (!written) findings.push(`the return line "${sender}" is not on the page`);
     else {
-      place(lines[at], ADDRESS_FIELD.remarks);
-      from = at + 1;
+      written.forEach((line) => place(line, ADDRESS_FIELD.remarks));
+      from = lines.indexOf(written.at(-1)) + 1;
     }
   }
 
   const target = collapse((recipient || []).join(' '));
   if (!target) return findings;
-  const address = addressLines(lines, from, target);
+  const address = consecutiveLines(lines, from, target);
   if (!address) {
     findings.push(`the address "${recipient.join(', ')}" is not on the page as lines of its own`);
     return findings;
@@ -165,7 +166,7 @@ export function addressInWindow(lines, { returnAddress, recipient }) {
 }
 
 /** The consecutive lines, from the first that can begin it, that together write the target and nothing more. */
-function addressLines(lines, from, target) {
+function consecutiveLines(lines, from, target) {
   const continues = (written) =>
     target.startsWith(written) &&
     (written.length === target.length || target[written.length] === ' ');
