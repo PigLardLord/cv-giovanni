@@ -848,10 +848,13 @@ body[data-layout='nerd'] .skill-list {
    reads by position, gives the period on the line above its title. Either way no period leaves its
    role, and every section stays in order.
 
-   The period never wraps, so the length of service is not printed here: "September 2015 – July
-   2018", the longest, measured 125.3pt of the column's 128pt, and "(2 years, 11 months)" could not
-   fit beside it. The role's identity stays with its first achievement inside the grid as well:
-   pushed to the foot of page one, the first role moved whole to page two with its heading. */
+   The length of service is not printed here: "September 2015 – July 2018", the longest period today,
+   measures 125.3pt of the column's 128pt, and "(2 years, 11 months)" could not sit beside it. A longer
+   period wraps inside the column rather than running under the title, and spans the role's first two
+   rows so its second line sits beside the summary instead of pushing it down. Held to one line with
+   nowrap, "September 2015 – December 2025" printed across the title (the code review of #156). The
+   role's identity stays with its first achievement inside the grid as well: pushed to the foot of page
+   one, the first role moved whole to page two with its heading. */
 body[data-layout='nerd'] .job-entry {
   display: grid !important;
   grid-template-columns: 128pt minmax(0, 1fr) !important;
@@ -876,11 +879,10 @@ body[data-layout='nerd'] .job-header {
 
 body[data-layout='nerd'] .job-period {
   grid-column: 1 !important;
-  grid-row: 1 !important;
+  grid-row: 1 / span 2 !important;
   order: -1 !important;
   align-self: baseline !important;
   margin: 0 !important;
-  white-space: nowrap !important;
   font-variant-numeric: tabular-nums !important;
   color: #555 !important;
 }
