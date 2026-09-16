@@ -8,6 +8,7 @@ import { AtsTextParser } from '../core/AtsTextParser.js';
 import { RecoveryDiff } from '../core/RecoveryDiff.js';
 import { AtsScore, BANDS } from '../core/AtsScore.js';
 import { AtsReport } from '../core/AtsReport.js';
+import { catalogueTranslator } from '../scripts/lib/printed-letter.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const document = new CvDocument(
@@ -124,6 +125,66 @@ describe('a loss is never rounded up to full marks', () => {
     expect(AtsReport.figure(79.49999999999999)).toBe('79.5');
     expect(AtsReport.figure(79.99999999999999)).toBe('80');
     expect(AtsReport.figure(79.9)).toBe('79.9');
+  });
+});
+
+// The print #179 merged writes the Pisa degree's scope after its name. Compared as the document prints it, a parser
+// that returns that line lost nothing, and the number says so; one that loses part of it costs, and the report names it.
+describe('a degree scored as the document prints it', () => {
+  const t = catalogueTranslator({
+    cv: JSON.parse(readFileSync(`${root}locales/en/cv.json`, 'utf8'))
+  });
+  const words = { locale: 'en', credits: (count) => t('cv:education.credits', { count }) };
+  const print = readFileSync(`${root}tests/fixtures/ats/page-print-nerd.txt`, 'utf8');
+  const [pisa] = document.education;
+  const scored = (text) => {
+    const diff = RecoveryDiff.diff(document, AtsTextParser.parse(text), { words });
+    const score = AtsScore.compose(diff);
+    return { diff, score, markdown: AtsReport.render(score, [{ artefact: 'nerd.pdf', diff }]) };
+  };
+
+  test('recovered with the scope it printed, it costs nothing and reads full marks', () => {
+    const { score, markdown } = scored(print);
+
+    expect(score.bands.fidelity.parts.education).toBe(BANDS.fidelity.parts.education);
+    expect(score.points).toBe(80);
+    expect(markdown).toContain('**Recoverability 80/80**');
+    expect(markdown).not.toMatch(/- education \d+, degree:/);
+  });
+
+  test('recovered cut short, it costs half its credit, and the report says what was lost', () => {
+    const cut = "First Level Professional Master's Programme";
+    const { score, markdown } = scored(
+      print.replace(
+        "First Level Professional Master's Programme in Mobile Applications\nDevelopment (60 ECTS)",
+        cut
+      )
+    );
+
+    expect(score.points).toBe(79.5);
+    expect(markdown).toContain('**Recoverability 79.5/80**');
+    expect(markdown).toContain(
+      `- education 1, degree: partial — written "${pisa.degree} (60 ECTS)"; recovered "${cut}"`
+    );
+  });
+
+  test('recovered without the scope it printed, it is a loss too', () => {
+    const { score, markdown } = scored(print.replace('Development (60 ECTS)', 'Development'));
+
+    expect(score.points).toBeLessThan(80);
+    expect(markdown).toContain(
+      `- education 1, degree: partial — written "${pisa.degree} (60 ECTS)"`
+    );
+  });
+
+  // The rule is printed where the weights are, with its reason: a number that forgives something must say so.
+  test('the report states what a degree is compared against, and why', () => {
+    const composed = scored(print).markdown.split('## How the number is composed')[1];
+
+    expect(composed).toMatch(/compared as the document prints it/);
+    expect(composed).toMatch(/degreeLine/);
+    expect(composed).toMatch(/lost nothing the document said/);
+    expect(composed).toMatch(/cut to one decimal/);
   });
 });
 

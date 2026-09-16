@@ -6,16 +6,23 @@ import { fileURLToPath } from 'node:url';
 import { CvDocument } from '../domain/CvDocument.js';
 import { AtsTextParser } from '../core/AtsTextParser.js';
 import { RecoveryDiff } from '../core/RecoveryDiff.js';
+import { catalogueTranslator } from '../scripts/lib/printed-letter.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const document = new CvDocument(
   JSON.parse(readFileSync(`${root}profiles/general/en.json`, 'utf8'))
 );
-const diffOf = (fixture) =>
+const diffOf = (fixture, options) =>
   RecoveryDiff.diff(
     document,
-    AtsTextParser.parse(readFileSync(`${root}tests/fixtures/ats/${fixture}.txt`, 'utf8'))
+    AtsTextParser.parse(readFileSync(`${root}tests/fixtures/ats/${fixture}.txt`, 'utf8')),
+    options
   );
+// How the page writes a count of credits in English: the catalogue's words, with Intl writing the number (#48).
+const t = catalogueTranslator({
+  cv: JSON.parse(readFileSync(`${root}locales/en/cv.json`, 'utf8'))
+});
+const words = { locale: 'en', credits: (count) => t('cv:education.credits', { count }) };
 
 describe('the ladder', () => {
   test.each([
@@ -180,7 +187,7 @@ test('a recovered period reads exact though the document wrote its length after 
 describe.each(['page-print-spotlight', 'page-print-nerd'])(
   'the page as %s prints it',
   (fixture) => {
-    const diff = diffOf(fixture);
+    const diff = diffOf(fixture, { words });
 
     test('every role keeps its title, employer and period', () => {
       expect(
@@ -200,16 +207,11 @@ describe.each(['page-print-spotlight', 'page-print-nerd'])(
       );
     });
 
-    // A degree that states its credits prints them after its name, "… Development (60 ECTS)" (#48), and a parser
-    // that knows nothing of the profile keeps them in the degree: a partial degree, half its credit, and said here
-    // rather than hidden by a diff that forgives it.
-    test('every degree keeps its school, and one that states its credits reads partial', () => {
+    // A degree that states its credits prints them after its name, "… Development (60 ECTS)" (#48). It is compared as
+    // the document prints it, so a parser that returns that line lost nothing the document said (#186).
+    test('every degree keeps its school, and one that states its credits reads exact', () => {
       expect(diff.education).toEqual(
-        document.education.map((item) => ({
-          degree: item.credits ? 'partial' : 'exact',
-          school: 'exact',
-          adjacent: true
-        }))
+        document.education.map(() => ({ degree: 'exact', school: 'exact', adjacent: true }))
       );
     });
 
@@ -219,3 +221,51 @@ describe.each(['page-print-spotlight', 'page-print-nerd'])(
     });
   }
 );
+
+// A degree is compared as the document prints it: its name, and the scope it states after the name, in the words the
+// page writes it with (#186). The scope that printed is part of what the document said, so losing it is a loss.
+describe('a degree is compared against the line the document prints', () => {
+  const print = readFileSync(`${root}tests/fixtures/ats/page-print-nerd.txt`, 'utf8');
+  const [pisa] = document.education;
+  const diffOfText = (text, options = { words }) =>
+    RecoveryDiff.diff(document, AtsTextParser.parse(text), options);
+
+  test('recovered with the scope it printed, it lost nothing', () => {
+    expect(diffOfText(print).education[0].degree).toBe('exact');
+  });
+
+  test('its evidence quotes the printed line, scope included', () => {
+    expect(diffOfText(print).evidence['education.0.degree'].written).toBe(
+      `${pisa.degree} (60 ECTS)`
+    );
+  });
+
+  test('recovered without the scope it printed, it is partial', () => {
+    const text = print.replace('Development (60 ECTS)', 'Development');
+
+    expect(diffOfText(text).education[0].degree).toBe('partial');
+  });
+
+  test('recovered cut short, it is partial', () => {
+    const text = print.replace(
+      "First Level Professional Master's Programme in Mobile Applications\nDevelopment (60 ECTS)",
+      "First Level Professional Master's Programme"
+    );
+
+    expect(text).not.toBe(print);
+    expect(diffOfText(text).education[0].degree).toBe('partial');
+  });
+
+  test('a degree that states no scope is compared by its name alone', () => {
+    expect(diffOfText(print).education[1].degree).toBe('exact');
+  });
+
+  // Without the words the page wrote the scope in, the comparison cannot build the printed line, and a printed scope
+  // costs: the default errs toward a loss, never toward full marks.
+  test('without the words the scope was written in, a printed scope reads as a loss', () => {
+    expect(diffOfText(print, {}).education[0].degree).toBe('partial');
+    expect(RecoveryDiff.diff(document, AtsTextParser.parse(print)).education[0].degree).toBe(
+      'partial'
+    );
+  });
+});

@@ -104,10 +104,11 @@ self-rating into the main evidence of competence.
   closing it, reads as a period, so a scope written after the period (`School (2014 – 2016) · 60 ECTS`)
   gave main's parser a wrong school and no period for that degree, and in content-stream order one
   record for both degrees, as the product review on #179 measured. After the name, main's parser
-  recovers every degree, school and period in every reading order; it keeps the scope in the degree,
-  which the ATS audit grades partial, half a degree's credit. The print audit's "degree beside its
-  school" expects exactly the scope between the two (`scripts/lib/degree-lines.mjs`). The wording is
-  the candidate's call.
+  recovers every degree, school and period in every reading order, and keeps the scope in the degree.
+  The ATS audit compares a degree as the document prints it, scope included: a parser that returns the
+  printed line lost nothing, so the scope costs nothing, and a degree recovered without it, or cut
+  short, is graded partial (#186). The print audit's "degree beside its school" expects exactly the
+  scope between the two (`scripts/lib/degree-lines.mjs`). The wording is the candidate's call.
 - **A scope qualifier uses credits** — and, if ever, the issuer's legal title — **never a label that is
   itself a degree type in the target market:** no _continuing-education master_, no _postgraduate
   diploma_, each of which names a qualification of its own to a German reader.

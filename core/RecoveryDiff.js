@@ -1,5 +1,6 @@
 import { readableAddress } from '../domain/ReadableUrl.js';
 import { fold } from '../domain/fold.js';
+import { degreeLine } from '../domain/EntryLines.js';
 
 /** Collapse the differences that do not change what a string says. */
 const NORMALISE = {
@@ -32,6 +33,10 @@ const GRADED = ['identity', 'experience', 'education', 'skills', 'spokenLanguage
 /** True for a value that holds nothing to quote: none, an empty string, or an empty list. */
 const nothing = (value) =>
   value === null || value === undefined || value === '' || (Array.isArray(value) && !value.length);
+
+/** A line's pieces, as `domain/EntryLines.js` builds them, as the text they print. */
+const lineText = (pieces) =>
+  pieces.map((piece) => (typeof piece === 'string' ? piece : piece.text)).join('');
 
 /** True when the shorter string is a whole-word run inside the longer. */
 function overlaps(a, b) {
@@ -76,9 +81,13 @@ export class RecoveryDiff {
    * Compare a recovered CV against the document it came from.
    * @param {Object} document - A CvDocument
    * @param {Object} recovered - A RecoveredCv
+   * @param {Object} [options]
+   * @param {{ credits?: (count: string) => string, locale?: string }} [options.words] - How the document wrote a
+   *   count of credits, as `degreeLine` takes them. Without them a degree's printed scope cannot be rebuilt, and a
+   *   scope the document printed reads as a loss: the default errs toward a loss, never toward full marks.
    * @returns {Object} Verdicts, by field and by structure
    */
-  static diff(document, recovered) {
+  static diff(document, recovered, { words = {} } = {}) {
     const value = (field) => (field && field.value !== undefined ? field.value : field);
 
     // What was written and what came back, kept beside each verdict under the verdict's path, so the report can
@@ -137,7 +146,7 @@ export class RecoveryDiff {
       sections: RecoveryDiff.sections(document, recovered),
       experience: RecoveryDiff.experience(document, recovered, grading),
       roleOrderMonotonic: recovered.roleOrderMonotonic,
-      education: RecoveryDiff.education(document, recovered, grading),
+      education: RecoveryDiff.education(document, recovered, { ...grading, words }),
       skills: RecoveryDiff.skills(document, recovered, grading),
       spokenLanguages: RecoveryDiff.spokenLanguages(document, recovered, grading),
       unexpected: RecoveryDiff.unexpected(document, recovered),
@@ -224,13 +233,24 @@ export class RecoveryDiff {
     });
   }
 
-  /** Per degree: the degree, the school, and whether they stayed adjacent. */
-  static education(document, recovered, { grade }) {
+  /**
+   * Per degree: the degree, the school, and whether they stayed adjacent.
+   *
+   * A degree is compared as the document prints it, not as the profile's `degree` field holds it: its name and the
+   * scope it states after the name, "… Development (60 ECTS)", built by `degreeLine`, the function the page prints it
+   * with (#48). A parser that returns the printed line lost nothing the document said, so a stated scope costs
+   * nothing; one that returns the name without the printed scope, or cuts it short, lost part of it (#186).
+   */
+  static education(document, recovered, { grade, words }) {
     const value = (field) => (field && field.value !== undefined ? field.value : null);
     return document.education.map((item, index) => {
       const entry = recovered.education[index];
       return {
-        degree: grade(['education', index, 'degree'], item.degree, value(entry?.degree)),
+        degree: grade(
+          ['education', index, 'degree'],
+          lineText(degreeLine(item, words)),
+          value(entry?.degree)
+        ),
         school: grade(['education', index, 'school'], item.school, value(entry?.school)),
         adjacent: Boolean(entry?.degree && entry?.school)
       };

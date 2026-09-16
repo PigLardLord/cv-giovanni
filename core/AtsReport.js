@@ -49,6 +49,8 @@ export class AtsReport {
       `| Content fidelity | ${BANDS.fidelity.weight} | Strings surviving, minus anything recovered that was never written. |`,
       `| Advert evidence | ${BANDS.advert.weight} | Required terms evidenced in experience rather than listed. |`,
       '',
+      ...AtsReport.rules(),
+      '',
       'Regenerate with `npm run audit:ats`.'
     ].join('\n');
   }
@@ -105,6 +107,21 @@ export class AtsReport {
       );
     }
     return lines;
+  }
+
+  /**
+   * What a field is compared against, and how the number is printed, each with its reason (#186).
+   *
+   * Printed beside the weights, because each decides what a loss costs as much as a weight does, and a number that
+   * forgives something without saying so reads as a pass.
+   * @returns {string[]} Markdown lines
+   */
+  static rules() {
+    return [
+      '**A degree is compared as the document prints it.** Its name and the scope it states after the name, "… Development (60 ECTS)", are built by `degreeLine` in `domain/EntryLines.js`, the function the page prints the degree with, in the catalogue\'s words. A parser that returns that line lost nothing the document said, so a stated scope costs nothing. A degree recovered without the scope it printed, or cut short, lost part of what the document said, and is graded partial.',
+      '',
+      '**The number is printed as computed:** a whole number as one, a fraction cut to one decimal and never rounded, so a partial loss never reads as full marks. Every field graded partial, wrong or lost is listed under _What did not come back_.'
+    ];
   }
 
   /**
