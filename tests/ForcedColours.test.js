@@ -121,4 +121,31 @@ describe("the current layout's link in forced colours", () => {
       currentLayoutMarked([link('Nerd Mode', false)]).checks.currentMarkedInForcedColours
     ).toBe(true);
   });
+
+  // A check that judged nothing must not read as a pass: a hidden current link is not a page without one.
+  test('a current link that is not shown fails, rather than passing as nothing to mark', () => {
+    const { checks, findings } = currentLayoutMarked([
+      { ...link('Impact Spotlight', true), display: 'none' },
+      link('Nerd Mode', false),
+      link('Technical Profile', false)
+    ]);
+
+    expect(checks.currentMarkedInForcedColours).toBe(false);
+    expect(findings.currentUnmarkedInForcedColours).toEqual([
+      `the current layout's link, "Impact Spotlight", is not shown, so nothing marks it`
+    ]);
+  });
+
+  test('every link carrying aria-current is judged, not only the first', () => {
+    const { checks, findings } = currentLayoutMarked([
+      link('Nerd Mode', true, true),
+      link('Impact Spotlight', true),
+      link('Technical Profile', false)
+    ]);
+
+    expect(checks.currentMarkedInForcedColours).toBe(false);
+    expect(findings.currentUnmarkedInForcedColours).toEqual([
+      `the current layout's link, "Impact Spotlight", looks like the others in forced colours`
+    ]);
+  });
 });
