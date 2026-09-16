@@ -15,11 +15,20 @@
 export const PRINTED_PAGE = { bottomMargin: 33, bodyLine: 11 * 1.4 };
 
 const attribute = (tag, name) => Number(new RegExp(`\\b${name}="([\\d.]+)"`).exec(tag)?.[1]);
+const ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
+const decoded = (text) =>
+  text.replace(/&(#x[\da-f]+|#\d+|[a-z]+);/gi, (entity, name) => {
+    if (name[0] !== '#') return ENTITIES[name] ?? entity;
+    const hex = name[1].toLowerCase() === 'x';
+    return String.fromCodePoint(hex ? parseInt(name.slice(2), 16) : Number(name.slice(1)));
+  });
 
 /**
- * Every page of an extract, with the vertical extent of each line on it.
+ * Every page of an extract, with the box of each line on it and the words it carries. A line is told by what it says
+ * as well as by where it is: the running footer is left out of the room by its text (#158).
  * @param {string} extract - What `pdftotext -bbox-layout` wrote
- * @returns {{ width: number, height: number, lines: { top: number, bottom: number }[] }[]} The pages
+ * @returns {{ width: number, height: number, lines: { top: number, bottom: number, left: number, right: number,
+ *   text: string }[] }[]} The pages, each line's words joined by single spaces
  */
 export function bboxPages(extract) {
   return extract
@@ -28,9 +37,15 @@ export function bboxPages(extract) {
     .map((page) => ({
       width: attribute(page, 'width'),
       height: attribute(page, 'height'),
-      lines: [...page.matchAll(/<line\b[^>]*>/g)].map(([tag]) => ({
+      lines: [...page.matchAll(/<line\b([^>]*)>([\s\S]*?)<\/line>/g)].map(([, tag, body]) => ({
         top: attribute(tag, 'yMin'),
-        bottom: attribute(tag, 'yMax')
+        bottom: attribute(tag, 'yMax'),
+        left: attribute(tag, 'xMin'),
+        right: attribute(tag, 'xMax'),
+        text: [...body.matchAll(/<word\b[^>]*>([^<]*)<\/word>/g)]
+          .map(([, word]) => decoded(word).trim())
+          .filter(Boolean)
+          .join(' ')
       }))
     }));
 }
@@ -40,8 +55,10 @@ export function bboxPages(extract) {
  *
  * Measured from the lowest glyph box poppler gives, which is what the hand measurements of #159 used. A page is
  * tight when less than one body line of running text fits in it: the next line added to that page has nowhere to go.
- * Every line counts, one in the bottom margin too: the printed page puts nothing there on purpose, so a line there
- * is text running past the page, and its room is negative (the code review of #168).
+ * Every line it is given counts, one in the bottom margin too, so a line there is text running past the page, and its
+ * room is negative (the code review of #168). The one line the printed page puts there on purpose is the running
+ * footer, from page 2 on (#158): the audit leaves it out by what it says before measuring, with
+ * `withoutRunningFooter`, and never by where it is.
  * @param {{ height: number, lines: { top: number, bottom: number }[] }} page - One page, from `bboxPages`
  * @param {{ bottomMargin: number, bodyLine: number }} settings - The page's bottom margin and one body line, in points
  * @returns {{ points: number, lines: number, tight: boolean }} The room left

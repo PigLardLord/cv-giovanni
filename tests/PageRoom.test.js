@@ -22,10 +22,26 @@ describe('the room left on a printed page', () => {
       width: 595.92,
       height: 841.92,
       lines: [
-        { top: 40, bottom: 52 },
-        { top: 60, bottom: 72 }
+        { top: 40, bottom: 52, left: 39, right: 300, text: 'Text' },
+        { top: 60, bottom: 72, left: 39, right: 300, text: 'Text' }
       ]
     });
+  });
+
+  // The running footer is told from the page's own lines by what it says, not by where it is (#158), so a line carries
+  // its words as the page printed them.
+  test("reads a line's words as the page printed them, joined by single spaces", () => {
+    const words = ['Ada', 'Lovelace', '&amp;', '&quot;Countess&quot;', '&#x2F;', '&lt;2&gt;']
+      .map(
+        (word, index) =>
+          `<word xMin="${index}" yMin="1" xMax="${index + 1}" yMax="2">${word}</word>`
+      )
+      .join('\n  ');
+    const [read] = bboxPages(
+      extract(page(`<line xMin="39" yMin="1" xMax="90" yMax="2">\n  ${words}\n</line>`))
+    );
+
+    expect(read.lines[0].text).toBe('Ada Lovelace & "Countess" / <2>');
   });
 
   test('is the space between the lowest line and the bottom margin, in points and in body lines', () => {
@@ -48,7 +64,8 @@ describe('the room left on a printed page', () => {
   });
 
   // pdfmake's room check skipped a line in the bottom margin, where it printed the day it built the PDF. The printed
-  // page puts nothing there, so a line there is text running past the page (the code review of #168).
+  // page puts only its running footer there, which the audit leaves out by what it says before measuring (#158), so any
+  // other line there is text running past the page (the code review of #168).
   test('a line past the bottom margin is text running off the page: negative room, and tight', () => {
     const [overflowing] = bboxPages(extract(page(line(700, 712), line(815, 830))));
 
