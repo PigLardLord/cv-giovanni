@@ -371,12 +371,15 @@ authored. The print audit asks _did my string survive_; this one asks _in the ri
 right neighbours, in the right order_, which is the question a recruiter's search puts to a parsed
 record. It reports **Recoverability**, never a score: the weights are in `core/AtsScore.js` with
 the reason for each, the report prints them, and it says plainly that no vendor produces the
-number and no employer will ever see it. The score gates nothing; four floors do — a document that
-did not segment, a lost email, a role severed from its title or period, and a chronology that does
-not run one way. The floors are checked in two reading orders: poppler's, which the score is computed
-on, and the content stream's (`pdftotext -raw`), which PDFBox and Tika read by default. They fail
-differently: on the two-column browser print, poppler's order kept the contacts above the career, while
-the content stream drew the skills first and the name after the first role, and lost the email (#147).
+number and no employer will ever see it. The number is printed as computed, a fraction cut to one
+decimal and never rounded, and every field graded partial, wrong or lost is listed with what was
+written beside what came back: rounded, a degree graded partial read 80/80, and the report named
+nothing (#186). The score gates nothing; four floors do — a document that did not segment, a lost
+email, a role severed from its title or period, and a chronology that does not run one way. The
+floors are checked in two reading orders: poppler's, which the score is computed on, and the content
+stream's (`pdftotext -raw`), which PDFBox and Tika read by default. They fail differently: on the
+two-column browser print, poppler's order kept the contacts above the career, while the content
+stream drew the skills first and the name after the first role, and lost the email (#147).
 
 `build:pdf` and `audit:screen` need a Chrome or Chromium binary. They look for one on PATH, in the
 usual install locations and in the Playwright cache; `CHROME_PATH` overrides. When they find none
