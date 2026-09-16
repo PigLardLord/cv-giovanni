@@ -89,12 +89,13 @@ CI builds, audits and publishes its own.
   Report: `docs/PRINT_AUDIT.md`.
 - `npm run audit:ats` parses the generated PDF with no knowledge of the profile and diffs what it recovered against
   what was written. It reports Recoverability, never a pass mark. Report: `docs/ATS_AUDIT.md`.
-- `npm run audit:screen` selects the CV in headless Chrome, at a desktop and a phone width, and checks what a reader
-  copies: the CV whole, no two words welded together, every skill under its own category, every language with its
-  level, and nothing the data did not write. It checks that the first screen holds still while it loads, and that
-  the Download PDF link does its job: hidden when there is no PDF, on the first screen, tall enough to tap on a
-  phone, its label on one line, and a focus ring a keyboard user can see. Like the build it needs Chrome, and it exits 2
-  when it finds none, or when `npm run build:pdf` has not written the manifest that offers the download.
+- `npm run audit:screen` selects the CV in headless Chrome, at a desktop, a tablet and two phone widths, and checks
+  what a reader copies: the CV whole, no two words welded together, every skill under its own category, every
+  language with its level, and nothing the data did not write. It checks that the first screen holds still while it
+  loads, and that the Download PDF link, the page's one download control, does its job: hidden when there is no
+  PDF, on the first screen, shown once, tall enough to tap on a phone, its label on one line, and a focus ring a
+  keyboard user can see. Like the build it needs Chrome, and it exits 2 when it finds none, or when
+  `npm run build:pdf` has not written the manifest that offers the download.
   Report: `docs/SCREEN_AUDIT.md`.
 
 ## Applications

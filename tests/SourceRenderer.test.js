@@ -80,6 +80,35 @@ describe('SourceRenderer', () => {
     expect(code().textContent).not.toMatch(/\blet\b|struct|MARK|"|title:/);
   });
 
+  // An escape is syntax like a quote: drawn, never selected. The value between the quotes stays the profile's, and a
+  // line break Swift writes as \n stays in the text, out of sight, so a copy does not weld two words (#160).
+  test('draws the escapes inside a value, and keeps the value as the profile writes it', () => {
+    fedTheModel(new SourceRenderer(i18n)).render(document, {
+      ...profile,
+      name: 'Ada "The Countess" Lovelace',
+      languages: [{ name: 'Italian', level: 'Native\nfluent' }]
+    });
+
+    const name = code().querySelector('h1');
+    expect(name.textContent).toBe('Ada "The Countess" Lovelace');
+    expect([...name.querySelectorAll('[data-code]')].map((span) => span.dataset.code)).toEqual([
+      '\\',
+      '\\'
+    ]);
+    expect(
+      [...name.querySelectorAll('[data-code]')].every(
+        (span) => span.getAttribute('aria-hidden') === 'true' && span.textContent === ''
+      )
+    ).toBe(true);
+
+    const level = [...code().querySelectorAll('.source-line')].find((line) =>
+      line.textContent.startsWith('Italian')
+    );
+    expect(level.textContent).toBe('Italian: Native\nfluent');
+    expect(level.querySelector('[data-code="\\\\n"]')).not.toBeNull();
+    expect(level.querySelector('.tok-unseen').textContent).toBe('\n');
+  });
+
   test('copies a line of names as a list, and a language as a name and its level', () => {
     render();
 

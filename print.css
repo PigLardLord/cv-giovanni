@@ -149,7 +149,6 @@ body[data-layout='technical'] .container {
 
 /* Nerd Mode's editor is a screen rendering of the same profile; paper prints the base DOM. The portrait is
    not printed at all (#144): a picture is the one thing on the page no parser can read. */
-.print-footer,
 .print-button,
 .source-view,
 .profile-image-wrapper,
