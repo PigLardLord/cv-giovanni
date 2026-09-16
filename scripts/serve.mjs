@@ -3,6 +3,14 @@ import { createServer } from 'node:http';
 import { createReadStream, realpath, realpathSync } from 'node:fs';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { LocalProfiles } from '../core/LocalProfiles.js';
+import { Applications } from '../core/Applications.js';
+import { ProfileStore } from '../core/ProfileStore.js';
+import { handleApi } from '../adapters/LocalApi.js';
+import { NodeProjectFiles } from '../adapters/NodeProjectFiles.js';
+import { NodeScripts } from '../adapters/NodeScripts.js';
+import { ClaudeCliInference } from '../adapters/ClaudeCliInference.js';
+import { AnthropicApiInference, keyFile } from '../adapters/AnthropicApiInference.js';
+import { Inference } from '../core/Inference.js';
 import { extname, isAbsolute, join, normalize, relative, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
@@ -117,6 +125,45 @@ export function listenSettings(args = [], env = {}) {
   return { port, host: network ? '0.0.0.0' : '127.0.0.1', network };
 }
 
+/**
+ * The services the local API calls (#21), over this project's files and scripts: the services and the
+ * scripts the command line uses, so the browser and a shell cannot come to disagree. Inference (#22) asks the
+ * claude CLI first and an API key second; the key is kept outside the project, and `keyFile` refuses a
+ * place for it inside.
+ * @param {string} root - The project root
+ * @param {{ claude?: string, env?: object, apiKeyFile?: string }} [options] - The claude executable, the
+ *   environment the key's place is read from, and the key's file itself
+ * @returns {{ profile: ProfileStore, applications: Applications, inference: Inference }} The services
+ */
+export function localServices(
+  root,
+  { claude = 'claude', env = process.env, apiKeyFile = keyFile({ env, projectRoot: root }) } = {}
+) {
+  const files = new NodeProjectFiles(root);
+  return {
+    profile: new ProfileStore(files),
+    applications: new Applications({ files, scripts: new NodeScripts(root) }),
+    inference: new Inference([
+      new ClaudeCliInference({ command: claude }),
+      new AnthropicApiInference({ file: apiKeyFile })
+    ])
+  };
+}
+
+/**
+ * Whether a request comes from the page this server serves, as far as the request says: an `Origin` other
+ * than this server's own, or a fetch the browser marks as from another site, does not. Another port on
+ * this machine is another site's page to the API, although the browser calls it same-site and sends it the
+ * key's cookie.
+ * @param {import('node:http').IncomingMessage} request - The request
+ * @returns {boolean} Whether nothing in it says it came from elsewhere
+ */
+export function isSameOrigin({ headers = {} }) {
+  const site = headers['sec-fetch-site'];
+  if (site !== undefined && site !== 'same-origin' && site !== 'none') return false;
+  return headers.origin === undefined || headers.origin === `http://${headers.host}`;
+}
+
 const types = new Map(
   Object.entries({
     '.html': 'text/html; charset=utf-8',
@@ -221,12 +268,14 @@ async function localManifest(root) {
  * @param {(request: import('node:http').IncomingMessage) => boolean} [options.isLocal] - How to tell a
  *   request from this machine; tests hand in their own
  * @param {string} [options.key] - This run's key, from `previewKey`
+ * @param {object} [options.services] - What the local API calls; by default this project's own
  * @returns {import('node:http').Server} A server, not yet listening
  */
 export function createStaticServer(
   root = projectRoot,
-  { isLocal = isFromThisMachine, key = previewKey() } = {}
+  { isLocal = isFromThisMachine, key = previewKey(), services } = {}
 ) {
+  let api = services;
   const realRoot = realpathSync.native(root);
   const notFound = (response) =>
     response.writeHead(404, { 'Cache-Control': 'no-store' }).end('Not found');
@@ -278,6 +327,27 @@ export function createStaticServer(
     // Both, or nothing private: a request this machine's browser sent directly, which refuses a proxy
     // and another site's name, and the key it was handed at start, which refuses a raw relay (#71).
     const trusted = isLocal(request) && isKey(cookieValue(request.headers.cookie, cookieName), key);
+
+    // The local app's API (#21) writes the CV and runs scripts, so it answers exactly whom applications/
+    // answers, and only from the page this server serves. Anyone else finds nothing there.
+    if (address.pathname === '/api' || address.pathname.startsWith('/api/')) {
+      if (!trusted || !isSameOrigin(request)) {
+        notFound(response);
+        return;
+      }
+      try {
+        api ??= localServices(root);
+      } catch (error) {
+        console.error(`local API: ${error.message}`);
+        response
+          .writeHead(500, { 'Cache-Control': 'no-store' })
+          .end('The local app could not start: the terminal running it says why.');
+        return;
+      }
+      await handleApi(request, response, api);
+      return;
+    }
+
     if (!mayServe(relative(root, target), trusted)) {
       notFound(response);
       return;
@@ -335,6 +405,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     console.log(`  http://localhost:${port}/index.html?layout=nerd`);
     console.log(
       `  a CV from applications/ needs this run's key, once: http://localhost:${port}/index.html?key=${key}`
+    );
+    console.log(
+      `  edit the general CV, on this machine: http://localhost:${port}/editor.html?key=${key}`
     );
   });
 }

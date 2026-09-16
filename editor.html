@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Edit the CV</title>
+    <link rel="stylesheet" href="vendor/fonts/fonts.css?v=20260911-fonts1" />
+    <link rel="stylesheet" href="editor.css" />
+    <script type="module" defer src="editor.js"></script>
+  </head>
+  <body class="editor-page">
+    <!-- The general profile as a form, beside the CV it renders (#23). It works only from npm run serve on
+         this machine, with the run's key, and it is not published with the site. -->
+    <header class="editor-bar">
+      <h1>Edit the CV</h1>
+      <p class="editor-status" role="status" aria-live="polite" data-editor-status></p>
+      <button class="editor-save" type="button" data-editor-save>Save</button>
+    </header>
+    <main class="editor">
+      <form class="editor-form" data-editor-form novalidate></form>
+      <section class="editor-preview" aria-label="Preview">
+        <nav class="editor-layouts" aria-label="Preview layout" data-editor-layouts></nav>
+        <iframe title="The CV as it renders" data-editor-preview></iframe>
+      </section>
+    </main>
+  </body>
+</html>

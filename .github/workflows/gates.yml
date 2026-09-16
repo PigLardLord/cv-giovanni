@@ -77,8 +77,12 @@ jobs:
         run: |
           # applications/ is gitignored, so a checkout never has one. Make sure rather than trust it.
           test ! -e applications
-          rsync -a --exclude='.*' --exclude=node_modules --exclude=generated/qa ./ "$RUNNER_TEMP/site/"
+          # The editor (#23) writes the CV through the local API, which only npm run serve answers on the
+          # owner's machine. Published, it could only fail, so the site leaves it out.
+          rsync -a --exclude='.*' --exclude=node_modules --exclude=generated/qa --exclude=editor.html --exclude=editor.js --exclude=editor.css --exclude=editor/ ./ "$RUNNER_TEMP/site/"
           test ! -e "$RUNNER_TEMP/site/applications"
+          test ! -e "$RUNNER_TEMP/site/editor.html"
+          test ! -e "$RUNNER_TEMP/site/editor"
           ls "$RUNNER_TEMP/site"
 
       - name: Hand the site to GitHub Pages

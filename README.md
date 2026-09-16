@@ -90,8 +90,10 @@ The two artefacts fail in different ways, so each is measured on its own, and th
   what was written. It reports Recoverability, never a pass mark. Report: `docs/ATS_AUDIT.md`.
 - `npm run audit:screen` selects the CV in headless Chrome, at a desktop and a phone width, and checks what a reader
   copies: the CV whole, no two words welded together, every skill under its own category, every language with its
-  level, and nothing the data did not write. Like the print audit it exits 2 when it finds no browser. Report:
-  `docs/SCREEN_AUDIT.md`.
+  level, and nothing the data did not write. It checks that the first screen holds still while it loads, and that
+  the Download PDF link does its job: hidden when there is no PDF, on the first screen, tall enough to tap on a
+  phone, its label on one line, and a focus ring a keyboard user can see. Like the print audit it exits 2 when it finds no browser.
+  Report: `docs/SCREEN_AUDIT.md`.
 
 ## Applications
 
@@ -99,6 +101,38 @@ A CV tailored to a named employer lives in `applications/`, which git ignores: t
 committed application would publish where the candidate applied. `npm run build:pdf -- --profile=<path>` builds
 from that profile into a folder beside it, the audits take the same `--profile`, and a `letter` in the profile
 adds a cover letter. A tailored CV leaves the machine only as an attached PDF.
+
+## The local app
+
+`npm run serve` also answers the local app's API, the first step away from driving the pipeline from a shell. Each
+endpoint hands its request to one service in `core/` and answers with what that service returns, so the browser and
+the command line run the same code:
+
+| Endpoint                               | What it does                                                                           |
+| -------------------------------------- | -------------------------------------------------------------------------------------- |
+| `GET /api/profile`                     | Reads `profiles/general/en.json`                                                       |
+| `PUT /api/profile`                     | Writes it, refusing a profile without the shape the renderers read, with every problem |
+| `GET /api/inference`                   | Says which backend a run would use, and how it is charged, before any run              |
+| `POST /api/applications`               | Creates an application: the advert, and a copy of the general profile to tailor        |
+| `POST /api/applications/<name>/match`  | Runs `npm run audit:ats` with the application's profile and advert                     |
+| `POST /api/applications/<name>/build`  | Runs `npm run build:pdf` with the application's profile                                |
+| `POST /api/applications/<name>/tailor` | Answers 501 until the application flow is built                                        |
+
+It answers only this machine's browser holding the run's key, as `applications/` does, and only requests from the page
+the server serves. `adapters/LocalApi.js` holds the routes, and `tests/LocalApi.test.js` fails when a route does more
+than pass its request through.
+
+The app asks a model through the claude CLI when this machine has it, on whatever the CLI is signed in to, which
+for a Claude subscription means no charge per run. Otherwise it uses an API key, paid per run: put the key in
+`~/.config/mycv/anthropic-api-key`, or under `$XDG_CONFIG_HOME`, readable only by you. A key file other users can
+read is refused, and the key is sent to the Anthropic API and nowhere else. The CLI runs with no tools, no MCP
+servers and no saved session, in an empty directory of its own.
+
+To edit the general CV without touching its JSON, open the editor address `npm run serve` prints, which carries the
+run's key. `editor.html` shows the profile as a form built from the shape in `core/ProfileShape.js`, beside the CV as
+the site renders it, in any of the three layouts. Saving checks the profile first and marks each problem beside its
+field; a save that is written updates `profiles/general/en.json` and the preview. The editor is not published with
+the site, because it can only work where the local API does.
 
 ## Working on it
 

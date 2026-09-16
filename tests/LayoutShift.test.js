@@ -38,7 +38,83 @@ describe('the layout shift a page records while it loads', () => {
     expect(moved).toEqual(['div.container 157,72,966,828 → 0,0,0,0']);
   });
 
-  test('is recorded by a script a page can run before its own', () => {
-    expect(() => new Function(RECORD_LAYOUT_SHIFTS)).not.toThrow();
+  // The recorder runs in the page, where no unit test reaches it, so here it runs against a stand-in
+  // PerformanceObserver. Compiled and never run, as this test once had it, a recorder watching the wrong entry
+  // type passed (#126).
+  const record = (source) => {
+    const page = { window: {} };
+    new Function('window', 'PerformanceObserver', source)(
+      page.window,
+      class {
+        constructor(report) {
+          page.report = report;
+        }
+
+        observe(options) {
+          page.observed = options;
+        }
+      }
+    );
+    return page;
+  };
+  // A shift the browser reports is often of an element removed since, and rarely sits on whole pixels; and a load reports
+  // its shifts over several callbacks. The code review of #132 found three broken recorders a simpler fixture passed.
+  const removed = {
+    value: 0.05,
+    hadRecentInput: false,
+    sources: [
+      {
+        node: null,
+        previousRect: { x: 10, y: 10, width: 50, height: 50 },
+        currentRect: { x: 0, y: 0, width: 50, height: 50 }
+      }
+    ]
+  };
+  // Its re-review found three more: an element named without its id, a width and height left unrounded, and the
+  // elements of one shift reordered.
+  const moved = {
+    value: 0.694,
+    hadRecentInput: true,
+    sources: [
+      {
+        node: { nodeName: 'DIV', id: 'hero', className: 'container wide' },
+        previousRect: { x: 157.4, y: 72.6, width: 966.2, height: 827.6 },
+        currentRect: { x: 0, y: 0, width: 0, height: 0 }
+      },
+      {
+        node: { nodeName: 'P', id: '', className: 'hero-summary' },
+        previousRect: { x: 38, y: 520, width: 313, height: 311 },
+        currentRect: { x: 38, y: 475, width: 313, height: 311 }
+      }
+    ]
+  };
+
+  test('is recorded by a script a page runs before its own: every shift, buffered, as plain data', () => {
+    const page = record(RECORD_LAYOUT_SHIFTS);
+    expect(page.observed).toEqual({ type: 'layout-shift', buffered: true });
+
+    page.report({ getEntries: () => [moved, removed] });
+    page.report({ getEntries: () => [removed] });
+    expect(page.window.__layoutShifts).toEqual([
+      {
+        value: 0.694,
+        hadRecentInput: true,
+        sources: [
+          'div#hero.container.wide 157,73,966,828 → 0,0,0,0',
+          'p.hero-summary 38,520,313,311 → 38,475,313,311'
+        ]
+      },
+      { value: 0.05, hadRecentInput: false, sources: ['(removed) 10,10,50,50 → 0,0,50,50'] },
+      { value: 0.05, hadRecentInput: false, sources: ['(removed) 10,10,50,50 → 0,0,50,50'] }
+    ]);
+  });
+
+  test.each([
+    ['another entry type', (source) => source.replace("type: 'layout-shift'", "type: 'paint'")],
+    ['no buffer', (source) => source.replace(', buffered: true', '')]
+  ])('a recorder with %s is caught', (what, change) => {
+    const changed = change(RECORD_LAYOUT_SHIFTS);
+    expect(changed).not.toBe(RECORD_LAYOUT_SHIFTS);
+    expect(record(changed).observed).not.toEqual({ type: 'layout-shift', buffered: true });
   });
 });
