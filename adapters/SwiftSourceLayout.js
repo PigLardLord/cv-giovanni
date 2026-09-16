@@ -13,6 +13,11 @@
  *   level. Drawn, that punctuation vanished from a selection and "Swift, SwiftUI" copied as
  *   "SwiftSwiftUI"; the product review measured it in Chrome.
  *
+ *   A value holding a character Swift escapes inside a literal — a quote, a backslash, a line
+ *   break — also carries `parts`: the text as the data wrote it, with each escape as syntax
+ *   before the character it escapes. A line break or a tab is `unseen`: kept in the text, so a
+ *   copy does not weld the words around it, and out of sight, where its `\n` is drawn (#160).
+ *
  * So the page can look like source code without a word of Swift reaching anything that reads the
  * document, which is the rule `AGENTS.md` sets for every visual device here: removing the
  * stylesheet removes the decoration and never the meaning.
@@ -64,11 +69,48 @@ const list = (value) => (Array.isArray(value) ? value.filter(Boolean) : []);
 /** Who the CV is about: the model's identity, or nothing to show when there is none. */
 const identityOf = (data) => data.identity || {};
 
+/** What Swift writes for a line break, a tab or a carriage return inside a literal. Any other escape is a backslash. */
+const WHITESPACE = { '\n': '\\n', '\t': '\\t', '\r': '\\r' };
+/** Inside a one-line literal: a quote, a backslash, and the whitespace that would end the line. */
+const ONE_LINE = /["\\\n\t\r]/g;
+/** Inside a multi-line literal a quote and a line break are themselves; a backslash and a closing delimiter are not. */
+const MULTI_LINE = /\\|"""/g;
+
+/**
+ * A value as it reads between a literal's delimiters: the text as the data wrote it, and each escape as syntax.
+ * A quote or a backslash stays in the text after its drawn backslash; a line break or a tab is drawn as `\n` or
+ * `\t` and stays in the text unseen. Null when nothing in the value needs escaping.
+ * @param {string} value - The data
+ * @param {RegExp} escaped - The characters to escape, as a global pattern
+ * @returns {object[]|null} `{ code }` and `{ text, unseen? }` pieces, in order
+ */
+const escapedParts = (value, escaped) => {
+  const parts = [];
+  let at = 0;
+  for (const match of value.matchAll(escaped)) {
+    if (match.index > at) parts.push({ text: value.slice(at, match.index) });
+    const [found] = match;
+    const drawn = WHITESPACE[found];
+    parts.push({ code: drawn ?? '\\' });
+    parts.push(drawn ? { text: found, unseen: true } : { text: found });
+    at = match.index + found.length;
+  }
+  if (parts.length === 0) return null;
+  if (at < value.length) parts.push({ text: value.slice(at) });
+  return parts;
+};
+
+/** A literal's content token, carrying its escapes when it has any. */
+const literal = (value, kind, extra = {}, escaped = ONE_LINE) => {
+  const parts = escapedParts(value, escaped);
+  return content(value, kind, parts ? { ...extra, parts } : extra);
+};
+
 /** A string literal. The quotes are syntax; what is between them is the data. */
 const quoted = (value, extra = {}) =>
   value === ''
     ? [code('""', 'string')]
-    : [code('"', 'string'), content(value, 'string', extra), code('"', 'string')];
+    : [code('"', 'string'), literal(value, 'string', extra), code('"', 'string')];
 
 const comma = (last) => (last ? [] : [code(',')]);
 
@@ -224,9 +266,12 @@ export class SwiftSourceLayout {
     const lines = [];
     if (focus) lines.push([0, [...declaration('let', 'focus'), ...quoted(focus)]]);
     if (summary) {
-      // A paragraph is a multi-line string in Swift: the delimiters take lines of their own.
+      // A paragraph is a multi-line string in Swift: the delimiters take lines of their own, and each of its lines
+      // is a line of the file, indented with the closing delimiter as Swift requires (#160).
       lines.push([0, [...declaration('let', 'summary'), code('"""', 'string')]]);
-      lines.push([1, [content(summary, 'string')]]);
+      summary
+        .split(/\r\n|\r|\n/)
+        .forEach((line) => lines.push([1, line ? [literal(line, 'string', {}, MULTI_LINE)] : []]));
       lines.push([1, [code('"""', 'string')]]);
     }
     // The summary's evidence (#148): a list of strings, one a line, the way the languages are written.

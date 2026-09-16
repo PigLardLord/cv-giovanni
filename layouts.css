@@ -285,6 +285,18 @@
     content: attr(data-code);
   }
 
+  /* A line break or a tab inside a one-line value. The escape drawn before it shows it as Swift writes it, \n or \t,
+     and the character itself stays in the text, taking no room: a copy keeps it, so two words never weld. Hidden the
+     way text for a screen reader is, clipped out of the flow; at zero size, Chrome left it out of a selection (#160). */
+  body[data-layout='nerd'] .tok-unseen {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: pre;
+  }
+
   /* The name and the roles are headings to a screen reader and part of a line to the eye. */
   body[data-layout='nerd'] .source-line h1,
   body[data-layout='nerd'] .source-line h3 {

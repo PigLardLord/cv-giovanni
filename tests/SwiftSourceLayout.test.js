@@ -82,15 +82,65 @@ const published = JSON.parse(
   fs.readFileSync(path.join(root, 'profiles', 'general', 'en.json'), 'utf8')
 );
 
+/** What a token shows: its syntax, or its text with any escape drawn inside it and nothing kept out of sight. */
+const shown = (token) =>
+  token.code ??
+  (token.parts
+    ? token.parts
+        .filter((part) => !part.unseen)
+        .map((part) => part.code ?? part.text)
+        .join('')
+    : token.text);
+
 /** The file as a person reading the editor sees it: syntax and content, four spaces a level. */
 const sourceOf = ({ lines }) =>
   lines
     .map((line) =>
-      line.tokens.length === 0
-        ? ''
-        : '    '.repeat(line.depth) + line.tokens.map((token) => token.code ?? token.text).join('')
+      line.tokens.length === 0 ? '' : '    '.repeat(line.depth) + line.tokens.map(shown).join('')
     )
     .join('\n');
+
+/**
+ * Where a Swift file's string literals do not close where they should: a quote that ends one early, a line that
+ * ends inside one. Read the way Swift reads them: a backslash escapes the next character, `"""` opens and closes
+ * a multi-line string, and `//` starts a comment outside one.
+ * @param {string} source - A Swift file
+ * @returns {string[]} Each line number where a literal is left open, or a quote closes one and more text follows
+ */
+const openLiterals = (source) => {
+  const problems = [];
+  let multiline = false;
+  source.split('\n').forEach((line, index) => {
+    let inString = false;
+    let closedAt = -1;
+    for (let at = 0; at < line.length; at += 1) {
+      const char = line[at];
+      if (multiline || inString) {
+        if (char === '\\') at += 1;
+        else if (multiline && line.startsWith('"""', at)) {
+          multiline = false;
+          at += 2;
+        } else if (inString && char === '"') {
+          inString = false;
+          closedAt = at;
+        }
+      } else if (line.startsWith('//', at)) break;
+      else if (line.startsWith('"""', at)) {
+        multiline = true;
+        at += 2;
+      } else if (char === '"') {
+        // A literal that closed must be followed by syntax, never by more words.
+        if (closedAt === at - 1) problems.push(`line ${index + 1}: two literals meet`);
+        inString = true;
+      } else if (closedAt >= 0 && /[\p{L}\p{N}]/u.test(char) && closedAt === at - 1) {
+        problems.push(`line ${index + 1}: a word follows a closed literal`);
+      }
+    }
+    if (inString) problems.push(`line ${index + 1}: a literal is left open`);
+  });
+  if (multiline) problems.push('the file ends inside a multi-line string');
+  return problems;
+};
 
 /** What a selection of a line copies: its real text, with everything the stylesheet draws gone. */
 const textOf = (line) =>
@@ -433,6 +483,64 @@ describe('SwiftSourceLayout', () => {
     expect(typeOf('Anna-Lena O’Brien')).toBe('AnnaLenaOBrien');
     expect(typeOf('José Núñez')).toBe('JoséNúñez');
     expect(typeOf('')).toBe('Curriculum');
+  });
+
+  // A highlight written 'Cut costs by using "smart" caching' closed its literal at the second quote, and the file was
+  // not Swift (#160). The profile is edited in the browser and tailored by a model, so such values are plausible.
+  describe('a value holding what Swift escapes', () => {
+    const awkward = {
+      ...profile,
+      profile: 'Ships "fast" \\ safely.\nWrites """ in docs.',
+      career_highlights: ['Cut costs by using "smart" caching', 'Paths like C:\\Build\\iOS'],
+      languages: [{ name: 'C++ "expert"', level: 'Line one\nline two\ttabbed' }],
+      interests: ['Robotics\nIoT', 'Quotes "and" \\ slashes']
+    };
+
+    test('the check finds a literal a quote closes early, and one a line break leaves open', () => {
+      expect(openLiterals('let impact = ["Cut costs by "smart" caching"]')).not.toEqual([]);
+      expect(openLiterals('let level = "Line one\nline two"')).not.toEqual([]);
+      expect(openLiterals('let summary = """\n    One """ two\n    """')).not.toEqual([]);
+      expect(openLiterals('let a = "b \\"c\\" d" // "e')).toEqual([]);
+    });
+
+    test('writes each literal the way Swift escapes it, so every one closes where it should', () => {
+      const source = sourceOf(layout.compose(awkward, { t }));
+
+      expect(openLiterals(source)).toEqual([]);
+      expect(source).toContain('        "Cut costs by using \\"smart\\" caching",');
+      expect(source).toContain('        "Paths like C:\\\\Build\\\\iOS",');
+      expect(source).toContain('        "C++ \\"expert\\"": "Line one\\nline two\\ttabbed",');
+      expect(source).toContain(
+        '    let interests: [String] = ["Robotics\\nIoT", "Quotes \\"and\\" \\\\ slashes"]'
+      );
+    });
+
+    // A multi-line string keeps its line breaks and its quotes; only a backslash and a run of three quotes are escaped.
+    test('keeps the summary a multi-line string, a line of the file for each of its lines', () => {
+      expect(sourceOf(layout.compose(awkward, { t }))).toContain(
+        [
+          '    let summary = """',
+          '        Ships "fast" \\\\ safely.',
+          '        Writes \\""" in docs.',
+          '        """'
+        ].join('\n')
+      );
+    });
+
+    test('copies every value as the profile writes it: no escape reaches a selection', () => {
+      const copied = textLinesOf(layout.compose(awkward, { t }));
+
+      expect(copied).toEqual(
+        expect.arrayContaining([
+          'Ships "fast" \\ safely.',
+          'Writes """ in docs.',
+          'Cut costs by using "smart" caching',
+          'Paths like C:\\Build\\iOS',
+          'C++ "expert": Line one\nline two\ttabbed',
+          'Robotics\nIoT, Quotes "and" \\ slashes'
+        ])
+      );
+    });
   });
 
   test('reads a legacy flat skill list as a plain array', () => {
