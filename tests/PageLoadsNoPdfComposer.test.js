@@ -28,16 +28,19 @@ function moduleGraph(entry, read = fromDisk) {
   const visit = (path) => {
     if (seen.has(path)) return;
     seen.add(path);
-    // A block comment is not code: JSDoc writes `{import('./X.js').X}` for a type, and a browser loads nothing for it.
-    const source = read(path).replace(/\/\*[\s\S]*?\*\//g, '');
+    // A comment is not code: JSDoc writes `{import('./X.js').X}` for a type, and a browser loads nothing for it.
+    // Only comments that own their lines are dropped, as every comment here does; a "/*" inside a string on a
+    // line of code does not open one, so the imports after it survive.
+    const source = read(path)
+      .replace(/^[ \t]*\/\*[\s\S]*?\*\/[ \t]*$/gm, '')
+      .replace(/^[ \t]*\/\/.*$/gm, '');
     const specifiers = [
       ...source.matchAll(/^\s*(?:import|export)\s[^'"`]*?from\s*(['"])(\.[^'"]+)\1/gm),
       ...source.matchAll(/^\s*import\s*(['"])(\.[^'"]+)\1/gm),
       // A dynamic import's specifier may be a template literal, as long as nothing is interpolated into it.
       ...source.matchAll(/import\(\s*(['"`])(\.[^'"`$]+)\1\s*\)/g)
     ].map((match) => match[2]);
-    for (const specifier of specifiers)
-      visit(posix.normalize(posix.join(posix.dirname(path), specifier)));
+    for (const specifier of specifiers) visit(posix.join(posix.dirname(path), specifier));
   };
   visit(entry);
   return [...seen];
@@ -68,6 +71,22 @@ describe('reading a module graph', () => {
     if (!(path in sources)) throw new Error(`no module ${path}`);
     return sources[path];
   };
+
+  // The review of that fix: stripping every `/* … */` span cut from a string's "/*" to the next comment's end,
+  // imports included; and a `//` comment that mentions an import was followed.
+  test('keeps an import that follows a string holding "/*", and skips one a line comment mentions', () => {
+    const tricky = {
+      'entry.js': [
+        'const help = "see /* for details";',
+        "import './real.js';",
+        '/** end */',
+        "// once loaded with import('./old.js'), now unused"
+      ].join('\n'),
+      'real.js': ''
+    };
+
+    expect(moduleGraph('entry.js', (path) => tricky[path]).sort()).toEqual(['entry.js', 'real.js']);
+  });
 
   test('follows every import form the browser follows, through parent directories', () => {
     expect(moduleGraph('entry.js', read).sort()).toEqual(
