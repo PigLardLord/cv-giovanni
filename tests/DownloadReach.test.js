@@ -27,10 +27,10 @@ const measured = {
       place: 'footer',
       display: 'inline-flex',
       top: 5376,
-      bottom: 5431,
+      bottom: 5420,
       left: 37,
       right: 353,
-      height: 55,
+      height: 44,
       lines: 1
     }
   ],
@@ -80,7 +80,8 @@ describe('the Download link on one render', () => {
       reachable: true,
       tappable: true,
       visibleFocus: true,
-      labelOnOneLine: true
+      labelOnOneLine: true,
+      footerEven: true
     });
   });
 
@@ -148,7 +149,7 @@ describe('the Download link on one render', () => {
   test('what it measured goes to the report', () => {
     expect(downloadReach(measured, phone).measures).toEqual({
       top: '97–141px',
-      heights: '44 · 55 · 44px',
+      heights: '44 · 44 · 44px',
       lines: '1 · 1 · 1',
       ring: '6.82:1'
     });
@@ -271,5 +272,23 @@ describe('the Download link on one render', () => {
     expect(
       downloadReach(withTop({ left: 16.25, right: 391.25 }), phone).findings.unreachable
     ).toEqual(['the top copy spans 16.25–391.25px across a 390px screen']);
+  });
+
+  // #116: in Nerd Mode above 768px, Browser print rendered 32px beside a 35px Download link, a <button> resetting the
+  // line height a link inherits. The tap check holds phones only, and nothing compared the two.
+  test('the footer copy and the button beside it render one height, within a pixel, at any width', () => {
+    const uneven = {
+      ...measured,
+      links: [measured.links[0], { ...measured.links[1], height: 35 }],
+      buttons: [{ ...measured.buttons[0], height: 32 }]
+    };
+    const { checks, findings } = downloadReach(uneven, desktop);
+
+    expect(checks.footerEven).toBe(false);
+    expect(findings.unevenFooter).toEqual([
+      `the footer's copy and "Browser print" render 35 · 32px, not one height`
+    ]);
+    const even = { ...uneven, buttons: [{ ...measured.buttons[0], height: 35.8 }] };
+    expect(downloadReach(even, desktop).checks.footerEven).toBe(true);
   });
 });

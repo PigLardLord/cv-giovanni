@@ -7,7 +7,8 @@
  * and stays on top where a layout pins it. Third, that a phone can tap it. Fourth, that a keyboard user can see it
  * has focus. These are those measurements, as checks. A fifth came from #107: on a phone the footer's copy broke
  * its label in two and grew to 78px, tall enough to tap, so no height check saw it. And #109 holds the footer button
- * beside the link to the link's tap height.
+ * beside the link to the link's tap height. #116 holds the footer's copy and that button to one height, at every
+ * width.
  */
 
 /** WCAG 1.4.11 asks 3:1 of a focus indicator against the colours next to it. */
@@ -147,6 +148,16 @@ export function downloadReach(
             : `the ${button.place}'s "${button.label}" renders no label`
         )
     ],
+    // #116: a <button> beside the footer's link reset the line height the link inherits, and rendered 3px shorter.
+    unevenFooter: (() => {
+      const row = [...shown.filter((link) => link.place === 'footer'), ...shownButtons];
+      const heights = row.map((control) => control.height);
+      return row.length > 1 && Math.max(...heights) - Math.min(...heights) > ROUNDING
+        ? [
+            `the footer's ${row.map((control) => (control.label ? `"${control.label}"` : 'copy')).join(' and ')} render ${heights.map(exact).join(' · ')}px, not one height`
+          ]
+        : [];
+    })(),
     faintFocus: !focus?.focused
       ? ['Tab never reached the top copy']
       : !drawn
@@ -162,7 +173,8 @@ export function downloadReach(
       reachable: findings.unreachable.length === 0,
       tappable: findings.untappable.length === 0,
       visibleFocus: findings.faintFocus.length === 0,
-      labelOnOneLine: findings.brokenLabel.length === 0
+      labelOnOneLine: findings.brokenLabel.length === 0,
+      footerEven: findings.unevenFooter.length === 0
     },
     findings,
     measures: {

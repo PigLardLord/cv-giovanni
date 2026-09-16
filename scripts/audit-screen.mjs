@@ -18,7 +18,7 @@ import { GenerationTarget } from '../core/GenerationTarget.js';
  *
  * The unit tests read the page through JSDOM, which applies no stylesheet, so nothing in the suite can
  * see what a selection holds. `audit-print.mjs` reads the printed text layer; this reads the screen's.
- * Each layout is opened in headless Chrome at a desktop width and two phone widths, its CV is selected, and the
+ * Each layout is opened in headless Chrome at a desktop width, a tablet width and two phone widths, its CV is selected, and the
  * selection is checked against the profile (#62). Every control a keyboard reaches is then focused in turn, and
  * its ring read from the screen's pixels (#111).
  */
@@ -40,11 +40,13 @@ const labels = (await readJson(`locales/${target.locale}/cv.json`)).sections;
 const manifest = await readJson('config/cv-manifest.json');
 
 /**
- * A desktop and two phones: the phone most readers hold, and 320px, the narrowest a page must reflow to without
- * scrolling sideways (WCAG 1.4.10), where the case for stacking the footer rests (#107, #111).
+ * A desktop, a tablet and two phones: 820px, a tablet held upright, where Nerd Mode sets its footer's buttons side by
+ * side (#116); the phone most readers hold; and 320px, the narrowest a page must reflow to without scrolling sideways
+ * (WCAG 1.4.10), where the case for stacking the footer rests (#107, #111).
  */
 const SIZES = [
   { width: 1280, height: 900, mobile: false },
+  { width: 820, height: 1180, mobile: false },
   { width: 390, height: 844, mobile: true },
   { width: 320, height: 844, mobile: true }
 ];
@@ -657,8 +659,8 @@ const failures = rows.filter((row) => Object.values(row.checks).some((value) => 
 const report = [
   '# Screen copy matrix',
   '',
-  'What a reader copies off the page: each layout opened in headless Chrome at a desktop width and two',
-  'phone widths, its CV selected, and the selection read. Regenerate with `npm run audit:screen`.',
+  'What a reader copies off the page: each layout opened in headless Chrome at a desktop width, a tablet',
+  'width and two phone widths, its CV selected, and the selection read. Regenerate with `npm run audit:screen`.',
   '',
   '| Layout | Width | Layout shift | Score |',
   '|---|---:|---:|---:|',
@@ -688,7 +690,7 @@ const report = [
   'beside it (#109), renders at least 43px, and the top copy 44px, ±1; and a visible focus — reached',
   'with Tab, a drawn ring that clears 3:1 against the background just outside the link, once its',
   'transitions finish. A fifth since #107: every visible copy, and the footer button beside it,',
-  'renders its label on one line, at every width. Top copy is where it spans from the top of the page;',
+  'renders its label on one line, at every width. A sixth since #116: the footer copy and the button beside it render one height, within a pixel. Top copy is where it spans from the top of the page;',
   'heights and label lines are every visible copy in page order, then the footer button; the ring is',
   'its contrast. The secondary button in the footer is checked as well (#110): it carries no shadow in any',
   'layout, and its border clears 3:1 against the footer as painted in every layout that does not keep it',
