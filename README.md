@@ -13,13 +13,13 @@ A CV is `profile × locale × layout`.
 - **The page** is HTML, CSS and ES modules with no build step. `index.html` loads `script.js`, which renders the
   profile through `renderers/` into one of three layouts: Nerd Mode (`nerd`), Impact Spotlight (`spotlight`) and
   Technical Profile (`technical`).
-- **The PDFs** are composed from the same JSON by pdfmake, through `domain/CvDocument.js` and
-  `adapters/PdfLayout.js`. The three that ship are in `generated/`, where the page's Download PDF link finds them
-  through `generated/manifest.json`; the twelve A4 and Letter, colour and monochrome variants the audits read are
-  built into `generated/qa/`.
+- **The PDFs** are the page, printed. `npm run build:pdf` serves the site to a headless Chrome and prints each
+  layout through `print.css` into `generated/`, where the page's Download PDF link finds them through
+  `generated/manifest.json`. Nothing there is committed: CI builds, audits and publishes its own. A cover letter is
+  still composed by pdfmake, through `adapters/LetterLayout.js`, until it is a page too.
 
-The page and the PDF share the JSON and the label catalogues, not a DOM. Nothing guarantees they agree except
-measuring both, which is what the audits are for.
+The page and the PDF share one DOM, one design and one set of words. The audits measure the printed file on paper
+and as a stranger's parser reads it, and the page on screen.
 
 ## Running it
 
