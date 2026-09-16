@@ -7,8 +7,8 @@ import { PlaceLexicon } from '../domain/PlaceLexicon.js';
  *
  * The letter is a page printed by Chrome, as the CV is, and two readers need its words: `letter.html`, which
  * writes them, and the print audit, which checks that they reached the paper in that order. Both ask here, so
- * the audit cannot expect a sentence the page never wrote. pdfmake's `adapters/LetterLayout.js` made the same
- * decisions beside its geometry in points; it stays, unused, until pdfmake goes (#153).
+ * the audit cannot expect a sentence the page never wrote. pdfmake's letter layout made the same decisions beside
+ * its geometry in points, until the letter became a page (#151).
  *
  * What is decided here is what the letter says, never how it looks: the geometry of DIN 5008 is `letter.css`'s.
  * Nothing is invented. A recipient line the data does not write is not printed, a letter the data does not date

@@ -5,11 +5,12 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-// One CV, printed from the page (#144). The generator stopped composing the CV with pdfmake, so nothing may
-// still run the audit of pdfmake's twelve variants, and the audits that gate a publish have to read the files
-// that are published: the print audit printing a copy of its own would pass whatever the generator wrote (#149).
+// One CV, printed from the page (#144). pdfmake composed a second one until #149, and went with its audit in
+// #153. The audits that gate a publish have to read the files that are published: the print audit printing a
+// copy of its own would pass whatever the generator wrote (#149).
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
-const scripts = JSON.parse(read('package.json')).scripts;
+const pkg = JSON.parse(read('package.json'));
+const scripts = pkg.scripts;
 const gates = read('.github/workflows/gates.yml');
 
 /** The modules a script imports, read from its import statements. */
@@ -34,22 +35,17 @@ describe('the PDFs are printed from the page', () => {
     expect(step('No such step')).toBeNull();
   });
 
-  test('the generator prints the CV and composes none', () => {
+  test('the generator prints the CV and imports nothing of pdfmake', () => {
     const generator = imports(read('scripts/generate-pdfs.mjs'));
 
     expect(generator).toContain('./lib/printed-cv.mjs');
-    expect(generator).not.toContain('../core/PdfExporter.js');
+    expect(generator.filter((path) => /(?:^|\/)pdfmake(?:[/.]|$)/.test(path))).toEqual([]);
   });
 
-  // The cover letter is printed from letter.html too (#151), so pdfmake is left with nothing to write and can go
+  // The cover letter is printed from letter.html too (#151), so pdfmake was left with nothing to write and went
   // (#153).
-  test('the generator imports nothing of pdfmake, the cover letter included', () => {
-    const generator = imports(read('scripts/generate-pdfs.mjs'));
-
-    expect(generator.filter((path) => path.startsWith('pdfmake'))).toEqual([]);
-    expect(generator).not.toContain('../core/LetterExporter.js');
-    expect(generator).not.toContain('../core/PdfGenerationService.js');
-    expect(generator).not.toContain('../adapters/PdfMakeRenderer.js');
+  test('pdfmake is no dependency, the cover letter included', () => {
+    expect({ ...pkg.dependencies, ...pkg.devDependencies }).not.toHaveProperty('pdfmake');
   });
 
   test('the print audit reads the files the generator wrote, and prints nothing itself', () => {
@@ -60,7 +56,7 @@ describe('the PDFs are printed from the page', () => {
     expect(audit).not.toContain('./lib/chrome.mjs');
   });
 
-  test('verify:pdf builds, then runs the print and ATS audits, and never the pdfmake audit', () => {
+  test('verify:pdf builds, then runs the print and ATS audits', () => {
     expect(scripts['verify:pdf']).toBe(
       'npm run build:pdf && npm run audit:print && npm run audit:ats'
     );
@@ -77,12 +73,11 @@ describe('the PDFs are printed from the page', () => {
     expect(tracked.split('\n').filter(Boolean)).toEqual(['generated/.gitignore']);
   });
 
-  test('CI builds with Chrome, then audits what it built, and runs no audit of pdfmake', () => {
+  test('CI builds with Chrome, then audits what it built', () => {
     const build = step('Print the CV from the page');
 
     expect(build).toContain('run: npm run build:pdf');
     expect(build).toContain('CHROME_PATH:');
-    expect(gates).not.toContain('audit:pdf');
     expect(gates.indexOf('run: npm run build:pdf')).toBeLessThan(
       gates.indexOf('run: npm run audit:ats')
     );

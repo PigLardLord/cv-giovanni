@@ -65,10 +65,10 @@ Ports and adapters:
 - `core/` — application services: loading and resolving the profile, the locale and the layout, naming the PDFs,
   the cover letter's words, parsing and scoring what an ATS recovers. No markup, typography or colour, which
   `tests/CoreHasNoUI.test.js` enforces.
-- `interfaces/` and `boundaries/` — the ports.
+- `interfaces/` — the port the renderers implement.
 - `renderers/` — the page's DOM renderers, each extending `renderers/BaseRenderer.js`.
-- `adapters/` — Nerd Mode's Swift source layout, and pdfmake's PDF and cover letter layouts with their design system
-  and themes, which nothing runs any more and which go with pdfmake (#153).
+- `adapters/` — Nerd Mode's Swift source layout, the local app's API routes, files, scripts and inference backends,
+  and the writer the build saves its PDFs through.
 - `scripts/` — generation, the audits and the development server.
 - `locales/` — labels and interface strings for i18next. `vendor/` — i18next and the fonts, checked in so the page
   runs straight off the file tree.

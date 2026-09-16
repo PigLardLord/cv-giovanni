@@ -3,8 +3,8 @@ import { readFileSync } from 'node:fs';
 import { LetterContent } from '../core/LetterContent.js';
 
 // The words of a cover letter, decided once and read by the page that prints it and by the audit that checks
-// the print (#151). pdfmake's `adapters/LetterLayout.js` decided them beside its geometry in points; these are
-// its behavioural tests, carried over to the module that now decides.
+// the print (#151). pdfmake's letter layout decided them beside its geometry in points until #153; these are its
+// behavioural tests, carried over to the module that now decides.
 const strings = {
   'cv:letter.subject': 'Application',
   'cv:letter.salutationNamed': 'Dear',

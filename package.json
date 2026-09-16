@@ -27,7 +27,6 @@
   },
   "dependencies": {
     "i18next": "^26.4.2",
-    "i18next-http-backend": "^4.0.2",
-    "pdfmake": "^0.2.20"
+    "i18next-http-backend": "^4.0.2"
   }
 }

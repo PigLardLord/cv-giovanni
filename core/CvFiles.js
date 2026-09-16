@@ -28,8 +28,8 @@ export class CvFiles {
   /**
    * The file a cover letter is printed to, beside the CV of the same layout (#151).
    *
-   * `-cover` rather than `-letter`, as pdfmake named it: the print and ATS audits tell a letter from a CV by it,
-   * and it cannot be read as a paper size.
+   * `-cover`, the name pdfmake gave it before the letter was a page: the print and ATS audits tell a letter from a
+   * CV by it.
    * @param {object} data - The profile, which names the file after the candidate
    * @param {{ profile?: string, locale?: string, layout?: string }} options - The combination it accompanies
    * @returns {string} The filename
