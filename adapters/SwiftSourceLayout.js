@@ -73,13 +73,17 @@ const identityOf = (data) => data.identity || {};
 const WHITESPACE = { '\n': '\\n', '\t': '\\t', '\r': '\\r' };
 /** Inside a one-line literal: a quote, a backslash, and the whitespace that would end the line. */
 const ONE_LINE = /["\\\n\t\r]/g;
-/** Inside a multi-line literal a quote and a line break are themselves; a backslash and a closing delimiter are not. */
-const MULTI_LINE = /\\|"""/g;
+/**
+ * Inside a multi-line literal a quote and a line break are themselves; a backslash is not, and neither is a run of
+ * three quotes or more, which Swift reads as the closing delimiter. Every quote in such a run is escaped: escaping
+ * only the run's first left the rest of a four-quote run as a delimiter (the code review of #165).
+ */
+const MULTI_LINE = /\\|"{3,}/g;
 
 /**
  * A value as it reads between a literal's delimiters: the text as the data wrote it, and each escape as syntax.
- * A quote or a backslash stays in the text after its drawn backslash; a line break or a tab is drawn as `\n` or
- * `\t` and stays in the text unseen. Null when nothing in the value needs escaping.
+ * A quote or a backslash stays in the text after its drawn backslash, one backslash a character; a line break or a
+ * tab is drawn as `\n` or `\t` and stays in the text unseen. Null when nothing in the value needs escaping.
  * @param {string} value - The data
  * @param {RegExp} escaped - The characters to escape, as a global pattern
  * @returns {object[]|null} `{ code }` and `{ text, unseen? }` pieces, in order
@@ -90,9 +94,11 @@ const escapedParts = (value, escaped) => {
   for (const match of value.matchAll(escaped)) {
     if (match.index > at) parts.push({ text: value.slice(at, match.index) });
     const [found] = match;
-    const drawn = WHITESPACE[found];
-    parts.push({ code: drawn ?? '\\' });
-    parts.push(drawn ? { text: found, unseen: true } : { text: found });
+    for (const character of found) {
+      const drawn = WHITESPACE[character];
+      parts.push({ code: drawn ?? '\\' });
+      parts.push(drawn ? { text: character, unseen: true } : { text: character });
+    }
     at = match.index + found.length;
   }
   if (parts.length === 0) return null;
