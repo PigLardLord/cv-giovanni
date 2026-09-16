@@ -32,7 +32,9 @@ describe('a versioned file that changes takes a new token', () => {
   test.each([
     ['single quotes', `<link rel='stylesheet' href='layouts.css?v=OLD' />`],
     ['a path written from ./', `<link rel="stylesheet" href="./layouts.css?v=OLD" />`],
-    ['another parameter first', `<link rel="stylesheet" href="layouts.css?media=screen&v=OLD" />`]
+    ['another parameter first', `<link rel="stylesheet" href="layouts.css?media=screen&v=OLD" />`],
+    // Its re-review: a parameter after the token hid the file just as one before it had.
+    ['another parameter after', `<link rel="stylesheet" href="layouts.css?v=OLD&nocache=1" />`]
   ])('a versioned file is read with %s', (what, tag) => {
     expect(versionedFiles(tag)).toEqual([{ file: 'layouts.css', token: 'OLD' }]);
   });
