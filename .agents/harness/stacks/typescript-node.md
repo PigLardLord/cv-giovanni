@@ -39,11 +39,11 @@ needs neither a CDN nor an install. `node_modules/` exists only for the test and
   `localStorage['cv-locale']`.
 - **Network / async / persistence:** no backend. `fetch` for the JSON, the i18next http backend
   for `locales/{{lng}}/{{ns}}.json`, top-level `await` in `script.js`. Persistence is static JSON
-  under `profiles/` and `locales/`; PDFs are written to `generated/` by Node.
+  under `profiles/` and `locales/`; PDFs are printed from the page into `generated/` by Node and Chrome.
 
 ## Commands
-- Build: none — the site is served as it stands. `npm run build:pdf` regenerates the PDF
-  artefacts; it is a generation step, not a compile.
+- Build: none — the site is served as it stands. `npm run build:pdf` prints the PDFs from the
+  page with a headless Chrome; it is a generation step, not a compile.
 - Fast tests (per commit): `npm test`
 - Full tests (before the change-request): `npm test && npm run verify:pdf`
 - A single test: `npm test -- tests/HeaderRenderer.test.js`, or
@@ -105,8 +105,8 @@ than assembling an anchor by hand.
 - `RendererContainer.renderAll` catches per renderer and logs. A broken renderer therefore does
   not fail the render, and does not fail a test that only checks the page came up. Assert on the
   section's own output.
-- A PDF change that keeps the tests green and breaks the artefacts: layout is only verified by
-  `npm run verify:pdf`.
+- A print change that keeps the tests green and breaks the artefacts: the printed PDF is only
+  verified by `npm run verify:pdf`.
 - A hardcoded colour or size instead of the CSS token or the PDF design system.
 
 **Known-good — do not re-flag:**
@@ -120,8 +120,8 @@ than assembling an anchor by hand.
   dependencies.
 - `CVApplication.handleError` writes `innerHTML` with inline styles. That is the fallback for
   when the stylesheet and the data both failed to load.
-- `generated/` holds committed output, not build residue: the download link points straight at
-  `generated/<file>.pdf`.
+- Nothing in `generated/` is committed (#149): Chrome dates each print, so committed copies changed
+  on every build and went stale. CI builds what it publishes; locally, run `npm run build:pdf`.
 - Identifiers and comments in English; product text in `en` and `de` only.
 
 ## QA — how it is actually verified
@@ -130,21 +130,17 @@ Nothing to build or install. Serve the directory over http and open `index.html`
 fails, because the JSON is fetched. Query parameters drive every variant:
 `?lang=de&layout=technical&profile=general`.
 
-`npm run build:pdf` writes three release PDFs to `generated/` and twelve QA variants to
-`generated/qa/` — three layouts × A4/LETTER × colour/monochrome. `npm run audit:pdf` then scores
-each variant on eleven checks: exact page size, at most two pages, the required ATS strings
-present, reading order, no raster images, a clean start to page two, measured grayscale for the
-monochrome ones, canonical spelling of hyphenated compounds, block integrity in extraction, every skill
-category still attached to its own list, and every web address recoverable from the text layer.
-It
-rewrites `docs/PDF_AUDIT.md`. Every CV variant must stay at 11/11. A cover letter is a different document and is scored
-on six of its own: format, exactly one page, its recipient and subject present, no raster,
-monochrome, and canonical compounds. The `-cover` in a filename is what tells them apart.
+`npm run build:pdf` prints the three layouts from the page with a headless Chrome, A4 in colour,
+into `generated/`, and writes `generated/manifest.json` from what it printed (#149). It needs a
+browser and **exits 2 having written nothing** when it cannot find one. A profile with a `letter`
+also gets a cover letter per layout, still composed by pdfmake until #151; the `-cover` in a
+filename is what tells the two documents apart.
 
-`npm run audit:print` scores the other artefact — what the browser prints — on twelve checks,
-measured on the rasterised page rather than on the stylesheet, and rewrites `docs/PRINT_AUDIT.md`.
-All three layouts must stay at 12/12. It needs a browser and **exits 2 having checked nothing**
-when it cannot find one, which must never be read as a pass.
+`npm run audit:print` scores the printed PDFs on seventeen checks, measured on the text layer and
+the rasterised page rather than on the stylesheet, and rewrites `docs/PRINT_AUDIT.md`. All three
+layouts must stay at 17/17. It reads the files the build wrote, and **exits 2 having checked
+nothing** when one is missing, which must never be read as a pass. `npm run audit:pdf` scored
+pdfmake's twelve variants; nothing runs it now, and it is removed with pdfmake (#153).
 
 `npm run audit:ats` is the third: it parses the generated PDF the way a stranger's parser would and
 diffs the recovered structure against the authored one, writing `docs/ATS_AUDIT.md`. It exits 1 on
@@ -152,14 +148,14 @@ a floor — no segmentation, a lost email, a severed role, a chronology out of o
 could not check. Its parser is pure and blind by test: `core/AtsTextParser.js` and the lexicons may
 not read the answer key.
 
-**Platform constraint:** the audit shells out to poppler — `pdfinfo`, `pdftotext`, `pdfimages`
-and `pdftoppm`. They are present on this machine under `/usr/bin`. Without them
-`npm run verify:pdf` fails on a missing binary rather than on a defect, and it is the only part
-of the gate that is not pure Node. Declare it in the manifest's `build.tiers` before relying on
+**Platform constraint:** the build needs Chrome, and the audits shell out to poppler — `pdfinfo`,
+`pdftotext`, `pdffonts`, `pdfimages`, `pdftohtml` and `pdftoppm`. They are present on this machine
+under `/usr/bin`. Without them `npm run verify:pdf` fails on a missing binary rather than on a
+defect, and it is the only part of the gate that is not pure Node. Declare it in the manifest's `build.tiers` before relying on
 the full gate on another machine.
 
-Printing is a second renderer of the same data: `print.css` drives Ctrl+P and the in-page button
-calls `window.print()`. Verify it separately from the pdfmake output.
+Printing is the PDF: `print.css` drives Ctrl+P, the in-page button's `window.print()` and the
+downloadable file alike, so a print change is verified on the built PDFs, not on screen.
 
 ## Review verdict vocabulary
 Close a review with **APPROVE**, **APPROVE WITH RESERVATIONS** or **REQUEST CHANGES**, then

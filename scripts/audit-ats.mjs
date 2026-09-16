@@ -64,7 +64,10 @@ try {
   cannotCheck('pdftotext is not installed', 'Install poppler-utils and run again.');
 }
 
-const directories = [target.outDir, target.qaDir];
+// The files a recruiter receives, and nothing else: the CV printed from the page in each layout (#149). The QA
+// variants pdfmake used to write under qa/ are no longer built, and a directory left over from an older build
+// would be audited as if this build had written it.
+const directories = [target.outDir];
 const files = [];
 for (const directory of directories) {
   const url = new URL(`${directory}/`, projectRoot);
