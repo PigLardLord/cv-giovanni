@@ -4,9 +4,65 @@
    Maximum 2 pages, clean layout, high readability
    ============================================================================= */
 
+/* Inter prints from its static TrueType files (#143). The page's variable woff2 carries every weight in
+   one file, and Chrome embeds a variable font as Type 3 fonts: 18 to 20 of them per page, which several
+   text extractors mishandle, with headings that read in drawing order as "MobileSoftwareEngineer". Declared
+   in this print-only stylesheet, after vendor/fonts/fonts.css, so screen never loads the TrueType files and
+   print never uses the variable one. The files carry two weights: 300 to 500 print Regular, 600 to 800 Bold,
+   and font-synthesis stays off. */
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 300;
+  src: url('vendor/fonts/inter/Inter-Regular.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  src: url('vendor/fonts/inter/Inter-Regular.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  src: url('vendor/fonts/inter/Inter-Regular.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  src: url('vendor/fonts/inter/Inter-Bold.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  src: url('vendor/fonts/inter/Inter-Bold.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 800;
+  src: url('vendor/fonts/inter/Inter-Bold.ttf') format('truetype');
+}
+
 /* =============================================================================
    PRINT RESET & BASE STYLES
    ============================================================================= */
+
+/* No tracking in print (#143). A parser that reads in drawing order finds a word's end only in the gap the
+   page leaves, and letter-spacing narrows it: Impact Spotlight's name extracted as "GiovanniTrovato". The
+   PDF's design system settled the same rule for pdfmake. */
+html body * {
+  letter-spacing: 0 !important;
+}
 
 @page {
   size: A4;
@@ -94,7 +150,7 @@ body {
   color: #1e40af !important;
   margin-bottom: 4pt !important;
   line-height: 1.1 !important;
-  letter-spacing: -0.5pt !important;
+  letter-spacing: 0 !important;
 }
 
 .hero-title {
@@ -225,7 +281,7 @@ body {
   font-weight: 700 !important;
   color: #374151 !important;
   margin-bottom: 10pt !important;
-  letter-spacing: 0.5pt !important;
+  letter-spacing: 0 !important;
   text-transform: none !important;
 }
 
@@ -259,10 +315,12 @@ body {
   color: #1e3a8a !important;
 }
 
+/* #4b5563, not #6b7280: printed in Inter's static Regular (#143) the thin dash measured 4.35:1 on the paper at
+   #6b7280, under the 4.5:1 every printed word is held to. */
 .skill-category::after {
   content: ' — ';
   font-weight: 400 !important;
-  color: #6b7280 !important;
+  color: #4b5563 !important;
 }
 
 .skill-list {
@@ -317,7 +375,7 @@ section {
   font-size: 11pt !important;
   font-weight: 700 !important;
   color: #1f2937 !important;
-  letter-spacing: 0.4pt !important;
+  letter-spacing: 0 !important;
   /* A section label extracts as it is drawn. Drawn in caps it reaches a parser as
      "PROFESSIONAL EXPERIENCE" and no longer matches the string the catalogue wrote. */
   text-transform: none !important;
@@ -620,7 +678,7 @@ body[data-layout='nerd'] .spotlight-title,
 body[data-layout='nerd'] .section-title span:last-child {
   font-size: 9pt !important;
   font-weight: 700 !important;
-  letter-spacing: 0.6pt !important;
+  letter-spacing: 0 !important;
   color: #111 !important;
 }
 
@@ -649,7 +707,7 @@ body[data-layout='nerd'] .hero-name {
 body[data-layout='nerd'] .hero-title {
   color: #333 !important;
   text-transform: none !important;
-  letter-spacing: 0.3pt !important;
+  letter-spacing: 0 !important;
 }
 
 /* The shared rules now colour both of these lines for every layout; what stays here is only
@@ -898,4 +956,11 @@ body[data-layout='nerd'] .tag {
 .certifications-section {
   grid-column: 2 !important;
   grid-row: 4 !important;
+}
+
+/* Impact Spotlight sets its name in Instrument Serif, whose word space is narrow: at 31pt the gap between
+   the two words measured 4pt, 0.13em, and a parser reading in drawing order joined them into
+   "GiovanniTrovato" where Inter's 0.2em gap read as two words (#143). */
+body[data-layout='spotlight'] .hero-name {
+  word-spacing: 0.1em !important;
 }
