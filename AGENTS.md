@@ -320,7 +320,10 @@ record. It reports **Recoverability**, never a score: the weights are in `core/A
 the reason for each, the report prints them, and it says plainly that no vendor produces the
 number and no employer will ever see it. The score gates nothing; four floors do — a document that
 did not segment, a lost email, a role severed from its title or period, and a chronology that does
-not run one way.
+not run one way. The floors are checked in two reading orders: poppler's, which the score is computed
+on, and the content stream's (`pdftotext -raw`), which PDFBox and Tika read by default. They fail
+differently: on the two-column browser print, poppler's order kept the contacts above the career, while
+the content stream drew the skills first and the name after the first role, and lost the email (#147).
 
 `audit:print` needs a Chrome or Chromium binary. It looks for one on PATH, in the usual install
 locations and in the Playwright cache; `CHROME_PATH` overrides. When it finds none it **exits 2

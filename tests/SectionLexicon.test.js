@@ -5,7 +5,7 @@
  */
 import { readdir, readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { SECTIONS, SectionLexicon } from '../domain/SectionLexicon.js';
+import { CONNECTORS, SECTIONS, SectionLexicon } from '../domain/SectionLexicon.js';
 
 const localesDir = fileURLToPath(new URL('../locales/', import.meta.url));
 
@@ -48,6 +48,32 @@ describe('SectionLexicon.recognise', () => {
       language: 'en',
       match: 'partial'
     });
+  });
+});
+
+describe('SectionLexicon.label', () => {
+  // A rail sets the label beside its block, and the content stream welds the two onto one line.
+  test.each([
+    ['Professional Experience Mobile Software Engineer', 'experience', 'Mobile Software Engineer'],
+    [
+      'Selected Impact 6 years owning an MDM client',
+      'selectedImpact',
+      '6 years owning an MDM client'
+    ],
+    ['Core Technologies iOS Swift, SwiftUI', 'skills', 'iOS Swift, SwiftUI'],
+    ['Berufserfahrung Mobile Software Engineer', 'experience', 'Mobile Software Engineer']
+  ])('%s opens %s', (line, section, rest) => {
+    expect(SectionLexicon.label(line)).toMatchObject({ section, rest });
+  });
+
+  test('a section word that opens a sentence is no label', () => {
+    for (const line of [
+      'Experience with Swift and Kotlin',
+      'Training for new hires',
+      'Education'
+    ]) {
+      expect(SectionLexicon.label(line)).toBeNull();
+    }
   });
 });
 
@@ -99,6 +125,12 @@ describe('the lexicon covers every locale the project ships', () => {
     }
 
     expect(unknown).toEqual([]);
+  });
+
+  // A language whose headings are known and whose role headers are not would segment and then lose every
+  // role written "Entwickler bei …" — the half-supported language this file exists to prevent (#147).
+  test('every language the sections know writes its role headers with a known connector', () => {
+    expect(Object.keys(CONNECTORS).sort()).toEqual(SectionLexicon.languages());
   });
 
   test('every section knows the same set of languages', () => {

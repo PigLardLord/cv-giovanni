@@ -161,6 +161,56 @@ describe('what the parser refuses to guess', () => {
     expect(levels).toEqual({ Italian: null, English: null, German: 'B2' });
   });
 
+  // Content-stream order writes no blank line, so a heading may stand anywhere. What it may not be is the
+  // first word of a sentence: a section name is a heading alone on its line, or as a label beside its block.
+  test('a section name that opens a sentence is not a heading', () => {
+    const headings = AtsTextParser.headings([
+      'Professional Experience',
+      'Experience with Swift and Kotlin across twelve apps',
+      'Training for new hires in secure coding',
+      'Skills: Swift, Kotlin',
+      'Activities, Swift Package Manager (SPM)',
+      'Education'
+    ]);
+
+    expect(headings.map((heading) => heading.text)).toEqual([
+      'Professional Experience',
+      'Education'
+    ]);
+  });
+
+  // "at" in prose is not a role. A header names a title and an employer; it does not end a sentence.
+  test('a sentence that mentions an employer is not a role header', () => {
+    expect(AtsTextParser.roleHeader('Presented the migration at SwiftConf, Berlin.')).toBeNull();
+    expect(AtsTextParser.roleHeader('Mobile Developer at Apparound, Pisa, Italy')).toEqual({
+      title: 'Mobile Developer',
+      employer: 'Apparound',
+      location: 'Pisa, Italy'
+    });
+  });
+
+  test('a parenthesis after a school is a period only when it reads as one', () => {
+    const cv = AtsTextParser.parse(
+      [
+        'Giovanni Rossi',
+        '',
+        'Professional Experience',
+        '',
+        'Engineer',
+        'Acme · Berlin',
+        '2020 – 2022',
+        '',
+        'Education',
+        '',
+        'M.Sc. Informatics',
+        'Technische Universität München (TUM)'
+      ].join('\n')
+    );
+
+    expect(cv.education[0].school.value).toBe('Technische Universität München (TUM)');
+    expect(cv.education[0].period).toBeNull();
+  });
+
   // The refusal that costs the most and is worth the most: 03/04/2021 is the third of April
   // or the fourth of March depending on the reader, and nothing in a CV decides it.
   test('an ambiguous numeric date is refused rather than assumed', () => {

@@ -175,3 +175,40 @@ test('a recovered period reads exact though the document wrote its length after 
     document.experience.map(() => 'exact')
   );
 });
+
+// The page's print (#147): every role, degree and skill in its own slot, in the order poppler reads it.
+describe.each(['page-print-spotlight', 'page-print-nerd'])(
+  'the page as %s prints it',
+  (fixture) => {
+    const diff = diffOf(fixture);
+
+    test('every role keeps its title, employer and period', () => {
+      expect(
+        diff.experience.map(({ title, employer, period, tripleAdjacent }) => ({
+          title,
+          employer,
+          period,
+          tripleAdjacent
+        }))
+      ).toEqual(
+        document.experience.map(() => ({
+          title: 'exact',
+          employer: 'exact',
+          period: 'exact',
+          tripleAdjacent: true
+        }))
+      );
+    });
+
+    test('every degree keeps its school', () => {
+      expect(diff.education).toEqual(
+        document.education.map(() => ({ degree: 'exact', school: 'exact', adjacent: true }))
+      );
+    });
+
+    test('every skill stays with its own category', () => {
+      expect(diff.skills.every((group) => group.category === 'exact' && group.attached)).toBe(true);
+      expect(diff.unexpected).toEqual({ skillCategories: [], roles: 0 });
+    });
+  }
+);

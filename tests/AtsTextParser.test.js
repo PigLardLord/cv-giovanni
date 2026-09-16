@@ -159,3 +159,228 @@ describe('the pathological shapes, each failing the check it was written for', (
     expect(cv.skills.map((group) => group.category)).not.toContain('Architecture & practices');
   });
 });
+
+// The page's own print (#147), extracted from Chrome's PDF of each layout at c974dbc. Technical Profile
+// extracts to the same bytes as Impact Spotlight in both reading orders, so one fixture stands for both.
+// The roles, degrees and skills are asserted as recovered strings rather than diffed against the profile,
+// so a copy edit in the profile does not silently change what these fixtures prove.
+const ROLES = [
+  [
+    'Mobile Software Engineer / Technical Owner, iOS & Android',
+    'Cortado Mobile Solutions',
+    'Berlin (remote)'
+  ],
+  ['Mobile Developer', 'Apparound', 'Pisa, Italy'],
+  ['Mobile Developer Intern', 'Marte 5', 'Livorno, Italy']
+];
+const identityOf = (role) => [role.title?.value, role.employer?.value, role.location?.value];
+
+describe('the printed page, in the order poppler reads it', () => {
+  // "Title at Company, City", as the page writes a role. Once it wraps after "at", once it does not.
+  test('Impact Spotlight: every role reads "Title at Company, City" above its period', () => {
+    const cv = parse('page-print-spotlight');
+
+    expect(cv.experience.map(identityOf)).toEqual(ROLES);
+    expect(cv.experience.map((role) => role.period.span)).toEqual([
+      'August 2018 – Present',
+      'September 2015 – July 2018',
+      'May 2015 – August 2015'
+    ]);
+    expect(cv.tripleAdjacent).toBe(true);
+    expect(cv.roleOrderMonotonic).toBe(true);
+  });
+
+  // Nerd Mode draws the period in a column of its own, which poppler reads as the line above the title.
+  test('Nerd Mode: the period comes first, and every role still gets its own', () => {
+    const cv = parse('page-print-nerd');
+
+    expect(cv.experience.map(identityOf)).toEqual(ROLES);
+    expect(cv.experience.map((role) => role.period.raw)).toEqual([
+      'August 2018 – Present',
+      'September 2015 – July 2018',
+      'May 2015 – August 2015'
+    ]);
+    expect(cv.tripleAdjacent).toBe(true);
+  });
+
+  // A role's achievements run up to the next role's header, whichever side of its period that header is.
+  test.each(['page-print-spotlight', 'page-print-nerd'])(
+    '%s: the achievements before the next header belong to the role above',
+    (fixture) => {
+      const [first, second] = parse(fixture).experience;
+
+      expect(first.bodyText).toContain('Led annual iOS compatibility');
+      expect(first.bodyText).toContain('Play Store staged rollout.');
+      expect(first.bodyText).not.toContain('Mobile Developer at Apparound');
+      expect(first.bodyText).not.toContain('September 2015');
+      expect(second.bodyText).toContain('B2B sales-automation platform');
+      expect(second.bodyText).not.toContain('staged rollout');
+    }
+  );
+
+  test.each(['page-print-spotlight', 'page-print-nerd'])(
+    '%s: a wrapped degree stays one degree, and "School (period)" splits',
+    (fixture) => {
+      const cv = parse(fixture);
+
+      expect(
+        cv.education.map((entry) => [entry.degree.value, entry.school.value, entry.period])
+      ).toEqual([
+        [
+          "First Level Professional Master's Programme in Mobile Applications Development",
+          'Università degli Studi di Pisa',
+          '2014 – 2016'
+        ],
+        ['B.Sc. Computer Engineering', 'Università degli Studi di Catania', '2009']
+      ]);
+    }
+  );
+
+  test.each(['page-print-spotlight', 'page-print-nerd'])(
+    '%s: "Category — items" keeps each list with its category, across wrapped lines',
+    (fixture) => {
+      const cv = parse(fixture);
+
+      expect(cv.skills.map((group) => group.category)).toEqual([
+        'iOS',
+        'Android',
+        'Delivery & platform',
+        'Architecture & practices'
+      ]);
+      expect(cv.skills[0].items).toContain('XCTest / XCUITest');
+      expect(cv.skills[0].items).toContain('Swift Package Manager (SPM)');
+      expect(cv.skills[1].items).toContain('Mobile Device Management (MDM)');
+      expect(cv.skills[2].items).toContain('security scanning & vulnerability review');
+    }
+  );
+});
+
+// `pdftotext -raw`: the order the content stream draws, which PDFBox and Tika read by default. It writes no
+// blank lines at all, so nothing here may depend on one.
+describe('the same artefacts, in content-stream order', () => {
+  test('Impact Spotlight segments with no blank line to lean on', () => {
+    const cv = parse('page-print-spotlight.raw');
+
+    expect(cv.segmentation).toBe('ok');
+    expect(cv.sections.map((section) => section.section)).toEqual([
+      'selectedImpact',
+      'skills',
+      'experience',
+      'certifications',
+      'education',
+      'languages',
+      'interests'
+    ]);
+    expect(cv.identity.email.value).toBe('trovato.giovanni@gmail.com');
+    expect(cv.experience.map(identityOf)).toEqual(ROLES);
+    expect(cv.tripleAdjacent).toBe(true);
+    expect(cv.roleOrderMonotonic).toBe(true);
+  });
+
+  // Drawn first, the period shares the title's line: "September 2015 – July 2018 Mobile Developer at …".
+  test('Nerd Mode: a period that opens the title line is read as the role it opens', () => {
+    const cv = parse('page-print-nerd.raw');
+
+    expect(cv.segmentation).toBe('ok');
+    expect(cv.experience.map(identityOf)).toEqual(ROLES);
+    expect(cv.experience.map((role) => role.period.raw)).toEqual([
+      'August 2018 – Present',
+      'September 2015 – July 2018',
+      'May 2015 – August 2015'
+    ]);
+    expect(cv.tripleAdjacent).toBe(true);
+    expect(cv.roleOrderMonotonic).toBe(true);
+  });
+
+  // In content-stream order a page break writes no newline: "mentoring mobile colleagues.\fLed annual …".
+  test('a page break is a line break', () => {
+    const [first] = parse('page-print-spotlight.raw').experience;
+
+    expect(first.bodyLines).toContain('mobile colleagues.');
+    expect(first.bodyLines.some((line) => line.startsWith('Led annual iOS compatibility'))).toBe(
+      true
+    );
+  });
+
+  // pdfmake sets each label in a rail beside its block, on the block's first baseline, so the content
+  // stream welds the two: "Professional Experience Mobile Software Engineer / …".
+  test('a section label beside its block is read as the heading it is', () => {
+    const cv = parse('pdfmake-rail.raw');
+
+    expect(cv.segmentation).toBe('ok');
+    expect(cv.sections.map((section) => section.section)).toEqual([
+      'experience',
+      'skills',
+      'education',
+      'languages',
+      'certifications'
+    ]);
+    expect(cv.identity.email.value).toBe('trovato.giovanni@gmail.com');
+    expect(cv.experience.map((role) => [role.title?.value, role.employer?.value])).toEqual([
+      ['Mobile Software Engineer / Technical Owner, iOS & Android', 'Cortado Mobile Solutions'],
+      ['Mobile Developer', 'Apparound'],
+      ['Mobile Developer Intern', 'Marte 5']
+    ]);
+    expect(cv.tripleAdjacent).toBe(true);
+  });
+
+  // The browser print on main at 2b53cf5, before #156 laid it out in one column: the skills first, the
+  // name on line 46, the section headings after their sections.
+  test('the two-column browser print recovers no contact and no career', () => {
+    const cv = parse('two-column-print.raw');
+
+    expect(cv.identity.email).toBeNull();
+    expect(cv.experience.map(identityOf)).not.toEqual(ROLES);
+  });
+});
+
+describe('which way a section runs is read off its first entry', () => {
+  // Two roles with no achievements are the one shape where a period sits between two headers. The section's
+  // first line settles which of them it belongs to, the way a reader settles it.
+  test.each([
+    [
+      'the header first',
+      ['Engineer at Acme, Berlin', '2020 – 2022', 'Developer at Beta, Pisa', '2018 – 2020']
+    ],
+    [
+      'the period first',
+      ['2020 – 2022', 'Engineer at Acme, Berlin', '2018 – 2020', 'Developer at Beta, Pisa']
+    ]
+  ])('%s', (_, roles) => {
+    const cv = AtsTextParser.parse(
+      [
+        'Giovanni Rossi',
+        'rossi@example.com',
+        '',
+        'Professional Experience',
+        ...roles,
+        'Education',
+        'B.Sc.',
+        'X · 2015'
+      ].join('\n')
+    );
+
+    expect(cv.experience.map((role) => [role.employer.value, role.period.raw])).toEqual([
+      ['Acme', '2020 – 2022'],
+      ['Beta', '2018 – 2020']
+    ]);
+  });
+
+  test('German writes the header with "bei"', () => {
+    const cv = AtsTextParser.parse(
+      [
+        'Giovanni Rossi',
+        '',
+        'Berufserfahrung',
+        'Entwickler bei Acme, Berlin',
+        'seit August 2018',
+        '',
+        'Ausbildung',
+        'B.Sc.',
+        'X · 2015'
+      ].join('\n')
+    );
+
+    expect(identityOf(cv.experience[0])).toEqual(['Entwickler', 'Acme', 'Berlin']);
+  });
+});

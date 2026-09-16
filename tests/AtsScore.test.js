@@ -136,6 +136,22 @@ describe('the report says what the number is not', () => {
     expect(markdown).toMatch(/Nothing\. Every field the document writes came back/);
   });
 
+  // Scored on poppler's order, gated on both: a floor that fails only in content-stream order must still be
+  // named, and named as that order's.
+  test('the floors are reported per reading order', () => {
+    const text = AtsReport.render(score, [
+      {
+        artefact: 'nerd.pdf',
+        diff: diffOf('clean-english'),
+        floors: { default: [], raw: ['the email address was not recovered'] }
+      }
+    ]);
+
+    expect(text).toContain('## Floors, in both reading orders');
+    expect(text).toMatch(/\| nerd\.pdf \| pass \| FAIL: the email address was not recovered \|/);
+    expect(text).toMatch(/content-stream order.*pdftotext -raw/);
+  });
+
   test('a damaged run quotes what did not come back', () => {
     const damaged = diffOf('orphan-category');
     const text = AtsReport.render(AtsScore.compose(damaged), [

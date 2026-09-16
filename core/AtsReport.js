@@ -32,6 +32,8 @@ export class AtsReport {
       '',
       ...AtsReport.findings(results),
       '',
+      ...AtsReport.floorsSection(results),
+      '',
       ...AtsReport.advertSection(advert),
       '',
       '## How the number is composed',
@@ -145,6 +147,32 @@ export class AtsReport {
       `${diff.links.filter((link) => link.recovered).length}/${diff.links.length} | ` +
       `${tick(diff.experience.every((role) => role.tripleAdjacent) && diff.roleOrderMonotonic)} |`
     );
+  }
+
+  /**
+   * The floors, per artefact and per reading order.
+   *
+   * The table above is scored on poppler's order alone. The floors are checked in the content stream's
+   * order too, and a failure there is printed under that order's name rather than folded into the
+   * other: a reader must be able to tell which extractor the document failed.
+   * @param {Array<{artefact: string, floors?: {default: string[], raw: string[]}}>} results - Per artefact
+   * @returns {string[]} Markdown lines, none when no floors were checked
+   */
+  static floorsSection(results) {
+    const checked = results.filter((entry) => entry.floors);
+    if (!checked.length) return [];
+    const cell = (failures) => (failures.length ? `FAIL: ${failures.join('; ')}` : 'pass');
+    return [
+      '## Floors, in both reading orders',
+      '',
+      "Four failures gate the audit whatever the number says: a document that did not segment, a lost email, a role severed from its title or period, and a chronology that does not run one way. Each is checked in poppler's reading order (`pdftotext`) and in content-stream order (`pdftotext -raw`), which PDFBox and Tika read by default.",
+      '',
+      "| Artefact | Poppler's order | Content-stream order |",
+      '|---|---|---|',
+      ...checked.map(
+        ({ artefact, floors }) => `| ${artefact} | ${cell(floors.default)} | ${cell(floors.raw)} |`
+      )
+    ];
   }
 
   /** Everything that did not come back, quoted so the parser can be audited rather than trusted. */
