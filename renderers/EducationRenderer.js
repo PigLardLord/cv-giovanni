@@ -1,4 +1,5 @@
 import { BaseRenderer } from './BaseRenderer.js';
+import { schoolLine } from '../domain/EntryLines.js';
 
 export class EducationRenderer extends BaseRenderer {
   render(root, data) {
@@ -15,14 +16,14 @@ export class EducationRenderer extends BaseRenderer {
   createEducationEntry(root, edu) {
     const description = typeof edu.description === 'string' ? edu.description.trim() : '';
 
-    // Every string from the data is text (#157).
+    // Every string from the data is text (#157), and a degree with no period writes no brackets (#169).
     return this.appendPieces(root, this.createElement(root, 'div', 'edu-entry'), [
       this.createElement(root, 'div', 'edu-degree', String(edu.degree ?? '')),
-      this.appendPieces(root, this.createElement(root, 'div'), [
-        this.createElement(root, 'span', 'edu-school', String(edu.school ?? '')),
-        ' ',
-        this.createElement(root, 'span', 'edu-period', `(${edu.period ?? ''})`)
-      ]),
+      this.appendPieces(
+        root,
+        this.createElement(root, 'div'),
+        this.fieldPieces(root, schoolLine(edu), { school: 'edu-school', period: 'edu-period' })
+      ),
       description ? this.createElement(root, 'p', 'edu-description', description) : null
     ]);
   }

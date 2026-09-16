@@ -121,7 +121,7 @@ describe('profile text reaches the page as text', () => {
       name: 'Ada Lovelace',
       email: 'ada@example.com',
       relevant_experience: [{ title: 'Engineer', company: 'Acme' }],
-      education: [{ degree: 'B.Sc.' }],
+      education: [{ degree: 'B.Sc.', school: 'Università di Pisa' }],
       languages: [{ name: 'Italian' }],
       certifications: [{ name: 'Lead Essentials' }]
     };
@@ -134,6 +134,12 @@ describe('profile text reaches the page as text', () => {
     ].forEach((renderer) => fedTheModel(renderer).render(document, sparse));
 
     expect(document.body.textContent).not.toMatch(/undefined|null/);
+    // Nor the punctuation that belonged to it (#169).
+    const oneLine = (selector) =>
+      document.querySelector(selector).textContent.replace(/\s+/g, ' ').trim();
+    expect(oneLine('.job-header')).toBe('Engineer at Acme');
+    expect(oneLine('.edu-entry div:nth-child(2)')).toBe('Università di Pisa');
+    expect(oneLine('#certifications li')).toBe('Lead Essentials');
   });
 
   // The error panel's message can carry a thrown error's text, which is not the page's own markup either.
