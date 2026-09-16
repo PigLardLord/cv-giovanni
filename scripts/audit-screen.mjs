@@ -9,7 +9,7 @@ import { screenCopy } from './lib/screen-copy.mjs';
 import { RECORD_LAYOUT_SHIFTS, layoutShift } from './lib/layout-shift.mjs';
 import { downloadReach } from './lib/download-reach.mjs';
 import { secondaryButton } from './lib/footer-buttons.mjs';
-import { forcedBoundaries } from './lib/forced-colours.mjs';
+import { currentLayoutMarked, forcedBoundaries } from './lib/forced-colours.mjs';
 import { decodePng } from './lib/png.mjs';
 import { ringOnPixels, ringsReport } from './lib/ring-pixels.mjs';
 import { GenerationTarget } from '../core/GenerationTarget.js';
@@ -477,6 +477,19 @@ const forcedControls = `new Promise((resolve) => setTimeout(() => resolve(
   })
 ), 400))`;
 
+/** The layout switcher's links as forced colours draw them: which is current, and what marks it besides colour (#127). */
+const switcherLinks = `[...document.querySelectorAll('.layout-switcher a')].map((link) => {
+  const style = getComputedStyle(link);
+  return {
+    label: link.textContent.trim().replace(/\\s+/g, ' '),
+    current: link.getAttribute('aria-current') === 'page',
+    display: style.display,
+    underline: style.textDecorationLine.includes('underline'),
+    borderStyle: style.borderTopStyle,
+    borderWidth: style.borderTopWidth
+  };
+})`;
+
 /**
  * The focused top copy's ring, once its transitions finish, and the colour behind it: the backgrounds under a
  * point just outside the link's left edge, where the ring is drawn, painted one over another down to the first
@@ -577,6 +590,7 @@ try {
         features: [{ name: 'forced-colors', value: 'active' }]
       });
       const forced = forcedBoundaries(await chrome.evaluate(forcedControls));
+      const marked = currentLayoutMarked(await chrome.evaluate(switcherLinks));
       await chrome.send('Emulation.setEmulatedMedia', { features: [] });
       for (let press = 0; press < 10; press++) {
         await pressTab(chrome);
@@ -657,6 +671,7 @@ try {
         ...reach.checks,
         ...secondary.checks,
         ...forced.checks,
+        ...marked.checks,
         ...ringCheck.checks
       };
       const findings = {
@@ -665,6 +680,7 @@ try {
         ...reach.findings,
         ...secondary.findings,
         ...forced.findings,
+        ...marked.findings,
         ...ringCheck.findings
       };
       const passed = Object.values(checks).filter(Boolean).length;
@@ -744,7 +760,9 @@ const report = [
   'every layout that does not keep it quiet on purpose with a stated reason, as Nerd Mode does, marked',
   '(quiet). Secondary button is that border and its contrast. And with forced colours emulated, which drop',
   'fills and shadows and keep borders, every copy of the link and every footer button draws a border, the',
-  "primary's no thinner than the secondary's (#119). Forced colours is each border's width, in page order.",
+  "primary's no thinner than the secondary's (#119); and the current layout's link in the switcher is told",
+  'from the others there by a marker the palette keeps, an underline or a wider border (#127). Forced colours',
+  "is each border's width, in page order.",
   '',
   '## Focus rings',
   '',
