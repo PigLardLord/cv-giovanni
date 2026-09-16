@@ -10,32 +10,38 @@
  * to fail on a text that breaks it.
  */
 
+const escapeForRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 /**
  * @param {string} text - A text layer, from `pdftotext` or `pdftotext -raw`
- * @param {string[]} anchors - Strings the CV writes, in the order a reader meets them
+ * @param {(string | { heading: string })[]} anchors - What the CV writes, in the order a reader meets it. A string
+ *   is found anywhere in the text, across line breaks; a heading only as a line of its own, so a word in the body
+ *   is not taken for the section (the reviews of #156)
  * @returns {string[]} Every anchor the text lacks, or gives before the anchor it should follow
  */
 export function outOfOrder(text, anchors) {
-  const flat = text.replace(/\s+/g, ' ');
+  // Each line with its whitespace collapsed; the same text with the breaks as spaces keeps every position.
+  const lines = text
+    .split('\n')
+    .map((line) => line.replace(/\s+/g, ' ').trim())
+    .join('\n');
+  const flat = lines.replace(/\n/g, ' ');
+  const locate = (anchor) => {
+    if (typeof anchor === 'string') return flat.indexOf(anchor.replace(/\s+/g, ' ').trim());
+    const line = new RegExp(`(^|\\n)${escapeForRegExp(anchor.heading)}(?=\\n|$)`).exec(lines);
+    return line ? line.index + line[1].length : -1;
+  };
   const findings = [];
   let previous = null;
   for (const anchor of anchors) {
-    const wanted = anchor.replace(/\s+/g, ' ');
-    // Each anchor is looked for after the one before it: a summary that says "Education" is not the section.
-    const after = previous
-      ? flat.indexOf(wanted, previous.at + previous.anchor.length)
-      : flat.indexOf(wanted);
-    if (after >= 0) {
-      previous = { anchor, at: after };
+    const name = typeof anchor === 'string' ? anchor : anchor.heading;
+    const at = locate(anchor);
+    if (at < 0) {
+      findings.push(`"${name}" is missing`);
       continue;
     }
-    const anywhere = flat.indexOf(wanted);
-    if (anywhere < 0) {
-      findings.push(`"${anchor}" is missing`);
-      continue;
-    }
-    findings.push(`"${anchor}" comes before "${previous.anchor}"`);
-    previous = { anchor, at: anywhere };
+    if (previous && at < previous.at) findings.push(`"${name}" comes before "${previous.name}"`);
+    previous = { name, at };
   }
   return findings;
 }
@@ -45,9 +51,10 @@ export function outOfOrder(text, anchors) {
  * @returns {number} The images it embeds: a portrait, a logo, a picture of text
  */
 export function imageCount(list) {
-  // A soft mask is listed on a row of its own beside its image; only the image rows count.
+  // A mask or soft mask is listed on a row of its own beside the image it belongs to; a stencil is an image drawn as
+  // ink through a one-bit mask, with no image row of its own, and counts.
   return list
     .split('\n')
     .slice(2)
-    .filter((row) => row.trim().split(/\s+/)[2] === 'image').length;
+    .filter((row) => ['image', 'stencil'].includes(row.trim().split(/\s+/)[2])).length;
 }

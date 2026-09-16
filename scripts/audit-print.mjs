@@ -283,15 +283,16 @@ try {
       ...profile.skills.map((group) => group.category)
     ]);
     // The order a reader meets the CV in, which the text layer has to give in both reading orders (#142).
+    // A section label is a heading, found only as a line of its own: a word in the body is not the section.
     const anchors = [
       profile.name,
       profile.email,
-      labels.skills,
-      labels.experience,
+      { heading: labels.skills },
+      { heading: labels.experience },
       ...profile.relevant_experience.map((job) => job.title),
-      labels.education,
+      { heading: labels.education },
       ...profile.education.map((entry) => entry.degree),
-      labels.languages
+      { heading: labels.languages }
     ];
     const sections = { read: outOfOrder(text, anchors), drawn: outOfOrder(drawn, anchors) };
     const images = imageCount(execFileSync('pdfimages', ['-list', pdf], { encoding: 'utf8' }));

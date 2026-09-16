@@ -35,6 +35,22 @@ describe('fonts a text extractor can read', () => {
     ).toEqual(['BAAAAA+Liberation Serif']);
   });
 
+  // The review of that fix: pdffonts pads a name to 36 characters but never cuts a longer one, so every column
+  // after it shifts right, and a header-positioned read missed the Type 3 font.
+  test('finds a Type 3 font whose name runs past its column', () => {
+    const row = (name, type, encoding) =>
+      `${name.padEnd(36)} ${type.padEnd(17)} ${encoding.padEnd(16)} yes yes no  ${'5'.padStart(6)} ${'0'.padStart(2)}`;
+
+    expect(
+      type3Fonts(
+        pdffonts(
+          row('AAAAAA+SomeVeryLongCondensedFamily-BoldItalic', 'Type 3', 'Custom'),
+          row('BAAAAA+Inter-Regular', 'CID TrueType', 'Identity-H')
+        )
+      )
+    ).toEqual(['AAAAAA+SomeVeryLongCondensedFamily-BoldItalic']);
+  });
+
   test('a page set in TrueType fonts has none', () => {
     expect(
       type3Fonts(
