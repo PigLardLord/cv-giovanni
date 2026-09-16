@@ -1876,6 +1876,9 @@ body[data-layout='technical'] .hero-name {
     font-family: var(--x-mono);
     font-size: 12px;
     font-weight: 400;
+    /* The page's. A <button> takes the browser's font shorthand, which resets the line height to normal, and Browser
+       print rendered 3px shorter than the Download link beside it, which inherits this (#116). */
+    line-height: 1.6;
     letter-spacing: 0;
     text-transform: none;
   }
