@@ -1,0 +1,41 @@
+# Terms the British English dictionary does not know and the CV writes on purpose (#152).
+# One term a line, exactly as written, sorted. A term here is allowed everywhere, so add a word
+# only when it is right: a misspelling added here is a misspelling nobody catches again.
+APIs
+Apparound # employer
+backend # the team, as engineers write it; the dictionary knows only "back end"
+Catania # Università degli Studi di Catania
+Cortado # employer
+degli # Università degli Studi
+DevicePolicyManager # Android API
+di # Università degli Studi di
+Fastlane # tool
+GitLab # product
+Gradle # tool
+IoT
+Jetpack # Android Jetpack
+JUnit # tool
+Liebenstein # Bad Liebenstein
+LinkedIn # product
+Livorno # city
+Marte # Marte 5, employer
+MDM # mobile device management
+MVVM # model-view-viewmodel
+Robolectric # tool
+rollout # staged rollout, as app stores write it
+SBOM # software bill of materials
+Siri # product
+SPM # Swift Package Manager
+Studi # Università degli Studi
+SwiftUI # framework
+TestFlight # product
+Thuringia # German state
+Trovato # surname
+UI
+UIKit # framework
+Università # Università degli Studi
+UX
+Vuforia # product
+Wikitude # product
+XCTest # framework
+XCUITest # framework

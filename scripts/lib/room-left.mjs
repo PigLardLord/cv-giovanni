@@ -12,26 +12,8 @@
  * 4.5pt of leading under its last line as room nobody can use.
  */
 
-const attribute = (tag, name) => Number(new RegExp(`\\b${name}="([\\d.]+)"`).exec(tag)?.[1]);
-
-/**
- * Every page of an extract, with the vertical extent of each line on it.
- * @param {string} extract - What `pdftotext -bbox-layout` wrote
- * @returns {{ width: number, height: number, lines: { top: number, bottom: number }[] }[]} The pages
- */
-export function pages(extract) {
-  return extract
-    .split(/<page\b/)
-    .slice(1)
-    .map((page) => ({
-      width: attribute(page, 'width'),
-      height: attribute(page, 'height'),
-      lines: [...page.matchAll(/<line\b[^>]*>/g)].map(([tag]) => ({
-        top: attribute(tag, 'yMin'),
-        bottom: attribute(tag, 'yMax')
-      }))
-    }));
-}
+/** Every page of an extract, with the vertical extent of each line on it: the reader the print audit uses too (#162). */
+export { bboxPages as pages } from './page-room.mjs';
 
 /**
  * The room between a page's lowest line and its bottom margin, in points and in body lines.
