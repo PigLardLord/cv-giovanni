@@ -39,7 +39,7 @@ describe('the shape of a profile', () => {
     [
       'a blank highlight',
       (p) => p.career_highlights.push(''),
-      'career_highlights[3]',
+      `career_highlights[${published.career_highlights.length}]`,
       /is required/
     ],
     [

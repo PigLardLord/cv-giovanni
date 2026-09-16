@@ -112,17 +112,18 @@ describe('the editor page', () => {
 
   test('adds, moves and removes entries, and saves the list as it stands', async () => {
     const { api, editor } = await open();
+    const count = profile.interests.length;
 
     button('Add interest').click();
-    type('interests[6]', 'Sailing');
-    button('Move interest 7 up').click();
+    type(`interests[${count}]`, 'Sailing');
+    button(`Move interest ${count + 1} up`).click();
     button('Remove interest 1').click();
     await editor.save();
 
     expect(puts(api)[0].body.interests).toEqual([
-      ...profile.interests.slice(1, 5),
+      ...profile.interests.slice(1, -1),
       'Sailing',
-      profile.interests[5]
+      profile.interests.at(-1)
     ]);
   });
 

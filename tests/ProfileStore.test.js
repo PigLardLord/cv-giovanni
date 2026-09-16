@@ -68,7 +68,7 @@ describe('the general profile, for the local app', () => {
     expect(refusal).toMatchObject({ name: 'Refusal', status: 422 });
     expect(refusal.details.map(({ path }) => path)).toEqual([
       'relevant_experience[1].period',
-      'interests[6]'
+      `interests[${profile.interests.length - 1}]`
     ]);
     expect(refusal.message).toMatch(
       /relevant_experience\[1\]\.period carries more than its dates.*and 1 more/
