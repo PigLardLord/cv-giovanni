@@ -160,6 +160,9 @@ where the screen audit cannot:
   beside it still reads as a button. There the primary's border is at least as wide as the secondary's (#119).
 - **In forced colours, a state marked only by colour takes a marker the palette keeps.** The current layout's
   link in the switcher is underlined there, 3px thick, since its fill is replaced like every other link's (#127).
+  An underline already marks a link elsewhere on the page, and the reuse is deliberate: the switcher's other links
+  carry none, so the mark only has to set one link apart from its neighbours, as a tab's indicator does. A later
+  state that needs a marker should say which one it takes and what else already uses it.
 
 What that review measured on the Download link itself — hidden without a PDF, reachable, tappable,
 a visible focus ring — `npm run audit:screen` checks on every render (#101). Since #110 it also checks
@@ -169,7 +172,7 @@ control a keyboard reaches, at 320px too, and reads each ring from the screen's 
 against what lies just outside it and against what it surrounds, or the render fails. Since #116 it renders a
 tablet width, 820px, and holds the footer's copy of the link and the button beside it to one height. Since #119 it emulates forced colours and holds every action to a
 border there, and reads the secondary button with `:hover` forced. Since #127 it holds the current layout's link to a marker
-there that is not a colour.
+there that is not a colour, and fails a current link that is not shown.
 
 ### Linked pages are part of the CV
 
