@@ -391,7 +391,11 @@ previous deploy's JavaScript; after ten minutes the browser revalidates and gets
 file. Ten minutes of staleness on a CV is not worth a build step, an import map of twenty
 generated entries, or a `?v=` inside every import — which would also put a query string in
 front of Jest's resolver. The stylesheets, which carry the visible change, are versioned
-already.
+already, and so are the catalogues the page loads: `core/I18nService.js` loads `locales/` under a
+`?v=` of its own (the local editor reads `ui.json` directly, and only `npm run serve`'s `no-store`
+ever serves it), and a branch that edits a catalogue changes it, since a relabelled heading is a
+visible change too. `tests/VersionTokensFollowEdits.test.js` fails on a branch that forgets either
+(#117, #170).
 
 What _has_ cost this project time, three times, is the local server. `python -m http.server`
 sends no `Cache-Control` at all, so the browser falls back to heuristic freshness and can
