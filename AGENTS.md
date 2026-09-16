@@ -155,6 +155,9 @@ where the screen audit cannot:
 - **A button that shares a row with a link sets its own `line-height` in the skin.** A `<button>` takes the
   browser's `font` shorthand, which resets the line height a link inherits, so the two render different heights
   side by side: 32px against 35px in Nerd Mode's footer (#116).
+- **A control marked as a button by its fill and shadow keeps a border in forced colours.** A contrast theme
+  drops both and keeps border styles, so such a control shows as bare text while an outlined lesser action
+  beside it still reads as a button. There the primary's border is at least as wide as the secondary's (#119).
 
 What that review measured on the Download link itself — hidden without a PDF, reachable, tappable,
 a visible focus ring — `npm run audit:screen` checks on every render (#101). Since #110 it also checks
@@ -162,7 +165,8 @@ that the footer's secondary button carries no shadow and, in every layout that d
 quiet with a stated reason, draws a border that clears 3:1 against the footer. Since #111 it focuses every
 control a keyboard reaches, at 320px too, and reads each ring from the screen's pixels: a ring clears 3:1
 against what lies just outside it and against what it surrounds, or the render fails. Since #116 it renders a
-tablet width, 820px, and holds the footer's copy of the link and the button beside it to one height.
+tablet width, 820px, and holds the footer's copy of the link and the button beside it to one height. Since #119 it emulates forced colours and holds every action to a
+border there, and reads the secondary button with `:hover` forced.
 
 ### Linked pages are part of the CV
 

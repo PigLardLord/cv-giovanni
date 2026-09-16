@@ -725,6 +725,15 @@ body[data-layout='technical'] .hero-name {
     box-shadow: none;
   }
 
+  /* In forced colours its fill and its shadow go, and nothing else marked Download PDF as a button, while the outline
+     above kept marking Browser print. The primary keeps a border there, twice as wide; the system picks its
+     colour (#119). */
+  @media (forced-colors: active) {
+    body[data-layout='technical'] .print-button:not(.print-button-secondary) {
+      border: 2px solid;
+    }
+  }
+
   /* A ring is read like a word, so it is drawn in the deep tone, never in the bright one that marks geometry. In the
      bright tone the rings measured 2.85:1 on the layout switcher's strip and 2.29:1 beside its current link (#121),
      and 2.90:1 behind the Download link (#59). */
@@ -1285,6 +1294,15 @@ body[data-layout='technical'] .hero-name {
     background: #fff;
     color: var(--e-ember);
     box-shadow: none;
+  }
+
+  /* In forced colours its fill and its shadow go, and nothing else marked Download PDF as a button, while the outline
+     above kept marking Browser print. The primary keeps a border there, twice as wide; the system picks its
+     colour (#119). */
+  @media (forced-colors: active) {
+    body[data-layout='spotlight'] .print-button:not(.print-button-secondary) {
+      border: 2px solid;
+    }
   }
 
   /* A ring is read like a word, so it is drawn in the deep tone, never in the bright one that marks geometry. In the
