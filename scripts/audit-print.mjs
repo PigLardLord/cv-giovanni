@@ -13,6 +13,13 @@ import { builtCv, builtLetters } from './lib/printed-cv.mjs';
 import { PRINTED_PAGE, bboxPages, printedRoom, roomReport } from './lib/page-room.mjs';
 import { MEASURE_LIMIT, longProseLines, overflowingPeriods, proseOf } from './lib/line-length.mjs';
 import {
+  RUNNING_FOOTER_FLOOR_MM,
+  footerBoxes,
+  paintedWhite,
+  runningFooterFindings,
+  withoutRunningFooter
+} from './lib/running-footer.mjs';
+import {
   addressInWindow,
   bboxLines,
   catalogueTranslator,
@@ -21,6 +28,7 @@ import {
 } from './lib/printed-letter.mjs';
 import { GenerationTarget } from '../core/GenerationTarget.js';
 import { LetterContent } from '../core/LetterContent.js';
+import { runningFooterParts } from '../core/RunningFooter.js';
 import { CoverLetter } from '../domain/CoverLetter.js';
 import { CvDocument } from '../domain/CvDocument.js';
 import { periodText } from '../domain/Tenure.js';
@@ -53,6 +61,13 @@ const cv = new CvDocument(profile);
 // Each role's dates as the page writes them, the period with its length (Nerd Mode's print hides the length; a run of
 // the period still matches).
 const periods = cv.experience.map((role) => periodText(cv, role, target.locale));
+// The line that says, from page 2 on, whose CV a page belongs to (#158), composed as the page composes it: from the
+// profile's name and the print catalogue, through a translator that fills placeholders as i18next does.
+const printCatalogue = await readJson(`locales/${target.locale}/print.json`);
+const footerParts = runningFooterParts(
+  cv.identity.name,
+  catalogueTranslator({ cv: catalogue, print: printCatalogue })
+);
 
 /** Read a file the audit cannot run without. Missing means unchecked, which is exit 2. */
 async function readJson(path) {
@@ -225,7 +240,7 @@ function isA4(info) {
  * and, from its pixels, the ink margins and the words too faint to read. The CV and the cover letter are measured
  * alike and scored apart.
  */
-async function measure(path, faces, directory) {
+async function measure(path, faces, directory, { aside = () => [] } = {}) {
   const pdf = onDisk(path);
   // The files are read as they are: a build older than an edit audits the edit's predecessor. Say when each
   // was written, where whoever runs this can see it; `npm run verify:pdf` builds first.
@@ -247,14 +262,20 @@ async function measure(path, faces, directory) {
 
   const raster = await mkdtemp(join(directory, 'raster-'));
   const pages = await renderPages(pdf, raster);
-  const margins = pages.map(inkMargins).filter(Boolean);
   // Where every word and line sits on the paper: for the contrast of each word, the room left under each page's last
-  // line (#162), and a letter's address in its window.
+  // line (#162), a letter's address in its window, and the CV's running footer (#158).
   const bbox = execFileSync('pdftotext', ['-bbox-layout', pdf, '-'], {
     encoding: 'utf8',
     maxBuffer: 64 * 1024 * 1024
   });
   const faint = faintWords(bbox, pages);
+  // What a document sets in its margin on purpose, the CV's running footer, is painted out before the ink margins are
+  // measured, so the floor and the symmetry of the sides still hold everything else. Its words' contrast was read above,
+  // on the page as it printed.
+  const boxes = aside(bboxPages(bbox));
+  const margins = pages
+    .map((page, index) => inkMargins(paintedWhite(page, boxes[index] ?? [], DPI)))
+    .filter(Boolean);
   await rm(raster, { recursive: true, force: true });
 
   return { info, text, drawn, bbox, fallback, type3, images, pageCount, margins, faint };
@@ -282,13 +303,20 @@ const letterRows = [];
 try {
   for (const { layout, path } of files) {
     const { info, text, drawn, bbox, fallback, type3, images, pageCount, margins, faint } =
-      await measure(path, typefacesFor(layout), workspace);
+      await measure(path, typefacesFor(layout), workspace, {
+        aside: (pages) => footerBoxes(pages, footerParts)
+      });
     const long = longProseLines(text, prose, { periods });
     const overflow = layout === 'nerd' ? overflowingPeriods(bbox, periods) : [];
-    // How close each page runs to its foot, reported and never gated: the page count is the gate (#162). A page with
-    // no line has no room to measure.
-    const room = bboxPages(bbox).map((page) =>
+    const printedPages = bboxPages(bbox);
+    // How close each page runs to its foot, reported and never gated: the page count is the gate (#162). Measured from
+    // the CV's own lowest line, the running footer left out by what it says. A page with no line has no room to measure.
+    const room = withoutRunningFooter(printedPages, footerParts).map((page) =>
       page.lines.length ? printedRoom(page, PRINTED_PAGE) : null
+    );
+    const footer = runningFooterFindings(
+      { pages: printedPages, read: text, drawn },
+      { parts: footerParts, bottomMargin: PRINTED_PAGE.bottomMargin }
     );
     const glued = gluedPhrases(drawn, [
       profile.name,
@@ -352,7 +380,8 @@ try {
       contrast: faint.length === 0,
       // A margin no narrower than the floor, and the two sides within a
       // millimetre and a half of each other — an asymmetry means something is
-      // overflowing its column rather than sitting in it.
+      // overflowing its column rather than sitting in it. The running footer is
+      // set in the bottom margin on purpose, and its line alone is left out.
       margins:
         margins.length > 0 &&
         margins.every(
@@ -385,7 +414,12 @@ try {
       measure: long.length === 0,
       // Nerd Mode's dates stay inside their 128pt column: a longer period runs into the gap beside its role and wraps
       // nothing a text check would see.
-      datesInColumn: overflow.length === 0
+      datesInColumn: overflow.length === 0,
+      // From page 2 on, a line of its own naming the candidate and counting the pages, so a page that reaches a desk
+      // alone says whose CV it is (#158): in the bottom margin, clear of the edge a printer leaves unprinted, and at
+      // its page's end in both reading orders, never between two lines of the CV. None on page 1, which opens on the
+      // name.
+      runningFooter: footer.length === 0
     };
 
     const passed = Object.values(checks).filter(Boolean).length;
@@ -403,7 +437,8 @@ try {
       margins,
       room,
       long,
-      overflow
+      overflow,
+      footer
     });
   }
 
@@ -500,21 +535,26 @@ const report = [
     return `| ${row.layout} | ${row.pages} | ${row.score} | ${worst}mm | ${roomReport(row.room).column} |`;
   }),
   '',
-  `Room left is the space between each page's lowest line and its ${PRINTED_PAGE.bottomMargin}pt bottom margin. A last`,
-  `page with less than one ${PRINTED_PAGE.bodyLine.toFixed(1)}pt line of running text free is marked ⚠: the next line`,
-  'added to it has nowhere to go. It is a warning, never a failure, since the page count is the gate.',
+  "Room left is the space between each page's lowest line, its running footer aside, and its",
+  `${PRINTED_PAGE.bottomMargin}pt bottom margin. A last page with less than one ${PRINTED_PAGE.bodyLine.toFixed(1)}pt line of running text`,
+  'free is marked ⚠: the next line added to it has nowhere to go. It is a warning, never a failure,',
+  'since the page count is the gate.',
   ...(tight.length ? ['', `⚠ Tight last page: ${tight.join(', ')}.`] : []),
   '',
   'Checks: A4, at most two pages, required ATS text in the case the catalogue wrote it,',
   'reading order, canonical hyphenated compounds, degree beside its school, every skill',
   'attached to its category, every role present, every word at 4.5:1 on paper, margins',
-  `no narrower than ${MARGIN_FLOOR_MM}mm and symmetric within ${SIDE_TOLERANCE_MM}mm, a text layer carrying nothing`,
-  'the data did not write, every run of text set in a typeface its layout prints in, no Type 3 font,',
-  'and, read in drawing order as PDFBox and Tika read, the name, titles, employers, schools and',
-  'skill categories with the spaces between their words, the sections in reading order both as',
-  'poppler reconstructs the page and as the PDF draws it, no image, no line of prose past',
-  `${MEASURE_LIMIT} characters (WCAG 1.4.8; lists of skills, interests and contacts are scanned, not read along a`,
-  "measure, and are exempt), and in Nerd Mode every line of a role's dates inside its column.",
+  `no narrower than ${MARGIN_FLOOR_MM}mm and symmetric within ${SIDE_TOLERANCE_MM}mm (the running footer's line aside),`,
+  'a text layer carrying nothing the data did not write, every run of text set in a typeface',
+  'its layout prints in, no Type 3 font, and, read in drawing order as PDFBox and Tika read,',
+  'the name, titles, employers, schools and skill categories with the spaces between their',
+  'words, the sections in reading order both as poppler reconstructs the page and as the PDF',
+  `draws it, no image, no line of prose past ${MEASURE_LIMIT} characters (WCAG 1.4.8; lists of skills, interests`,
+  'and contacts are scanned, not read along a measure, and are exempt), in Nerd Mode every line',
+  "of a role's dates inside its column, and from page 2 on a running footer naming the candidate",
+  "and counting the pages in the catalogue's words: a line of its own in the bottom margin, at",
+  `least ${RUNNING_FOOTER_FLOOR_MM}mm above the paper's edge, at its page's end both as poppler reconstructs the page`,
+  'and as the PDF draws it, and none on page 1.',
   // Only a profile that carries a letter has one to report, so the published report reads as it always has.
   ...(letterRows.length
     ? [
@@ -566,7 +606,8 @@ if (failures.length || letterFailures.length) {
             sections,
             images,
             long,
-            overflow
+            overflow,
+            footer
           }) => ({
             layout,
             failed: failedChecks(checks),
@@ -577,7 +618,8 @@ if (failures.length || letterFailures.length) {
             sections,
             images,
             long,
-            overflow
+            overflow,
+            footer
           })
         ),
         ...letterFailures.map(
