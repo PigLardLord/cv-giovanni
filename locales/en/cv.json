@@ -27,6 +27,10 @@
     "salutationMrTitled": "Dear {{title}} {{surname}}",
     "salutationNeutral": "Dear {{name}}",
     "salutationAnonymous": "Dear Hiring Team",
+    "addressMs": "",
+    "addressMr": "",
+    "addressMsTitled": "",
+    "addressMrTitled": "",
     "closing": "Kind regards,",
     "attachments": "Enclosed"
   },
