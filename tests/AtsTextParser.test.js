@@ -273,6 +273,8 @@ describe('the printed page, in the order poppler reads it', () => {
   test.each([
     ['a semester range', 'WS 2014/15 – SS 2016'],
     ['a German semester', 'Wintersemester 2014'],
+    ['a German semester with its academic year', 'Wintersemester 2014/15'],
+    ['a season with its academic year', 'Fall 2014/15'],
     ['a season', 'Fall 2014'],
     ['a range of seasons', 'Spring 2016 – Fall 2018'],
     // Notations a CV writes that the first pattern did not cover (#192).
