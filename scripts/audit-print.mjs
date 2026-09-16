@@ -9,6 +9,8 @@ import { fallbackRuns, typefacesFor } from './lib/printed-typefaces.mjs';
 import { gluedPhrases, type3Fonts } from './lib/extractable-text.mjs';
 import { imageCount, outOfOrder } from './lib/section-order.mjs';
 import { builtCv, builtLetters } from './lib/printed-cv.mjs';
+import { PRINTED_PAGE, bboxPages, printedRoom, roomReport } from './lib/page-room.mjs';
+import { MEASURE_LIMIT, longProseLines, overflowingPeriods, proseOf } from './lib/line-length.mjs';
 import {
   addressInWindow,
   bboxLines,
@@ -19,6 +21,8 @@ import {
 import { GenerationTarget } from '../core/GenerationTarget.js';
 import { LetterContent } from '../core/LetterContent.js';
 import { CoverLetter } from '../domain/CoverLetter.js';
+import { CvDocument } from '../domain/CvDocument.js';
+import { periodText } from '../domain/Tenure.js';
 
 /**
  * What the browser prints, checked on the paper rather than on the stylesheet.
@@ -42,6 +46,12 @@ const target = GenerationTarget.fromArguments(process.argv.slice(2));
 const profile = await readJson(target.dataPath);
 const catalogue = await readJson(`locales/${target.locale}/cv.json`);
 const labels = catalogue.sections;
+// The prose a reader follows along a line, and each role's dates as Nerd Mode prints them, with their length (#155).
+const prose = proseOf(profile);
+const cv = new CvDocument(profile);
+// Each role's dates as the page writes them, the period with its length (Nerd Mode's print hides the length; a run of
+// the period still matches).
+const periods = cv.experience.map((role) => periodText(cv, role, target.locale));
 
 /** Read a file the audit cannot run without. Missing means unchecked, which is exit 2. */
 async function readJson(path) {
@@ -167,12 +177,8 @@ function inkMargins(page) {
   };
 }
 
-/** Every word whose darkest pixel is lighter than the contrast floor allows. */
-function faintWords(path, pages) {
-  const xml = execFileSync('pdftotext', ['-bbox-layout', path, '-'], {
-    encoding: 'utf8',
-    maxBuffer: 64 * 1024 * 1024
-  });
+/** Every word whose darkest pixel is lighter than the contrast floor allows, from `pdftotext -bbox-layout`. */
+function faintWords(xml, pages) {
   const scale = DPI / 72;
   const faint = [];
   let pageIndex = -1;
@@ -245,10 +251,16 @@ async function measure(path, faces, directory) {
   const raster = await mkdtemp(join(directory, 'raster-'));
   const pages = await renderPages(pdf, raster);
   const margins = pages.map(inkMargins).filter(Boolean);
-  const faint = faintWords(pdf, pages);
+  // Where every word and line sits on the paper: for the contrast of each word, the room left under each page's last
+  // line (#162), and a letter's address in its window.
+  const bbox = execFileSync('pdftotext', ['-bbox-layout', pdf, '-'], {
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024
+  });
+  const faint = faintWords(bbox, pages);
   await rm(raster, { recursive: true, force: true });
 
-  return { info, text, drawn, fallback, type3, images, pageCount, margins, faint };
+  return { info, text, drawn, bbox, fallback, type3, images, pageCount, margins, faint };
 }
 
 // The files the generator wrote for this profile, one per layout. One that is not there was never built, and an
@@ -272,10 +284,14 @@ const letterRows = [];
 
 try {
   for (const { layout, path } of files) {
-    const { info, text, drawn, fallback, type3, images, pageCount, margins, faint } = await measure(
-      path,
-      typefacesFor(layout),
-      workspace
+    const { info, text, drawn, bbox, fallback, type3, images, pageCount, margins, faint } =
+      await measure(path, typefacesFor(layout), workspace);
+    const long = longProseLines(text, prose, { periods });
+    const overflow = layout === 'nerd' ? overflowingPeriods(bbox, periods) : [];
+    // How close each page runs to its foot, reported and never gated: the page count is the gate (#162). A page with
+    // no line has no room to measure.
+    const room = bboxPages(bbox).map((page) =>
+      page.lines.length ? printedRoom(page, PRINTED_PAGE) : null
     );
     const glued = gluedPhrases(drawn, [
       profile.name,
@@ -366,7 +382,13 @@ try {
       sectionsInOrder: sections.read.length === 0,
       sectionsInOrderDrawn: sections.drawn.length === 0,
       // No portrait (the owner's decision in #144), and no picture of anything a parser should read.
-      noImages: images === 0
+      noImages: images === 0,
+      // No line of prose past WCAG 1.4.8's 80 characters. A line of skills, interests or contacts is a list, scanned
+      // item by item, and is not held to the measure (#155).
+      measure: long.length === 0,
+      // Nerd Mode's dates stay inside their 128pt column: a longer period runs into the gap beside its role and wraps
+      // nothing a text check would see.
+      datesInColumn: overflow.length === 0
     };
 
     const passed = Object.values(checks).filter(Boolean).length;
@@ -381,7 +403,10 @@ try {
       glued,
       sections,
       images,
-      margins
+      margins,
+      room,
+      long,
+      overflow
     });
   }
 
@@ -403,20 +428,12 @@ try {
       .map(collapse);
 
     for (const { layout, path } of letters.files) {
-      const { info, text, drawn, fallback, type3, images, pageCount, margins, faint } =
+      const { info, text, drawn, bbox, fallback, type3, images, pageCount, margins, faint } =
         await measure(path, typefacesFor(layout, 'letter'), workspace);
       const parts = { read: outOfOrder(text, anchors), drawn: outOfOrder(drawn, anchors) };
       const flat = collapse(text);
       // Where each line of the address landed on the paper, as poppler places it.
-      const address = addressInWindow(
-        bboxLines(
-          execFileSync('pdftotext', ['-bbox-layout', onDisk(path), '-'], {
-            encoding: 'utf8',
-            maxBuffer: 64 * 1024 * 1024
-          })
-        ),
-        words
-      );
+      const address = addressInWindow(bboxLines(bbox), words);
 
       const checks = {
         format: isA4(info),
@@ -466,6 +483,9 @@ try {
 const failed = (row) => Object.values(row.checks).some((value) => !value);
 const failures = rows.filter(failed);
 const letterFailures = letterRows.filter(failed);
+const tight = rows
+  .filter((row) => roomReport(row.room).lastPageTight)
+  .map((row) => `${row.layout} (${row.room[row.room.length - 1].points.toFixed(1)}pt)`);
 const report = [
   '# Print quality matrix',
   '',
@@ -474,14 +494,19 @@ const report = [
   '',
   `Layouts: ${rows.length}`,
   '',
-  '| Layout | Pages | Score | Worst side margin |',
-  '|---|---:|---:|---:|',
+  '| Layout | Pages | Score | Worst side margin | Room left |',
+  '|---|---:|---:|---:|---|',
   ...rows.map((row) => {
     const worst = row.margins.length
       ? Math.min(...row.margins.flatMap((box) => [box.left, box.right])).toFixed(1)
       : '—';
-    return `| ${row.layout} | ${row.pages} | ${row.score} | ${worst}mm |`;
+    return `| ${row.layout} | ${row.pages} | ${row.score} | ${worst}mm | ${roomReport(row.room).column} |`;
   }),
+  '',
+  `Room left is the space between each page's lowest line and its ${PRINTED_PAGE.bottomMargin}pt bottom margin. A last`,
+  `page with less than one ${PRINTED_PAGE.bodyLine.toFixed(1)}pt line of running text free is marked ⚠: the next line`,
+  'added to it has nowhere to go. It is a warning, never a failure, since the page count is the gate.',
+  ...(tight.length ? ['', `⚠ Tight last page: ${tight.join(', ')}.`] : []),
   '',
   'Checks: A4, at most two pages, required ATS text in the case the catalogue wrote it,',
   'reading order, canonical hyphenated compounds, degree beside its school, every skill',
@@ -490,7 +515,9 @@ const report = [
   'the data did not write, every run of text set in a typeface its layout prints in, no Type 3 font,',
   'and, read in drawing order as PDFBox and Tika read, the name, titles, employers, schools and',
   'skill categories with the spaces between their words, the sections in reading order both as',
-  'poppler reconstructs the page and as the PDF draws it, and no image.',
+  'poppler reconstructs the page and as the PDF draws it, no image, no line of prose past',
+  `${MEASURE_LIMIT} characters (WCAG 1.4.8; lists of skills, interests and contacts are scanned, not read along a`,
+  "measure, and are exempt), and in Nerd Mode every line of a role's dates inside its column.",
   // Only a profile that carries a letter has one to report, so the published report reads as it always has.
   ...(letterRows.length
     ? [
@@ -531,16 +558,31 @@ if (failures.length || letterFailures.length) {
   console.error(
     JSON.stringify(
       [
-        ...failures.map(({ layout, checks, faint, fallback, type3, glued, sections, images }) => ({
-          layout,
-          failed: failedChecks(checks),
-          faint,
-          fallback,
-          type3,
-          glued,
-          sections,
-          images
-        })),
+        ...failures.map(
+          ({
+            layout,
+            checks,
+            faint,
+            fallback,
+            type3,
+            glued,
+            sections,
+            images,
+            long,
+            overflow
+          }) => ({
+            layout,
+            failed: failedChecks(checks),
+            faint,
+            fallback,
+            type3,
+            glued,
+            sections,
+            images,
+            long,
+            overflow
+          })
+        ),
         ...letterFailures.map(
           ({ layout, checks, faint, fallback, type3, parts, window, images, margins }) => ({
             letter: layout,

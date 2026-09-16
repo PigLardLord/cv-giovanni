@@ -145,10 +145,10 @@ where the screen audit cannot:
   the padding holds one language at one width: #107 measured the footer's row 4px short at 320px in
   English, before any longer label.
 - **A modifier class comes after the rule it modifies, or is more specific; otherwise the base wins every
-  property both declare.** `.print-button-secondary` sat above `.print-button` at the same specificity, so
-  the base's `border: none` and shadow won. An override that sets part of a shorthand, such as
-  `border-color`, sets the whole shorthand unless it is certain which rule supplies the rest: the skins set
-  `border-color`, and it drew nothing (#110).
+  property both declare.** `.print-button-secondary`, the footer's Browser print until #150, sat above
+  `.print-button` at the same specificity, so the base's `border: none` and shadow won. An override that sets
+  part of a shorthand, such as `border-color`, sets the whole shorthand unless it is certain which rule supplies
+  the rest: the skins set `border-color`, and it drew nothing (#110).
 - **The lesser of two paired actions carries no shadow, at rest or on hover.** Fill and shadow mark the
   primary. The secondary may share its hue in its outline and its label, never its fill or its shadow (#110).
 - **A focus ring takes the tone its surface cannot swallow, never a bright one.** Deep on a light surface,
@@ -158,7 +158,7 @@ where the screen audit cannot:
   as in Nerd Mode's segmented switcher, the focused one is raised above its neighbours (#121).
 - **A button that shares a row with a link sets its own `line-height` in the skin.** A `<button>` takes the
   browser's `font` shorthand, which resets the line height a link inherits, so the two render different heights
-  side by side: 32px against 35px in Nerd Mode's footer (#116).
+  side by side: 32px against 35px in Nerd Mode's footer, before #150 removed it (#116).
 - **A control marked as a button by its fill and shadow keeps a border in forced colours.** A contrast theme
   drops both and keeps border styles, so such a control shows as bare text while an outlined lesser action
   beside it still reads as a button. There the primary's border is at least as wide as the secondary's (#119).
@@ -169,14 +169,20 @@ where the screen audit cannot:
   state that needs a marker should say which one it takes and what else already uses it.
 
 What that review measured on the Download link itself — hidden without a PDF, reachable, tappable,
-a visible focus ring — `npm run audit:screen` checks on every render (#101). Since #110 it also checks
-that the footer's secondary button carries no shadow and, in every layout that does not keep its outline
-quiet with a stated reason, draws a border that clears 3:1 against the footer. Since #111 it focuses every
-control a keyboard reaches, at 320px too, and reads each ring from the screen's pixels: a ring clears 3:1
-against what lies just outside it and against what it surrounds, or the render fails. Since #116 it renders a
-tablet width, 820px, and holds the footer's copy of the link and the button beside it to one height. Since #119 it emulates forced colours and holds every action to a
-border there, and reads the secondary button with `:hover` forced. Since #127 it holds the current layout's link to a marker
-there that is not a colour, and fails a current link that is not shown.
+a visible focus ring — `npm run audit:screen` checks on every render (#101), and since #107 that its label
+holds one line. Since #111 it focuses every control a keyboard reaches, at 320px too, and reads each ring
+from the screen's pixels: a ring clears 3:1 against what lies just outside it and against what it
+surrounds, or the render fails. Since #116 it renders a tablet width, 820px. Since #119 it emulates forced
+colours and holds the Download link to a border there. Since #127 it holds the current layout's link to a
+marker there that is not a colour, and fails a current link that is not shown. Since #150 the page offers
+one download control, the link at the top, and a second copy that shows fails the render; a page that
+shows none already fails as unreachable.
+
+#150 removed the footer, with its copy of the link and Browser print, and the checks that existed only for
+them went too: that the secondary button carried no shadow and an outline clearing 3:1, at rest and with
+`:hover` forced (#110, #119); the footer button's tap height (#109) and its label on one line (#107); the footer's copy and
+that button at one height (#116); and, in forced colours, the primary's border no thinner than the
+secondary's (#119). The rules above that came from them stay, for the next pair of actions.
 
 ### Linked pages are part of the CV
 
@@ -312,11 +318,27 @@ its own — an eighteenth check there outlives any number of review comments.
 pass whatever the generator wrote — through the text layer poppler extracts and the pixels that
 reached the paper: contrast per word against the printed page, ink margins per page, every skill
 still attached to its category, nothing in the text layer the data did not write, and, read in the
-order the PDF draws it, every name spaced and every section in its place. A check on the stylesheet
-passed a page that printed a line of white on white. `npm run audit:screen` reads what a reader
+order the PDF draws it, every name spaced and every section in its place. No line of prose, the
+summary, the highlights and what a role, a certificate or a degree says, runs past WCAG 1.4.8's 80
+characters; a line of skills, interests or contacts is a list, scanned item by item, and is exempt.
+In Nerd Mode no line of a role's dates runs out of its 128pt column (#155). It also reports how much
+room each page has left above its foot, and marks a last page with less than one line of running
+text free, as a warning and never a failure: the page count is the gate, and the warning is the
+notice that it is close (#162). A check on the stylesheet passed a page that printed a line of
+white on white. `npm run audit:screen` reads what a reader
 copies off the screen, and the page's controls. `npm run audit:pdf` scored the twelve variants
 pdfmake composed; nothing runs it any more, and it goes with pdfmake (#153). `npm run verify:pdf`
 builds, then runs the print and ATS audits: run it before claiming the document is sound.
+
+**The CV is spelled in its locale, offline.** `tests/CvIsSpelledRight.test.js` reads every published
+profile and every catalogue of its locale (the labels, the page's words, the print's) against a
+pinned dictionary, British English for `en`, and names each unknown word with its JSON path.
+Spelling errors are the best-measured penalty in CV screening: five cut the probability of an
+interview invitation by 18.5 percentage points, two by 7.3 (Sterkens et al., PLOS ONE 2023, 445
+recruiters) (#152). A product, a place or a surname the dictionary does not know is allowed by name
+in `config/spelling/<locale>.txt`, sorted, one term a line, never by a rule broad enough to let a
+misspelling through with it. A locale with no dictionary fails rather than passing unchecked, so a
+German CV needs one before it is published.
 
 The ATS audit asks a different question altogether. `npm run audit:ats` parses the generated PDF the
 way a stranger's parser would — no `-layout`, no access to `profiles/`, no knowledge of what the
@@ -383,7 +405,11 @@ previous deploy's JavaScript; after ten minutes the browser revalidates and gets
 file. Ten minutes of staleness on a CV is not worth a build step, an import map of twenty
 generated entries, or a `?v=` inside every import — which would also put a query string in
 front of Jest's resolver. The stylesheets, which carry the visible change, are versioned
-already.
+already, and so are the catalogues the page loads: `core/I18nService.js` loads `locales/` under a
+`?v=` of its own (the local editor reads `ui.json` directly, and only `npm run serve`'s `no-store`
+ever serves it), and a branch that edits a catalogue changes it, since a relabelled heading is a
+visible change too. `tests/VersionTokensFollowEdits.test.js` fails on a branch that forgets either
+(#117, #170).
 
 What _has_ cost this project time, three times, is the local server. `python -m http.server`
 sends no `Cache-Control` at all, so the browser falls back to heuristic freshness and can

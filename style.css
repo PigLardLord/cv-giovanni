@@ -550,18 +550,8 @@ section {
 }
 
 /* =============================================================================
-   PRINT BUTTON
+   PRINT BUTTON — the page's one download control, Download PDF (#150)
    ============================================================================= */
-
-.print-footer {
-  padding: var(--space-lg);
-  text-align: center;
-  background: var(--bg-secondary);
-  border-top: 1px solid var(--border-color);
-  display: flex;
-  justify-content: center;
-  gap: var(--space-sm);
-}
 
 .print-button {
   background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
@@ -580,15 +570,6 @@ section {
   text-decoration: none;
 }
 
-/* After the rule it modifies, so that it modifies it. Declared above it at the same specificity, the base's border
-   and shadow won, and Browser print lost its outline and took the primary button's shadow (#110). */
-.print-button-secondary {
-  background: var(--bg-primary);
-  color: var(--primary-color);
-  border: 1px solid var(--border-color);
-  box-shadow: none;
-}
-
 .print-button:hover {
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
@@ -601,7 +582,7 @@ section {
   display: none !important;
 }
 
-/* The copy of the Download link at the top of the page. Each layout places it: under the switcher in Impact
+/* The Download link at the top of the page, its only copy (#150). Each layout places it: under the switcher in Impact
    Spotlight and Technical Profile, in the toolbar in Nerd Mode. With no layout yet, it stays out of the way (#59). */
 .toolbar-download {
   display: none;

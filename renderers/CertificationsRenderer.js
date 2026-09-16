@@ -1,4 +1,5 @@
 import { BaseRenderer } from './BaseRenderer.js';
+import { certificationLine } from '../domain/EntryLines.js';
 
 export class CertificationsRenderer extends BaseRenderer {
   render(root, data) {
@@ -13,30 +14,20 @@ export class CertificationsRenderer extends BaseRenderer {
   }
 
   createCertificationItem(root, cert) {
-    const li = this.createElement(root, 'li');
-
-    let content = '';
-    if (cert.url) {
-      const link = this.createLink(root, cert.url, cert.name);
-      link.innerHTML = `<strong>${cert.name}</strong>`;
-      content = link.outerHTML;
-    } else {
-      content = `<strong>${cert.name}</strong>`;
-    }
-
-    content += ` – ${cert.issuer} (${cert.year})`;
+    // Every string from the data is text (#157); the name is a link to the certificate when there is one, and the
+    // issuer and the year each bring their own separator only when the certification has them (#169).
+    const name = this.createElement(root, 'strong', '', String(cert.name ?? ''));
+    const title = cert.url ? this.createLink(root, cert.url, '') : null;
+    if (title) title.appendChild(name);
 
     const description = typeof cert.description === 'string' ? cert.description.trim() : '';
-    if (description) {
-      content += `<span class="cert-description">${description}</span>`;
-    }
-
-    li.innerHTML = content;
-
-    const prose = li.querySelector('.cert-description');
-    if (prose) this.setProse(root, prose, prose.textContent);
-
-    return li;
+    return this.appendPieces(root, this.createElement(root, 'li'), [
+      title || name,
+      certificationLine(cert).join(''),
+      description
+        ? this.setProse(root, this.createElement(root, 'span', 'cert-description'), description)
+        : null
+    ]);
   }
 
   validate(data) {

@@ -166,11 +166,7 @@ describe('what a reader copies when they select the CV', () => {
 
   // An empty selection, or one that caught the wrong element, must not score a clean pass.
   test('a selection that missed the CV fails, and says what it missed', () => {
-    const { checks, findings } = screenCopy(
-      copy('Download PDF', 'Browser print'),
-      profile,
-      options
-    );
+    const { checks, findings } = screenCopy(copy('Nerd Mode', 'Download PDF'), profile, options);
 
     expect(checks.captured).toBe(false);
     expect(findings.missing).toEqual([

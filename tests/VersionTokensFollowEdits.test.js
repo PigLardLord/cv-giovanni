@@ -4,7 +4,12 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { staleTokens, versionedFiles } from '../scripts/lib/version-tokens.mjs';
+import {
+  catalogueToken,
+  staleCatalogues,
+  staleTokens,
+  versionedFiles
+} from '../scripts/lib/version-tokens.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim();
@@ -66,6 +71,41 @@ describe('a versioned file that changes takes a new token', () => {
     ).toEqual([]);
   });
 
+  // The catalogues load through i18next with a token of their own, in core/I18nService.js, and nothing tied it to
+  // their edits: it stayed at 20260911-xcode3 while both catalogues changed (#170).
+  const service = (token) => `backend: { loadPath: 'locales/{{lng}}/{{ns}}.json?v=${token}' },\n`;
+
+  test('reads the token the catalogues load under', () => {
+    expect(catalogueToken(service('20260911-xcode3'))).toBe('20260911-xcode3');
+    expect(catalogueToken(`loadPath: "locales/{{lng}}/{{ns}}.json?cache=1&v=NEW"`)).toBe('NEW');
+    expect(catalogueToken("loadPath: 'locales/{{lng}}/{{ns}}.json'")).toBeNull();
+    // A token after a fragment is not the one the browser sends, as versionedFiles already reads it.
+    expect(catalogueToken("loadPath: 'locales/{{lng}}/{{ns}}.json#part?v=FAKE'")).toBeNull();
+  });
+
+  test('an edited catalogue under the old token is stale, and under a new one is not', () => {
+    const before = service('20260911-xcode3');
+
+    expect(staleCatalogues({ changed: ['locales/de/ui.json'], before, after: before })).toBe(true);
+    expect(
+      staleCatalogues({
+        changed: ['locales/en/cv.json'],
+        before,
+        after: service('20260917-labels1')
+      })
+    ).toBe(false);
+    expect(
+      staleCatalogues({
+        changed: ['locales/en/ui.json'],
+        before,
+        after: "backend: { loadPath: 'locales/{{lng}}/{{ns}}.json' },"
+      })
+    ).toBe(true);
+    expect(staleCatalogues({ changed: ['style.css', 'locales.md'], before, after: before })).toBe(
+      false
+    );
+  });
+
   // Against the base branch, the way tests/TicketsCloseByHand.test.js finds it: from where this branch began to the
   // files as they stand, uncommitted edits included, so a forgotten token fails before the commit that forgets it.
   // Every page the site publishes with versioned files is read: the cover letter's page is one since #151.
@@ -100,4 +140,26 @@ describe('a versioned file that changes takes a new token', () => {
       ).toEqual([]);
     }
   );
+
+  test('on this branch, a changed catalogue carries a new catalogue token', () => {
+    const ref = `origin/${manifest.vcs.base_branch}`;
+    try {
+      git('rev-parse', '--verify', '--quiet', `${ref}^{commit}`);
+    } catch {
+      throw new Error(
+        `${ref} is not fetched, and against a local branch this check could pass anything.`
+      );
+    }
+    const began = git('merge-base', ref, 'HEAD');
+    const catalogues = readFileSync(new URL('../core/I18nService.js', import.meta.url), 'utf8');
+
+    expect(catalogueToken(catalogues)).not.toBeNull();
+    expect(
+      staleCatalogues({
+        changed: git('diff', '--name-only', began).split('\n').filter(Boolean),
+        before: git('show', `${began}:core/I18nService.js`),
+        after: catalogues
+      })
+    ).toBe(false);
+  });
 });

@@ -744,33 +744,16 @@ body[data-layout='technical'] .hero-name {
     font-size: 0.86rem;
   }
 
-  /* --- Footer and focus --------------------------------------------------------------------- */
-  body[data-layout='technical'] .print-footer {
-    padding: 1.2rem;
-    border-top: 1px solid var(--t-line);
-    background: #fff;
-  }
-
+  /* --- The Download link and focus ---------------------------------------------------------- */
   body[data-layout='technical'] .print-button {
     background: var(--t-blue-deep);
     box-shadow: 0 10px 20px -10px rgb(30 64 175 / 0.7);
   }
 
-  /* The lesser action, beside the Download button: outlined in its label's colour, which clears 3:1 on the footer,
-     and no shadow, which the rule above would give it (#110). */
-  body[data-layout='technical'] .print-button-secondary {
-    border: 1px solid var(--t-blue);
-    background: #fff;
-    color: var(--t-blue);
-    box-shadow: none;
-  }
-
-  /* In forced colours its fill and its shadow go, and nothing else marked Download PDF as a button, while the outline
-     above kept marking Browser print. The primary keeps a border there, three times as wide. The system picks
-     the colour, by element, and a palette that gives a link and a button one colour leaves the width alone to tell
-     them apart (#119). */
+  /* In forced colours its fill and its shadow go, and nothing else marks Download PDF as a button: the border it
+     keeps there is what does. The system picks the border's colour (#119, #150). */
   @media (forced-colors: active) {
-    body[data-layout='technical'] .print-button:not(.print-button-secondary) {
+    body[data-layout='technical'] .print-button {
       border: 3px solid;
     }
   }
@@ -782,6 +765,16 @@ body[data-layout='technical'] .hero-name {
   body[data-layout='technical'] button:focus-visible {
     outline: 2px solid var(--t-blue-deep);
     outline-offset: 2px;
+  }
+
+  /* A filled control takes its ring in the ink tone, a colour its fill does not use. In the deep tone, 2px out around a
+     deep fill, the ring on the current layout's link and on the Download button read as a second border rather than
+     as focus (#130). A pixel further out, the light gap between them reads as a halo; 3px is the most the switcher's
+     8px spacing allows, since a ring must stand 3px clear of the next link (#121). */
+  body[data-layout='technical'] .layout-switcher a[aria-current='page']:focus-visible,
+  body[data-layout='technical'] .print-button:focus-visible {
+    outline-color: var(--t-ink);
+    outline-offset: 3px;
   }
 
   /* On a narrow screen the container is one column and the rail becomes two blue bands, so the
@@ -1344,33 +1337,16 @@ body[data-layout='technical'] .hero-name {
     line-height: 1.35;
   }
 
-  /* --- Footer and focus --------------------------------------------------------------------- */
-  body[data-layout='spotlight'] .print-footer {
-    padding: 1.3rem;
-    border-top: 1px solid var(--e-line);
-    background: var(--e-cream);
-  }
-
+  /* --- The Download link and focus ---------------------------------------------------------- */
   body[data-layout='spotlight'] .print-button {
     background: linear-gradient(135deg, var(--e-ember), var(--e-ember-deep));
     box-shadow: 0 10px 20px -10px rgb(184 67 27 / 0.7);
   }
 
-  /* The lesser action, beside the Download button: outlined in its label's colour, which clears 3:1 on the cream
-     footer, and no shadow, which the rule above would give it (#110). */
-  body[data-layout='spotlight'] .print-button-secondary {
-    border: 1px solid var(--e-ember);
-    background: #fff;
-    color: var(--e-ember);
-    box-shadow: none;
-  }
-
-  /* In forced colours its fill and its shadow go, and nothing else marked Download PDF as a button, while the outline
-     above kept marking Browser print. The primary keeps a border there, three times as wide. The system picks
-     the colour, by element, and a palette that gives a link and a button one colour leaves the width alone to tell
-     them apart (#119). */
+  /* In forced colours its fill and its shadow go, and nothing else marks Download PDF as a button: the border it
+     keeps there is what does. The system picks the border's colour (#119, #150). */
   @media (forced-colors: active) {
-    body[data-layout='spotlight'] .print-button:not(.print-button-secondary) {
+    body[data-layout='spotlight'] .print-button {
       border: 3px solid;
     }
   }
@@ -1382,6 +1358,16 @@ body[data-layout='technical'] .hero-name {
   body[data-layout='spotlight'] button:focus-visible {
     outline: 2px solid var(--e-ember-deep);
     outline-offset: 2px;
+  }
+
+  /* A filled control takes its ring in the ink tone, a colour its fill does not use. In the deep tone, 2px out around a
+     deep fill, the ring on the current layout's link and on the Download button read as a second border rather than
+     as focus (#130). A pixel further out, the light gap between them reads as a halo; 3px is the most the switcher's
+     8px spacing allows, since a ring must stand 3px clear of the next link (#121). */
+  body[data-layout='spotlight'] .layout-switcher a[aria-current='page']:focus-visible,
+  body[data-layout='spotlight'] .print-button:focus-visible {
+    outline-color: var(--e-ink);
+    outline-offset: 3px;
   }
 
   /* On the ember masthead no dark ring can clear 3:1, the band running down to the deep tone itself. Its links take
@@ -1481,8 +1467,9 @@ body[data-layout='technical'] .hero-name {
     --x-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     --x-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
-    /* The shared tokens are remapped rather than fought, for the one base surface still on show —
-       the footer. */
+    /* The shared tokens are remapped rather than fought. The footer was the one base surface on show
+       until it went (#150); the remap stays, so anything the base styles still draw here takes the
+       editor's colours. */
     --text-primary: var(--x-ink);
     --text-secondary: var(--x-body);
     --text-muted: var(--x-muted);
@@ -1939,13 +1926,7 @@ body[data-layout='technical'] .hero-name {
     background: var(--x-device);
   }
 
-  /* --- The bottom bar and focus --------------------------------------------------------------- */
-  body[data-layout='nerd'] .print-footer {
-    border: 0;
-    border-top: 1px solid var(--x-rule);
-    background: var(--x-chrome);
-  }
-
+  /* --- The Download link and focus ----------------------------------------------------------- */
   /* The download button is the page's one call to action, so it is the last place the signal is
      spent — as a border, not as a fill.
 
@@ -1964,8 +1945,9 @@ body[data-layout='technical'] .hero-name {
     font-family: var(--x-mono);
     font-size: 12px;
     font-weight: 400;
-    /* The page's. A <button> takes the browser's font shorthand, which resets the line height to normal, and Browser
-       print rendered 3px shorter than the Download link beside it, which inherits this (#116). */
+    /* The page's, set here rather than inherited. The Download link inherits it anyway; a <button> would not, since
+       the browser's font shorthand resets it to normal, and a button beside the link once rendered 3px shorter
+       (#116). */
     line-height: 1.6;
     letter-spacing: 0;
     text-transform: none;
@@ -1977,16 +1959,6 @@ body[data-layout='technical'] .hero-name {
     transform: none;
     text-decoration: underline;
     text-underline-offset: 3px;
-  }
-
-  body[data-layout='nerd'] .print-button-secondary {
-    border-color: var(--x-rim);
-    color: var(--x-body);
-  }
-
-  body[data-layout='nerd'] .print-button-secondary:hover {
-    border-color: var(--x-dim);
-    color: var(--x-ink);
   }
 
   body[data-layout='nerd'] .button-icon {
