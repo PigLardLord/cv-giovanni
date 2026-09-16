@@ -1,4 +1,5 @@
 import { Renderer } from '../interfaces/Renderer.js';
+import { holdSeparators } from './inlineSeparator.js';
 
 export class HeaderRenderer extends Renderer {
   constructor(i18n = null) {
@@ -45,7 +46,8 @@ export class HeaderRenderer extends Renderer {
   renderOptional(element, value) {
     if (!element) return;
     const text = typeof value === 'string' ? value.trim() : '';
-    element.textContent = text;
+    // A separator stays with the words either side of it: a wrap left "Enterprise Mobility ·" ending a line (#180).
+    element.replaceChildren(...holdSeparators(element.ownerDocument, text));
     element.hidden = text === '';
   }
 

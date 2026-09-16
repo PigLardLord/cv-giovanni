@@ -8,6 +8,7 @@ import { within } from './lib/devtools-session.mjs';
 import { openBrowser } from './lib/chrome.mjs';
 import { rendered, revealed } from './lib/page-ready.mjs';
 import { screenCopy } from './lib/screen-copy.mjs';
+import { lineBreaks, renderedGlyphs } from './lib/line-breaks.mjs';
 import { RECORD_LAYOUT_SHIFTS, layoutShift } from './lib/layout-shift.mjs';
 import { downloadReach } from './lib/download-reach.mjs';
 import { currentLayoutMarked, forcedBoundaries } from './lib/forced-colours.mjs';
@@ -21,8 +22,9 @@ import { GenerationTarget } from '../core/GenerationTarget.js';
  * The unit tests read the page through JSDOM, which applies no stylesheet, so nothing in the suite can
  * see what a selection holds. `audit-print.mjs` reads the printed text layer; this reads the screen's.
  * Each layout is opened in headless Chrome at a desktop width, a tablet width and two phone widths, its CV is selected, and the
- * selection is checked against the profile (#62). Every control a keyboard reaches is then focused in turn, and
- * its ring read from the screen's pixels (#111).
+ * selection is checked against the profile (#62). The lines the CV's text is laid on are read too, since a copy has a
+ * space where a line broke and cannot tell where it did (#180). Every control a keyboard reaches is then focused in
+ * turn, and its ring read from the screen's pixels (#111).
  */
 const projectUrl = new URL('..', import.meta.url);
 const target = GenerationTarget.fromArguments(process.argv.slice(2));
@@ -348,6 +350,11 @@ try {
       if (copied === null) throw new Error(`${layout} has no ${start} or no ${end}`);
 
       const copy = screenCopy(copied, profile, { skillsLabel: labels.skills });
+      // Where the lines of the same stretch of the page broke (#180): no separator at either end of one, and no
+      // period split across two.
+      const glyphs = await chrome.evaluate(renderedGlyphs(start, end));
+      if (glyphs === null) throw new Error(`${layout} has no ${start} or no ${end}`);
+      const breaks = lineBreaks(glyphs, profile);
 
       // The Download link (#101): measured as the page loaded, reached with Tab the way a keyboard user reaches
       // it, scrolled past where a layout pins it, and loaded again with no PDF to offer.
@@ -434,6 +441,7 @@ try {
 
       const checks = {
         ...copy.checks,
+        ...breaks.checks,
         holdsStill: shift.holdsStill,
         ...reach.checks,
         ...forced.checks,
@@ -442,6 +450,7 @@ try {
       };
       const findings = {
         ...copy.findings,
+        ...breaks.findings,
         movedWhileLoading: shift.holdsStill ? [] : shift.moved,
         ...reach.findings,
         ...forced.findings,
@@ -494,6 +503,11 @@ const report = [
   'category followed by its own first skill; every language on a line with its level; nothing on a',
   'line the data did not write — no pictograph, no line number; and the first screen holding still',
   'while it loads — every layout shift from navigation to fonts ready, added up, below 0.1.',
+  '',
+  'Since #180 the lines the CV is laid on are read as well, from the box of every character the page',
+  'draws, because a copy has a space where a line broke. No line starts or ends with a separator, `·`,',
+  '`–`, `—` or `|`, and no period the profile writes is split across two lines; a period wider than its',
+  'line may break after its dash, and only there. A failure names the text either side of the break.',
   '',
   '## The Download PDF link',
   '',

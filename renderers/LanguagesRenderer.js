@@ -1,4 +1,5 @@
 import { BaseRenderer } from './BaseRenderer.js';
+import { holdSeparators } from './inlineSeparator.js';
 
 export class LanguagesRenderer extends BaseRenderer {
   render(root, data) {
@@ -13,10 +14,10 @@ export class LanguagesRenderer extends BaseRenderer {
   }
 
   createLanguageItem(root, language) {
-    // The name and the level are text (#157).
+    // The name and the level are text (#157), and a separator in the level stays with its words (#180).
     return this.appendPieces(root, this.createElement(root, 'li'), [
       this.createElement(root, 'strong', '', `${language.name ?? ''}:`),
-      ` ${language.level ?? ''}`
+      ...holdSeparators(root, ` ${language.level ?? ''}`)
     ]);
   }
 

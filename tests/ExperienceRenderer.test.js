@@ -52,6 +52,30 @@ describe('ExperienceRenderer', () => {
     ]);
   });
 
+  // "from its first commit" / "— owned" opened a line at Impact Spotlight's 320px (#180).
+  test("holds each separator in a role's prose to the words either side of it", () => {
+    renderer.render(document, {
+      relevant_experience: [
+        {
+          title: 'Engineer',
+          company: 'Acme',
+          period: '2018',
+          summary: 'A team of 3–7 engineers.',
+          highlights: ['Owner from its first commit — owned the architecture.']
+        }
+      ]
+    });
+
+    expect(
+      [...document.querySelectorAll('.job-summary .no-break, .job-highlights .no-break')].map(
+        (span) => span.textContent
+      )
+    ).toEqual(['–', ' — ']);
+    expect(document.querySelector('.job-highlights li').textContent).toBe(
+      'Owner from its first commit — owned the architecture.'
+    );
+  });
+
   test('renders experience entries correctly', () => {
     const data = {
       relevant_experience: [
@@ -148,5 +172,32 @@ describe('ExperienceRenderer', () => {
     expect(
       [...document.querySelectorAll('.job-tenure .no-break')].map((unit) => unit.textContent)
     ).toEqual(['8 years', '2 months']);
+  });
+  // Split at its dash, a period read as two dates: "(2014" / "– 2016)" on screen (#180). Each end is held together, so
+  // a line too narrow for the whole period breaks after its dash, the one break that says the range goes on.
+  test('holds each end of a period together, so a narrow line breaks it only after its dash', () => {
+    renderer.render(document, {
+      asOf: '2026-09',
+      relevant_experience: [
+        {
+          title: 'Engineer',
+          company: 'Acme',
+          period: 'September 2015 – July 2018',
+          highlights: []
+        },
+        { title: 'Intern', company: 'Marte 5', period: '2015', highlights: [] }
+      ]
+    });
+
+    const periods = [...document.querySelectorAll('.job-period')];
+    expect(
+      periods.map((period) =>
+        [...period.querySelectorAll(':scope > .no-break')].map((end) => end.textContent)
+      )
+    ).toEqual([['September 2015 –', 'July 2018'], ['2015']]);
+    expect(periods.map((period) => period.textContent)).toEqual([
+      'September 2015 – July 2018 (2 years, 11 months)',
+      '2015'
+    ]);
   });
 });

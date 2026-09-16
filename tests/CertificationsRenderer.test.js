@@ -65,6 +65,19 @@ describe('CertificationsRenderer', () => {
     expect(items[0].textContent).toContain('PMI (2022)');
   });
 
+  // Broken before its dash, "– Google (2026)" opened a line at Impact Spotlight's 1280px (#180).
+  test('holds the dash before the issuer to the words either side of it', () => {
+    renderer.render(document, {
+      certifications: [{ name: 'Android Enterprise Expert', issuer: 'Google', year: 2026 }]
+    });
+
+    const item = document.querySelector('#certifications li');
+    expect([...item.querySelectorAll('.no-break')].map((span) => span.textContent)).toEqual([
+      ' – '
+    ]);
+    expect(item.textContent).toBe('Android Enterprise Expert – Google (2026)');
+  });
+
   test('handles missing certifications data gracefully', () => {
     expect(() => {
       renderer.render(document, {});

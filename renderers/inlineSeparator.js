@@ -58,6 +58,42 @@ export function bindSeparators(text, glyph = SEPARATOR_GLYPH) {
   return text.replace(spaced, `${NO_BREAK_SPACE}${glyph}${NO_BREAK_SPACE}`);
 }
 
+/**
+ * The glyphs that stand between two things and belong to neither: held to the words either side of them here, and
+ * never at a line's start or end in the screen audit, which reads this list rather than one of its own (#180).
+ */
+export const SEPARATOR_GLYPHS = Object.freeze(['·', '–', '—', '|']);
+
+/** The dashes a period writes between its two ends, the one place a period too wide for its line may break. */
+export const DASH_GLYPHS = Object.freeze(['–', '—']);
+
+/** A separator glyph with the spaces the data wrote either side of it. */
+const SEPARATED = new RegExp(`(\\s*[${SEPARATOR_GLYPHS.join('')}]\\s*)`, 'u');
+
+/**
+ * A line of text as pieces, with every separator held to the words either side of it (#180).
+ *
+ * The spaces around a separator are where a line breaks, so a wrap stranded one at the edge of a line: "– Google
+ * (2026)" opened a line on screen, and "Enterprise Mobility ·" ended one. Each separator goes into a `no-break` span
+ * with its spaces, and a space inside that span is no place to break, so the words either side travel with it. The
+ * text is untouched, unlike `bindSeparators`, whose no-break spaces a copy and a parser read.
+ * @param {Document} root - DOM root
+ * @param {string} text - Text as the data wrote it
+ * @returns {(string|Element)[]} The text, with a `no-break` span for each separator
+ */
+export function holdSeparators(root, text) {
+  return String(text ?? '')
+    .split(SEPARATED)
+    .map((piece, index) => {
+      if (index % 2 === 0 || !piece) return piece;
+      const held = root.createElement('span');
+      held.className = 'no-break';
+      held.textContent = piece;
+      return held;
+    })
+    .filter((piece) => piece !== '');
+}
+
 function escapeForRegExp(text) {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

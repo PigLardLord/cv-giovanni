@@ -17,6 +17,7 @@
  *   break — also carries `parts`: the text as the data wrote it, with each escape as syntax
  *   before the character it escapes. A line break or a tab is `unseen`: kept in the text, so a
  *   copy does not weld the words around it, and out of sight, where its `\n` is drawn (#160).
+ *   A period is `whole`: one piece, which the editor never wraps inside (#180).
  *
  * So the page can look like source code without a word of Swift reaching anything that reads the
  * document, which is the rule `AGENTS.md` sets for every visual device here: removing the
@@ -499,10 +500,12 @@ export class SwiftSourceLayout {
         ];
       }
 
+      // A period is one piece: a narrow editor wrapped a role's dates as "August 2018 –" / "Present" (#180).
+      const piece = label === 'period' ? { ...extra, whole: true } : extra;
       const literal =
         typeof value === 'number'
-          ? [content(String(value), 'number', extra)]
-          : quoted(value, extra);
+          ? [content(String(value), 'number', piece)]
+          : quoted(value, piece);
       return [[1, [name, ...literal, ...comma(last)]]];
     });
 

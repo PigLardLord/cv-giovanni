@@ -1,5 +1,5 @@
 import { Renderer } from '../interfaces/Renderer.js';
-import { createSeparatorElement } from './inlineSeparator.js';
+import { createSeparatorElement, holdSeparators } from './inlineSeparator.js';
 
 /**
  * Base renderer with common DOM manipulation utilities
@@ -63,6 +63,9 @@ export class BaseRenderer extends Renderer {
    * `noWrap` runs, and the reason it lives here rather than in a stylesheet is
    * that no CSS property can forbid a break at an explicit hyphen.
    *
+   * A separator is held to the words either side of it the same way, so a wrap
+   * never strands one at the edge of a line (#180).
+   *
    * The text itself is untouched: textContent, copy/paste, the accessibility
    * tree and the extracted PDF all read exactly what the data wrote.
    * @param {Document} root - DOM root
@@ -81,7 +84,7 @@ export class BaseRenderer extends Renderer {
         element.appendChild(held);
         return;
       }
-      element.appendChild(root.createTextNode(part));
+      this.appendPieces(root, element, holdSeparators(root, part));
     });
     return element;
   }
