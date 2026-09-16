@@ -302,8 +302,9 @@ describe('the same artefacts, in content-stream order', () => {
     );
   });
 
-  // pdfmake sets each label in a rail beside its block, on the block's first baseline, so the content
-  // stream welds the two: "Professional Experience Mobile Software Engineer / …".
+  // A layout that sets each label in a rail beside its block draws it on the block's first baseline, so
+  // the content stream welds the two: "Professional Experience Mobile Software Engineer / …". The
+  // fixture is the PDF pdfmake composed that way until #149.
   test('a section label beside its block is read as the heading it is', () => {
     const cv = parse('pdfmake-rail.raw');
 

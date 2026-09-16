@@ -64,7 +64,7 @@
 
 /* No tracking in print (#143). A parser that reads in drawing order finds a word's end only in the gap the
    page leaves, and letter-spacing narrows it: Impact Spotlight's name extracted as "GiovanniTrovato". The
-   PDF's design system settled the same rule for pdfmake. */
+   design system of pdfmake's PDF held the same rule until #153. */
 html body * {
   letter-spacing: 0 !important;
 }
@@ -134,8 +134,8 @@ body {
 }
 
 /* Impact Spotlight and Technical Profile set one 405pt column in the middle of the text block. Its longest
-   11pt line measured 76 characters, under the 80 WCAG 1.4.8 sets as a ceiling and this project already holds
-   the pdfmake PDF to; set across the full 517pt, the same text measured 99. Centred, the two side margins are
+   11pt line measured 76 characters, under the 80 WCAG 1.4.8 sets as a ceiling and the print audit holds
+   prose to; set across the full 517pt, the same text measured 99. Centred, the two side margins are
    equal by construction, at 95pt, which the print audit's symmetry check asks for. */
 body[data-layout='spotlight'] .container,
 body[data-layout='technical'] .container {
@@ -256,7 +256,7 @@ body[data-layout='spotlight'] .hero-name {
 /* --- The contacts: two lines of text -------------------------------------------------------- */
 /* Location, email and phone on the first line, the three addresses on the second, each item parted from
    the next by a middle dot. No "Email:" or "Phone:": a parser knows an address and a number by their
-   shape, and the pdfmake masthead writes none either. The dot is not decoration on the first line: the
+   shape, and the pdfmake masthead wrote none either. The dot is not decoration on the first line: the
    ATS parser finds the location by splitting that line on it, and rejects a piece holding an "@" or a
    digit, so without the dot the location is lost.
 
@@ -747,11 +747,11 @@ body[data-layout='technical'] .skill-category {
    made of — hairline rules and the dates in a column of their own — because a printed page that
    kept only the colour would have kept nothing.
 
-   Achromatic in the strict sense the project's own PDF audit uses: every rendered pixel comes
-   out with R == G == B. The palette this file gives the other two layouts is Tailwind's slate,
-   which is a blue-leaning grey — neutral enough to the eye, but `rgb(55, 65, 81)` is not grey
-   to an auditor — so `nerd` restates the whole ramp in true neutrals: #111 ink, #333 body, #555
-   metadata, #d8d8d8 rules, #ebebeb the quieter ones. Measured on the artefact with pdftoppm at
+   Achromatic in the strict sense the project's PDF audit used until #153: every rendered pixel
+   comes out with R == G == B. The palette this file gives the other two layouts is Tailwind's
+   slate, which is a blue-leaning grey — neutral enough to the eye, but `rgb(55, 65, 81)` is not
+   grey to an auditor — so `nerd` restates the whole ramp in true neutrals: #111 ink, #333 body,
+   #555 metadata, #d8d8d8 rules, #ebebeb the quieter ones. Measured on the artefact with pdftoppm at
    24dpi and at 150dpi: maximum channel spread 0 across both pages.
 
    The text block is 517pt: a 128pt date column, a 14pt gap and a 375pt text column, whose longest

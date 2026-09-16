@@ -143,6 +143,6 @@ the site, because it can only work where the local API does.
 ## Working on it
 
 Work is tracked in GitHub issues and lands through pull requests. Every push and pull request runs the gates in GitHub Actions,
-`.github/workflows/gates.yml`: formatting, the tests, and the PDF, ATS, print and screen audits. A red audit fails the build, and a merge to `main` is published to GitHub Pages only after every gate on it has passed. A commit references its ticket with `Refs #N` and
+`.github/workflows/gates.yml`: formatting, the tests, the PDFs printed from the page, and the print, ATS and screen audits. A red audit fails the build, and a merge to `main` is published to GitHub Pages only after every gate on it has passed. A commit references its ticket with `Refs #N` and
 never closes it — a person closes a ticket after the work has been audited, and `tests/TicketsCloseByHand.test.js`
 fails on a closing keyword.
