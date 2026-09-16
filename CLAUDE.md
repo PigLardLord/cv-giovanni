@@ -79,7 +79,8 @@ from `letter.html` (#151), and pdfmake's CV and letter paths (`adapters/PdfLayou
   `core/ProfileShape.js` by `core/ProfileForm.js`, beside the CV it renders. The page decides nothing; it is
   not published with the site, and `tests/EditorStaysLocal.test.js` holds the deploy to that.
 - `letter.html`, `letter.js` and `letter.css` — the cover letter's page, DIN 5008 form B in millimetres
-  (#151). `core/LetterContent.js` decides its words and `renderers/LetterRenderer.js` writes them.
+  (#151). `core/LetterContent.js` decides its words and `renderers/LetterRenderer.js` writes them. Like the
+  editor it is not published with the site, and `tests/EditorStaysLocal.test.js` holds the deploy to that.
 - `vendor/` — i18next and Inter, checked in so the page runs off the file tree with no install step.
 
 ### Testing Setup

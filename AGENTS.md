@@ -509,8 +509,13 @@ Settled on #151 by the owner: one system for both documents a recruiter receives
   both within a DL window envelope's window, 20–110mm across; a line outside is named with where it
   is. The sides are not compared, as a CV's are: form B is asymmetric by design. `npm run audit:ats`
   keeps asking a `-cover` file only whether the recipient and the subject survive extraction.
-- **CI never prints a letter.** The published profile carries none, so the gates build, audit and
-  publish no letter, and a change that breaks `letter.html` passes every gate. A letter is verified
+- **The letter's page is not published.** The site CI assembles leaves out `letter.html`, `letter.js`
+  and `letter.css`, as it leaves out the editor, and checks that it did: the published profile carries
+  no letter, so published, the page could only say so. `tests/EditorStaysLocal.test.js` holds the
+  assembly to it. The page is served by `npm run serve`, which hands a tailored profile only to this
+  machine's browser holding the run's key.
+- **CI never prints a letter.** The published profile carries none, so the gates build and audit no
+  letter, and a change that breaks `letter.html` passes every gate. A letter is verified
   only on a machine where an `applications/` profile carries one: `npm run build:pdf` with its
   `--profile`, then both audits with the same one. The unit tests hold the words, the renderer, the
   file names and the audit's rules; nothing holds the printed letter but that run. That is a limit,
