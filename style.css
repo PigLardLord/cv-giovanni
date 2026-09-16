@@ -499,6 +499,15 @@ section {
   text-decoration: underline;
 }
 
+/* A certificate's name is a <strong> inside its link, and Chrome breaks a line where those two elements close, even
+   before a separator held to it (#180): Impact Spotlight's 1280px still opened a line on "– Google (2026)". Measured in
+   headless Chrome, one element closing there gives no break, and neither does an empty box that never wraps at the end
+   of the link. The box writes nothing, so nothing reads it. */
+.certifications-list a::after {
+  content: '';
+  white-space: nowrap;
+}
+
 .cert-description {
   display: block;
   margin-top: var(--space-xs);

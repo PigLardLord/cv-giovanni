@@ -191,7 +191,10 @@ is laid on, from the box of every character the page draws, in the same stretch 
 from: no line starts or ends with a separator, `·`, `–`, `—` or `|`, and no period the profile writes is split across
 two lines. A period wider than its line cannot keep to one, and there the least bad break is after its dash, which
 tells the reader the range goes on: it may break there and nowhere else. A failure names the layout, the width and
-the text either side of the break.
+the text either side of the break. The page holds each end of a role's period, and each separator with its spaces,
+in a `.no-break` span, as it holds a hyphenated compound; a degree's period and a period in Nerd Mode's editor are
+held whole; and a certificate's link ends in an empty box that never wraps, because Chrome breaks a line where the
+link and the name inside it close, even before a held separator.
 
 ### Linked pages are part of the CV
 

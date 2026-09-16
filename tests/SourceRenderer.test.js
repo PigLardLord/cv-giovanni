@@ -118,6 +118,20 @@ describe('SourceRenderer', () => {
     );
   });
 
+  // Nerd Mode's editor wrapped "EU citizen ·" / "unrestricted German work authorisation" at 390px (#180).
+  test('holds each separator in a value to the words either side of it', () => {
+    fedTheModel(new SourceRenderer(i18n)).render(document, {
+      ...profile,
+      subtitle: 'Swift · SwiftUI',
+      languages: [{ name: 'English', level: 'C1 — professional' }]
+    });
+
+    expect(
+      [...code().querySelectorAll('.tok:not(.no-break) .no-break')].map((span) => span.textContent)
+    ).toEqual([' · ', ' — ']);
+    expect(code().textContent).toContain('Swift · SwiftUI');
+  });
+
   test('copies a line of names as a list, and a language as a name and its level', () => {
     render();
 

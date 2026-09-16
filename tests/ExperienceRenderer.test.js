@@ -52,6 +52,30 @@ describe('ExperienceRenderer', () => {
     ]);
   });
 
+  // "from its first commit" / "— owned" opened a line at Impact Spotlight's 320px (#180).
+  test("holds each separator in a role's prose to the words either side of it", () => {
+    renderer.render(document, {
+      relevant_experience: [
+        {
+          title: 'Engineer',
+          company: 'Acme',
+          period: '2018',
+          summary: 'A team of 3–7 engineers.',
+          highlights: ['Owner from its first commit — owned the architecture.']
+        }
+      ]
+    });
+
+    expect(
+      [...document.querySelectorAll('.job-summary .no-break, .job-highlights .no-break')].map(
+        (span) => span.textContent
+      )
+    ).toEqual(['–', ' — ']);
+    expect(document.querySelector('.job-highlights li').textContent).toBe(
+      'Owner from its first commit — owned the architecture.'
+    );
+  });
+
   test('renders experience entries correctly', () => {
     const data = {
       relevant_experience: [
