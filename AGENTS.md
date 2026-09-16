@@ -158,6 +158,8 @@ where the screen audit cannot:
 - **A control marked as a button by its fill and shadow keeps a border in forced colours.** A contrast theme
   drops both and keeps border styles, so such a control shows as bare text while an outlined lesser action
   beside it still reads as a button. There the primary's border is at least as wide as the secondary's (#119).
+- **In forced colours, a state marked only by colour takes a marker the palette keeps.** The current layout's
+  link in the switcher is underlined there, 3px thick, since its fill is replaced like every other link's (#127).
 
 What that review measured on the Download link itself — hidden without a PDF, reachable, tappable,
 a visible focus ring — `npm run audit:screen` checks on every render (#101). Since #110 it also checks
@@ -166,7 +168,8 @@ quiet with a stated reason, draws a border that clears 3:1 against the footer. S
 control a keyboard reaches, at 320px too, and reads each ring from the screen's pixels: a ring clears 3:1
 against what lies just outside it and against what it surrounds, or the render fails. Since #116 it renders a
 tablet width, 820px, and holds the footer's copy of the link and the button beside it to one height. Since #119 it emulates forced colours and holds every action to a
-border there, and reads the secondary button with `:hover` forced.
+border there, and reads the secondary button with `:hover` forced. Since #127 it holds the current layout's link to a marker
+there that is not a colour.
 
 ### Linked pages are part of the CV
 

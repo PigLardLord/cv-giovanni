@@ -29,6 +29,15 @@
   color: #fff;
 }
 
+/* Forced colours replace every link's fill and text colour alike, and nothing else marked the current layout. A thick
+   underline is kept there, where the palette cannot take it (#127). */
+@media (forced-colors: active) {
+  body[data-layout] .layout-switcher a[aria-current='page'] {
+    text-decoration: underline 3px;
+    text-underline-offset: 4px;
+  }
+}
+
 /* Nerd Mode — the arrangement.
    The CV as a Swift file open in an editor: a toolbar across the top, the file's sections down a
    navigator on the left, the source in the middle, and a phone on the right running the file's
