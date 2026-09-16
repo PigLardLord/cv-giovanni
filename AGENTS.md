@@ -119,7 +119,8 @@ A ticket can pass `codex-cli` on the diff and still ship a CV that dies in a tex
 
 Extend step 7 with a product review whenever the ticket's diff touches what the CV says or how
 it renders: `profiles/`, `locales/`, `renderers/`, `index.html`, `style.css`, `layouts.css`,
-`print.css`, `core/PdfExporter.js`, `adapters/PdfDesignSystem.js`, `adapters/LayoutThemeRegistry.js`.
+`print.css`, `core/PdfExporter.js`, `core/CvFiles.js` (the name the recruiter's inbox receives),
+`adapters/PdfDesignSystem.js`, `adapters/LayoutThemeRegistry.js`.
 
 A ticket touching only build tooling, scripts or tests does not need it — say that it was
 skipped and why, rather than skipping it silently.
