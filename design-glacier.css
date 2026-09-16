@@ -726,11 +726,12 @@ body[data-layout='technical'] .hero-name {
   }
 
   /* In forced colours its fill and its shadow go, and nothing else marked Download PDF as a button, while the outline
-     above kept marking Browser print. The primary keeps a border there, twice as wide; the system picks its
-     colour (#119). */
+     above kept marking Browser print. The primary keeps a border there, three times as wide. The system picks
+     the colour, by element, and a palette that gives a link and a button one colour leaves the width alone to tell
+     them apart (#119). */
   @media (forced-colors: active) {
     body[data-layout='technical'] .print-button:not(.print-button-secondary) {
-      border: 2px solid;
+      border: 3px solid;
     }
   }
 
@@ -1297,11 +1298,12 @@ body[data-layout='technical'] .hero-name {
   }
 
   /* In forced colours its fill and its shadow go, and nothing else marked Download PDF as a button, while the outline
-     above kept marking Browser print. The primary keeps a border there, twice as wide; the system picks its
-     colour (#119). */
+     above kept marking Browser print. The primary keeps a border there, three times as wide. The system picks
+     the colour, by element, and a palette that gives a link and a button one colour leaves the width alone to tell
+     them apart (#119). */
   @media (forced-colors: active) {
     body[data-layout='spotlight'] .print-button:not(.print-button-secondary) {
-      border: 2px solid;
+      border: 3px solid;
     }
   }
 
