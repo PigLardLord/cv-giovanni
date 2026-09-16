@@ -203,9 +203,10 @@ three options to look thorough wastes the reader's decision.
 
 When you are working inside a project that generates its CV, propose within what that pipeline
 can actually do, and read enough of it to know. In this repository that means: three layouts
-(`nerd`, `spotlight`, `technical`), themes resolved per layout with a monochrome variant, a
-pdfmake generation path, and an audit that scores every variant on format, page count, required
-text, reading order, absence of raster images, clean page starts and measured grayscale.
+(`nerd`, `spotlight`, `technical`), a PDF printed from the page by Chrome through `print.css` in one
+reading column on two A4 pages, and an audit that scores each printed layout on format, page count,
+required text, reading order in both of the orders parsers read, contrast on paper, margins,
+typefaces, Type 3 fonts and images.
 
 If your proposal needs something the pipeline lacks, say so plainly as a **capability gap** —
 name what would have to exist — rather than quietly designing something unbuildable. Do not

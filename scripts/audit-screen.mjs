@@ -40,6 +40,17 @@ async function readJson(path) {
 const profile = await readJson(target.dataPath);
 const labels = (await readJson(`locales/${target.locale}/cv.json`)).sections;
 const manifest = await readJson('config/cv-manifest.json');
+// The page offers a download only for a file the build wrote, and the build's files are not committed (#149). On a
+// tree nobody built, the Download link is rightly hidden and every check on it would fail a page that is right.
+try {
+  await readFile(new URL('generated/manifest.json', projectUrl));
+} catch {
+  console.error('audit-screen: generated/manifest.json is not built — nothing was checked.');
+  console.error(
+    'Run `npm run build:pdf` first: the Download link appears only for a PDF that exists.'
+  );
+  process.exit(2);
+}
 
 /**
  * A desktop, a tablet and two phones: 820px, a tablet held upright, first rendered because Nerd Mode's footer set its

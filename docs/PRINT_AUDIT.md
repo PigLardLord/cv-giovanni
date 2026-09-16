@@ -1,7 +1,7 @@
 # Print quality matrix
 
-What the browser prints, measured on the artefact: the text layer poppler extracts
-and the pixels the page put on the paper. Regenerate with `npm run audit:print`.
+The CV `npm run build:pdf` printed from the page, measured on the artefact: the text layer
+poppler extracts and the pixels the page put on the paper. Regenerate with `npm run verify:pdf`.
 
 Layouts: 3
 

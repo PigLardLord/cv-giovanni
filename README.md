@@ -13,13 +13,13 @@ A CV is `profile × locale × layout`.
 - **The page** is HTML, CSS and ES modules with no build step. `index.html` loads `script.js`, which renders the
   profile through `renderers/` into one of three layouts: Nerd Mode (`nerd`), Impact Spotlight (`spotlight`) and
   Technical Profile (`technical`).
-- **The PDFs** are composed from the same JSON by pdfmake, through `domain/CvDocument.js` and
-  `adapters/PdfLayout.js`. The three that ship are in `generated/`, where the page's Download PDF link finds them
-  through `generated/manifest.json`; the twelve A4 and Letter, colour and monochrome variants the audits read are
-  built into `generated/qa/`.
+- **The PDFs** are the page, printed. `npm run build:pdf` serves the site to a headless Chrome and prints each
+  layout through `print.css` into `generated/`, where the page's Download PDF link finds them through
+  `generated/manifest.json`. Nothing there is committed: CI builds, audits and publishes its own. A cover letter is
+  still composed by pdfmake, through `adapters/LetterLayout.js`, until it is a page too.
 
-The page and the PDF share the JSON and the label catalogues, not a DOM. Nothing guarantees they agree except
-measuring both, which is what the audits are for.
+The page and the PDF share one DOM, one design and one set of words. The audits measure the printed file on paper
+and as a stranger's parser reads it, and the page on screen.
 
 ## Running it
 
@@ -50,9 +50,9 @@ The URL chooses the CV:
 | Command                | What it does                                                                                           |
 | ---------------------- | ------------------------------------------------------------------------------------------------------ |
 | `npm test`             | Jest with JSDOM: the renderers, the domain, the rules the audits apply, and the repository's own rules |
-| `npm run build:pdf`    | Generates the PDFs                                                                                     |
-| `npm run verify:pdf`   | Generates them, then scores every variant with `npm run audit:pdf`                                     |
-| `npm run audit:print`  | Prints each layout in headless Chrome and checks the paper                                             |
+| `npm run build:pdf`    | Prints each layout from the page in headless Chrome, into the PDFs the page offers for download        |
+| `npm run verify:pdf`   | Prints them, then runs `npm run audit:print` and `npm run audit:ats` on what it printed                |
+| `npm run audit:print`  | Checks the printed PDFs on paper: the text layer and the pixels                                        |
 | `npm run audit:ats`    | Parses the PDF the way a stranger's parser would, and reports what it recovers                         |
 | `npm run audit:screen` | Opens each layout in headless Chrome and checks what a reader copies off the page                      |
 | `npm run format`       | Formats the tree with Prettier; `npm run format:check` only checks it                                  |
@@ -77,14 +77,14 @@ Ports and adapters:
 
 ## The audits
 
-The two artefacts fail in different ways, so each is measured on its own, and the page twice: on paper and on screen.
+The PDF a recruiter downloads is the page, printed by Chrome, so the page is measured twice: on paper and on screen.
+Printing needs Chrome — `CHROME_PATH` overrides where `npm run build:pdf` looks — and without one the build exits 2
+and writes nothing, because a run that did not happen must never read as a pass. Nothing it writes is committed:
+CI builds, audits and publishes its own.
 
-- `npm run audit:pdf` scores every PDF variant: format, page count, the text an ATS looks for, reading order, no
-  raster images, clean page starts, true grayscale, compounds and blocks that survive extraction, every skill still
-  beside its category, every web address in the text layer. Report: `docs/PDF_AUDIT.md`.
-- `npm run audit:print` scores what the browser prints, from the text layer and the pixels on the paper: contrast
-  word by word, margins, the typefaces actually used. It needs Chrome — `CHROME_PATH` overrides where it looks — and
-  when it finds none it exits 2 and checks nothing, because an audit that did not run must never read as a pass.
+- `npm run audit:print` reads the PDFs the build printed, from the text layer and the pixels on the paper: format,
+  page count, the text an ATS looks for, reading order in both of the orders parsers read, contrast word by word,
+  margins, the typefaces actually used, no Type 3 font and no image. It exits 2 when a PDF was never built.
   Report: `docs/PRINT_AUDIT.md`.
 - `npm run audit:ats` parses the generated PDF with no knowledge of the profile and diffs what it recovered against
   what was written. It reports Recoverability, never a pass mark. Report: `docs/ATS_AUDIT.md`.
@@ -93,7 +93,8 @@ The two artefacts fail in different ways, so each is measured on its own, and th
   language with its level, and nothing the data did not write. It checks that the first screen holds still while it
   loads, and that the Download PDF link, the page's one download control, does its job: hidden when there is no
   PDF, on the first screen, shown once, tall enough to tap on a phone, its label on one line, and a focus ring a
-  keyboard user can see. Like the print audit it exits 2 when it finds no browser.
+  keyboard user can see. Like the build it needs Chrome, and it exits 2 when it finds none, or when
+  `npm run build:pdf` has not written the manifest that offers the download.
   Report: `docs/SCREEN_AUDIT.md`.
 
 ## Applications

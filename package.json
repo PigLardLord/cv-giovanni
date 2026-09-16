@@ -8,7 +8,7 @@
     "test": "node --experimental-vm-modules node_modules/.bin/jest",
     "build:pdf": "node scripts/generate-pdfs.mjs",
     "audit:pdf": "node scripts/audit-pdfs.mjs",
-    "verify:pdf": "npm run build:pdf && npm run audit:pdf",
+    "verify:pdf": "npm run build:pdf && npm run audit:print && npm run audit:ats",
     "serve": "node scripts/serve.mjs",
     "audit:print": "node scripts/audit-print.mjs",
     "audit:ats": "node scripts/audit-ats.mjs",
