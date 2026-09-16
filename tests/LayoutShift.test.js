@@ -38,7 +38,53 @@ describe('the layout shift a page records while it loads', () => {
     expect(moved).toEqual(['div.container 157,72,966,828 → 0,0,0,0']);
   });
 
-  test('is recorded by a script a page can run before its own', () => {
-    expect(() => new Function(RECORD_LAYOUT_SHIFTS)).not.toThrow();
+  // The recorder runs in the page, where no unit test reaches it, so here it runs against a stand-in
+  // PerformanceObserver. Compiled and never run, as this test once had it, a recorder watching the wrong entry
+  // type passed (#126).
+  const record = (source) => {
+    const page = { window: {} };
+    new Function('window', 'PerformanceObserver', source)(
+      page.window,
+      class {
+        constructor(report) {
+          page.report = report;
+        }
+
+        observe(options) {
+          page.observed = options;
+        }
+      }
+    );
+    return page;
+  };
+  const shift = {
+    value: 0.694,
+    hadRecentInput: true,
+    sources: [
+      {
+        node: { nodeName: 'DIV', id: '', className: 'container' },
+        previousRect: { x: 157, y: 72, width: 966, height: 828 },
+        currentRect: { x: 0, y: 0, width: 0, height: 0 }
+      }
+    ]
+  };
+
+  test('is recorded by a script a page runs before its own: every shift, buffered, as plain data', () => {
+    const page = record(RECORD_LAYOUT_SHIFTS);
+    expect(page.observed).toEqual({ type: 'layout-shift', buffered: true });
+
+    page.report({ getEntries: () => [shift] });
+    expect(page.window.__layoutShifts).toEqual([
+      { value: 0.694, hadRecentInput: true, sources: ['div.container 157,72,966,828 → 0,0,0,0'] }
+    ]);
+  });
+
+  test.each([
+    ['another entry type', (source) => source.replace("type: 'layout-shift'", "type: 'paint'")],
+    ['no buffer', (source) => source.replace(', buffered: true', '')]
+  ])('a recorder with %s is caught', (what, change) => {
+    const changed = change(RECORD_LAYOUT_SHIFTS);
+    expect(changed).not.toBe(RECORD_LAYOUT_SHIFTS);
+    expect(record(changed).observed).not.toEqual({ type: 'layout-shift', buffered: true });
   });
 });
