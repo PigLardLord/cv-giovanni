@@ -59,3 +59,29 @@ describe('the page’s print holds in both reading orders', () => {
     );
   });
 });
+
+// The code review of #163: two shapes the parser reads wrongly, and the floors are what keeps each from passing.
+// Neither occurs in anything this project prints; both are pinned so a later change cannot make them silent.
+describe('shapes the parser misreads fail a floor instead of passing', () => {
+  const published = JSON.parse(readFileSync(`${root}profiles/general/en.json`, 'utf8'));
+  const print = readFileSync(`${root}tests/fixtures/ats/page-print-spotlight.txt`, 'utf8');
+  const floorsFor = (profile, text) =>
+    AtsFloors.failures(RecoveryDiff.diff(new CvDocument(profile), AtsTextParser.parse(text)));
+
+  test('a role title that begins with a section name, read as a heading (a known limit)', () => {
+    const profile = structuredClone(published);
+    profile.relevant_experience[1].title = 'Training Manager';
+    const text = print.replace(
+      'Mobile Developer at Apparound, Pisa, Italy',
+      'Training Manager at Apparound, Pisa, Italy'
+    );
+
+    expect(floorsFor(profile, text)).toContain('a role lost its title, employer or period');
+  });
+
+  test('a stray period above the first role, which flips how every role pairs with its period', () => {
+    const text = print.replace('Professional Experience\n', 'Professional Experience\n2015\n');
+
+    expect(floorsFor(published, text)).toContain('a role lost its title, employer or period');
+  });
+});
