@@ -7,6 +7,7 @@ import { findBrowser } from './lib/find-browser.mjs';
 import {
   builtCv,
   builtLetters,
+  letterWarnings,
   printLayouts,
   printLetters,
   withServedPage
@@ -50,6 +51,10 @@ const { files } = builtCv(target, data, layouts);
 // The letters travel with the CV and are printed by the same browser, but never offered by the page: a letter
 // names the employer it was written for, and leaves the machine only attached to an application.
 const letters = builtLetters(target, data, layouts).files;
+// A letter with a field missing or a recipient past the address zone is still printed, as written: the print audit
+// fails it. Whoever runs the build hears it first, with the profile to correct.
+for (const warning of letterWarnings(target.dataPath, data))
+  console.error(`generate-pdfs: ${warning}`);
 const writer = new NodeDirectoryWriter(new URL(`${target.outDir}/`, projectRoot));
 const keep = (built) => async (layout, pdf) => {
   const { filename, path } = built.find((file) => file.layout === layout);

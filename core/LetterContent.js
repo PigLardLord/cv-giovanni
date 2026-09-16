@@ -52,12 +52,7 @@ export class LetterContent {
         // In the address field above the recipient, where a postal sender belongs; the email and the phone are in the
         // letterhead already.
         returnAddress: joined([name, identity.location]),
-        recipient: [
-          letter.recipient.company,
-          letter.recipient.name,
-          letter.recipient.role,
-          ...letter.recipient.address
-        ].filter(Boolean),
+        recipient: letter.recipientLines,
         date: dateLine(letter.date, identity.location, locale),
         reference: letter.reference,
         subject,

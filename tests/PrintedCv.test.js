@@ -1,4 +1,10 @@
-import { builtCv, builtLetters, printLayouts, printLetters } from '../scripts/lib/printed-cv.mjs';
+import {
+  builtCv,
+  builtLetters,
+  letterWarnings,
+  printLayouts,
+  printLetters
+} from '../scripts/lib/printed-cv.mjs';
 import { CvFiles } from '../core/CvFiles.js';
 
 // The downloadable PDF is the page, printed by Chrome, where pdfmake used to compose a second design (#144,
@@ -126,5 +132,39 @@ describe('the cover letter printed from its page', () => {
       files: [],
       missing: []
     });
+  });
+});
+
+// The build prints a letter it knows is flawed, because the print audit is the gate; but it says so first, where whoever
+// runs it can see which profile to correct (the review of #151).
+describe("the build's warnings about a letter", () => {
+  const letter = {
+    recipient: { company: 'Beispiel GmbH', name: 'Anna Schmidt', address: ['Musterstraße 12'] },
+    subject: 'Application',
+    opening: 'I write.',
+    body: ['About the role.'],
+    signature: 'Ada Lovelace'
+  };
+  const path = 'applications/acme/en.json';
+
+  test('a profile without a letter, or with a sound one, has nothing to warn about', () => {
+    expect(letterWarnings(path, data)).toEqual([]);
+    expect(letterWarnings(path, { ...data, letter })).toEqual([]);
+  });
+
+  test('names the profile and each problem of its letter', () => {
+    const crowded = {
+      ...data,
+      letter: {
+        ...letter,
+        opening: '',
+        recipient: { ...letter.recipient, role: 'Talent', address: ['A', 'B', 'C', 'D'] }
+      }
+    };
+
+    expect(letterWarnings(path, crowded)).toEqual([
+      'warning: the cover letter in applications/acme/en.json — opening: missing',
+      'warning: the cover letter in applications/acme/en.json — recipient: 7 lines, the address zone holds 6'
+    ]);
   });
 });

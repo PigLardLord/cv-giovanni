@@ -507,7 +507,13 @@ Settled on #151 by the owner: one system for both documents a recruiter receives
   every margin at least 10mm. The address in the window is read from where poppler places each line:
   the return line within 45–62.7mm of the top edge, every line of the recipient within 62.7–90mm, and
   both within a DL window envelope's window, 20–110mm across; a line outside is named with where it
-  is. The sides are not compared, as a CV's are: form B is asymmetric by design. `npm run audit:ats`
+  is. The sides are not compared, as a CV's are: form B is asymmetric by design.
+- **The build warns first.** A recipient past six lines runs out of the address zone onto the date's
+  row, and the audit fails it; a letter missing a field it needs is weaker, and the audit may not see
+  it. `CoverLetter.problems` names both — each field `missing` names, and a recipient longer than
+  `ADDRESS_ZONE_LINES` — and `npm run build:pdf` prints each to stderr, with the profile's path, before
+  it prints anything. It still writes the files as the data wrote them: no line is dropped to make an
+  address fit, and the audit stays the gate. `npm run audit:ats`
   keeps asking a `-cover` file only whether the recipient and the subject survive extraction.
 - **The letter's page is not published.** The site CI assembles leaves out `letter.html`, `letter.js`
   and `letter.css`, as it leaves out the editor, and checks that it did: the published profile carries

@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { CvFiles } from '../../core/CvFiles.js';
 import { LetterContent } from '../../core/LetterContent.js';
+import { CoverLetter } from '../../domain/CoverLetter.js';
 import { createStaticServer, previewKey } from '../serve.mjs';
 import { openBrowser } from './chrome.mjs';
 import { printPage } from './print-page.mjs';
@@ -55,6 +56,21 @@ export function builtLetters(target, data, layouts, exists = existsSync) {
   if (!LetterContent.has(data)) return { files: [], missing: [] };
   const naming = new CvFiles();
   return built(target, layouts, (options) => naming.letterFilename(data, options), exists);
+}
+
+/**
+ * What the build warns about a profile's letter before it prints it: every problem the letter reports, a field it
+ * still misses or a recipient longer than the address zone holds (the review of #151). The letter is printed anyway,
+ * as written, and `npm run audit:print` is what fails it; the warning says first which profile to correct.
+ * @param {string} dataPath - The profile's path, as the build was given it
+ * @param {object} data - The profile
+ * @returns {string[]} One warning per problem, none for a profile without a letter
+ */
+export function letterWarnings(dataPath, data) {
+  if (!LetterContent.has(data)) return [];
+  return new CoverLetter(data.letter).problems.map(
+    (problem) => `warning: the cover letter in ${dataPath} — ${problem}`
+  );
 }
 
 /**
