@@ -20,8 +20,10 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "dictionary-en-gb": "3.0.0",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
+    "nspell": "2.1.5",
     "prettier": "3.9.6"
   },
   "dependencies": {
