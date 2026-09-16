@@ -1,4 +1,5 @@
 import { CvFiles } from '../core/CvFiles.js';
+import { LetterExporter } from '../core/LetterExporter.js';
 
 // The rules that name the files a CV is delivered as. They moved here from `PdfExporter` so the page can
 // use them without importing pdfmake's composer (#145); what they assert is unchanged.
@@ -72,6 +73,22 @@ describe('CvFiles', () => {
     expect(files.filename({ ...data, name: 'Niccolò D’Amico' }, options)).toBe(
       'niccolo-d-amico-acme-de-nerd-letter-color.pdf'
     );
+  });
+
+  // The cover letter is printed from its own page now, and the generator and the print audit name it without
+  // loading pdfmake's composer (#151). The name is the one pdfmake gave it, so nothing that reads `-cover` changes.
+  test('names the cover letter beside the CV it goes with, as pdfmake named it', () => {
+    const files = new CvFiles();
+    const options = { profile: 'acme', locale: 'de', layout: 'spotlight' };
+
+    expect(files.letterFilename({ ...data, name: 'Ada Lovelace' }, options)).toBe(
+      'ada-lovelace-acme-de-spotlight-cover.pdf'
+    );
+    for (const layout of ['nerd', 'spotlight', 'technical']) {
+      expect(files.letterFilename(rich, { ...options, layout })).toBe(
+        new LetterExporter(null, { t: (key) => key }).filename(rich, { ...options, layout })
+      );
+    }
   });
 
   test('refuses to name a file for a profile without a name', () => {

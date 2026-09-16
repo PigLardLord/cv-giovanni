@@ -1,0 +1,262 @@
+/* =============================================================================
+   THE COVER LETTER - DIN 5008 FORM B, PRINTED BY CHROME (#151)
+   The letter a tailored profile carries, printed from this page like the CV is printed from index.html.
+   Form B is expressed in the standard's own unit, millimetres, as blocks of fixed height in normal flow:
+   nothing is positioned, floated or reordered by a grid, so the text layer gives the letter in the order a
+   reader meets it, as poppler reconstructs the page and as the PDF draws it.
+   ============================================================================= */
+
+/* Only the faces the letter prints in, from the files the CV prints from. vendor/fonts/fonts.css is not loaded:
+   its Inter is the variable woff2, which Chrome embeds as Type 3 fonts (#143). Inter's static TrueType files carry
+   two weights, and every rule below asks for 400 or 700. */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  src: url('vendor/fonts/inter/Inter-Regular.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  src: url('vendor/fonts/inter/Inter-Bold.ttf') format('truetype');
+}
+
+/* Impact Spotlight's display face, for the name alone, as print.css sets the CV's name. */
+@font-face {
+  font-family: 'Instrument Serif';
+  font-style: normal;
+  font-weight: 400;
+  src: url('vendor/fonts/instrument-serif/instrument-serif-latin-ext-400-normal.woff2')
+    format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Instrument Serif';
+  font-style: normal;
+  font-weight: 400;
+  src: url('vendor/fonts/instrument-serif/instrument-serif-latin-400-normal.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* Form B's margins: 24.1mm on the left, where a window envelope needs the address, and 20mm elsewhere. */
+@page {
+  size: A4;
+  margin: 20mm 20mm 20mm 24.1mm;
+}
+
+* {
+  font-synthesis: none;
+  /* No tracking: a parser reading in drawing order finds a word's end only in the gap the page leaves (#143). */
+  letter-spacing: 0;
+}
+
+html {
+  background: #e5e7eb;
+}
+
+body {
+  margin: 0;
+  padding-block: 24px;
+  padding-inline: 16px;
+  font-family: 'Inter', Arial, sans-serif;
+  font-size: 10.5pt;
+  font-weight: 400;
+  line-height: 1.4;
+  color: #1f2937;
+}
+
+/* The first paint waits for the letter, as the CV's does (#74), and comes anyway after three seconds. */
+body:not([data-rendered]) {
+  visibility: hidden;
+  animation: show-an-unrendered-letter 0s 3s forwards;
+}
+
+@keyframes show-an-unrendered-letter {
+  to {
+    visibility: visible;
+  }
+}
+
+/* On screen, a sheet of A4 with the page's margins as its padding, so the screen shows what the paper gets. */
+.letter {
+  box-sizing: border-box;
+  width: 210mm;
+  max-width: 100%;
+  min-height: 297mm;
+  margin: 0 auto;
+  padding: 20mm 20mm 20mm 24.1mm;
+  background: #ffffff;
+  box-shadow:
+    0 1px 3px rgba(17, 24, 39, 0.15),
+    0 8px 24px rgba(17, 24, 39, 0.08);
+}
+
+/* No specificity, so every rule below sets its own size, weight and spacing without having to outrank this. */
+:where(.letter) :where(h1, h2, p) {
+  margin: 0;
+  font-size: inherit;
+  font-weight: 400;
+}
+
+.no-break {
+  white-space: nowrap;
+}
+
+/* The letterhead: 25mm, from the top margin to the address field, which starts 45mm from the top edge. */
+.letter-head {
+  height: 25mm;
+}
+
+.letter-name {
+  color: #111827;
+  font-size: 18pt;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+/* Impact Spotlight's name in Instrument Serif, as print.css sets the CV's; its narrow word space is widened so a
+   parser reading in drawing order still finds two words (#143). */
+body[data-layout='spotlight'] .letter-name {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: 22pt;
+  font-weight: 400;
+  word-spacing: 0.1em;
+}
+
+.letter-contact {
+  margin-top: 1mm;
+  font-size: 9pt;
+  color: #4b5563;
+}
+
+/* Form B's address field: 85mm by 45mm, 45mm from the top edge and 20mm from the left, which is what a DL window
+   envelope shows. The text starts at the page's 24.1mm margin, so it has the 80.9mm that remain to the field's right
+   edge. No blank line inside it. */
+.letter-window {
+  width: 80.9mm;
+}
+
+/* The Zusatz- und Vermerkzone: the field's upper 17.7mm, from 45 to 62.7mm, filled from the bottom. The return line
+   sits at its foot, directly above the recipient, small so it is returned rather than read. A long one wraps within
+   the field's width and grows upward, five lines at most, so the recipient still starts at 62.7mm. */
+.letter-remarks {
+  box-sizing: border-box;
+  height: 17.7mm;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.letter-return {
+  font-size: 8pt;
+  line-height: 1.25;
+  color: #374151;
+  text-decoration: underline;
+  text-decoration-color: #9ca3af;
+}
+
+/* The Anschriftzone: the field's lower 27.3mm, from 62.7 to 90mm, filled from the top. Six lines at most, so each is
+   4.5mm, and 10pt, which the standard asks of sans-serif text at the address. */
+.letter-recipient {
+  height: 27.3mm;
+  font-size: 10pt;
+  line-height: 4.5mm;
+  color: #111827;
+}
+
+/* The date, right-aligned under the address field, with the advert's reference beneath it, then the subject. The
+   subject starts 98.46mm from the top edge when the date stands alone; with a reference the two need more than the
+   8.46mm between the field and that line, and the subject moves down rather than overlap them. */
+.letter-dateline {
+  box-sizing: border-box;
+  min-height: 8.46mm;
+  padding-bottom: 2.5mm;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.letter-reference {
+  font-size: 9pt;
+  color: #4b5563;
+}
+
+.letter-subject {
+  margin-bottom: 8mm;
+  color: #111827;
+  font-weight: 700;
+}
+
+.letter-salutation {
+  margin-bottom: 4mm;
+}
+
+.letter-paragraph {
+  margin-bottom: 3.5mm;
+}
+
+/* The close travels together: a signature orphaned onto a second page is the one break a reader always sees. */
+.letter-close {
+  break-inside: avoid;
+}
+
+/* Room for a signature above the typed name. */
+.letter-closing {
+  margin-top: 1mm;
+  margin-bottom: 14mm;
+}
+
+.letter-signature {
+  color: #111827;
+}
+
+.letter-attachments {
+  margin-top: 8mm;
+  font-size: 9pt;
+  color: #4b5563;
+}
+
+.letter-notice {
+  color: #374151;
+}
+
+.cv-error {
+  max-width: 40rem;
+  margin: 0 auto;
+}
+
+@media screen and (max-width: 820px) {
+  .letter {
+    min-height: 0;
+    padding: 24px 16px;
+  }
+}
+
+@media print {
+  html,
+  body {
+    background: #ffffff;
+  }
+
+  body {
+    padding: 0;
+  }
+
+  .letter {
+    width: auto;
+    max-width: none;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+}

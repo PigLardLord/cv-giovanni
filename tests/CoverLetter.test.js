@@ -1,4 +1,4 @@
-import { CoverLetter } from '../domain/CoverLetter.js';
+import { ADDRESS_ZONE_LINES, CoverLetter } from '../domain/CoverLetter.js';
 
 const complete = {
   recipient: {
@@ -89,5 +89,58 @@ describe('a body that arrives as one string', () => {
   test('whitespace is not content', () => {
     expect(new CoverLetter({ body: '   \n\n  ' }).body).toEqual([]);
     expect(new CoverLetter({ subject: '   ' }).subject).toBe('');
+  });
+});
+
+// DIN 5008 form B's address zone holds six lines. A seventh prints on the row of the date, outside a window envelope's
+// window, and the review of #151 found the build wrote such a letter without a word. The letter says so first.
+describe('what a letter will not print well', () => {
+  test('the address zone holds six lines', () => {
+    expect(ADDRESS_ZONE_LINES).toBe(6);
+  });
+
+  test('the recipient is every line the data wrote, company first, in the order a window shows it', () => {
+    expect(new CoverLetter(complete).recipientLines).toEqual([
+      'ActAI',
+      'Anna Weber',
+      'Talent Lead',
+      'Chausseestraße 1',
+      '10115 Berlin'
+    ]);
+    expect(new CoverLetter({ recipient: { name: 'Anna Weber' } }).recipientLines).toEqual([
+      'Anna Weber'
+    ]);
+  });
+
+  test('a complete letter of six recipient lines has no problem', () => {
+    const six = {
+      ...complete,
+      recipient: { ...complete.recipient, address: ['Haus 2', 'Chausseestraße 1', '10115 Berlin'] }
+    };
+
+    expect(new CoverLetter(six).recipientLines).toHaveLength(6);
+    expect(new CoverLetter(six).problems).toEqual([]);
+  });
+
+  test('a seventh recipient line is a problem, and nothing is dropped to hide it', () => {
+    const seven = {
+      ...complete,
+      recipient: {
+        ...complete.recipient,
+        address: ['Haus 2', 'Eingang B', 'Chausseestraße 1', '10115 Berlin']
+      }
+    };
+    const letter = new CoverLetter(seven);
+
+    expect(letter.problems).toEqual(['recipient: 7 lines, the address zone holds 6']);
+    expect(letter.recipientLines).toHaveLength(7);
+  });
+
+  test('every field it still needs is a problem too, in the order a writer would fill them', () => {
+    expect(new CoverLetter({ recipient: { company: 'ActAI' }, subject: 'x' }).problems).toEqual([
+      'opening: missing',
+      'body: missing',
+      'signature: missing'
+    ]);
   });
 });

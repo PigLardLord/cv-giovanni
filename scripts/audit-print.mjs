@@ -8,12 +8,21 @@ import { writeReport } from './lib/write-report.mjs';
 import { fallbackRuns, typefacesFor } from './lib/printed-typefaces.mjs';
 import { gluedPhrases, type3Fonts } from './lib/extractable-text.mjs';
 import { imageCount, outOfOrder } from './lib/section-order.mjs';
-import { builtCv } from './lib/printed-cv.mjs';
+import { builtCv, builtLetters } from './lib/printed-cv.mjs';
 import { PRINTED_PAGE, bboxPages, printedRoom, roomReport } from './lib/page-room.mjs';
 import { MEASURE_LIMIT, longProseLines, overflowingPeriods, proseOf } from './lib/line-length.mjs';
+import {
+  addressInWindow,
+  bboxLines,
+  catalogueTranslator,
+  letterAnchors,
+  marginsClear
+} from './lib/printed-letter.mjs';
+import { GenerationTarget } from '../core/GenerationTarget.js';
+import { LetterContent } from '../core/LetterContent.js';
+import { CoverLetter } from '../domain/CoverLetter.js';
 import { CvDocument } from '../domain/CvDocument.js';
 import { periodText } from '../domain/Tenure.js';
-import { GenerationTarget } from '../core/GenerationTarget.js';
 
 /**
  * What the browser prints, checked on the paper rather than on the stylesheet.
@@ -26,13 +35,17 @@ import { GenerationTarget } from '../core/GenerationTarget.js';
  *
  * Nothing here reads CSS. Every check reads either the text layer poppler pulls out
  * of the PDF or the pixels the page actually put on the paper.
+ *
+ * A tailored profile that carries a cover letter has it printed beside each layout, from letter.html (#151), and
+ * each letter is read here too, on checks of its own: a letter is one page, not a CV.
  */
 const projectUrl = new URL('..', import.meta.url);
 // The expectations come from the CV under test. Auditing a tailored profile against the
 // published one would check strings it never contained and report a clean pass.
 const target = GenerationTarget.fromArguments(process.argv.slice(2));
 const profile = await readJson(target.dataPath);
-const labels = (await readJson(`locales/${target.locale}/cv.json`)).sections;
+const catalogue = await readJson(`locales/${target.locale}/cv.json`);
+const labels = catalogue.sections;
 // The prose a reader follows along a line, and each role's dates as Nerd Mode prints them, with their length (#155).
 const prose = proseOf(profile);
 const cv = new CvDocument(profile);
@@ -53,7 +66,9 @@ async function readJson(path) {
 const manifest = JSON.parse(await readFile(new URL('config/cv-manifest.json', projectUrl)));
 // A layout with no printed typefaces declared cannot have its text checked: exit 2, as for a file never built.
 try {
-  manifest.layouts.forEach(typefacesFor);
+  manifest.layouts.forEach((layout) => typefacesFor(layout));
+  if (LetterContent.has(profile))
+    manifest.layouts.forEach((layout) => typefacesFor(layout, 'letter'));
 } catch (error) {
   console.error(`audit-print: ${error.message} — nothing was checked.`);
   process.exit(2);
@@ -162,7 +177,7 @@ function inkMargins(page) {
   };
 }
 
-/** Every word whose darkest pixel is lighter than the contrast floor allows. */
+/** Every word whose darkest pixel is lighter than the contrast floor allows, from `pdftotext -bbox-layout`. */
 function faintWords(xml, pages) {
   const scale = DPI / 72;
   const faint = [];
@@ -200,12 +215,63 @@ function faintWords(xml, pages) {
   return faint;
 }
 
+/** Whether `pdfinfo` reports A4, to within a couple of points. */
+function isA4(info) {
+  const size = info.match(/Page size:\s+([\d.]+) x ([\d.]+) pts/);
+  return (
+    !!size && Math.abs(Number(size[1]) - 595.28) <= 2 && Math.abs(Number(size[2]) - 841.89) <= 2
+  );
+}
+
+/**
+ * Everything read off one printed PDF: its text in both reading orders, the face of every run, its fonts and images,
+ * and, from its pixels, the ink margins and the words too faint to read. The CV and the cover letter are measured
+ * alike and scored apart.
+ */
+async function measure(path, faces, directory) {
+  const pdf = onDisk(path);
+  // The files are read as they are: a build older than an edit audits the edit's predecessor. Say when each
+  // was written, where whoever runs this can see it; `npm run verify:pdf` builds first.
+  const { mtime } = await stat(pdf);
+  process.stderr.write(`audit-print: reading ${path}, written ${mtime.toISOString()}\n`);
+
+  const info = execFileSync('pdfinfo', [pdf], { encoding: 'utf8' });
+  const text = execFileSync('pdftotext', [pdf, '-'], { encoding: 'utf8' });
+  // The face of every run of text, so a substitution is named rather than inferred.
+  const fallback = fallbackRuns(
+    execFileSync('pdftohtml', ['-xml', '-i', '-stdout', '-q', pdf], { encoding: 'utf8' }),
+    faces
+  );
+  // Drawing order, as PDFBox and Tika read by default, and the fonts a text extractor has to decode (#143).
+  const drawn = execFileSync('pdftotext', ['-raw', pdf, '-'], { encoding: 'utf8' });
+  const type3 = type3Fonts(execFileSync('pdffonts', [pdf], { encoding: 'utf8' }));
+  const images = imageCount(execFileSync('pdfimages', ['-list', pdf], { encoding: 'utf8' }));
+  const pageCount = Number(info.match(/Pages:\s+(\d+)/)?.[1]);
+
+  const raster = await mkdtemp(join(directory, 'raster-'));
+  const pages = await renderPages(pdf, raster);
+  const margins = pages.map(inkMargins).filter(Boolean);
+  // Where every word and line sits on the paper: for the contrast of each word, the room left under each page's last
+  // line (#162), and a letter's address in its window.
+  const bbox = execFileSync('pdftotext', ['-bbox-layout', pdf, '-'], {
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024
+  });
+  const faint = faintWords(bbox, pages);
+  await rm(raster, { recursive: true, force: true });
+
+  return { info, text, drawn, bbox, fallback, type3, images, pageCount, margins, faint };
+}
+
 // The files the generator wrote for this profile, one per layout. One that is not there was never built, and an
 // audit of it would check nothing: exit 2, as every audit here does when it did not run.
 const onDisk = (path) => fileURLToPath(new URL(path, projectUrl));
 const { files, missing } = builtCv(target, profile, manifest.layouts, (path) =>
   existsSync(onDisk(path))
 );
+// And a cover letter beside each, when the profile carries one (#151). None for the published CV.
+const letters = builtLetters(target, profile, manifest.layouts, (path) => existsSync(onDisk(path)));
+missing.push(...letters.missing);
 if (missing.length) {
   console.error(`audit-print: ${missing.join(', ')} not built — nothing was checked.`);
   console.error('Run `npm run build:pdf` first, with the same --profile.');
@@ -214,25 +280,19 @@ if (missing.length) {
 
 const workspace = await mkdtemp(join(tmpdir(), 'mycv-print-'));
 const rows = [];
+const letterRows = [];
 
 try {
   for (const { layout, path } of files) {
-    const pdf = onDisk(path);
-    // The files are read as they are: a build older than an edit audits the edit's predecessor. Say when each
-    // was written, where whoever runs this can see it; `npm run verify:pdf` builds first.
-    const { mtime } = await stat(pdf);
-    process.stderr.write(`audit-print: reading ${path}, written ${mtime.toISOString()}\n`);
-
-    const info = execFileSync('pdfinfo', [pdf], { encoding: 'utf8' });
-    const text = execFileSync('pdftotext', [pdf, '-'], { encoding: 'utf8' });
-    // The face of every run of text, so a substitution is named rather than inferred.
-    const fallback = fallbackRuns(
-      execFileSync('pdftohtml', ['-xml', '-i', '-stdout', '-q', pdf], { encoding: 'utf8' }),
-      typefacesFor(layout)
+    const { info, text, drawn, bbox, fallback, type3, images, pageCount, margins, faint } =
+      await measure(path, typefacesFor(layout), workspace);
+    const long = longProseLines(text, prose, { periods });
+    const overflow = layout === 'nerd' ? overflowingPeriods(bbox, periods) : [];
+    // How close each page runs to its foot, reported and never gated: the page count is the gate (#162). A page with
+    // no line has no room to measure.
+    const room = bboxPages(bbox).map((page) =>
+      page.lines.length ? printedRoom(page, PRINTED_PAGE) : null
     );
-    // Drawing order, as PDFBox and Tika read by default, and the fonts a text extractor has to decode (#143).
-    const drawn = execFileSync('pdftotext', ['-raw', pdf, '-'], { encoding: 'utf8' });
-    const type3 = type3Fonts(execFileSync('pdffonts', [pdf], { encoding: 'utf8' }));
     const glued = gluedPhrases(drawn, [
       profile.name,
       profile.title,
@@ -254,26 +314,7 @@ try {
       { heading: labels.languages }
     ];
     const sections = { read: outOfOrder(text, anchors), drawn: outOfOrder(drawn, anchors) };
-    const images = imageCount(execFileSync('pdfimages', ['-list', pdf], { encoding: 'utf8' }));
     const flat = text.replace(/\s+/g, ' ');
-    const pageCount = Number(info.match(/Pages:\s+(\d+)/)?.[1]);
-
-    const raster = await mkdtemp(join(workspace, 'raster-'));
-    const pages = await renderPages(pdf, raster);
-    const margins = pages.map(inkMargins).filter(Boolean);
-    const bbox = execFileSync('pdftotext', ['-bbox-layout', pdf, '-'], {
-      encoding: 'utf8',
-      maxBuffer: 64 * 1024 * 1024
-    });
-    const faint = faintWords(bbox, pages);
-    const long = longProseLines(text, prose, { periods });
-    const overflow = layout === 'nerd' ? overflowingPeriods(bbox, periods) : [];
-    // How close each page runs to its foot, reported and never gated: the page count is the gate (#162). A page with
-    // no line has no room to measure.
-    const room = bboxPages(bbox).map((page) =>
-      page.lines.length ? printedRoom(page, PRINTED_PAGE) : null
-    );
-    await rm(raster, { recursive: true, force: true });
 
     const order = [profile.name, profile.title, labels.experience].map((term) =>
       text.indexOf(term)
@@ -284,14 +325,7 @@ try {
     const checks = {
       // A4 to within a couple of points: the browser rounds the page box to whole
       // device pixels, so it prints 594.96 x 841.92 where the paper is 595.28 x 841.89.
-      format: (() => {
-        const size = info.match(/Page size:\s+([\d.]+) x ([\d.]+) pts/);
-        return (
-          !!size &&
-          Math.abs(Number(size[1]) - 595.28) <= 2 &&
-          Math.abs(Number(size[2]) - 841.89) <= 2
-        );
-      })(),
+      format: isA4(info),
       pages: pageCount > 0 && pageCount <= 2,
       // Every string a parser looks for, in the case the catalogue wrote it. A
       // section label drawn in capitals no longer matches the label itself.
@@ -375,6 +409,70 @@ try {
       overflow
     });
   }
+
+  if (letters.files.length) {
+    // The letter's words as the page wrote them, from the same catalogue, so nothing is expected that it never said.
+    const { letter: words } = LetterContent.of(profile, {
+      t: catalogueTranslator({ cv: catalogue }),
+      locale: target.locale
+    });
+    const anchors = letterAnchors(words);
+    const collapse = (value) => value.replace(/\s+/g, ' ').trim();
+    // The three things that make it a letter rather than a page of prose.
+    const wanted = [
+      new CoverLetter(profile.letter).recipient.company,
+      words.subject,
+      words.signature
+    ]
+      .filter(Boolean)
+      .map(collapse);
+
+    for (const { layout, path } of letters.files) {
+      const { info, text, drawn, bbox, fallback, type3, images, pageCount, margins, faint } =
+        await measure(path, typefacesFor(layout, 'letter'), workspace);
+      const parts = { read: outOfOrder(text, anchors), drawn: outOfOrder(drawn, anchors) };
+      const flat = collapse(text);
+      // Where each line of the address landed on the paper, as poppler places it.
+      const address = addressInWindow(bboxLines(bbox), words);
+
+      const checks = {
+        format: isA4(info),
+        // One page: a letter that runs onto a second is a letter nobody finishes.
+        pages: pageCount === 1,
+        content: wanted.every((term) => flat.includes(term)),
+        // The letterhead, the address, the date, the subject, the salutation, every paragraph, the close, the
+        // signature and the attachments, as poppler reconstructs the page and as the PDF draws it.
+        partsInOrder: parts.read.length === 0,
+        partsInOrderDrawn: parts.drawn.length === 0,
+        // DIN 5008 form B: the return line at the foot of the address field's upper 17.7mm, the recipient in its
+        // lower 27.3mm, 62.7 to 90mm down, and both inside a DL window envelope's window, 20 to 110mm across.
+        addressInWindow: address.length === 0,
+        contrast: faint.length === 0,
+        // DIN 5008 form B is 24.1mm on the left and 20mm on the right by design, so the sides are not compared.
+        margins: marginsClear(margins, MARGIN_FLOOR_MM),
+        // No colour emoji. A letter has no counters, so a line holding only a number is a reference, not debris.
+        textLayerClean: !/\p{Extended_Pictographic}/u.test(text),
+        intendedTypeface: fallback.length === 0,
+        noType3Fonts: type3.length === 0,
+        noImages: images === 0
+      };
+
+      const passed = Object.values(checks).filter(Boolean).length;
+      letterRows.push({
+        layout,
+        pages: pageCount,
+        score: `${passed}/${Object.keys(checks).length}`,
+        checks,
+        faint: faint.slice(0, 8),
+        fallback: fallback.slice(0, 8),
+        type3,
+        parts,
+        window: address,
+        images,
+        margins
+      });
+    }
+  }
 } finally {
   // What is left behind is a temporary directory of page images, not a result: say so, and let the checks stand.
   await rm(workspace, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }).catch(
@@ -382,7 +480,9 @@ try {
   );
 }
 
-const failures = rows.filter((row) => Object.values(row.checks).some((value) => !value));
+const failed = (row) => Object.values(row.checks).some((value) => !value);
+const failures = rows.filter(failed);
+const letterFailures = letterRows.filter(failed);
 const tight = rows
   .filter((row) => roomReport(row.room).lastPageTight)
   .map((row) => `${row.layout} (${row.room[row.room.length - 1].points.toFixed(1)}pt)`);
@@ -417,32 +517,86 @@ const report = [
   'skill categories with the spaces between their words, the sections in reading order both as',
   'poppler reconstructs the page and as the PDF draws it, no image, no line of prose past',
   `${MEASURE_LIMIT} characters (WCAG 1.4.8; lists of skills, interests and contacts are scanned, not read along a`,
-  "measure, and are exempt), and in Nerd Mode every line of a role's dates inside its column."
+  "measure, and are exempt), and in Nerd Mode every line of a role's dates inside its column.",
+  // Only a profile that carries a letter has one to report, so the published report reads as it always has.
+  ...(letterRows.length
+    ? [
+        '',
+        '## Cover letters',
+        '',
+        'The letter `npm run build:pdf` printed from `letter.html` beside each layout, measured the same way.',
+        '',
+        '| Layout | Pages | Score | Left margin |',
+        '|---|---:|---:|---:|',
+        ...letterRows.map((row) => {
+          const left = row.margins.length
+            ? Math.min(...row.margins.map((box) => box.left)).toFixed(1)
+            : '—';
+          return `| ${row.layout} | ${row.pages} | ${row.score} | ${left}mm |`;
+        }),
+        '',
+        "Checks: A4, one page, the recipient's company, the subject and the signature, the letter's parts",
+        'in reading order both as poppler reconstructs the page and as the PDF draws it, the return line',
+        "within 45–62.7mm of the top edge and every line of the recipient's address within 62.7–90mm, both",
+        "inside a DL window envelope's window 20–110mm across (DIN 5008 form B), every word at 4.5:1",
+        `on paper, every margin no narrower than ${MARGIN_FLOOR_MM}mm (form B is asymmetric by design, so the sides`,
+        'are not compared), no pictograph in the text layer, every run of text set in a typeface its layout',
+        'prints in, no Type 3 font, and no image.'
+      ]
+    : [])
 ].join('\n');
 
 await writeReport(new URL(target.reportPath('PRINT_AUDIT.md'), projectUrl), `${report}\n`);
 console.log(report);
 
-if (failures.length) {
+const failedChecks = (checks) =>
+  Object.entries(checks)
+    .filter(([, value]) => !value)
+    .map(([name]) => name);
+if (failures.length || letterFailures.length) {
   console.error('');
   console.error(
     JSON.stringify(
-      failures.map(
-        ({ layout, checks, faint, fallback, type3, glued, sections, images, long, overflow }) => ({
-          layout,
-          failed: Object.entries(checks)
-            .filter(([, value]) => !value)
-            .map(([name]) => name),
-          faint,
-          fallback,
-          type3,
-          glued,
-          sections,
-          images,
-          long,
-          overflow
-        })
-      ),
+      [
+        ...failures.map(
+          ({
+            layout,
+            checks,
+            faint,
+            fallback,
+            type3,
+            glued,
+            sections,
+            images,
+            long,
+            overflow
+          }) => ({
+            layout,
+            failed: failedChecks(checks),
+            faint,
+            fallback,
+            type3,
+            glued,
+            sections,
+            images,
+            long,
+            overflow
+          })
+        ),
+        ...letterFailures.map(
+          ({ layout, checks, faint, fallback, type3, parts, window, images, margins }) => ({
+            letter: layout,
+            failed: failedChecks(checks),
+            faint,
+            fallback,
+            type3,
+            parts,
+            window,
+            images,
+            margins
+          })
+        )
+      ],
       null,
       2
     )

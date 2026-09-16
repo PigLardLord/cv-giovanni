@@ -5,6 +5,7 @@ import { PageFormat } from '../domain/PageFormat.js';
 import { LayoutThemeRegistry } from '../adapters/LayoutThemeRegistry.js';
 import { PdfDesignSystem } from '../adapters/PdfDesignSystem.js';
 import { LetterLayout } from '../adapters/LetterLayout.js';
+import { LetterContent } from './LetterContent.js';
 
 /**
  * The cover letter's half of the export path.
@@ -53,9 +54,9 @@ export class LetterExporter {
     return `${name}-${profile}-${locale}-${layout}-cover${suffix}.pdf`;
   }
 
-  /** True when a profile carries a letter at all. The published CV does not. */
+  /** True when a profile carries a letter at all. The published CV does not. One rule, `LetterContent`'s (#151). */
   static has(data) {
-    return Boolean(data && data.letter && Object.keys(data.letter).length);
+    return LetterContent.has(data);
   }
 
   buildDocument(data, options = {}) {

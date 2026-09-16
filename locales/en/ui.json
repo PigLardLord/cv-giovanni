@@ -25,6 +25,7 @@
       "location": "Location"
     }
   },
+  "letter": { "absent": "This profile carries no cover letter." },
   "errors": {
     "loadingTitle": "Error loading CV",
     "loadingHint": "Please check the console for more details."

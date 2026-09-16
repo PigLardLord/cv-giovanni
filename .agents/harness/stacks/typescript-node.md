@@ -133,7 +133,7 @@ fails, because the JSON is fetched. Query parameters drive every variant:
 `npm run build:pdf` prints the three layouts from the page with a headless Chrome, A4 in colour,
 into `generated/`, and writes `generated/manifest.json` from what it printed (#149). It needs a
 browser and **exits 2 having written nothing** when it cannot find one. A profile with a `letter`
-also gets a cover letter per layout, still composed by pdfmake until #151; the `-cover` in a
+also gets a cover letter per layout, printed from `letter.html` in the same browser (#151); the `-cover` in a
 filename is what tells the two documents apart.
 
 `npm run audit:print` scores the printed PDFs on seventeen checks, measured on the text layer and

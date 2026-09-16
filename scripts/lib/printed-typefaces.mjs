@@ -23,17 +23,32 @@ const TYPEFACES = {
 };
 
 /**
- * @param {string} layout - A layout from the manifest
- * @returns {string[]} The faces its printed page may use
- * @throws {Error} For a layout with no faces declared: it cannot be checked, so it must not pass
+ * The faces the cover letter prints in, from letter.html (#151): Inter, and Impact Spotlight's name in Instrument
+ * Serif, as the CV sets it. Declared apart from the CV's, so a face the CV takes on is not waved through on a letter
+ * that never asked for it.
  */
-export function typefacesFor(layout) {
-  if (!Object.hasOwn(TYPEFACES, layout)) {
+const LETTER_TYPEFACES = {
+  nerd: ['Inter'],
+  spotlight: ['Inter', 'InstrumentSerif'],
+  technical: ['Inter']
+};
+
+const DOCUMENTS = { cv: TYPEFACES, letter: LETTER_TYPEFACES };
+
+/**
+ * @param {string} layout - A layout from the manifest
+ * @param {'cv' | 'letter'} [document] - The printed document: the CV, or the cover letter beside it
+ * @returns {string[]} The faces its printed page may use
+ * @throws {Error} For a layout or a document with no faces declared: it cannot be checked, so it must not pass
+ */
+export function typefacesFor(layout, document = 'cv') {
+  const faces = Object.hasOwn(DOCUMENTS, document) ? DOCUMENTS[document] : null;
+  if (!faces || !Object.hasOwn(faces, layout)) {
     throw new Error(
-      `no printed typefaces are declared for the layout "${layout}" in scripts/lib/printed-typefaces.mjs`
+      `no printed typefaces are declared for the ${document} in the layout "${layout}" in scripts/lib/printed-typefaces.mjs`
     );
   }
-  return TYPEFACES[layout];
+  return faces[layout];
 }
 
 const ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
