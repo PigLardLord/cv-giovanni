@@ -112,14 +112,21 @@ the command line run the same code:
 | -------------------------------------- | ------------------------------------------------------------------------------- |
 | `GET /api/profile`                     | Reads `profiles/general/en.json`                                                |
 | `PUT /api/profile`                     | Writes it, refusing a profile the page would refuse to load                     |
+| `GET /api/inference`                   | Says which backend a run would use, and how it is charged, before any run       |
 | `POST /api/applications`               | Creates an application: the advert, and a copy of the general profile to tailor |
 | `POST /api/applications/<name>/match`  | Runs `npm run audit:ats` with the application's profile and advert              |
 | `POST /api/applications/<name>/build`  | Runs `npm run build:pdf` with the application's profile                         |
-| `POST /api/applications/<name>/tailor` | Answers 501 until inference is connected                                        |
+| `POST /api/applications/<name>/tailor` | Answers 501 until the application flow is built                                 |
 
 It answers only this machine's browser holding the run's key, as `applications/` does, and only requests from the page
 the server serves. `adapters/LocalApi.js` holds the routes, and `tests/LocalApi.test.js` fails when a route does more
 than pass its request through.
+
+The app asks a model through the claude CLI when this machine has it, on whatever the CLI is signed in to, which
+for a Claude subscription means no charge per run. Otherwise it uses an API key, paid per run: put the key in
+`~/.config/mycv/anthropic-api-key`, or under `$XDG_CONFIG_HOME`, readable only by you. A key file other users can
+read is refused, and the key is sent to the Anthropic API and nowhere else. The CLI runs with no tools, no MCP
+servers and no saved session, in an empty directory of its own.
 
 ## Working on it
 
