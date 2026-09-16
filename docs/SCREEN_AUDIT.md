@@ -5,12 +5,12 @@ width, its CV selected, and the selection read. Regenerate with `npm run audit:s
 
 | Layout | Width | Layout shift | Score |
 |---|---:|---:|---:|
-| nerd | 1280px | 0.000 | 11/11 |
-| nerd | 390px | 0.000 | 11/11 |
-| spotlight | 1280px | 0.000 | 11/11 |
-| spotlight | 390px | 0.000 | 11/11 |
-| technical | 1280px | 0.000 | 11/11 |
-| technical | 390px | 0.000 | 11/11 |
+| nerd | 1280px | 0.000 | 12/12 |
+| nerd | 390px | 0.000 | 12/12 |
+| spotlight | 1280px | 0.000 | 12/12 |
+| spotlight | 390px | 0.000 | 12/12 |
+| technical | 1280px | 0.000 | 12/12 |
+| technical | 390px | 0.000 | 12/12 |
 
 Checks: the CV captured whole — name, role, email and current employer; no two words the profile
 writes in sequence welded into one, and no contact detail run into the word beside it; every skill
@@ -20,14 +20,14 @@ while it loads — every layout shift from navigation to fonts ready, added up, 
 
 ## The Download PDF link
 
-| Layout | Width | Top copy | Heights | Label lines | Focus ring |
-|---|---:|---:|---:|---:|---:|
-| nerd | 1280px | 11–41px | 30 · 35 · 32px | 1 · 1 · 1 | 12.77:1 |
-| nerd | 390px | 62–106px | 44 · 44 · 44px | 1 · 1 · 1 | 14.01:1 |
-| spotlight | 1280px | 85–140px | 55 · 55 · 55px | 1 · 1 · 1 | 6.82:1 |
-| spotlight | 390px | 97–141px | 44 · 44 · 44px | 1 · 1 · 1 | 6.82:1 |
-| technical | 1280px | 85–140px | 55 · 55 · 55px | 1 · 1 · 1 | 6.87:1 |
-| technical | 390px | 97–141px | 44 · 44 · 44px | 1 · 1 · 1 | 6.87:1 |
+| Layout | Width | Top copy | Heights | Label lines | Focus ring | Secondary button |
+|---|---:|---:|---:|---:|---:|---:|
+| nerd | 1280px | 11–41px | 30 · 35 · 32px | 1 · 1 · 1 | 12.77:1 | border 1.56:1 (quiet) |
+| nerd | 390px | 62–106px | 44 · 44 · 44px | 1 · 1 · 1 | 14.01:1 | border 1.56:1 (quiet) |
+| spotlight | 1280px | 85–140px | 55 · 55 · 55px | 1 · 1 · 1 | 6.82:1 | border 4.99:1 |
+| spotlight | 390px | 97–141px | 44 · 44 · 44px | 1 · 1 · 1 | 6.82:1 | border 4.99:1 |
+| technical | 1280px | 85–140px | 55 · 55 · 55px | 1 · 1 · 1 | 6.87:1 | border 7.87:1 |
+| technical | 390px | 97–141px | 44 · 44 · 44px | 1 · 1 · 1 | 6.87:1 | border 7.87:1 |
 
 Checks, the four the product review of #59 measured by hand (#101): hidden without a PDF — loaded
 with `generated/manifest.json` answered 404, every copy computes `display: none`; reachable — the
@@ -38,4 +38,7 @@ with Tab, a drawn ring that clears 3:1 against the background just outside the l
 transitions finish. A fifth since #107: every visible copy, and the footer button beside it,
 renders its label on one line, at both widths. Top copy is where it spans from the top of the page;
 heights and label lines are every visible copy in page order, then the footer button; the ring is
-its contrast.
+its contrast. The secondary button in the footer is checked as well (#110): it carries no shadow in any
+layout, and its border clears 3:1 against the footer as painted in every layout that does not keep it
+quiet on purpose with a stated reason, as Nerd Mode does, marked (quiet). Secondary button is that border
+and its contrast.
