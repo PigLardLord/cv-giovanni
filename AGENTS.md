@@ -317,11 +317,24 @@ number of review comments.
 pass whatever the generator wrote — through the text layer poppler extracts and the pixels that
 reached the paper: contrast per word against the printed page, ink margins per page, every skill
 still attached to its category, nothing in the text layer the data did not write, and, read in the
-order the PDF draws it, every name spaced and every section in its place. A check on the stylesheet
-passed a page that printed a line of white on white. `npm run audit:screen` reads what a reader
+order the PDF draws it, every name spaced and every section in its place. It also reports how much
+room each page has left above its foot, and marks a last page with less than one line of running
+text free, as a warning and never a failure: the page count is the gate, and the warning is the
+notice that it is close (#162). A check on the stylesheet passed a page that printed a line of
+white on white. `npm run audit:screen` reads what a reader
 copies off the screen, and the page's controls. `npm run audit:pdf` scored the twelve variants
 pdfmake composed; nothing runs it any more, and it goes with pdfmake (#153). `npm run verify:pdf`
 builds, then runs the print and ATS audits: run it before claiming the document is sound.
+
+**The CV is spelled in its locale, offline.** `tests/CvIsSpelledRight.test.js` reads every published
+profile and every catalogue of its locale (the labels, the page's words, the print's) against a
+pinned dictionary, British English for `en`, and names each unknown word with its JSON path.
+Spelling errors are the best-measured penalty in CV screening: five cut the probability of an
+interview invitation by 18.5 percentage points, two by 7.3 (Sterkens et al., PLOS ONE 2023, 445
+recruiters) (#152). A product, a place or a surname the dictionary does not know is allowed by name
+in `config/spelling/<locale>.txt`, sorted, one term a line, never by a rule broad enough to let a
+misspelling through with it. A locale with no dictionary fails rather than passing unchecked, so a
+German CV needs one before it is published.
 
 The ATS audit asks a different question altogether. `npm run audit:ats` parses the generated PDF the
 way a stranger's parser would — no `-layout`, no access to `profiles/`, no knowledge of what the
@@ -388,7 +401,11 @@ previous deploy's JavaScript; after ten minutes the browser revalidates and gets
 file. Ten minutes of staleness on a CV is not worth a build step, an import map of twenty
 generated entries, or a `?v=` inside every import — which would also put a query string in
 front of Jest's resolver. The stylesheets, which carry the visible change, are versioned
-already.
+already, and so are the catalogues the page loads: `core/I18nService.js` loads `locales/` under a
+`?v=` of its own (the local editor reads `ui.json` directly, and only `npm run serve`'s `no-store`
+ever serves it), and a branch that edits a catalogue changes it, since a relabelled heading is a
+visible change too. `tests/VersionTokensFollowEdits.test.js` fails on a branch that forgets either
+(#117, #170).
 
 What _has_ cost this project time, three times, is the local server. `python -m http.server`
 sends no `Cache-Control` at all, so the browser falls back to heuristic freshness and can
