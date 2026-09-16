@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { createStaticServer, previewKey } from './serve.mjs';
 import { writeReport } from './lib/write-report.mjs';
 import { findBrowser } from './lib/find-browser.mjs';
+import { devtoolsSession, within } from './lib/devtools-session.mjs';
 import { screenCopy } from './lib/screen-copy.mjs';
 import { RECORD_LAYOUT_SHIFTS, layoutShift } from './lib/layout-shift.mjs';
 import { downloadReach } from './lib/download-reach.mjs';
@@ -93,17 +94,6 @@ if (!browser) {
   process.exit(2);
 }
 
-/** Rejects after `ms`, and clears its timer either way, so no deadline holds the process open. */
-const within = (promise, ms, what) => {
-  let timer;
-  return Promise.race([
-    promise,
-    new Promise((_, reject) => {
-      timer = setTimeout(() => reject(new Error(`${what} within ${ms / 1000}s`)), ms);
-    })
-  ]).finally(() => clearTimeout(timer));
-};
-
 /**
  * Chrome with its DevTools socket open, and the three things this audit asks of it.
  *
@@ -131,15 +121,7 @@ async function openBrowser(binary, dataDir) {
     child.once('exit', resolve);
     child.once('error', resolve);
   });
-  const pending = new Map();
-  const listeners = new Set();
   let socket;
-  let ended = null;
-  const failAll = (reason) => {
-    ended ??= reason;
-    for (const { reject } of pending.values()) reject(new Error(reason));
-    pending.clear();
-  };
   // Resolves once the browser has exited. Killed outright, its renderers outlived it and went on writing
   // into the profile directory the audit removes next: on the CI runner that removal failed with
   // ENOTEMPTY on every run, after every check had passed, and the audit exited 1 with no report (#89).
@@ -199,45 +181,11 @@ async function openBrowser(binary, dataDir) {
     throw error;
   }
 
-  child.on('exit', (code) => failAll(`the browser exited with ${code}`));
-  socket.addEventListener('close', () => failAll('the DevTools socket closed'));
-  socket.addEventListener('error', () => failAll('the DevTools socket failed'));
-  socket.addEventListener('message', (event) => {
-    const message = JSON.parse(event.data);
-    if (message.id && pending.has(message.id)) {
-      const { resolve, reject } = pending.get(message.id);
-      pending.delete(message.id);
-      if (message.error) reject(new Error(message.error.message));
-      else resolve(message.result);
-    } else if (message.method) {
-      listeners.forEach((listener) => listener(message));
-    }
-  });
-
-  let sequence = 0;
-  const send = (method, params = {}) =>
-    within(
-      new Promise((resolve, reject) => {
-        if (ended) {
-          reject(new Error(ended));
-          return;
-        }
-        const id = ++sequence;
-        pending.set(id, { resolve, reject });
-        socket.send(JSON.stringify({ id, method, params }));
-      }),
-      30000,
-      `${method} got no answer`
-    );
-  const next = (method) =>
-    new Promise((resolve) => {
-      const listener = (message) => {
-        if (message.method !== method) return;
-        listeners.delete(listener);
-        resolve(message.params);
-      };
-      listeners.add(listener);
-    });
+  const { send, next, receive, end } = devtoolsSession((frame) => socket.send(frame));
+  child.on('exit', (code) => end(`the browser exited with ${code}`));
+  socket.addEventListener('close', () => end('the DevTools socket closed'));
+  socket.addEventListener('error', () => end('the DevTools socket failed'));
+  socket.addEventListener('message', (event) => receive(JSON.parse(event.data)));
   const evaluate = async (expression) => {
     const { result, exceptionDetails } = await send('Runtime.evaluate', {
       expression,
