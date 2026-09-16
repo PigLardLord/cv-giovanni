@@ -76,7 +76,9 @@ function withoutComments(source) {
       char === '/' &&
       (last === '' ||
         /[(,=:[!&|?{};+\-*%<>~^]/.test(last) ||
-        /\b(?:return|typeof|case|in|of|void|yield|await)$/.test(out.trimEnd()))
+        /\b(?:return|typeof|case|in|of|void|yield|await|throw|else|do|delete|instanceof|new)$/.test(
+          out.trimEnd()
+        ))
     ) {
       state = 'pattern';
       out += char;
@@ -229,6 +231,23 @@ describe('reading a module graph', () => {
 
     expect(moduleGraph('entry.js', read).sort()).toEqual(['a.js', 'b.js', 'entry.js']);
   });
+
+  // The last review: after `throw`, `else`, `do`, `delete`, `instanceof` or `new` an operand is expected too, and
+  // a regular expression holding "[/*]" read as a division opened a comment that hid the import below it.
+  test.each(['throw', 'else', 'do', 'delete', 'instanceof', 'new'])(
+    'reads a regular expression after %s',
+    (keyword) => {
+      const tricky = {
+        'entry.js': [`x = y; ${keyword} /[/*]/.test(x);`, "import './after.js';"].join('\n'),
+        'after.js': ''
+      };
+
+      expect(moduleGraph('entry.js', (path) => tricky[path]).sort()).toEqual([
+        'after.js',
+        'entry.js'
+      ]);
+    }
+  );
 
   test('follows every import form the browser follows, through parent directories', () => {
     expect(moduleGraph('entry.js', read).sort()).toEqual(
