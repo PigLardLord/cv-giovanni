@@ -24,8 +24,8 @@ const fromDisk = (path) => readFileSync(join(root, path), 'utf8');
  * Patterns over the raw text kept getting this wrong, in the reviews of #145: a string holding "/*", a
  * comment closing mid-line, a `//` comment naming an import. So the source is read the way the language
  * reads it, character by character, through strings, template literals, regular expressions and comments.
- * A `/` opens a regular expression where an operand is expected, which is the usual reading and holds for
- * every module this test reaches; a template literal nesting another inside `${}` is not followed.
+ * A `/` opens a regular expression where an operand is expected, after the condition of an `if` included,
+ * which is the usual reading and holds for every module this test reaches; a template literal nesting another inside `${}` is not followed.
  * @param {string} source - A module's source
  * @returns {string} The same source, every comment character a space
  */
@@ -34,6 +34,9 @@ function withoutComments(source) {
   let state = 'code';
   let quote = '';
   let last = '';
+  // For each open parenthesis, whether it holds the condition of `if`, `while`, `for`, `with` or `catch`:
+  // after its `)` an operand is expected, so a `/` there opens a regular expression.
+  const conditions = [];
   for (let at = 0; at < source.length; at += 1) {
     const char = source[at];
     const next = source[at + 1];
@@ -77,8 +80,10 @@ function withoutComments(source) {
       state = 'pattern';
       out += char;
     } else {
+      if (char === '(') conditions.push(/\b(?:if|while|for|with|catch)\s*$/.test(out));
       out += char;
-      if (!/\s/.test(char)) last = char;
+      if (char === ')' && conditions.pop()) last = ';';
+      else if (!/\s/.test(char)) last = char;
     }
   }
   return out;
@@ -176,6 +181,27 @@ describe('reading a module graph', () => {
 
     expect(moduleGraph('entry.js', read).sort()).toEqual(
       ['after-pattern.js', 'also-real.js', 'entry.js', 'real.js'].sort()
+    );
+  });
+
+  // The review of the scanner: after the `)` of `if (x)`, a `/` opens a regular expression, not a division;
+  // read as a division, `/a\/*/` opened a comment that ran to the end of the file and hid the import below.
+  test('reads a regular expression after the condition of a braceless if', () => {
+    const tricky = {
+      'entry.js': [
+        "import './top.js';",
+        'function check(x) {',
+        '  if (x) /a\\/*/.test(x);',
+        '  return total / 2;',
+        '}',
+        "export const later = () => import('./dynamic-target.js');"
+      ].join('\n'),
+      'top.js': '',
+      'dynamic-target.js': ''
+    };
+
+    expect(moduleGraph('entry.js', (path) => tricky[path]).sort()).toEqual(
+      ['dynamic-target.js', 'entry.js', 'top.js'].sort()
     );
   });
 
