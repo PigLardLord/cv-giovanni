@@ -9,8 +9,10 @@ const SEPARATORS = /\s*[·|•]\s*/;
 const YEAR = String.raw`(?:19|20)\d{2}`;
 // An academic term DateRange has no notation for: "WS 2014/15 – SS 2016", "Wintersemester 2014", "Fall 2014" (#187).
 // A term word opens it, since a bare year is DateRange's and a year alone is no period: "Founded 2005" is not one.
-// The academic year a winter semester spans is written "2014/15" or "2014/2015" (#192).
-const TERM = String.raw`(?:WS|SS|WiSe|SoSe|Wintersemester|Sommersemester|Fall|Spring|Summer|Autumn|Winter|Herbst|Frühjahr|Sommer)\.?\s+${YEAR}(?:\/(?:${YEAR}|\d{2}))?`;
+// A season may be named a semester or a term, "Fall Semester 2014", and the academic year a winter semester spans is
+// written "2014/15" or "2014/2015" (#192). Any other word after the season is not a term: "Summer School 2019".
+const SEASON = String.raw`(?:Fall|Spring|Summer|Autumn|Winter|Herbst|Frühjahr|Sommer)(?:\s+(?:Semester|Term))?`;
+const TERM = String.raw`(?:WS|SS|WiSe|SoSe|Wintersemester|Sommersemester|${SEASON})\.?\s+${YEAR}(?:\/(?:${YEAR}|\d{2}))?`;
 const ACADEMIC_TERM = new RegExp(String.raw`^${TERM}(?:\s*[–-]\s*(?:${TERM}|${YEAR}))?$`, 'i');
 
 /**
