@@ -40,13 +40,14 @@ export function bboxPages(extract) {
  *
  * Measured from the lowest glyph box poppler gives, which is what the hand measurements of #159 used. A page is
  * tight when less than one body line of running text fits in it: the next line added to that page has nowhere to go.
+ * Every line counts, one in the bottom margin too: the printed page puts nothing there on purpose, so a line there
+ * is text running past the page, and its room is negative (the code review of #168).
  * @param {{ height: number, lines: { top: number, bottom: number }[] }} page - One page, from `bboxPages`
  * @param {{ bottomMargin: number, bodyLine: number }} settings - The page's bottom margin and one body line, in points
  * @returns {{ points: number, lines: number, tight: boolean }} The room left
  * @throws {Error} On a page with no line, which has no last line to measure from
  */
-export function printedRoom({ height, lines: all }, { bottomMargin, bodyLine }) {
-  const lines = all.filter(({ top }) => top < height - bottomMargin);
+export function printedRoom({ height, lines }, { bottomMargin, bodyLine }) {
   if (!lines.length) throw new Error('A page with no line has no last line to measure from.');
 
   const points = height - bottomMargin - Math.max(...lines.map(({ bottom }) => bottom));

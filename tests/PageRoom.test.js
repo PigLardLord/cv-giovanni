@@ -47,6 +47,18 @@ describe('the room left on a printed page', () => {
     expect(roomFor(15.3).tight).toBe(true);
   });
 
+  // pdfmake's room check skipped a line in the bottom margin, where it printed the day it built the PDF. The printed
+  // page puts nothing there, so a line there is text running past the page (the code review of #168).
+  test('a line past the bottom margin is text running off the page: negative room, and tight', () => {
+    const [overflowing] = bboxPages(extract(page(line(700, 712), line(815, 830))));
+
+    const room = printedRoom(overflowing, PRINTED_PAGE);
+
+    expect(room.points).toBeCloseTo(841.92 - 33 - 830, 5);
+    expect(room.points).toBeLessThan(0);
+    expect(room.tight).toBe(true);
+  });
+
   test('a page with no line has nothing to measure from, and says so', () => {
     expect(() => printedRoom(bboxPages(extract(page()))[0], PRINTED_PAGE)).toThrow(/no line/);
   });
@@ -70,14 +82,27 @@ describe('the room left on a printed page', () => {
 
   // The audit reads no CSS; the page box and the running text it counts in are declared beside it, and held here to
   // what print.css says, so a change to either is a change to both.
+  // The review of #168: reading the first number of the shorthand passed a four-value margin whose bottom differed, and
+  // a `@page :first` rule could change the bottom unseen. The shorthand is read the way CSS reads it, and no other page
+  // rule may set a margin.
   test('counts in the page box and the running text print.css declares', () => {
     const css = readFileSync(new URL('../print.css', import.meta.url), 'utf8');
-    const pageMargin = /@page\s*\{[^}]*?margin:\s*([\d.]+)pt/.exec(css);
+    const pageRules = [...css.matchAll(/@page([^{]*)\{((?:[^{}]|\{[^{}]*\})*)\}/g)];
+    const [, , declarations] = pageRules.find(([, selector]) => selector.trim() === '');
+    const values = /(?:^|[;\s])margin:\s*([^;]+);/
+      .exec(declarations)[1]
+      .trim()
+      .split(/\s+/)
+      .map((value) => Number(/^([\d.]+)pt$/.exec(value)[1]));
+    // top, right, bottom, left: one value is all four, two are vertical and horizontal, three leave left to right.
+    const bottom = values.length <= 2 ? values[0] : values[2];
     const body = /\nbody\s*\{([^}]*)\}/.exec(css)[1];
     const size = Number(/font-size:\s*([\d.]+)pt/.exec(body)[1]);
     const height = Number(/line-height:\s*([\d.]+)/.exec(body)[1]);
 
-    expect(PRINTED_PAGE.bottomMargin).toBe(Number(pageMargin[1]));
+    expect(pageRules.filter(([, selector]) => selector.trim() !== '')).toEqual([]);
+    expect(declarations).not.toMatch(/margin-(top|bottom)\s*:/);
+    expect(PRINTED_PAGE.bottomMargin).toBe(bottom);
     expect(PRINTED_PAGE.bodyLine).toBeCloseTo(size * height, 5);
   });
 });
