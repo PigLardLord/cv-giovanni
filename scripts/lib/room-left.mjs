@@ -36,26 +36,25 @@ export function pages(extract) {
 /**
  * The room between a page's lowest line and its bottom margin, in points and in body lines.
  *
- * A body line is the pitch of the type most of the page is set in: the commonest glyph height, times
- * the line height. Titles, labels and dates come in other sizes, but the lines a copy change adds to a
- * CV are body lines.
+ * A body line is the body type's line box times the line height. Titles, labels and dates come in other sizes, but the
+ * lines a copy change adds to a CV are body lines. The line box comes from the size and the font the document was set
+ * in (`lineBox`, in `font-metrics.mjs`), never from counting the page's lines: a sparse page can tie, and a page of
+ * labels outnumbers its body (#124).
  * @param {{ height: number, lines: { top: number, bottom: number }[] }} page - One page, from `pages`
- * @param {{ bottomMargin: number, lineHeight: number }} settings - What the document was laid out with
+ * @param {{ bottomMargin: number, lineHeight: number, glyph: number }} settings - What the document was laid out
+ *   with: its bottom margin, its line height, and its body type's line box in points
  * @returns {{ points: number, lines: number, bodyPitch: number }} The room left
  */
-export function roomLeft({ height, lines: all }, { bottomMargin, lineHeight }) {
+export function roomLeft({ height, lines: all }, { bottomMargin, lineHeight, glyph }) {
+  if (!(glyph > 0)) {
+    throw new Error('The room is counted in body lines, and no body type was given to count in.');
+  }
   // A line that starts inside the bottom margin is not content: the downloadable PDF prints the day it was
   // made there (#55), and the room is measured above the margin.
   const lines = all.filter(({ top }) => top < height - bottomMargin);
   if (!lines.length) throw new Error('A page with no line has no last line to measure from.');
 
-  const glyphHeights = new Map();
-  for (const { top, bottom } of lines) {
-    const glyph = (bottom - top).toFixed(2);
-    glyphHeights.set(glyph, (glyphHeights.get(glyph) || 0) + 1);
-  }
-  const [[commonest]] = [...glyphHeights].sort((a, b) => b[1] - a[1]);
-  const bodyPitch = Number(commonest) * lineHeight;
+  const bodyPitch = glyph * lineHeight;
 
   const lowest = Math.max(...lines.map(({ top, bottom }) => top + (bottom - top) * lineHeight));
   const points = height - bottomMargin - lowest;

@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { mkdtemp, readdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -8,6 +9,7 @@ import { CoverLetter } from '../domain/CoverLetter.js';
 import { certificationProblems } from './lib/certification-lines.mjs';
 import { pdfVariant } from './lib/pdf-variant.mjs';
 import { pages as bboxPages, roomLeft } from './lib/room-left.mjs';
+import { lineBox } from './lib/font-metrics.mjs';
 import { PdfExporter } from '../core/PdfExporter.js';
 import { LetterExporter } from '../core/LetterExporter.js';
 
@@ -163,10 +165,23 @@ const letter = profile.letter ? new CoverLetter(profile.letter) : null;
 // The bottom margin and line height each document was laid out with, from the composer that laid it
 // out: the room left is measured against the page the generator used, not against a copy of its numbers.
 const untranslated = { t: (key) => key };
-const laidOutWith = (definition) => ({
-  bottomMargin: definition.pageMargins[3],
-  lineHeight: definition.defaultStyle.lineHeight
-});
+// The body type's line box, in the face generate-pdfs.mjs registers as Inter's normal: counted from the page's lines,
+// the body type tied on a sparse page and lost to a page of labels (#124).
+const bodyLineBox = lineBox(
+  readFileSync(new URL('../vendor/fonts/inter/Inter-Regular.ttf', import.meta.url))
+);
+const laidOutWith = (definition) => {
+  if (definition.defaultStyle.font !== 'Inter') {
+    throw new Error(
+      `The room is counted in Inter's line box, and a document is set in ${definition.defaultStyle.font}.`
+    );
+  }
+  return {
+    bottomMargin: definition.pageMargins[3],
+    lineHeight: definition.defaultStyle.lineHeight,
+    glyph: definition.defaultStyle.fontSize * bodyLineBox
+  };
+};
 const cvSettings = laidOutWith(new PdfExporter(null, untranslated).buildDocument(profile, {}));
 const letterSettings = letter
   ? laidOutWith(new LetterExporter(null, untranslated).buildDocument(profile, {}))
@@ -303,7 +318,7 @@ const report = [
   '|---|---:|---:|---:|',
   ...rows.map((row) => `| ${row.filename} | ${row.pages} | ${roomText(row.room)} | ${row.score} |`),
   '',
-  'Room left: the space between the lowest line on the last page and its bottom margin, in points and in body lines — the pitch of the type most of that page is set in. A copy change that adds more body lines than a variant has left makes it a page longer: judge an edit against the tightest variant before building, then build and audit.',
+  'Room left: the space between the lowest line on the last page and its bottom margin, in points and in body lines — the line of the body type the document was set in, from its size and the line box of its font, whatever that page holds. A copy change that adds more body lines than a variant has left makes it a page longer: judge an edit against the tightest variant before building, then build and audit.',
   '',
   'Checks: exact format, maximum two pages, required ATS text, reading order, no raster images, clean page starts, measured grayscale output, canonical compound spelling, block integrity in extraction, every skill category still attached to its own list, every web address recoverable from the text layer, and every certification on one line of its own, in the order the profile writes them.'
 ].join('\n');
