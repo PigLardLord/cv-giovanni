@@ -50,6 +50,15 @@ describe('the words a CV writes', () => {
     ).toEqual(['page']);
   });
 
+  test('an unclosed placeholder hides nothing after it', () => {
+    const words = (text) => wordsOf({ footer: text }).map(({ word }) => word);
+
+    expect(words('Reach out at {{email or read Tpyo culture}} more {{companyName}}')).toContain(
+      'Tpyo'
+    );
+    expect(words('Start {{ broken middle Tpyo end }} finish')).toContain('Tpyo');
+  });
+
   test('keep their accents, and lose no letter to a curly apostrophe', () => {
     expect(
       wordsOf({ school: 'Università di Catania', note: 'it’s' }).map(({ word }) => word)

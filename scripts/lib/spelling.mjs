@@ -15,8 +15,12 @@
  */
 export const PROFILE_NOT_WORDS = new Set(['url', 'email', 'phone', 'asOf']);
 
-/** An i18next placeholder, `{{pageCount}}`: filled in when the string is used, never printed as written. */
-const PLACEHOLDER = /\{\{[^}]*\}\}/g;
+/**
+ * An i18next placeholder, `{{pageCount}}`: filled in when the string is used, never printed as written. Only a name
+ * between the braces: a pattern for anything up to the next `}}` swallowed the prose after an unclosed `{{`, typos and
+ * all (the code review of #171).
+ */
+const PLACEHOLDER = /\{\{\s*[\w.-]+\s*\}\}/g;
 
 /** A word: letters and the marks on them, with an apostrophe inside it. A hyphen or a digit ends one. */
 const WORD = /\p{L}[\p{L}\p{M}]*(?:['’]\p{L}[\p{L}\p{M}]*)*/gu;
