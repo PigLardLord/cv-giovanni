@@ -279,7 +279,12 @@ describe('the printed page, in the order poppler reads it', () => {
     ['a semester with a four-digit second year', 'WS 2014/2015'],
     ['a range opening on a four-digit second year', 'WS 2014/2015 – SS 2016'],
     ['a season named a semester', 'Fall Semester 2014'],
-    ['a season named a term', 'Spring Term 2016']
+    ['a season named a term', 'Spring Term 2016'],
+    ['a compact winter semester', 'WS16/17'],
+    ['a compact summer semester', 'SS16'],
+    ['a range of compact semesters', 'WS16/17 – SS18'],
+    ['a compact semester with a four-digit year', 'SoSe2016'],
+    ['an abbreviated semester with a two-digit year', 'WiSe 16/17']
   ])('a school line whose second segment is %s keeps it as the period', (what, period) => {
     const cv = AtsTextParser.parse(educationAfterARole(`TU München · ${period}`));
 
@@ -298,7 +303,11 @@ describe('the printed page, in the order poppler reads it', () => {
     // A season word opens a term only as a whole word, and only "Semester" or "Term" may follow it (#192).
     'Summer School 2019',
     'Fall River 2014',
-    'Winterthur 2014'
+    'Winterthur 2014',
+    // A semester abbreviation is a term only when a year of two or four digits closes it.
+    'SS2000 Building',
+    'SS200',
+    'WS-Consulting'
   ])('a school line whose second segment is "%s" recovers no period', (segment) => {
     const cv = AtsTextParser.parse(educationAfterARole(`TU München · ${segment}`));
 
