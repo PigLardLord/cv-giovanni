@@ -9,6 +9,7 @@ import { screenCopy } from './lib/screen-copy.mjs';
 import { RECORD_LAYOUT_SHIFTS, layoutShift } from './lib/layout-shift.mjs';
 import { downloadReach } from './lib/download-reach.mjs';
 import { secondaryButton } from './lib/footer-buttons.mjs';
+import { forcedBoundaries } from './lib/forced-colours.mjs';
 import { decodePng } from './lib/png.mjs';
 import { ringOnPixels, ringsReport } from './lib/ring-pixels.mjs';
 import { GenerationTarget } from '../core/GenerationTarget.js';
@@ -459,6 +460,24 @@ const secondaryStyle = `(() => {
 })()`;
 
 /**
+ * Every copy of the Download link and the footer's buttons as forced colours draw them: whether each is the primary,
+ * and its border, once a border the forced palette adds has finished its transition (#119).
+ */
+const forcedControls = `new Promise((resolve) => setTimeout(() => resolve(
+  [...document.querySelectorAll('.toolbar-download, footer .print-button')].map((control) => {
+    const style = getComputedStyle(control);
+    return {
+      place: control.classList.contains('toolbar-download') ? 'top' : 'footer',
+      label: control.textContent.trim().replace(/\\s+/g, ' '),
+      primary: !control.classList.contains('print-button-secondary'),
+      display: style.display,
+      borderStyle: style.borderTopStyle,
+      borderWidth: style.borderTopWidth
+    };
+  })
+), 400))`;
+
+/**
  * The focused top copy's ring, once its transitions finish, and the colour behind it: the backgrounds under a
  * point just outside the link's left edge, where the ring is drawn, painted one over another down to the first
  * opaque one. A ring still changing after two seconds is not measured: the run stops and checks nothing, rather
@@ -501,6 +520,8 @@ try {
   chrome = await openBrowser(browser, dataDir);
   await chrome.send('Page.enable');
   await chrome.send('Runtime.enable');
+  await chrome.send('DOM.enable');
+  await chrome.send('CSS.enable');
   // Every document this tab opens records its layout shifts from its first byte (#74).
   await chrome.send('Page.addScriptToEvaluateOnNewDocument', { source: RECORD_LAYOUT_SHIFTS });
   for (const layout of manifest.layouts) {
@@ -532,9 +553,31 @@ try {
       // it, scrolled past where a layout pins it, and loaded again with no PDF to offer.
       const links = await chrome.evaluate(downloadLinks);
       const buttons = await chrome.evaluate(footerButtons);
-      const secondary = secondaryButton(await chrome.evaluate(secondaryStyle), {
-        outlined: !Object.hasOwn(QUIET, layout)
+      const atRest = await chrome.evaluate(secondaryStyle);
+      // A hover shadow would reach the secondary button unseen at rest, so it is read with :hover forced too (#119).
+      const { root } = await chrome.send('DOM.getDocument', { depth: 0 });
+      const { nodeId } = await chrome.send('DOM.querySelector', {
+        nodeId: root.nodeId,
+        selector: 'footer .print-button-secondary'
       });
+      let hovered = null;
+      if (nodeId) {
+        await chrome.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: ['hover'] });
+        hovered = await chrome.evaluate(
+          `new Promise((resolve) => setTimeout(() => resolve(${secondaryStyle}), 400))`
+        );
+        await chrome.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: [] });
+      }
+      const secondary = secondaryButton(atRest, {
+        outlined: !Object.hasOwn(QUIET, layout),
+        hovered
+      });
+      // Forced colours drop fills and shadows and keep borders: every action keeps a boundary there (#119).
+      await chrome.send('Emulation.setEmulatedMedia', {
+        features: [{ name: 'forced-colors', value: 'active' }]
+      });
+      const forced = forcedBoundaries(await chrome.evaluate(forcedControls));
+      await chrome.send('Emulation.setEmulatedMedia', { features: [] });
       for (let press = 0; press < 10; press++) {
         await pressTab(chrome);
         if (
@@ -613,6 +656,7 @@ try {
         holdsStill: shift.holdsStill,
         ...reach.checks,
         ...secondary.checks,
+        ...forced.checks,
         ...ringCheck.checks
       };
       const findings = {
@@ -620,6 +664,7 @@ try {
         movedWhileLoading: shift.holdsStill ? [] : shift.moved,
         ...reach.findings,
         ...secondary.findings,
+        ...forced.findings,
         ...ringCheck.findings
       };
       const passed = Object.values(checks).filter(Boolean).length;
@@ -634,7 +679,8 @@ try {
           ...reach.measures,
           secondary: Object.hasOwn(QUIET, layout)
             ? `${secondary.measures.secondary} (quiet)`
-            : secondary.measures.secondary
+            : secondary.measures.secondary,
+          forced: forced.measures.forced
         },
         rings: ringCheck.measures.rings
       });
@@ -676,11 +722,11 @@ const report = [
   '',
   '## The Download PDF link',
   '',
-  '| Layout | Width | Top copy | Heights | Label lines | Focus ring | Secondary button |',
-  '|---|---:|---:|---:|---:|---:|---:|',
+  '| Layout | Width | Top copy | Heights | Label lines | Focus ring | Secondary button | Forced colours |',
+  '|---|---:|---:|---:|---:|---:|---:|---:|',
   ...rows.map(
     ({ layout, width, download }) =>
-      `| ${layout} | ${width}px | ${download.top} | ${download.heights} | ${download.lines} | ${download.ring} | ${download.secondary} |`
+      `| ${layout} | ${width}px | ${download.top} | ${download.heights} | ${download.lines} | ${download.ring} | ${download.secondary} | ${download.forced} |`
   ),
   '',
   'Checks, the four the product review of #59 measured by hand (#101): hidden without a PDF — loaded',
@@ -690,12 +736,15 @@ const report = [
   'beside it (#109), renders at least 43px, and the top copy 44px, ±1; and a visible focus — reached',
   'with Tab, a drawn ring that clears 3:1 against the background just outside the link, once its',
   'transitions finish. A fifth since #107: every visible copy, and the footer button beside it,',
-  'renders its label on one line, at every width. A sixth since #116: the footer copy and the button beside it render one height, within a pixel. Top copy is where it spans from the top of the page;',
+  'renders its label on one line, at every width. A sixth since #116: the footer copy and the button',
+  'beside it render one height, within a pixel. Top copy is where it spans from the top of the page;',
   'heights and label lines are every visible copy in page order, then the footer button; the ring is',
   'its contrast. The secondary button in the footer is checked as well (#110): it carries no shadow in any',
-  'layout, and its border clears 3:1 against the footer as painted in every layout that does not keep it',
-  'quiet on purpose with a stated reason, as Nerd Mode does, marked (quiet). Secondary button is that border',
-  'and its contrast.',
+  'layout, at rest or with :hover forced (#119), and its border clears 3:1 against the footer as painted in',
+  'every layout that does not keep it quiet on purpose with a stated reason, as Nerd Mode does, marked',
+  '(quiet). Secondary button is that border and its contrast. And with forced colours emulated, which drop',
+  'fills and shadows and keep borders, every copy of the link and every footer button draws a border, the',
+  "primary's no thinner than the secondary's (#119). Forced colours is each border's width, in page order.",
   '',
   '## Focus rings',
   '',

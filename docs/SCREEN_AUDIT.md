@@ -5,18 +5,18 @@ width and two phone widths, its CV selected, and the selection read. Regenerate 
 
 | Layout | Width | Layout shift | Score |
 |---|---:|---:|---:|
-| nerd | 1280px | 0.000 | 14/14 |
-| nerd | 820px | 0.000 | 14/14 |
-| nerd | 390px | 0.000 | 14/14 |
-| nerd | 320px | 0.000 | 14/14 |
-| spotlight | 1280px | 0.000 | 14/14 |
-| spotlight | 820px | 0.000 | 14/14 |
-| spotlight | 390px | 0.000 | 14/14 |
-| spotlight | 320px | 0.000 | 14/14 |
-| technical | 1280px | 0.000 | 14/14 |
-| technical | 820px | 0.000 | 14/14 |
-| technical | 390px | 0.000 | 14/14 |
-| technical | 320px | 0.000 | 14/14 |
+| nerd | 1280px | 0.000 | 15/15 |
+| nerd | 820px | 0.000 | 15/15 |
+| nerd | 390px | 0.000 | 15/15 |
+| nerd | 320px | 0.000 | 15/15 |
+| spotlight | 1280px | 0.000 | 15/15 |
+| spotlight | 820px | 0.000 | 15/15 |
+| spotlight | 390px | 0.000 | 15/15 |
+| spotlight | 320px | 0.000 | 15/15 |
+| technical | 1280px | 0.000 | 15/15 |
+| technical | 820px | 0.000 | 15/15 |
+| technical | 390px | 0.000 | 15/15 |
+| technical | 320px | 0.000 | 15/15 |
 
 Checks: the CV captured whole — name, role, email and current employer; no two words the profile
 writes in sequence welded into one, and no contact detail run into the word beside it; every skill
@@ -26,20 +26,20 @@ while it loads — every layout shift from navigation to fonts ready, added up, 
 
 ## The Download PDF link
 
-| Layout | Width | Top copy | Heights | Label lines | Focus ring | Secondary button |
-|---|---:|---:|---:|---:|---:|---:|
-| nerd | 1280px | 11–41px | 30 · 35 · 35px | 1 · 1 · 1 | 12.77:1 | border 1.56:1 (quiet) |
-| nerd | 820px | 11–41px | 30 · 35 · 35px | 1 · 1 · 1 | 12.77:1 | border 1.56:1 (quiet) |
-| nerd | 390px | 62–106px | 44 · 44 · 44px | 1 · 1 · 1 | 14.01:1 | border 1.56:1 (quiet) |
-| nerd | 320px | 62–106px | 44 · 44 · 44px | 1 · 1 · 1 | 14.01:1 | border 1.56:1 (quiet) |
-| spotlight | 1280px | 85–140px | 55 · 55 · 55px | 1 · 1 · 1 | 6.82:1 | border 4.99:1 |
-| spotlight | 820px | 85–140px | 55 · 55 · 55px | 1 · 1 · 1 | 6.82:1 | border 4.99:1 |
-| spotlight | 390px | 97–141px | 44 · 44 · 44px | 1 · 1 · 1 | 6.82:1 | border 4.99:1 |
-| spotlight | 320px | 97–141px | 44 · 44 · 44px | 1 · 1 · 1 | 6.82:1 | border 4.99:1 |
-| technical | 1280px | 85–140px | 55 · 55 · 55px | 1 · 1 · 1 | 6.87:1 | border 7.87:1 |
-| technical | 820px | 85–140px | 55 · 55 · 55px | 1 · 1 · 1 | 6.87:1 | border 7.87:1 |
-| technical | 390px | 97–141px | 44 · 44 · 44px | 1 · 1 · 1 | 6.87:1 | border 7.87:1 |
-| technical | 320px | 97–141px | 44 · 44 · 44px | 1 · 1 · 1 | 6.87:1 | border 7.87:1 |
+| Layout | Width | Top copy | Heights | Label lines | Focus ring | Secondary button | Forced colours |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| nerd | 1280px | 11–41px | 30 · 35 · 35px | 1 · 1 · 1 | 12.77:1 | border 1.56:1 (quiet) | 1 · 1 · 1px |
+| nerd | 820px | 11–41px | 30 · 35 · 35px | 1 · 1 · 1 | 12.77:1 | border 1.56:1 (quiet) | 1 · 1 · 1px |
+| nerd | 390px | 62–106px | 44 · 44 · 44px | 1 · 1 · 1 | 14.01:1 | border 1.56:1 (quiet) | 1 · 1 · 1px |
+| nerd | 320px | 62–106px | 44 · 44 · 44px | 1 · 1 · 1 | 14.01:1 | border 1.56:1 (quiet) | 1 · 1 · 1px |
+| spotlight | 1280px | 85–140px | 55 · 55 · 55px | 1 · 1 · 1 | 6.82:1 | border 4.99:1 | 3 · 3 · 1px |
+| spotlight | 820px | 85–140px | 55 · 55 · 55px | 1 · 1 · 1 | 6.82:1 | border 4.99:1 | 3 · 3 · 1px |
+| spotlight | 390px | 97–141px | 44 · 44 · 44px | 1 · 1 · 1 | 6.82:1 | border 4.99:1 | 3 · 3 · 1px |
+| spotlight | 320px | 97–141px | 44 · 44 · 44px | 1 · 1 · 1 | 6.82:1 | border 4.99:1 | 3 · 3 · 1px |
+| technical | 1280px | 85–140px | 55 · 55 · 55px | 1 · 1 · 1 | 6.87:1 | border 7.87:1 | 3 · 3 · 1px |
+| technical | 820px | 85–140px | 55 · 55 · 55px | 1 · 1 · 1 | 6.87:1 | border 7.87:1 | 3 · 3 · 1px |
+| technical | 390px | 97–141px | 44 · 44 · 44px | 1 · 1 · 1 | 6.87:1 | border 7.87:1 | 3 · 3 · 1px |
+| technical | 320px | 97–141px | 44 · 44 · 44px | 1 · 1 · 1 | 6.87:1 | border 7.87:1 | 3 · 3 · 1px |
 
 Checks, the four the product review of #59 measured by hand (#101): hidden without a PDF — loaded
 with `generated/manifest.json` answered 404, every copy computes `display: none`; reachable — the
@@ -48,12 +48,15 @@ topmost after scrolling to the end; tappable — on a phone every visible copy, 
 beside it (#109), renders at least 43px, and the top copy 44px, ±1; and a visible focus — reached
 with Tab, a drawn ring that clears 3:1 against the background just outside the link, once its
 transitions finish. A fifth since #107: every visible copy, and the footer button beside it,
-renders its label on one line, at every width. A sixth since #116: the footer copy and the button beside it render one height, within a pixel. Top copy is where it spans from the top of the page;
+renders its label on one line, at every width. A sixth since #116: the footer copy and the button
+beside it render one height, within a pixel. Top copy is where it spans from the top of the page;
 heights and label lines are every visible copy in page order, then the footer button; the ring is
 its contrast. The secondary button in the footer is checked as well (#110): it carries no shadow in any
-layout, and its border clears 3:1 against the footer as painted in every layout that does not keep it
-quiet on purpose with a stated reason, as Nerd Mode does, marked (quiet). Secondary button is that border
-and its contrast.
+layout, at rest or with :hover forced (#119), and its border clears 3:1 against the footer as painted in
+every layout that does not keep it quiet on purpose with a stated reason, as Nerd Mode does, marked
+(quiet). Secondary button is that border and its contrast. And with forced colours emulated, which drop
+fills and shadows and keep borders, every copy of the link and every footer button draws a border, the
+primary's no thinner than the secondary's (#119). Forced colours is each border's width, in page order.
 
 ## Focus rings
 

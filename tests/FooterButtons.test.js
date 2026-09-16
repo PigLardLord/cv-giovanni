@@ -77,3 +77,30 @@ describe('the footer’s secondary button', () => {
     }
   });
 });
+
+// #119: a hover shadow could reach the secondary button unseen, since the check read it at rest only.
+describe('the secondary button with :hover forced', () => {
+  const rest = {
+    label: 'Browser print',
+    display: 'inline-flex',
+    shadow: 'none',
+    borderStyle: 'solid',
+    borderWidth: '1px',
+    borderColour: 'rgb(184, 67, 27)',
+    behind: 'rgb(251, 244, 234)'
+  };
+
+  test('carries no shadow on hover either', () => {
+    expect(secondaryButton(rest, { outlined: true, hovered: rest }).checks.secondaryButton).toBe(
+      true
+    );
+    const shadowed = { ...rest, shadow: 'rgba(184, 67, 27, 0.7) 0px 10px 20px -10px' };
+    const judged = secondaryButton(rest, { outlined: true, hovered: shadowed });
+
+    expect(judged.checks.secondaryButton).toBe(false);
+    expect(judged.findings.secondaryLooksPrimary).toEqual([
+      `the footer's "Browser print" carries a shadow on hover: ${shadowed.shadow}`
+    ]);
+    expect(judged.measures.secondary).toMatch(/ · shadow on hover$/);
+  });
+});

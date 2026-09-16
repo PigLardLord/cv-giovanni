@@ -9,16 +9,17 @@ export const BOUNDARY_MINIMUM = 3;
  * Browser print sits beside Download PDF. The product review of #107 found it carrying the primary button's
  * coloured shadow and drawing no border. `.print-button-secondary` was declared before the rule it modifies, so
  * it modified nothing, and the skins restored its colours but not its outline. So: a secondary control carries no
- * shadow, in any layout. Where a layout outlines it — a white button on a light footer, whose edge is the only
+ * shadow, in any layout, at rest or on hover (#119). Where a layout outlines it — a white button on a light footer, whose edge is the only
  * thing that marks it — that edge clears 3:1 against the footer, judged as it is painted. A layout that keeps it
  * quiet on purpose, as Nerd Mode's grey outline does, is not held to the contrast: its label names it.
  * @param {{ label: string, display: string, shadow: string, borderStyle: string, borderWidth: string, borderColour: string, behind: string }|null} measured -
  *   The secondary button's computed style, and the footer painted behind it; null where there is none
- * @param {{ outlined?: boolean }} [layout] - Whether the layout marks the button by its outline
+ * @param {{ outlined?: boolean, hovered?: object|null }} [layout] - Whether the layout marks the button by its
+ *   outline, and the same button measured with :hover forced
  * @returns {{ checks: { secondaryButton: boolean }, findings: { secondaryLooksPrimary: string[] }, measures: { secondary: string } }}
  *   The check, what broke it, and what was measured
  */
-export function secondaryButton(measured, { outlined = false } = {}) {
+export function secondaryButton(measured, { outlined = false, hovered = null } = {}) {
   if (!measured || measured.display === 'none') {
     return {
       checks: { secondaryButton: true },
@@ -28,6 +29,7 @@ export function secondaryButton(measured, { outlined = false } = {}) {
   }
   const name = `the footer's "${measured.label}"`;
   const shadowed = Boolean(measured.shadow) && measured.shadow !== 'none';
+  const shadowedOnHover = Boolean(hovered?.shadow) && hovered.shadow !== 'none';
   const drawn =
     !['none', 'hidden'].includes(measured.borderStyle) && parseFloat(measured.borderWidth) > 0;
   const ratio = drawn
@@ -35,6 +37,7 @@ export function secondaryButton(measured, { outlined = false } = {}) {
     : null;
   const findings = [
     ...(shadowed ? [`${name} carries a shadow: ${measured.shadow}`] : []),
+    ...(shadowedOnHover ? [`${name} carries a shadow on hover: ${hovered.shadow}`] : []),
     ...(outlined && !drawn ? [`${name} draws no border`] : []),
     ...(outlined && drawn && ratio < BOUNDARY_MINIMUM
       ? [`${name} border ${measured.borderColour} on ${measured.behind} is ${ratio.toFixed(2)}:1`]
@@ -46,7 +49,8 @@ export function secondaryButton(measured, { outlined = false } = {}) {
     measures: {
       secondary: [
         drawn ? `border ${ratio.toFixed(2)}:1` : 'no border',
-        ...(shadowed ? ['shadow'] : [])
+        ...(shadowed ? ['shadow'] : []),
+        ...(shadowedOnHover ? ['shadow on hover'] : [])
       ].join(' · ')
     }
   };
