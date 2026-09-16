@@ -326,6 +326,16 @@ copies off the screen, and the page's controls. `npm run audit:pdf` scored the t
 pdfmake composed; nothing runs it any more, and it goes with pdfmake (#153). `npm run verify:pdf`
 builds, then runs the print and ATS audits: run it before claiming the document is sound.
 
+**The CV is spelled in its locale, offline.** `tests/CvIsSpelledRight.test.js` reads every published
+profile and every catalogue of its locale (the labels, the page's words, the print's) against a
+pinned dictionary, British English for `en`, and names each unknown word with its JSON path.
+Spelling errors are the best-measured penalty in CV screening: five cut the probability of an
+interview invitation by 18.5 percentage points, two by 7.3 (Sterkens et al., PLOS ONE 2023, 445
+recruiters) (#152). A product, a place or a surname the dictionary does not know is allowed by name
+in `config/spelling/<locale>.txt`, sorted, one term a line, never by a rule broad enough to let a
+misspelling through with it. A locale with no dictionary fails rather than passing unchecked, so a
+German CV needs one before it is published.
+
 The ATS audit asks a different question altogether. `npm run audit:ats` parses the generated PDF the
 way a stranger's parser would — no `-layout`, no access to `profiles/`, no knowledge of what the
 document was supposed to say — and diffs the structure it recovered against the structure that was
