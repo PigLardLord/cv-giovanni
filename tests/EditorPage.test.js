@@ -97,6 +97,19 @@ describe('the editor page', () => {
     ]);
   });
 
+  // A phone offers digits for a field that holds a number (#48).
+  test('a year and a degree’s credits ask for digits, and credits typed are saved as a number', async () => {
+    const { api, editor } = await open();
+
+    expect(field('certifications[0].year').inputMode).toBe('numeric');
+    expect(field('education[0].credits').inputMode).toBe('numeric');
+    expect(field('education[0].degree').inputMode).toBe('');
+    type('education[0].credits', '60');
+    await editor.save();
+
+    expect(puts(api)[0].body.education[0].credits).toBe(60);
+  });
+
   test('saves what was typed, and the preview shows the saved CV', async () => {
     const { api, editor } = await open();
 

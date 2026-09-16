@@ -154,12 +154,12 @@ export class SectionLexicon {
    *
    * A layout that sets its labels in a rail beside each block draws the label on the block's first
    * baseline, and read in content-stream order the two come out as one line: "Professional Experience
-   * Mobile Software Engineer / …". That is the rail convention of pdfmake's output here and of the classic
-   * Europass CV, not a guess. The label must be a section name exactly, and the word after it must carry a
-   * capital or a digit, because a sentence that opens on a section word goes on in lower case: "Experience
-   * with Swift", "Training for new hires". A capitalised word after one is still read as a label, so a
-   * role header "Training Manager at …" would open a section; that fails a floor loudly rather than
-   * passing quietly.
+   * Mobile Software Engineer / …". That is the rail convention of the classic Europass CV, and of the PDF
+   * pdfmake composed here until #149, not a guess. The label must be a section name exactly, and the word
+   * after it must carry a capital or a digit, because a sentence that opens on a section word goes on in
+   * lower case: "Experience with Swift", "Training for new hires". A capitalised word after one is still
+   * read as a label, so a role header "Training Manager at …" would open a section; that fails a floor
+   * loudly rather than passing quietly.
    * @param {string} line - One line of extracted text
    * @returns {{section: string, language: string, match: 'exact', label: string, rest: string}|null} The label
    */

@@ -8,6 +8,9 @@
     "certifications": "Certifications",
     "interests": "Interests"
   },
+  "education": {
+    "credits": "{{count}} ECTS"
+  },
   "experience": {
     "at": "at"
   },

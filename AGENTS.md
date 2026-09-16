@@ -29,9 +29,10 @@ rule you discover by pushing.
 **The PDF a recruiter downloads is the page, printed.** `npm run build:pdf` serves the site to a
 headless Chrome and prints each layout through `print.css`, so the page and the PDF share one DOM,
 one design and one set of words. They used to be two artefacts: the page through `renderers/`, and a
-PDF composed from the model by `adapters/PdfLayout.js` in a design of its own. They drifted — the PDF
-carried career highlights and an as-of month the page never showed (#148) — and the owner chose one
-CV over two (#144). A cover letter is a page too, `letter.html`, printed the same way (#151).
+PDF pdfmake composed from the model in a design of its own. They drifted — the PDF carried career
+highlights and an as-of month the page never showed (#148) — and the owner chose one CV over two
+(#144). A cover letter is a page too, `letter.html`, printed the same way (#151), and pdfmake was
+removed once it had no document left to write (#153).
 
 These rules outlived `docs/ROADMAP.md`, which described milestones that GitHub now tracks. What
 remains of that file's unfinished work is filed under the milestone _Carried over from the old
@@ -88,8 +89,30 @@ self-rating into the main evidence of competence.
 - **A foreign qualification uses the issuer's wording,** never a German- or English-style abbreviation
   the issuer does not award. The programme at the University of Pisa is a _First Level Professional
   Master's Programme in Mobile Applications Development_, and an abbreviated degree in its place claims
-  one nobody conferred. When the name holds a word the target market reads as a degree level —
-  _Master's_ — the rendered text states its scope (#48).
+  one nobody conferred.
+- **A qualification whose name contains a word the target market reads as a degree level states its
+  scope, in credits or duration** (#48). A German reader hears _Master_ as the Bologna second cycle,
+  typically 120 ECTS on top of a bachelor's, and assumes that scope when the line states none; the
+  correction then arrives at the certificate check. The scope follows the degree's name, in brackets
+  and set as the period is: a degree's `credits`, a whole number taken from its certificate, in the
+  catalogue's words — `education.credits`, `{{count}} ECTS` in English and in German — with `Intl`
+  writing the number, and in Nerd Mode as the string `credits: "60 ECTS"`, never a bare number. It
+  costs no printed line: _First Level Professional Master's Programme in Mobile Applications
+  Development (60 ECTS)_.
+- **The school's line is left as it is: `School (period)`,** with `period` the dates alone. The ATS
+  parser reads a line as a degree's school and period only when its last segment, or a parenthesis
+  closing it, reads as a period, so a scope written after the period (`School (2014 – 2016) · 60 ECTS`)
+  gave main's parser a wrong school and no period for that degree, and in content-stream order one
+  record for both degrees, as the product review on #179 measured. After the name, main's parser
+  recovers every degree, school and period in every reading order; it keeps the scope in the degree,
+  which the ATS audit grades partial, half a degree's credit. The print audit's "degree beside its
+  school" expects exactly the scope between the two (`scripts/lib/degree-lines.mjs`). The wording is
+  the candidate's call.
+- **A scope qualifier uses credits** — and, if ever, the issuer's legal title — **never a label that is
+  itself a degree type in the target market:** no _continuing-education master_, no _postgraduate
+  diploma_, each of which names a qualification of its own to a German reader.
+  `tests/QualificationsStateTheirScope.test.js` holds every published degree named a Master's to
+  stating its credits.
 - **A certification's name is the title on the page its link opens.** Lower tiers it includes go in
   brackets after it — `Android Enterprise Expert (incl. Associate, Professional)` — never as equal names
   in one entry, which reads as a credential nobody issues.
@@ -120,9 +143,10 @@ A ticket can pass `codex-cli` on the diff and still ship a CV that dies in a tex
 ### When the product review runs
 
 Extend step 7 with a product review whenever the ticket's diff touches what the CV says or how
-it renders: `profiles/`, `locales/`, `renderers/`, `index.html`, `style.css`, `layouts.css`,
-`print.css`, `core/PdfExporter.js`, `core/CvFiles.js` (the name the recruiter's inbox receives),
-`adapters/PdfDesignSystem.js`, `adapters/LayoutThemeRegistry.js`, and the cover letter's `letter.html`,
+it renders: `profiles/`, `locales/`, `renderers/`, `domain/EntryLines.js` (the lines they write),
+`adapters/SwiftSourceLayout.js` (Nerd Mode's source view), `index.html`, `style.css`, `layouts.css`,
+`design-glacier.css`, `print.css` (the PDF is the page printed through it), `vendor/fonts/`,
+`core/CvFiles.js` (the name the recruiter's inbox receives), and the cover letter's `letter.html`,
 `letter.css`, `core/LetterContent.js` and `renderers/LetterRenderer.js` (#151).
 
 A ticket touching only build tooling, scripts or tests does not need it — say that it was
@@ -326,9 +350,8 @@ room each page has left above its foot, and marks a last page with less than one
 text free, as a warning and never a failure: the page count is the gate, and the warning is the
 notice that it is close (#162). A check on the stylesheet passed a page that printed a line of
 white on white. `npm run audit:screen` reads what a reader
-copies off the screen, and the page's controls. `npm run audit:pdf` scored the twelve variants
-pdfmake composed; nothing runs it any more, and it goes with pdfmake (#153). `npm run verify:pdf`
-builds, then runs the print and ATS audits: run it before claiming the document is sound.
+copies off the screen, and the page's controls. `npm run verify:pdf` builds, then runs the print and
+ATS audits: run it before claiming the document is sound.
 
 **The CV is spelled in its locale, offline.** `tests/CvIsSpelledRight.test.js` reads every published
 profile and every catalogue of its locale (the labels, the page's words, the print's) against a
@@ -498,8 +521,8 @@ Settled on #144 by the owner, and not to be undone by someone reclaiming space:
 
 ## The cover letter
 
-Settled on #151 by the owner: one system for both documents a recruiter receives, so pdfmake can go
-(#153). A letter is far simpler than a CV, which kept the cost of re-expressing DIN 5008 small.
+Settled on #151 by the owner: one system for both documents a recruiter receives, so pdfmake could go,
+and did (#153). A letter is far simpler than a CV, which kept the cost of re-expressing DIN 5008 small.
 
 - **A page, printed by Chrome.** `letter.html?profile=<name>&lang=<locale>&layout=<layout>` renders
   the `letter` a tailored profile carries, and `npm run build:pdf` prints it beside each layout's CV,
@@ -515,13 +538,13 @@ Settled on #151 by the owner: one system for both documents a recruiter receives
   from the bottom: the return line sits at its foot in 8pt. Its lower 27.3mm, the Anschriftzone, from
   62.7mm to 90mm, holds the recipient in at most six lines of 10pt at 4.5mm. The date follows,
   right-aligned, with the reference beneath it, then the subject: at 98.46mm when the date stands
-  alone, lower when a reference joins it, rather than overlapping them. pdfmake's
-  `adapters/LetterLayout.js` had put the recipient at 45mm, where a window envelope does not show it;
-  the review of #151 found it against the standard. Nothing is positioned, floated or reordered by a
-  grid, so the text layer gives the letter in the order a reader meets it, in both of the orders a
-  parser reads. Measured on a probe letter with poppler: the text's left edge at 24.1mm, the return
-  line 59.2–62.6mm from the top, the recipient's five lines 62.7–85.0mm, the date and reference
-  90.6–99.2mm, the subject's glyphs from 102.5mm, one page.
+  alone, lower when a reference joins it, rather than overlapping them. pdfmake's letter layout had
+  put the recipient at 45mm, where a window envelope does not show it; the review of #151 found it
+  against the standard. Nothing is positioned, floated or reordered by a grid, so the text layer
+  gives the letter in the order a reader meets it, in both of the orders a parser reads. Measured on
+  a probe letter with poppler: the text's left edge at 24.1mm, the return line 59.2–62.6mm from the
+  top, the recipient's five lines 62.7–85.0mm, the date and reference 90.6–99.2mm, the subject's
+  glyphs from 102.5mm, one page.
 - **Inter from its static TrueType files, and no tracking,** as the CV prints, for the same reasons
   (#143). `letter.css` declares only the faces the letter prints in and never loads
   `vendor/fonts/fonts.css`. Impact Spotlight sets the sender's name in Instrument Serif, as
@@ -564,5 +587,3 @@ Settled on #151 by the owner: one system for both documents a recruiter receives
   `--profile`, then both audits with the same one. The unit tests hold the words, the renderer, the
   file names and the audit's rules; nothing holds the printed letter but that run. That is a limit,
   and it is stated here so nobody reads a green CI as a checked letter.
-- **pdfmake's letter stays until #153,** unused: `core/LetterExporter.js`, `adapters/LetterLayout.js`,
-  their tests and `audit-pdfs`'s letter checks. Nothing runs them.

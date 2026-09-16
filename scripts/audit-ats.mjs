@@ -13,10 +13,10 @@ import { GenerationTarget } from '../core/GenerationTarget.js';
 /**
  * The third audit: what a stranger's parser recovers.
  *
- * `audit-pdfs` and `audit-print` both ask whether the strings this repository wrote survived,
- * because their expectations come from the authored JSON. Neither asks the question an
- * applicant tracking system actually puts to the document: **given this file and no access
- * to the source, what structure can be rebuilt?**
+ * `audit-print` asks whether the strings this repository wrote survived, because its
+ * expectations come from the authored JSON. It does not ask the question an applicant
+ * tracking system actually puts to the document: **given this file and no access to the
+ * source, what structure can be rebuilt?**
  *
  * Nothing here parses. The parser is pure, takes a string, and cannot read the answer key —
  * this file only fetches text and reports.
@@ -64,9 +64,9 @@ try {
   cannotCheck('pdftotext is not installed', 'Install poppler-utils and run again.');
 }
 
-// The files a recruiter receives, and nothing else: the CV printed from the page in each layout (#149). The QA
-// variants pdfmake used to write under qa/ are no longer built, and a directory left over from an older build
-// would be audited as if this build had written it.
+// The files a recruiter receives, and nothing else: the CV printed from the page in each layout (#149). A
+// directory beside them, such as the qa/ an older build wrote, is not read: it would be audited as if this build
+// had written it.
 const directories = [target.outDir];
 const files = [];
 for (const directory of directories) {
@@ -123,9 +123,9 @@ for (const { artefact, path, isCover } of files) {
   const raw = execFileSync('pdftotext', ['-raw', path, '-'], { encoding: 'utf8' });
   const fingerprint = createHash('sha256').update(text).update('\0').update(raw).digest('hex');
 
-  // The colour and monochrome variants are textually identical and A4 and LETTER are not,
-  // so the set of distinct text streams is smaller than the set of files. Saying which is
-  // which is cheaper and more honest than parsing the same string four times.
+  // Two files can carry the same text, so the set of distinct text streams can be smaller
+  // than the set of files. Saying which is which is cheaper and more honest than parsing the
+  // same string twice.
   if (seen.has(fingerprint)) {
     seen.get(fingerprint).push(artefact);
     continue;

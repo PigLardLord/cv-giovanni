@@ -218,6 +218,7 @@ describe('the printed page, in the order poppler reads it', () => {
     }
   );
 
+  // The scope a degree states after its name (#48) is drawn on the degree's line, and read as part of the degree.
   test.each(['page-print-spotlight', 'page-print-nerd'])(
     '%s: a wrapped degree stays one degree, and "School (period)" splits',
     (fixture) => {
@@ -227,7 +228,7 @@ describe('the printed page, in the order poppler reads it', () => {
         cv.education.map((entry) => [entry.degree.value, entry.school.value, entry.period])
       ).toEqual([
         [
-          "First Level Professional Master's Programme in Mobile Applications Development",
+          "First Level Professional Master's Programme in Mobile Applications Development (60 ECTS)",
           'Università degli Studi di Pisa',
           '2014 – 2016'
         ],
@@ -235,6 +236,72 @@ describe('the printed page, in the order poppler reads it', () => {
       ]);
     }
   );
+
+  /** A CV of a name, one role and one degree, whose school line is the one given. */
+  const educationAfterARole = (schoolLine) =>
+    [
+      'Ada Lovelace',
+      'Experience',
+      'Engineer at Acme',
+      '2015 – 2018',
+      '',
+      'Education',
+      '',
+      'M.Sc. Informatics',
+      schoolLine
+    ].join('\n');
+
+  // With no line in a paragraph closing on a period, the school line's second segment was taken for the period
+  // unread: a city or a credit count came back as the period (#187).
+  test.each([
+    ['a city', 'Technische Universität München · Munich', 'Technische Universität München'],
+    [
+      'a credit count',
+      'Università degli Studi di Pisa · 120 ECTS',
+      'Università degli Studi di Pisa'
+    ]
+  ])('a school line whose second segment is %s recovers no period', (what, line, school) => {
+    const cv = AtsTextParser.parse(educationAfterARole(line));
+
+    expect(
+      cv.education.map((entry) => [entry.degree.value, entry.school.value, entry.period])
+    ).toEqual([['M.Sc. Informatics', school, null]]);
+  });
+
+  // A period DateRange has no notation for is still a period when it names a year: the gate that turned away a city
+  // must not turn away a semester (the code review of #188).
+  test.each([
+    ['a semester range', 'WS 2014/15 – SS 2016'],
+    ['a German semester', 'Wintersemester 2014'],
+    ['a season', 'Fall 2014'],
+    ['a range of seasons', 'Spring 2016 – Fall 2018']
+  ])('a school line whose second segment is %s keeps it as the period', (what, period) => {
+    const cv = AtsTextParser.parse(educationAfterARole(`TU München · ${period}`));
+
+    expect(cv.education.map((entry) => [entry.school.value, entry.period])).toEqual([
+      ['TU München', period]
+    ]);
+  });
+
+  // Naming a year is not enough: an institution's facts carry years too (the second code review of #188).
+  test.each(['Campus 2000', 'Founded 2005', 'Est. 1999', '2000 students', 'Room 2024'])(
+    'a school line whose second segment is "%s" recovers no period',
+    (segment) => {
+      const cv = AtsTextParser.parse(educationAfterARole(`TU München · ${segment}`));
+
+      expect(cv.education.map((entry) => [entry.school.value, entry.period])).toEqual([
+        ['TU München', null]
+      ]);
+    }
+  );
+
+  test('a school line whose period is followed by another segment still finds it', () => {
+    const cv = AtsTextParser.parse(educationAfterARole('TU München · 2019 – 2021 · 120 ECTS'));
+
+    expect(cv.education.map((entry) => [entry.school.value, entry.period])).toEqual([
+      ['TU München', '2019 – 2021']
+    ]);
+  });
 
   test.each(['page-print-spotlight', 'page-print-nerd'])(
     '%s: "Category — items" keeps each list with its category, across wrapped lines',
@@ -302,8 +369,9 @@ describe('the same artefacts, in content-stream order', () => {
     );
   });
 
-  // pdfmake sets each label in a rail beside its block, on the block's first baseline, so the content
-  // stream welds the two: "Professional Experience Mobile Software Engineer / …".
+  // A layout that sets each label in a rail beside its block draws it on the block's first baseline, so
+  // the content stream welds the two: "Professional Experience Mobile Software Engineer / …". The
+  // fixture is the PDF pdfmake composed that way until #149.
   test('a section label beside its block is read as the heading it is', () => {
     const cv = parse('pdfmake-rail.raw');
 
