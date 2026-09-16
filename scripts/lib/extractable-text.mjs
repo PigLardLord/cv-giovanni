@@ -15,13 +15,17 @@
  * @returns {string[]} The name of every Type 3 font it embeds
  */
 export function type3Fonts(pdffonts) {
-  // Columns are read at the header's positions: a font's name can hold spaces, and even the words "Type 3".
+  // pdffonts pads a name to its column but never cuts a longer one, so the columns after the name shift with it.
+  // They are fixed in width from the row's end, and are read from there: a name can hold spaces, and even "Type 3".
   const [header = '', , ...rows] = pdffonts.split('\n');
-  const typeAt = header.indexOf('type');
-  const encodingAt = header.indexOf('encoding');
+  const typeFromEnd = header.length - header.indexOf('type');
+  const encodingFromEnd = header.length - header.indexOf('encoding');
   return rows
-    .filter((row) => row.slice(typeAt, encodingAt).trim() === 'Type 3')
-    .map((row) => row.slice(0, typeAt).trim());
+    .filter((row) => row.trim())
+    .filter(
+      (row) => row.slice(row.length - typeFromEnd, row.length - encodingFromEnd).trim() === 'Type 3'
+    )
+    .map((row) => row.slice(0, row.length - typeFromEnd).trim());
 }
 
 const escapeForRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

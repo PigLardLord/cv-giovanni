@@ -7,13 +7,13 @@ describe('the order a text layer gives the CV', () => {
   const anchors = [
     'Giovanni Trovato',
     'trovato.giovanni@gmail.com',
-    'Core Technologies',
-    'Professional Experience',
+    { heading: 'Core Technologies' },
+    { heading: 'Professional Experience' },
     'Mobile Software Engineer',
     'Mobile Developer',
-    'Education',
+    { heading: 'Education' },
     'B.Sc. Computer Engineering',
-    'Languages'
+    { heading: 'Languages' }
   ];
   const inOrder = [
     'Giovanni Trovato',
@@ -55,14 +55,29 @@ describe('the order a text layer gives the CV', () => {
   });
 
   // The code review of #156: each anchor was found from the start of the text, so a summary saying "Education"
-  // before the experience failed a CV whose Education section was in its place.
-  test('reads each anchor after the one before it, so a word in the body is not taken for a section', () => {
+  // before the experience failed a CV whose Education section was in its place. A section's heading is a line
+  // of its own; a word in the body is not.
+  test('a heading is a whole line, so a word in the body is not taken for the section', () => {
     const decoy = inOrder.replace(
       'Core Technologies',
       'Built Education technology.\nCore Technologies'
     );
 
     expect(outOfOrder(decoy, anchors)).toEqual([]);
+  });
+
+  // The review of that fix: reading each anchor after the one before it let a misplaced section pass whenever
+  // the same word appeared later in the body.
+  test('names a misplaced section even when its word appears later in the body', () => {
+    const misplaced = inOrder
+      .replace('Education\nB.Sc. Computer\nEngineering\n', '')
+      .replace('Core Technologies', 'Education\nB.Sc. Computer\nEngineering\nCore Technologies')
+      .replace(
+        'Led annual iOS compatibility',
+        'Taught in Education technology\nLed annual iOS compatibility'
+      );
+
+    expect(outOfOrder(misplaced, anchors)).toEqual(['"Education" comes before "Mobile Developer"']);
   });
 
   test('names an anchor the text does not carry', () => {
@@ -87,6 +102,17 @@ describe('images in the PDF', () => {
         list(
           '   1     0 image     400   400  rgb     3   8  image  no        12  0   300   300 40.1K 8.4%',
           '   1     1 smask     400   400  gray    1   8  image  no        12  0   300   300 2.1K 1.3%'
+        )
+      )
+    ).toBe(1);
+  });
+
+  // The review of that fix: a stencil is an image drawn as ink through a one-bit mask, with no image row of its own.
+  test('counts a stencil drawn alone', () => {
+    expect(
+      imageCount(
+        list(
+          '   1     0 stencil     8     8  -       1   1  image  no         5  0     6     6    8B 100%'
         )
       )
     ).toBe(1);
