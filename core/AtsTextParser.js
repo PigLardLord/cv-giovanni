@@ -456,10 +456,10 @@ export class AtsTextParser {
   /**
    * Degrees, each with the school and period that close it.
    *
-   * A line that ends in a period — "School · 2014 – 2016" or "School (2014 – 2016)" — closes an
-   * entry, and every line above it since the last one is the degree, so a degree the measure
-   * wrapped stays one degree. A paragraph with no such line keeps the older reading: the degree,
-   * then the school.
+   * A line that carries a period — "School · 2014 – 2016", "School (2014 – 2016)", or either followed by
+   * the degree's scope, "· 60 ECTS" — closes an entry, and every line above it since the last one is the
+   * degree, so a degree the measure wrapped stays one degree. A paragraph with no such line keeps the
+   * older reading: the degree, then the school, and no period, since no line carries one.
    */
   static education(block) {
     const entries = [];
@@ -468,11 +468,11 @@ export class AtsTextParser {
         .map((entry, index) => ({ index, ...AtsTextParser.schoolAndPeriod(entry.text) }))
         .filter((candidate) => candidate.period);
       if (!closers.length) {
-        const [school, period] = (group[1]?.text || '').split(SEPARATORS);
+        const [school] = (group[1]?.text || '').split(SEPARATORS);
         entries.push({
           degree: RecoveredCv.field(group[0]?.text || null, group[0]?.line ?? -1),
           school: RecoveredCv.field(school || null, group[1]?.line ?? -1),
-          period: period || null,
+          period: null,
           line: group[0]?.line ?? -1
         });
         continue;
@@ -496,17 +496,19 @@ export class AtsTextParser {
   }
 
   /**
-   * "School · period" or "School (period)", when what closes the line reads as a period. A
-   * parenthesis that does not — "(TUM)", "(remote)" — is part of the name.
+   * "School · period" or "School (period)", when a segment reads as a period, wherever it stands: a
+   * degree's scope can follow it, "School (2014 – 2016) · 60 ECTS" (#48). The school is the first
+   * segment, and a segment that is not the period — "· 60 ECTS", "· Munich" — is neither the school nor
+   * the period. A parenthesis that does not read as a period — "(TUM)", "(remote)" — is part of the name.
    */
   static schoolAndPeriod(text) {
-    const parenthesised = /^(.*\S)\s*\(([^()]+)\)$/.exec(text);
-    if (parenthesised && DateRange.parse(parenthesised[2])) {
-      return { school: parenthesised[1], period: parenthesised[2] };
-    }
-    const parts = text.split(SEPARATORS);
-    if (parts.length >= 2 && DateRange.parse(parts[parts.length - 1])) {
-      return { school: parts[0], period: parts[parts.length - 1] };
+    const segments = text.split(SEPARATORS);
+    for (const [index, segment] of segments.entries()) {
+      const parenthesised = /^(.*\S)\s*\(([^()]+)\)$/.exec(segment);
+      if (parenthesised && DateRange.parse(parenthesised[2])) {
+        return { school: index === 0 ? parenthesised[1] : segments[0], period: parenthesised[2] };
+      }
+      if (index > 0 && DateRange.parse(segment)) return { school: segments[0], period: segment };
     }
     return { school: null, period: null };
   }
