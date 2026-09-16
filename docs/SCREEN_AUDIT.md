@@ -32,14 +32,14 @@ while it loads — every layout shift from navigation to fonts ready, added up, 
 | nerd | 820px | 11–41px | 30 · 35 · 35px | 1 · 1 · 1 | 12.77:1 | border 1.56:1 (quiet) | 1 · 1 · 1px |
 | nerd | 390px | 62–106px | 44 · 44 · 44px | 1 · 1 · 1 | 14.01:1 | border 1.56:1 (quiet) | 1 · 1 · 1px |
 | nerd | 320px | 62–106px | 44 · 44 · 44px | 1 · 1 · 1 | 14.01:1 | border 1.56:1 (quiet) | 1 · 1 · 1px |
-| spotlight | 1280px | 85–140px | 55 · 55 · 55px | 1 · 1 · 1 | 6.82:1 | border 4.99:1 | 2 · 2 · 1px |
-| spotlight | 820px | 85–140px | 55 · 55 · 55px | 1 · 1 · 1 | 6.82:1 | border 4.99:1 | 2 · 2 · 1px |
-| spotlight | 390px | 97–141px | 44 · 44 · 44px | 1 · 1 · 1 | 6.82:1 | border 4.99:1 | 2 · 2 · 1px |
-| spotlight | 320px | 97–141px | 44 · 44 · 44px | 1 · 1 · 1 | 6.82:1 | border 4.99:1 | 2 · 2 · 1px |
-| technical | 1280px | 85–140px | 55 · 55 · 55px | 1 · 1 · 1 | 6.87:1 | border 7.87:1 | 2 · 2 · 1px |
-| technical | 820px | 85–140px | 55 · 55 · 55px | 1 · 1 · 1 | 6.87:1 | border 7.87:1 | 2 · 2 · 1px |
-| technical | 390px | 97–141px | 44 · 44 · 44px | 1 · 1 · 1 | 6.87:1 | border 7.87:1 | 2 · 2 · 1px |
-| technical | 320px | 97–141px | 44 · 44 · 44px | 1 · 1 · 1 | 6.87:1 | border 7.87:1 | 2 · 2 · 1px |
+| spotlight | 1280px | 85–140px | 55 · 55 · 55px | 1 · 1 · 1 | 6.82:1 | border 4.99:1 | 3 · 3 · 1px |
+| spotlight | 820px | 85–140px | 55 · 55 · 55px | 1 · 1 · 1 | 6.82:1 | border 4.99:1 | 3 · 3 · 1px |
+| spotlight | 390px | 97–141px | 44 · 44 · 44px | 1 · 1 · 1 | 6.82:1 | border 4.99:1 | 3 · 3 · 1px |
+| spotlight | 320px | 97–141px | 44 · 44 · 44px | 1 · 1 · 1 | 6.82:1 | border 4.99:1 | 3 · 3 · 1px |
+| technical | 1280px | 85–140px | 55 · 55 · 55px | 1 · 1 · 1 | 6.87:1 | border 7.87:1 | 3 · 3 · 1px |
+| technical | 820px | 85–140px | 55 · 55 · 55px | 1 · 1 · 1 | 6.87:1 | border 7.87:1 | 3 · 3 · 1px |
+| technical | 390px | 97–141px | 44 · 44 · 44px | 1 · 1 · 1 | 6.87:1 | border 7.87:1 | 3 · 3 · 1px |
+| technical | 320px | 97–141px | 44 · 44 · 44px | 1 · 1 · 1 | 6.87:1 | border 7.87:1 | 3 · 3 · 1px |
 
 Checks, the four the product review of #59 measured by hand (#101): hidden without a PDF — loaded
 with `generated/manifest.json` answered 404, every copy computes `display: none`; reachable — the
