@@ -18,6 +18,73 @@ const COMPOSER = [
 const fromDisk = (path) => readFileSync(join(root, path), 'utf8');
 
 /**
+ * A module's source with its comments blanked out, their line breaks kept.
+ *
+ * A comment is not code: JSDoc writes `{import('./X.js').X}` for a type, and a browser loads nothing for it.
+ * Patterns over the raw text kept getting this wrong, in the reviews of #145: a string holding "/*", a
+ * comment closing mid-line, a `//` comment naming an import. So the source is read the way the language
+ * reads it, character by character, through strings, template literals, regular expressions and comments.
+ * A `/` opens a regular expression where an operand is expected, which is the usual reading and holds for
+ * every module this test reaches; a template literal nesting another inside `${}` is not followed.
+ * @param {string} source - A module's source
+ * @returns {string} The same source, every comment character a space
+ */
+function withoutComments(source) {
+  let out = '';
+  let state = 'code';
+  let quote = '';
+  let last = '';
+  for (let at = 0; at < source.length; at += 1) {
+    const char = source[at];
+    const next = source[at + 1];
+    const blank = char === '\n' ? '\n' : ' ';
+    if (state === 'line') {
+      if (char === '\n') state = 'code';
+      out += blank;
+    } else if (state === 'block') {
+      if (char === '*' && next === '/') {
+        out += '  ';
+        at += 1;
+        state = 'code';
+      } else out += blank;
+    } else if (state === 'string' || state === 'pattern' || state === 'class') {
+      out += char;
+      if (char === '\\') {
+        out += next ?? '';
+        at += 1;
+      } else if (state === 'string' && char === quote) state = 'code';
+      else if (state === 'pattern' && char === '[') state = 'class';
+      else if (state === 'class' && char === ']') state = 'pattern';
+      else if (state === 'pattern' && char === '/') state = 'code';
+      if (state === 'code') last = char;
+    } else if (char === '/' && next === '/') {
+      state = 'line';
+      out += ' ';
+    } else if (char === '/' && next === '*') {
+      state = 'block';
+      out += '  ';
+      at += 1;
+    } else if (char === '"' || char === "'" || char === '`') {
+      state = 'string';
+      quote = char;
+      out += char;
+    } else if (
+      char === '/' &&
+      (last === '' ||
+        /[(,=:[!&|?{};+\-*%<>~^]/.test(last) ||
+        /\b(?:return|typeof|case|in|of|void|yield|await)$/.test(out.trimEnd()))
+    ) {
+      state = 'pattern';
+      out += char;
+    } else {
+      out += char;
+      if (!/\s/.test(char)) last = char;
+    }
+  }
+  return out;
+}
+
+/**
  * Every module the browser loads from an entry point, as paths from the repository root.
  * @param {string} entry - The entry module's path from the root
  * @param {(path: string) => string} read - A module's source by its path
@@ -28,12 +95,7 @@ function moduleGraph(entry, read = fromDisk) {
   const visit = (path) => {
     if (seen.has(path)) return;
     seen.add(path);
-    // A comment is not code: JSDoc writes `{import('./X.js').X}` for a type, and a browser loads nothing for it.
-    // Only comments that own their lines are dropped, as every comment here does; a "/*" inside a string on a
-    // line of code does not open one, so the imports after it survive.
-    const source = read(path)
-      .replace(/^[ \t]*\/\*[\s\S]*?\*\/[ \t]*$/gm, '')
-      .replace(/^[ \t]*\/\/.*$/gm, '');
+    const source = withoutComments(read(path));
     const specifiers = [
       ...source.matchAll(/^\s*(?:import|export)\s[^'"`]*?from\s*(['"])(\.[^'"]+)\1/gm),
       ...source.matchAll(/^\s*import\s*(['"])(\.[^'"]+)\1/gm),
@@ -86,6 +148,35 @@ describe('reading a module graph', () => {
     };
 
     expect(moduleGraph('entry.js', (path) => tricky[path]).sort()).toEqual(['entry.js', 'real.js']);
+  });
+
+  // The review of the second fix: a comment closing mid-line let the pattern run on to a later comment's end,
+  // swallowing the import between; a JSDoc type on a line of code was still followed; and a regular expression
+  // holding a quote or "/*" is code, not the start of a string or a comment.
+  test('keeps imports beside comments that close mid-line and after a regular expression, and skips inline JSDoc', () => {
+    const tricky = {
+      'entry.js': [
+        '/* first',
+        "   still first */ import './real.js';",
+        '/* second',
+        '   still second */',
+        "import './also-real.js';",
+        "/** @type {import('./typed.js').Typed} */ const y = 5;",
+        'const pattern = /["\'/*]/g;',
+        "import './after-pattern.js';"
+      ].join('\n'),
+      'real.js': '',
+      'also-real.js': '',
+      'after-pattern.js': ''
+    };
+    const read = (path) => {
+      if (!(path in tricky)) throw new Error(`no module ${path}`);
+      return tricky[path];
+    };
+
+    expect(moduleGraph('entry.js', read).sort()).toEqual(
+      ['after-pattern.js', 'also-real.js', 'entry.js', 'real.js'].sort()
+    );
   });
 
   test('follows every import form the browser follows, through parent directories', () => {
