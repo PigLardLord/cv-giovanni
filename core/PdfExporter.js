@@ -1,5 +1,5 @@
 import { CvDocument } from '../domain/CvDocument.js';
-import { fileWords, nameSlug } from './FileNaming.js';
+import { CvFiles } from './CvFiles.js';
 import { PageFormat } from '../domain/PageFormat.js';
 import { LayoutThemeRegistry } from '../adapters/LayoutThemeRegistry.js';
 import { PdfDesignSystem } from '../adapters/PdfDesignSystem.js';
@@ -13,54 +13,24 @@ export class PdfExporter {
     this.themes = dependencies.themes || new LayoutThemeRegistry();
     this.designSystem = dependencies.designSystem || new PdfDesignSystem();
     this.layout = dependencies.layout || new PdfLayout();
+    this.files = new CvFiles({ documentFactory: this.documentFactory });
   }
 
-  /**
-   * The file the generator writes for a combination, named after the candidate the profile describes.
-   * @param {object} data - The profile
-   * @param {object} options - Profile, locale, layout, and for a QA variant its paper and colour
-   * @returns {string} The filename
-   */
-  filename(
-    data,
-    {
-      profile = 'general',
-      locale = 'en',
-      layout = 'spotlight',
-      pageSize = 'A4',
-      colorMode = 'color',
-      variant = false
-    } = {}
-  ) {
-    const suffix = variant ? `-${pageSize.toLowerCase()}-${colorMode}` : '';
-    const name = nameSlug(this.documentFactory(data).identity.name);
-    return `${name}-${profile}-${locale}-${layout}${suffix}.pdf`;
+  // The naming rules live in `CvFiles`, which the page imports without this module's composer (#145).
+  filename(data, options) {
+    return this.files.filename(data, options);
   }
 
-  /** The name the recruiter's inbox receives: the person and the role, no build vocabulary. */
-  downloadName({ name = '', title = '' } = {}) {
-    return `${[...fileWords(name), ...fileWords(title), 'CV'].join('-')}.pdf`;
+  downloadName(data) {
+    return this.files.downloadName(data);
   }
 
-  /**
-   * Whether a download exists for this combination.
-   *
-   * The naming rule can name a file for any combination; only the generator knows which it
-   * actually wrote. An absent or malformed manifest means nothing is available — the honest
-   * reading, because the alternative offers every download and fails on all of them.
-   * @param {string[]} generated - filenames the generator reported
-   * @param {object} data - The profile the page rendered; none when it failed to load
-   * @param {object} options - Profile, locale and layout
-   */
-  isAvailable(generated, data, options = {}) {
-    if (!Array.isArray(generated) || !data) return false;
-    // A profile without a name has no file to offer. Throwing here would stop the page mid-script.
-    if (!fileWords(this.documentFactory(data).identity.name).length) return false;
-    return generated.includes(this.filename(data, options));
+  isAvailable(generated, data, options) {
+    return this.files.isAvailable(generated, data, options);
   }
 
-  filePath(data, options = {}) {
-    return `generated/${this.filename(data, options)}`;
+  filePath(data, options) {
+    return this.files.filePath(data, options);
   }
 
   buildDocument(data, options = {}) {
