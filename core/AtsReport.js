@@ -10,7 +10,7 @@ const SECTION_NAMES = { spokenLanguages: 'languages' };
  * The report, and the sentences that keep the number honest.
  *
  * The framing is assembled here rather than in the script so that
- * `tests/AtsReport.test.js` can assert it. A disclaimer that lives only in a comment gets
+ * `tests/AtsScore.test.js` can assert it. A disclaimer that lives only in a comment gets
  * deleted; one that a test requires does not.
  */
 export class AtsReport {
