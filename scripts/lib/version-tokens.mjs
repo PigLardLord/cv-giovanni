@@ -12,9 +12,10 @@
  * @returns {{ file: string, token: string }[]} In the order the page names them
  */
 export function versionedFiles(html) {
-  return [...String(html).matchAll(/(?:href|src)="([^"?#]+)\?v=([^"&#]+)"/g)].map(
-    ([, file, token]) => ({ file, token })
-  );
+  // Either quote, a path written from ./, and the token after other parameters (the code review of #136).
+  return [
+    ...String(html).matchAll(/(?:href|src)\s*=\s*(["'])([^"'?#]+)\?(?:[^"'#]*&)?v=([^"'&#]+)\1/g)
+  ].map(([, , file, token]) => ({ file: file.replace(/^\.\//, ''), token }));
 }
 
 /**

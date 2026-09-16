@@ -27,6 +27,16 @@ describe('a versioned file that changes takes a new token', () => {
     ]);
   });
 
+  // The code review of #136 found the page's markup read too narrowly: in single quotes, from ./, or with another
+  // parameter before the token, a versioned file dropped out of the check altogether.
+  test.each([
+    ['single quotes', `<link rel='stylesheet' href='layouts.css?v=OLD' />`],
+    ['a path written from ./', `<link rel="stylesheet" href="./layouts.css?v=OLD" />`],
+    ['another parameter first', `<link rel="stylesheet" href="layouts.css?media=screen&v=OLD" />`]
+  ])('a versioned file is read with %s', (what, tag) => {
+    expect(versionedFiles(tag)).toEqual([{ file: 'layouts.css', token: 'OLD' }]);
+  });
+
   test('an edited stylesheet under its old token is stale, and under a new one is not', () => {
     const before = page('20260913-download2');
     expect(staleTokens({ changed: ['layouts.css'], before, after: before })).toEqual([
@@ -57,22 +67,25 @@ describe('a versioned file that changes takes a new token', () => {
   // Against the base branch, the way tests/TicketsCloseByHand.test.js finds it: from where this branch began to the
   // files as they stand, uncommitted edits included, so a forgotten token fails before the commit that forgets it.
   test('on this branch, every versioned file it changed carries a new token', () => {
-    const base = manifest.vcs.base_branch;
-    const ref = [`origin/${base}`, base].find((candidate) => {
-      try {
-        git('rev-parse', '--verify', '--quiet', `${candidate}^{commit}`);
-        return true;
-      } catch {
-        return false;
-      }
-    });
-    expect(ref).toBeDefined();
+    // The remote's base branch only. A local one left behind by a week without a fetch can predate the tokens, and
+    // against a page that versions nothing every token reads as new and nothing is ever stale: a check that passes
+    // anything (the code review of #136). CI fetches the whole history, so the remote's branch is there.
+    const ref = `origin/${manifest.vcs.base_branch}`;
+    try {
+      git('rev-parse', '--verify', '--quiet', `${ref}^{commit}`);
+    } catch {
+      throw new Error(
+        `${ref} is not fetched, and against a local branch this check could pass anything.`
+      );
+    }
     const began = git('merge-base', ref, 'HEAD');
+    const before = git('show', `${began}:index.html`);
+    expect(versionedFiles(before).length).toBeGreaterThan(0);
 
     expect(
       staleTokens({
         changed: git('diff', '--name-only', began).split('\n').filter(Boolean),
-        before: git('show', `${began}:index.html`),
+        before,
         after: readFileSync(new URL('../index.html', import.meta.url), 'utf8')
       })
     ).toEqual([]);
