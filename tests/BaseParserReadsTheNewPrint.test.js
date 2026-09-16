@@ -3,7 +3,17 @@
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { applicability, productReviewPaths } from '../scripts/lib/base-parser.mjs';
+import { AtsTextParser } from '../core/AtsTextParser.js';
+import { RecoveryDiff } from '../core/RecoveryDiff.js';
+import { CvDocument } from '../domain/CvDocument.js';
+import {
+  applicability,
+  fieldVerdicts,
+  lossLine,
+  lostFields,
+  productReviewPaths
+} from '../scripts/lib/base-parser.mjs';
+import { catalogueTranslator } from '../scripts/lib/printed-letter.mjs';
 
 // A change to both the CV and the ATS parser is graded by the parser it changed (#181). Pull request #179 first added
 // " · 60 ECTS" after the Pisa school line and widened the parser to read it, and "Recoverability 80/80" held while the
@@ -11,6 +21,23 @@ import { applicability, productReviewPaths } from '../scripts/lib/base-parser.mj
 // branch's parser. These are its rules, each shown able to fail.
 const root = fileURLToPath(new URL('..', import.meta.url));
 const agents = readFileSync(`${root}AGENTS.md`, 'utf8');
+const document = new CvDocument(
+  JSON.parse(readFileSync(`${root}profiles/general/en.json`, 'utf8'))
+);
+const t = catalogueTranslator({
+  cv: JSON.parse(readFileSync(`${root}locales/en/cv.json`, 'utf8'))
+});
+const words = { locale: 'en', credits: (count) => t('cv:education.credits', { count }) };
+const read = (text) => {
+  const recovered = AtsTextParser.parse(text);
+  return fieldVerdicts(RecoveryDiff.diff(document, recovered, { words }), document, recovered);
+};
+// The print as it is, and as #179 first drew it: the scope after the school's period, not after the degree's name.
+const print = readFileSync(`${root}tests/fixtures/ats/page-print-nerd.txt`, 'utf8');
+const firstPlacement = print.replace(
+  'Development (60 ECTS)\nUniversità degli Studi di Pisa (2014 – 2016)',
+  'Development\nUniversità degli Studi di Pisa (2014 – 2016) · 60 ECTS'
+);
 
 describe('what renders the CV, as the product review names it', () => {
   test("reads the paths AGENTS.md's product review names", () => {
@@ -103,5 +130,114 @@ describe('whether the step applies', () => {
       false
     );
     expect(applicability(['core/AtsTextParser.js', 'print.css.bak'], sets).applies).toBe(false);
+  });
+});
+
+describe("what the base branch's parser recovered, field by field", () => {
+  test("grades every field the audit grades, the degree's period and the structure beside them", () => {
+    const fields = read(print);
+    const keys = fields.map((field) => field.key);
+
+    expect(keys).toEqual(
+      expect.arrayContaining([
+        'segmentation',
+        'identity.email',
+        'experience.0.title',
+        'experience.0.together',
+        'chronology',
+        'education.0.degree',
+        'education.0.school',
+        'education.0.period',
+        'education.0.together',
+        'skills.0.category',
+        'skills.0.attached',
+        'spokenLanguages.0.level',
+        'certifications.0.name'
+      ])
+    );
+    expect(new Set(keys).size).toBe(keys.length);
+    expect(
+      fields.filter((field) => !['exact', 'normalised', 'held'].includes(field.verdict))
+    ).toEqual([]);
+    expect(fields.find((field) => field.key === 'education.0.period')).toEqual(
+      expect.objectContaining({
+        label: 'education 1, period',
+        verdict: 'exact',
+        written: '2014 – 2016',
+        recovered: '2014 – 2016'
+      })
+    );
+  });
+
+  test('a degree that writes no period has no period to lose', () => {
+    const undated = new CvDocument({ education: [{ degree: 'B.Sc.', school: 'Somewhere' }] });
+    const recovered = AtsTextParser.parse('Education\nB.Sc.\nSomewhere');
+    const keys = fieldVerdicts(RecoveryDiff.diff(undated, recovered), undated, recovered).map(
+      (field) => field.key
+    );
+
+    expect(keys).not.toContain('education.0.period');
+  });
+});
+
+describe("a field the base branch's parser loses from the new print", () => {
+  test("#179's first placement loses the Pisa school and its period, and says what came back", () => {
+    const lines = lostFields(read(print), read(firstPlacement)).map(lossLine);
+
+    expect(lines).toEqual(
+      expect.arrayContaining([
+        'education 1, school: "Università degli Studi di Pisa" → "Development" (exact → wrong)',
+        'education 1, period: "2014 – 2016" → nothing (exact → lost)'
+      ])
+    );
+    expect(lines.filter((line) => /^education 2/.test(line))).toEqual([]);
+  });
+
+  test('the print as it is loses nothing', () => {
+    expect(lostFields(read(print), read(print))).toEqual([]);
+  });
+
+  const field = (key, verdict, values = {}) => ({
+    key,
+    label: key,
+    verdict,
+    written: null,
+    recovered: null,
+    ...values
+  });
+
+  test.each([
+    ['exact', 'partial', true],
+    ['partial', 'wrong', true],
+    ['wrong', 'lost', true],
+    ['held', 'broken', true],
+    ['exact', 'normalised', false],
+    ['normalised', 'exact', false],
+    ['partial', 'partial', false],
+    ['lost', 'exact', false],
+    ['broken', 'held', false]
+  ])('%s on the base print and %s on the new one is a loss: %s', (from, to, lost) => {
+    expect(lostFields([field('f', from)], [field('f', to)]).length).toBe(lost ? 1 : 0);
+  });
+
+  test('a field only one print has is not compared: an entry the change removed is not a loss', () => {
+    expect(lostFields([field('education.2.school', 'exact')], [])).toEqual([]);
+    expect(lostFields([], [field('education.2.school', 'lost')])).toEqual([]);
+  });
+
+  test('a loss with nothing to quote is named by its verdicts, and a loss with a list by what did not come back', () => {
+    expect(
+      lossLine({ label: 'education 1, degree beside its school', from: 'held', to: 'broken' })
+    ).toBe('education 1, degree beside its school: held → broken');
+    expect(
+      lossLine({
+        label: 'experience 2, highlights',
+        from: 'exact',
+        to: 'partial',
+        was: null,
+        now: null,
+        written: ['Led the migration.']
+      })
+    ).toBe('experience 2, highlights: exact → partial — written "Led the migration."');
   });
 });
