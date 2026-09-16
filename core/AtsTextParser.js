@@ -6,6 +6,13 @@ import { SectionLexicon } from '../domain/SectionLexicon.js';
 const EMAIL = /[\w.+-]+@[\w-]+\.[\w.-]+/g;
 const URL = /(?:https?:\/\/)?(?:www\.)?(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s·|]*)?/gi;
 const SEPARATORS = /\s*[·|•]\s*/;
+// An academic term DateRange has no notation for: "WS 2014/15 – SS 2016", "Wintersemester 2014", "Fall 2014" (#187).
+// A term word opens it, since a bare year is DateRange's and a year alone is no period: "Founded 2005" is not one.
+const TERM = String.raw`(?:WS|SS|WiSe|SoSe|Wintersemester|Sommersemester|Fall|Spring|Summer|Autumn|Winter|Herbst|Frühjahr|Sommer)\.?\s+(?:19|20)\d{2}(?:\/\d{2})?`;
+const ACADEMIC_TERM = new RegExp(
+  String.raw`^${TERM}(?:\s*[–-]\s*(?:${TERM}|(?:19|20)\d{2}))?$`,
+  'i'
+);
 
 /**
  * The worst-case parser: what a stranger recovers from the text and nothing else.
@@ -468,11 +475,13 @@ export class AtsTextParser {
         .map((entry, index) => ({ index, ...AtsTextParser.schoolAndPeriod(entry.text) }))
         .filter((candidate) => candidate.period);
       if (!closers.length) {
-        const [school, period] = (group[1]?.text || '').split(SEPARATORS);
+        // The school line's second segment is its period only when it reads as one: a city or a credit count is
+        // neither the school nor the period (#187). An academic term is, though DateRange does not parse one.
+        const [school, second] = (group[1]?.text || '').split(SEPARATORS);
         entries.push({
           degree: RecoveredCv.field(group[0]?.text || null, group[0]?.line ?? -1),
           school: RecoveredCv.field(school || null, group[1]?.line ?? -1),
-          period: period || null,
+          period: second && (DateRange.parse(second) || ACADEMIC_TERM.test(second)) ? second : null,
           line: group[0]?.line ?? -1
         });
         continue;
