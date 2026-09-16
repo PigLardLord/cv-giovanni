@@ -14,6 +14,10 @@
  * It says **who** is addressed, never **how**. The wording of a salutation belongs to the
  * catalogue, like every other user-visible string in this project; a domain object that wrote
  * "Dear Hiring Team" would be a German letter's bug waiting to happen.
+ *
+ * Which form greets them is the author's to write, never inferred from a first name (#174): a
+ * form of address is a code, `ms`, `mr` or `neutral`, that each catalogue words in its own
+ * language, and the surname is a field of its own, since cutting one from a name is guessing.
  */
 /**
  * The lines DIN 5008's address zone holds: 27.3mm, filled from the top. A seventh prints below the zone, on the row of
@@ -21,11 +25,22 @@
  */
 export const ADDRESS_ZONE_LINES = 6;
 
+/**
+ * How a named recipient can be greeted: by surname after the catalogue's word for a woman or a man, or by name in the
+ * neutral form. Codes rather than "Frau" or "Ms", so one recipient reads the same in every language's letter.
+ */
+export const FORMS_OF_ADDRESS = ['ms', 'mr', 'neutral'];
+
 export class CoverLetter {
   constructor(data = {}) {
     const recipient = data.recipient || {};
     this.recipient = {
       name: text(recipient.name),
+      /** As the data wrote it; `greeting` says which form applies. */
+      form: text(recipient.form),
+      /** An academic title the salutation puts before the surname, as the letter's language writes it: `Dr.`. */
+      title: text(recipient.title),
+      surname: text(recipient.surname),
       role: text(recipient.role),
       company: text(recipient.company),
       address: lines(recipient.address)
@@ -58,6 +73,36 @@ export class CoverLetter {
   }
 
   /**
+   * How the letter greets its recipient, and with which of their names: the form of address the author wrote, when
+   * the surname it needs is there; the neutral form, by name, when a name is and nothing else says how; and the
+   * anonymous opening when nobody is named. The fallbacks are what `missing` names, so the author is asked.
+   * @returns {{ form: 'ms'|'mr'|'neutral'|'anonymous', name: string, surname: string, title: string }} The form,
+   *   and the names the catalogue's wording for it may use
+   */
+  get greeting() {
+    const { name, surname, title } = this.recipient;
+    const form = this.#form;
+    const resolved =
+      (form === 'ms' || form === 'mr') && surname ? form : name ? 'neutral' : 'anonymous';
+    return { form: resolved, name, surname, title };
+  }
+
+  /** The form of address written, if it is one the model knows, or ''. */
+  get #form() {
+    const form = this.recipient.form.toLowerCase();
+    return FORMS_OF_ADDRESS.includes(form) ? form : '';
+  }
+
+  /** What greeting the recipient by the form of address still needs: a form, or the name that form greets. */
+  get #greetingNeeds() {
+    const { name, surname } = this.recipient;
+    const form = this.#form;
+    if (!form) return name || surname ? ['recipient.form'] : [];
+    if (form === 'neutral') return name ? [] : ['recipient.name'];
+    return surname ? [] : ['recipient.surname'];
+  }
+
+  /**
    * What the letter still needs.
    *
    * Named rather than filled: a letter addressed to nobody at a company nobody named is worse
@@ -66,13 +111,16 @@ export class CoverLetter {
    */
   get missing() {
     const required = [
-      ['recipient.company', this.recipient.company],
       ['subject', this.subject],
       ['opening', this.opening],
       ['body', this.body.length ? 'yes' : ''],
       ['signature', this.signature]
     ];
-    return required.filter(([, value]) => !value).map(([name]) => name);
+    return [
+      ...(this.recipient.company ? [] : ['recipient.company']),
+      ...this.#greetingNeeds,
+      ...required.filter(([, value]) => !value).map(([name]) => name)
+    ];
   }
 
   /**
@@ -83,8 +131,14 @@ export class CoverLetter {
    */
   get problems() {
     const lines = this.recipientLines.length;
+    // A form of address written but not one the model knows is named with what was written, so "Frau" is recognised.
+    const known = `${FORMS_OF_ADDRESS.slice(0, -1).join(', ')} or ${FORMS_OF_ADDRESS.at(-1)}`;
+    const wrong = (field) =>
+      field === 'recipient.form' && this.recipient.form
+        ? `${JSON.stringify(this.recipient.form)} is not ${known}`
+        : 'missing';
     return [
-      ...this.missing.map((field) => `${field}: missing`),
+      ...this.missing.map((field) => `${field}: ${wrong(field)}`),
       ...(lines > ADDRESS_ZONE_LINES
         ? [`recipient: ${lines} lines, the address zone holds ${ADDRESS_ZONE_LINES}`]
         : [])
