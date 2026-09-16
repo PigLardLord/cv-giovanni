@@ -11,7 +11,10 @@ import {
   fieldVerdicts,
   lossLine,
   lostFields,
-  productReviewPaths
+  outcome,
+  productReviewPaths,
+  pullRequestLabels,
+  TRADE_LABEL
 } from '../scripts/lib/base-parser.mjs';
 import { catalogueTranslator } from '../scripts/lib/printed-letter.mjs';
 
@@ -239,5 +242,53 @@ describe("a field the base branch's parser loses from the new print", () => {
         written: ['Led the migration.']
       })
     ).toBe('experience 2, highlights: exact → partial — written "Led the migration."');
+  });
+});
+
+describe('a trade the owner accepted', () => {
+  const loss = {
+    key: 'education.0.school',
+    label: 'education 1, school',
+    from: 'exact',
+    to: 'wrong',
+    was: 'Università degli Studi di Pisa',
+    now: 'Development',
+    written: 'Università degli Studi di Pisa'
+  };
+
+  test('the label is the one AGENTS.md and the workflow name', () => {
+    expect(TRADE_LABEL).toBe('ats-trade-accepted');
+  });
+
+  test('reads the labels the workflow hands over as JSON, or as a list', () => {
+    expect(pullRequestLabels('["status:in-review","ats-trade-accepted"]')).toEqual([
+      'status:in-review',
+      'ats-trade-accepted'
+    ]);
+    expect(pullRequestLabels('status:in-review, ats-trade-accepted')).toEqual([
+      'status:in-review',
+      'ats-trade-accepted'
+    ]);
+    expect(pullRequestLabels(undefined)).toEqual([]);
+    expect(pullRequestLabels('')).toEqual([]);
+    expect(pullRequestLabels('null')).toEqual([]);
+    expect(pullRequestLabels('[]')).toEqual([]);
+  });
+
+  test('a loss fails the step', () => {
+    expect(outcome([loss], [])).toEqual({ exitCode: 1, accepted: false });
+    expect(outcome([loss], ['status:in-review', 'not-ats-trade-accepted'])).toEqual({
+      exitCode: 1,
+      accepted: false
+    });
+  });
+
+  test('a loss the pull request declares an accepted trade passes, and is still a loss', () => {
+    expect(outcome([loss], ['ats-trade-accepted'])).toEqual({ exitCode: 0, accepted: true });
+  });
+
+  test('no loss passes, and the label accepts nothing', () => {
+    expect(outcome([], [])).toEqual({ exitCode: 0, accepted: false });
+    expect(outcome([], ['ats-trade-accepted'])).toEqual({ exitCode: 0, accepted: false });
   });
 });

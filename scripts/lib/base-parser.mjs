@@ -217,3 +217,43 @@ export function lossLine({ label, from, to, was = null, now = null, written = nu
     return `${label}: ${quote(was)} → ${quote(now)} (${from} → ${to})`;
   return `${label}: ${from} → ${to}${written === null ? '' : ` — written ${quote(written)}`}`;
 }
+
+/**
+ * The label a pull request carries when its owner accepted what the base's parser loses from the new print: a trade
+ * made on purpose, recorded where the merge can see it, rather than a change the grader was moved to pass.
+ */
+export const TRADE_LABEL = 'ats-trade-accepted';
+
+/**
+ * A pull request's labels as the workflow hands them over: a JSON array, or a list separated by commas or lines.
+ * @param {string|undefined} value - The environment variable's value
+ * @returns {string[]} The label names; none when there is nothing to read
+ */
+export function pullRequestLabels(value) {
+  const text = String(value ?? '').trim();
+  if (!text) return [];
+  try {
+    const parsed = JSON.parse(text);
+    if (Array.isArray(parsed)) return parsed.map(String);
+    if (parsed === null) return [];
+  } catch {
+    /* not JSON: a list */
+  }
+  return text
+    .split(/[,\n]/)
+    .map((label) => label.trim())
+    .filter(Boolean);
+}
+
+/**
+ * How the step ends. A loss fails it, unless the pull request declares the trade accepted: the losses are still
+ * reported, and the label is the record that someone read them.
+ * @param {Object[]} losses - Every loss, over every print and reading order
+ * @param {string[]} labels - The pull request's labels
+ * @returns {{ exitCode: number, accepted: boolean }} The exit code, and whether a trade was accepted
+ */
+export function outcome(losses, labels) {
+  if (!losses.length) return { exitCode: 0, accepted: false };
+  const accepted = labels.includes(TRADE_LABEL);
+  return { exitCode: accepted ? 0 : 1, accepted };
+}
