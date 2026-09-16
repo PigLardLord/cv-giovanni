@@ -21,6 +21,28 @@ export function versionedFiles(html) {
 }
 
 /**
+ * The token the catalogues load under: the `?v=` in the i18next backend's `loadPath`, in `core/I18nService.js` (#170).
+ * @param {string} source - The module's source
+ * @returns {string|null} The token, or null when the catalogues load under none
+ */
+export function catalogueToken(source) {
+  return (
+    /loadPath:\s*(["'`])[^"'`]*\?(?:[^"'`#]*&)?v=([^"'`&#]+)/.exec(String(source))?.[2] ?? null
+  );
+}
+
+/**
+ * Whether a branch changed a catalogue under `locales/` and left the catalogues' token as it was.
+ * @param {{ changed: string[], before: string, after: string }} branch - The files that differ from where the branch
+ *   began, and `core/I18nService.js` there and now
+ * @returns {boolean} True when an edited catalogue would load under its old name
+ */
+export function staleCatalogues({ changed, before, after }) {
+  const edited = changed.some((file) => /^locales\/.+\.json$/.test(file));
+  return edited && catalogueToken(after) === catalogueToken(before);
+}
+
+/**
  * The versioned files a branch changed and left under the token they had before it.
  *
  * A file the page versioned only after the branch began is not stale: its token is new with it.
