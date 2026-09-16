@@ -1,5 +1,6 @@
 import { BaseRenderer } from './BaseRenderer.js';
 import { tenureText } from '../domain/Tenure.js';
+import { roleHeader } from '../domain/EntryLines.js';
 
 export class ExperienceRenderer extends BaseRenderer {
   constructor(i18n = null) {
@@ -23,14 +24,14 @@ export class ExperienceRenderer extends BaseRenderer {
     const at = this.i18n ? this.i18n.t('experience.at', { ns: 'cv' }) : 'at';
     const entry = this.createElement(root, 'div', 'job-entry');
 
-    // Every string from the data is text (#157): the header reads "Title at Company, City" as it did.
+    // Every string from the data is text (#157), and the header reads "Title at Company, City", without the comma when
+    // the role names no city (#169).
     entry.appendChild(
-      this.appendPieces(root, this.createElement(root, 'div', 'job-header'), [
-        this.createElement(root, 'span', 'job-title', String(job.title ?? '')),
-        ` ${at} `,
-        this.createElement(root, 'span', 'job-company', String(job.company ?? '')),
-        `, ${job.location ?? ''}`
-      ])
+      this.appendPieces(
+        root,
+        this.createElement(root, 'div', 'job-header'),
+        this.fieldPieces(root, roleHeader(job, at), { title: 'job-title', company: 'job-company' })
+      )
     );
     entry.appendChild(
       this.appendPieces(root, this.createElement(root, 'div', 'job-period'), [
