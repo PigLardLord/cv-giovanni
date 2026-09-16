@@ -1,12 +1,16 @@
-import { BANDS } from './AtsScore.js';
+import { AtsScore, BANDS } from './AtsScore.js';
+import { RecoveryDiff } from './RecoveryDiff.js';
 
 const LADDER = ['exact', 'normalised', 'partial', 'wrong', 'lost'];
+
+/** A section as the report names it, where the diff's own key would read as code. */
+const SECTION_NAMES = { spokenLanguages: 'languages' };
 
 /**
  * The report, and the sentences that keep the number honest.
  *
  * The framing is assembled here rather than in the script so that
- * `tests/AtsReport.test.js` can assert it. A disclaimer that lives only in a comment gets
+ * `tests/AtsScore.test.js` can assert it. A disclaimer that lives only in a comment gets
  * deleted; one that a test requires does not.
  */
 export class AtsReport {
@@ -20,7 +24,7 @@ export class AtsReport {
     return [
       '# Recoverability',
       '',
-      `**Recoverability ${score.points}/${score.denominator}**${AtsReport.unscoredNote(score)}`,
+      `**Recoverability ${AtsReport.figure(score.points)}/${score.denominator}**${AtsReport.unscoredNote(score)}`,
       '',
       ...AtsReport.disclaimer(score),
       '',
@@ -44,6 +48,8 @@ export class AtsReport {
       `| Structural recovery | ${BANDS.structure.weight} | The field set that goes into the database and gets searched. |`,
       `| Content fidelity | ${BANDS.fidelity.weight} | Strings surviving, minus anything recovered that was never written. |`,
       `| Advert evidence | ${BANDS.advert.weight} | Required terms evidenced in experience rather than listed. |`,
+      '',
+      ...AtsReport.rules(),
       '',
       'Regenerate with `npm run audit:ats`.'
     ].join('\n');
@@ -103,6 +109,35 @@ export class AtsReport {
     return lines;
   }
 
+  /**
+   * What a field is compared against, and how the number is printed, each with its reason (#186).
+   *
+   * Printed beside the weights, because each decides what a loss costs as much as a weight does, and a number that
+   * forgives something without saying so reads as a pass.
+   * @returns {string[]} Markdown lines
+   */
+  static rules() {
+    return [
+      '**A degree is compared as the document prints it.** Its name and the scope it states after the name, "… Development (60 ECTS)", are built by `degreeLine` in `domain/EntryLines.js`, the function the page prints the degree with, in the catalogue\'s words. A parser that returns that line lost nothing the document said, so a stated scope costs nothing. A degree recovered without the scope it printed, or cut short, lost part of what the document said, and is graded partial. A certification is compared the same way, as its line prints with its issuer and year.',
+      '',
+      '**The number is printed as computed:** a whole number as one, a fraction cut to one decimal and never rounded, so a partial loss never reads as full marks. Every field graded partial, wrong or lost is listed under _What did not come back_, and one that carries no weight — the title under the name, a certification — is marked _not scored_: it is named so the loss is seen, and costs nothing because no band weighs it.'
+    ];
+  }
+
+  /**
+   * Points as the report prints them: a whole number as one, a fraction cut to one decimal.
+   *
+   * Cut, never rounded: rounding printed a degree graded partial, 79.5, as full marks (#186), and
+   * 79.96 would still round to 80. A millionth is added before cutting, because a sum of shares
+   * can come out a hair under its value, and no loss this model grades is that small.
+   * @param {number} points - A composed score's points
+   * @returns {string} The figure
+   */
+  static figure(points) {
+    const cut = Math.floor(points * 10 + 1e-6) / 10;
+    return Number.isInteger(cut) ? String(cut) : cut.toFixed(1);
+  }
+
   static unscoredNote(score) {
     return score.unscored.length
       ? ` — ${score.unscored.join(' and ')} not scored, so the total is out of ${score.denominator}`
@@ -137,13 +172,19 @@ export class AtsReport {
     ];
   }
 
+  /**
+   * One artefact's row. Fidelity is the worst verdict of every field the fidelity band scores — a role's title,
+   * employer, period and highlights, a degree and its school, a skill category, a language's name and level — not
+   * the role titles alone, which left the column "exact" over a degree graded partial (#186).
+   */
   static row({ artefact, diff }) {
     const tick = (value) => (value ? 'yes' : 'no');
     const worst = (verdicts) =>
       LADDER[Math.max(...verdicts.map((verdict) => LADDER.indexOf(verdict)), 0)];
+    const fidelity = Object.values(AtsScore.fidelityVerdicts(diff)).flat();
     return (
       `| ${artefact} | ${worst(Object.values(diff.identity))} | ` +
-      `${diff.segmentation} | ${worst(diff.experience.map((role) => role.title))} | ` +
+      `${diff.segmentation} | ${worst(fidelity)} | ` +
       `${diff.links.filter((link) => link.recovered).length}/${diff.links.length} | ` +
       `${tick(diff.experience.every((role) => role.tripleAdjacent) && diff.roleOrderMonotonic)} |`
     );
@@ -175,15 +216,46 @@ export class AtsReport {
     ];
   }
 
+  /**
+   * One field short of recovered, as a line of the list: where it is, its verdict, what was written and what came back.
+   *
+   * A field of the identity is named alone, "email"; any other by its section, its entry counted from one, and the
+   * field, "education 1, degree".
+   * @param {{ path: (string|number)[], verdict: string, written: *, recovered: * }} loss - One of `RecoveryDiff.losses`
+   * @returns {string} The line, without its bullet
+   */
+  static loss({ path, verdict, written, recovered }) {
+    const [part, index, field] = path;
+    const where =
+      field === undefined ? index : `${SECTION_NAMES[part] ?? part} ${index + 1}, ${field}`;
+    const wrote = written === null ? '' : ` — written ${AtsReport.quote(written)}`;
+    const got =
+      recovered === null ? 'nothing recovered' : `recovered ${AtsReport.quote(recovered)}`;
+    const cost = AtsScore.weighs(path) ? '' : ', not scored';
+    return `${where}: ${verdict}${cost}${wrote}${wrote ? '; ' : ' — '}${got}`;
+  }
+
+  /** Each value in quotation marks, a list of them separated by commas. */
+  static quote(values) {
+    return []
+      .concat(values)
+      .map((value) => `"${value}"`)
+      .join(', ');
+  }
+
   /** Everything that did not come back, quoted so the parser can be audited rather than trusted. */
   static findings(results) {
     const lines = ['## What did not come back', ''];
     let any = false;
     for (const { artefact, diff } of results) {
-      const problems = [];
-      for (const [field, verdict] of Object.entries(diff.identity)) {
-        if (verdict !== 'exact' && verdict !== 'normalised') problems.push(`${field}: ${verdict}`);
-      }
+      // Every graded field short of recovered, quoted as written and as it came back (#186).
+      const problems = RecoveryDiff.losses(diff).map((loss) => AtsReport.loss(loss));
+      diff.skills.forEach((group, index) => {
+        if (group.lost?.length)
+          problems.push(
+            `skills ${index + 1}, items not recovered with their category: ${AtsReport.quote(group.lost)}`
+          );
+      });
       for (const link of diff.links.filter((entry) => !entry.recovered)) {
         problems.push(`link not in the text layer: ${link.url}`);
       }

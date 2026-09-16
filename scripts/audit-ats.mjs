@@ -9,6 +9,7 @@ import { AtsReport } from '../core/AtsReport.js';
 import { AtsFloors } from '../core/AtsFloors.js';
 import { AdvertMatcher } from '../core/AdvertMatcher.js';
 import { GenerationTarget } from '../core/GenerationTarget.js';
+import { catalogueTranslator } from './lib/printed-letter.mjs';
 
 /**
  * The third audit: what a stranger's parser recovers.
@@ -40,6 +41,18 @@ try {
   document = new CvDocument(authored);
 } catch (error) {
   cannotCheck(`cannot read ${target.dataPath}`, error.message);
+}
+
+// The words the page wrote a degree's scope in, so a degree is compared as the document prints it (#186). A catalogue
+// that cannot be read stops the audit: without it a printed scope would read as a loss nobody made.
+let words;
+try {
+  const t = catalogueTranslator({
+    cv: JSON.parse(await readFile(new URL(`locales/${target.locale}/cv.json`, projectRoot)))
+  });
+  words = { locale: target.locale, credits: (count) => t('cv:education.credits', { count }) };
+} catch (error) {
+  cannotCheck(`cannot read the ${target.locale} catalogue`, error.message);
 }
 
 // An advert that cannot be read is not the same as no advert: the first is a mistake to
@@ -133,7 +146,7 @@ for (const { artefact, path, isCover } of files) {
   seen.set(fingerprint, [artefact]);
 
   const recovered = AtsTextParser.parse(text);
-  const diff = RecoveryDiff.diff(document, recovered);
+  const diff = RecoveryDiff.diff(document, recovered, { words });
   if (advertText && !advert) {
     const extracted = AdvertMatcher.extractTerms(advertText);
     advert = {
@@ -152,7 +165,7 @@ for (const { artefact, path, isCover } of files) {
   // Scored on poppler's order alone, so the number stays comparable with itself over time; gated on both.
   const floors = {
     default: AtsFloors.failures(diff),
-    raw: AtsFloors.failures(RecoveryDiff.diff(document, AtsTextParser.parse(raw)))
+    raw: AtsFloors.failures(RecoveryDiff.diff(document, AtsTextParser.parse(raw), { words }))
   };
 
   results.push({ artefact, diff, recovered, divergence, fingerprint, floors });

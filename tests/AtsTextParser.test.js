@@ -273,8 +273,22 @@ describe('the printed page, in the order poppler reads it', () => {
   test.each([
     ['a semester range', 'WS 2014/15 – SS 2016'],
     ['a German semester', 'Wintersemester 2014'],
+    ['a German semester with its academic year', 'Wintersemester 2014/15'],
+    ['a season with its academic year', 'Fall 2014/15'],
     ['a season', 'Fall 2014'],
-    ['a range of seasons', 'Spring 2016 – Fall 2018']
+    ['a range of seasons', 'Spring 2016 – Fall 2018'],
+    // Notations a CV writes that the first pattern did not cover (#192).
+    ['a semester with a four-digit second year', 'WS 2014/2015'],
+    ['a range opening on a four-digit second year', 'WS 2014/2015 – SS 2016'],
+    ['a season named a semester', 'Fall Semester 2014'],
+    ['a season named a term', 'Spring Term 2016'],
+    ['a compact winter semester', 'WS16/17'],
+    ['a compact summer semester', 'SS16'],
+    ['a range of compact semesters', 'WS16/17 – SS18'],
+    ['a compact semester with a four-digit year', 'SoSe2016'],
+    ['an abbreviated semester with a two-digit year', 'WiSe 16/17'],
+    ['a season closing on a full stop', 'Fall 2014.'],
+    ['a range closing on a full stop', 'WS 2014/2015 – SS 2016.']
   ])('a school line whose second segment is %s keeps it as the period', (what, period) => {
     const cv = AtsTextParser.parse(educationAfterARole(`TU München · ${period}`));
 
@@ -284,16 +298,27 @@ describe('the printed page, in the order poppler reads it', () => {
   });
 
   // Naming a year is not enough: an institution's facts carry years too (the second code review of #188).
-  test.each(['Campus 2000', 'Founded 2005', 'Est. 1999', '2000 students', 'Room 2024'])(
-    'a school line whose second segment is "%s" recovers no period',
-    (segment) => {
-      const cv = AtsTextParser.parse(educationAfterARole(`TU München · ${segment}`));
+  test.each([
+    'Campus 2000',
+    'Founded 2005',
+    'Est. 1999',
+    '2000 students',
+    'Room 2024',
+    // A season word opens a term only as a whole word, and only "Semester" or "Term" may follow it (#192).
+    'Summer School 2019',
+    'Fall River 2014',
+    'Winterthur 2014',
+    // A semester abbreviation is a term only when a year of two or four digits closes it.
+    'SS2000 Building',
+    'SS200',
+    'WS-Consulting'
+  ])('a school line whose second segment is "%s" recovers no period', (segment) => {
+    const cv = AtsTextParser.parse(educationAfterARole(`TU München · ${segment}`));
 
-      expect(cv.education.map((entry) => [entry.school.value, entry.period])).toEqual([
-        ['TU München', null]
-      ]);
-    }
-  );
+    expect(cv.education.map((entry) => [entry.school.value, entry.period])).toEqual([
+      ['TU München', null]
+    ]);
+  });
 
   test('a school line whose period is followed by another segment still finds it', () => {
     const cv = AtsTextParser.parse(educationAfterARole('TU München · 2019 – 2021 · 120 ECTS'));
