@@ -23,6 +23,18 @@ describe('fonts a text extractor can read', () => {
     ).toEqual(['AAAAAA+Inter-Regular', 'CAAAAA+NotoColorEmoji']);
   });
 
+  // The code review of #156: the name was cut at its first space, and a name holding "Type 3" could be taken for the type.
+  test('reads the name and the type from their own columns', () => {
+    expect(
+      type3Fonts(
+        pdffonts(
+          'BAAAAA+Liberation Serif              Type 3            Custom           yes yes yes     14  0',
+          'CAAAAA+Type 3 Sans                   CID TrueType      Identity-H       yes yes yes     15  0'
+        )
+      )
+    ).toEqual(['BAAAAA+Liberation Serif']);
+  });
+
   test('a page set in TrueType fonts has none', () => {
     expect(
       type3Fonts(

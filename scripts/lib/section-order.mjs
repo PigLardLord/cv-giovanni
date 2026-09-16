@@ -20,14 +20,22 @@ export function outOfOrder(text, anchors) {
   const findings = [];
   let previous = null;
   for (const anchor of anchors) {
-    const at = flat.indexOf(anchor.replace(/\s+/g, ' '));
-    if (at < 0) {
+    const wanted = anchor.replace(/\s+/g, ' ');
+    // Each anchor is looked for after the one before it: a summary that says "Education" is not the section.
+    const after = previous
+      ? flat.indexOf(wanted, previous.at + previous.anchor.length)
+      : flat.indexOf(wanted);
+    if (after >= 0) {
+      previous = { anchor, at: after };
+      continue;
+    }
+    const anywhere = flat.indexOf(wanted);
+    if (anywhere < 0) {
       findings.push(`"${anchor}" is missing`);
       continue;
     }
-    if (previous && at < previous.at)
-      findings.push(`"${anchor}" comes before "${previous.anchor}"`);
-    previous = { anchor, at };
+    findings.push(`"${anchor}" comes before "${previous.anchor}"`);
+    previous = { anchor, at: anywhere };
   }
   return findings;
 }
@@ -37,8 +45,9 @@ export function outOfOrder(text, anchors) {
  * @returns {number} The images it embeds: a portrait, a logo, a picture of text
  */
 export function imageCount(list) {
+  // A soft mask is listed on a row of its own beside its image; only the image rows count.
   return list
     .split('\n')
     .slice(2)
-    .filter((row) => row.trim()).length;
+    .filter((row) => row.trim().split(/\s+/)[2] === 'image').length;
 }

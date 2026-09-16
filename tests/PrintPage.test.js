@@ -4,7 +4,7 @@ import { printPage } from '../scripts/lib/print-page.mjs';
 // asks for had arrived, and set it in the variable screen face it already had: Type 3 fonts, and headings
 // with no word spaces in drawing order (#143). So the page is switched to print media first, the fonts that
 // switch asks for are awaited, and only then is the PDF made.
-function fakeChrome({ fonts = [] } = {}) {
+function fakeChrome({ fonts = [], printFails = false } = {}) {
   const calls = [];
   return {
     calls,
@@ -14,6 +14,8 @@ function fakeChrome({ fonts = [] } = {}) {
     },
     send: (method, params = {}) => {
       calls.push([method, params]);
+      if (method === 'Page.printToPDF' && printFails)
+        return Promise.reject(new Error('printing failed'));
       if (method === 'Page.printToPDF')
         return Promise.resolve({ data: Buffer.from('%PDF').toString('base64') });
       return Promise.resolve({});
@@ -64,6 +66,16 @@ describe('printing a page', () => {
       preferCSSPageSize: true,
       displayHeaderFooter: false
     });
+  });
+
+  // The code review of #156: nothing held the page to screen media again when printing itself failed.
+  test('returns the page to screen media when printing fails, and passes the failure on', async () => {
+    const chrome = fakeChrome({ printFails: true });
+
+    await expect(printPage(chrome, 'http://127.0.0.1:1/', { ready: [] })).rejects.toThrow(
+      /printing failed/
+    );
+    expect(chrome.calls.at(-1)).toEqual(['Emulation.setEmulatedMedia', { media: '' }]);
   });
 
   test('refuses to print a page whose print fonts failed to load, and names them', async () => {

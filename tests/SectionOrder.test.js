@@ -54,6 +54,17 @@ describe('the order a text layer gives the CV', () => {
     );
   });
 
+  // The code review of #156: each anchor was found from the start of the text, so a summary saying "Education"
+  // before the experience failed a CV whose Education section was in its place.
+  test('reads each anchor after the one before it, so a word in the body is not taken for a section', () => {
+    const decoy = inOrder.replace(
+      'Core Technologies',
+      'Built Education technology.\nCore Technologies'
+    );
+
+    expect(outOfOrder(decoy, anchors)).toEqual([]);
+  });
+
   test('names an anchor the text does not carry', () => {
     expect(outOfOrder(inOrder.replace('Languages', ''), anchors)).toEqual([
       '"Languages" is missing'
@@ -68,6 +79,18 @@ describe('images in the PDF', () => {
       '--------------------------------------------------------------------------------------------',
       ...rows
     ].join('\n');
+
+  // The code review of #156: a soft mask is listed as a row of its own, beside the image it belongs to.
+  test('counts an image with a soft mask once', () => {
+    expect(
+      imageCount(
+        list(
+          '   1     0 image     400   400  rgb     3   8  image  no        12  0   300   300 40.1K 8.4%',
+          '   1     1 smask     400   400  gray    1   8  image  no        12  0   300   300 2.1K 1.3%'
+        )
+      )
+    ).toBe(1);
+  });
 
   test('counts the images pdfimages lists, and none on a page of text', () => {
     expect(
