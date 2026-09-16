@@ -70,7 +70,7 @@ Fixtures are inline literals per test. The exception is `tests/LocaleCatalogs.te
 reads the real catalogs off disk and compares leaf keys `en` against `de`: that is the guard on
 translations, not a unit test.
 
-No slow-test tagging exists because none is needed — 20 files, 60 tests, about one second. Keep
+No slow-test tagging exists because none is needed: the whole suite runs in seconds. Keep
 it that way. One test file per renderer, named after it.
 
 ## Idioms and conventions
