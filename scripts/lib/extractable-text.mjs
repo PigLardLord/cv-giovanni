@@ -10,22 +10,39 @@
  * fail on a page that breaks it.
  */
 
+// Every type pdffonts names, longest first so a longer name is not read as its prefix.
+const FONT_TYPES = [
+  'CID TrueType (OT)',
+  'CID Type 0C (OT)',
+  'TrueType (OT)',
+  'Type 1C (OT)',
+  'CID TrueType',
+  'CID Type 0C',
+  'CID Type 0',
+  'TrueType',
+  'Type 1C',
+  'Type 1',
+  'Type 3',
+  'unknown'
+];
+const FONT_ROW = new RegExp(
+  `^(.*?)\\s+(${FONT_TYPES.map((type) => type.replace(/[()]/g, '\\$&')).join('|')})\\s+\\S+\\s+(?:yes|no)\\s+(?:yes|no)\\s+(?:yes|no)\\s`
+);
+
 /**
  * @param {string} pdffonts - The output of `pdffonts` for one PDF
  * @returns {string[]} The name of every Type 3 font it embeds
  */
 export function type3Fonts(pdffonts) {
-  // pdffonts pads a name to its column but never cuts a longer one, so the columns after the name shift with it.
-  // They are fixed in width from the row's end, and are read from there: a name can hold spaces, and even "Type 3".
-  const [header = '', , ...rows] = pdffonts.split('\n');
-  const typeFromEnd = header.length - header.indexOf('type');
-  const encodingFromEnd = header.length - header.indexOf('encoding');
-  return rows
-    .filter((row) => row.trim())
-    .filter(
-      (row) => row.slice(row.length - typeFromEnd, row.length - encodingFromEnd).trim() === 'Type 3'
-    )
-    .map((row) => row.slice(0, row.length - typeFromEnd).trim());
+  // A row is read by what its fields are, not where they sit: pdffonts widens any column a value overruns, the
+  // name, the encoding or the object number, and moves every column after it (the reviews of #156). A name can
+  // hold spaces, even "Type 3"; the type is the one followed by an encoding and three yes-or-no columns.
+  return pdffonts
+    .split('\n')
+    .slice(2)
+    .map((row) => FONT_ROW.exec(row))
+    .filter((match) => match && match[2] === 'Type 3')
+    .map((match) => match[1].trim());
 }
 
 const escapeForRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

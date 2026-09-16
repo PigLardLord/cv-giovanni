@@ -51,6 +51,23 @@ describe('fonts a text extractor can read', () => {
     ).toEqual(['AAAAAA+SomeVeryLongCondensedFamily-BoldItalic']);
   });
 
+  // The review of that fix: any column can widen, not only the name. An object number of seven digits, a
+  // generation over 99 or an encoding past 16 characters moved the type away from its distance to the row's end.
+  test('finds a Type 3 font whichever column widens', () => {
+    const rows = [
+      'AAAAAA+Inter-Regular                 Type 3            Custom           yes yes yes  9999999  0',
+      'BAAAAA+Inter-Bold                    Type 3            Custom           yes yes yes       6 100',
+      'CAAAAA+Legacy                        Type 3            MacExpertEncoding yes yes no        7  0',
+      'DAAAAA+Type 3 Sans                   CID TrueType      Identity-H       yes yes yes       8  0'
+    ];
+
+    expect(type3Fonts(pdffonts(...rows))).toEqual([
+      'AAAAAA+Inter-Regular',
+      'BAAAAA+Inter-Bold',
+      'CAAAAA+Legacy'
+    ]);
+  });
+
   test('a page set in TrueType fonts has none', () => {
     expect(
       type3Fonts(

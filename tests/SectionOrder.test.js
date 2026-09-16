@@ -80,6 +80,21 @@ describe('the order a text layer gives the CV', () => {
     expect(outOfOrder(misplaced, anchors)).toEqual(['"Education" comes before "Mobile Developer"']);
   });
 
+  // The review of that fix: "Mobile Developer" begins "Mobile Developer Intern", so with the two roles swapped the
+  // shorter title was found inside the longer one and the reversal passed.
+  test('does not find a title inside a longer title that shares its start', () => {
+    const titles = ['Mobile Developer', 'Mobile Developer Intern'];
+    const correct =
+      'Mobile Developer at Apparound\nBuilt features\nMobile Developer Intern at Marte 5\nBuilt AR';
+    const swapped =
+      'Mobile Developer Intern at Marte 5\nBuilt AR\nMobile Developer at Apparound\nBuilt features';
+
+    expect(outOfOrder(correct, titles)).toEqual([]);
+    expect(outOfOrder(swapped, titles)).toEqual([
+      '"Mobile Developer Intern" comes before "Mobile Developer"'
+    ]);
+  });
+
   test('names an anchor the text does not carry', () => {
     expect(outOfOrder(inOrder.replace('Languages', ''), anchors)).toEqual([
       '"Languages" is missing'
