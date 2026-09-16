@@ -5,6 +5,7 @@ const text = (label, options = {}) => ({ kind: 'text', label, ...options });
 const month = (label, options = {}) => ({ kind: 'month', label, ...options });
 const period = (label, options = {}) => ({ kind: 'period', label, ...options });
 const year = (label, options = {}) => ({ kind: 'year', label, ...options });
+const credits = (label, options = {}) => ({ kind: 'credits', label, ...options });
 const address = (label, options = {}) => ({ kind: 'address', label, ...options });
 const list = (label, item, options = {}) => ({ kind: 'list', label, item, ...options });
 const group = (label, fields, options = {}) => ({ kind: 'group', label, fields, ...options });
@@ -48,6 +49,7 @@ export const PROFILE = group('Profile', {
       degree: text('Degree', { required: true }),
       school: text('School', { required: true }),
       period: period('Period'),
+      credits: credits('Credits (ECTS)'),
       description: text('Description', { multiline: true })
     })
   ),
@@ -131,6 +133,13 @@ function check(shape, value, path, found) {
         problem('must be a year, as a number such as 2024');
       }
       return;
+    // A degree's scope, as its certificate states it (#48). The largest degree the ECTS counts runs to 360
+    // credits; a bound well past it still refuses a typo such as 6000.
+    case 'credits':
+      if (!Number.isInteger(value) || value < 1 || value > 600) {
+        problem('must be the ECTS credits, as a whole number such as 60');
+      }
+      return;
     case 'address':
       if (typeof value !== 'string' || !isAddress(value)) {
         problem('must be a web address that starts with https:// or http://');
@@ -169,7 +178,7 @@ function check(shape, value, path, found) {
  *
  * The checks are the ones the code that reads a profile depends on. A text field is text; a period is one
  * `DateRange` can read, carrying dates and no duration (#55); a month is one `CvDocument` can count to; a year
- * is a number; an address is a web address, never a `javascript:` one; a list holds entries of its shape. A
+ * is a number, and so are a degree's credits (#48); an address is a web address, never a `javascript:` one; a list holds entries of its shape. A
  * field the CV does not read is a problem too: a misspelt field is a field the page silently leaves out. And
  * a profile with a role still running needs the month its length is counted to.
  */

@@ -103,6 +103,31 @@ describe('the shape of a profile', () => {
       'certifications[0].year',
       /must be a year/
     ],
+    // A degree's scope, in ECTS credits (#48): a whole number, as the certificate states it.
+    [
+      'credits written as text',
+      (p) => (p.education[0].credits = '60 ECTS'),
+      'education[0].credits',
+      /must be the ECTS credits, as a whole number such as 60/
+    ],
+    [
+      'credits of zero',
+      (p) => (p.education[0].credits = 0),
+      'education[0].credits',
+      /whole number such as 60/
+    ],
+    [
+      'credits that are not whole',
+      (p) => (p.education[0].credits = 67.5),
+      'education[0].credits',
+      /whole number such as 60/
+    ],
+    [
+      'credits no programme carries',
+      (p) => (p.education[0].credits = 6000),
+      'education[0].credits',
+      /whole number such as 60/
+    ],
     [
       'a link that is not a web address',
       (p) => (p.certifications[0].url = 'javascript:alert(1)'),
@@ -158,6 +183,17 @@ describe('the shape of a profile', () => {
     );
 
     expect(at(problems)).toEqual(['name', 'interests[6]', 'carrer_highlights']);
+  });
+
+  test('a degree may state its credits, and need not', () => {
+    expect(
+      ProfileShape.problems(
+        changed((p) => {
+          p.education[0].credits = 60;
+          delete p.education[1].credits;
+        })
+      )
+    ).toEqual([]);
   });
 
   test.each([null, [], 'Giovanni Trovato', 42])('%p is not a profile at all', (value) => {
