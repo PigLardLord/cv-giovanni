@@ -767,6 +767,16 @@ body[data-layout='technical'] .hero-name {
     outline-offset: 2px;
   }
 
+  /* A filled control takes its ring in the ink tone, a colour its fill does not use. In the deep tone, 2px out around a
+     deep fill, the ring on the current layout's link and on the Download button read as a second border rather than
+     as focus (#130). A pixel further out, the light gap between them reads as a halo; 3px is the most the switcher's
+     8px spacing allows, since a ring must stand 3px clear of the next link (#121). */
+  body[data-layout='technical'] .layout-switcher a[aria-current='page']:focus-visible,
+  body[data-layout='technical'] .print-button:focus-visible {
+    outline-color: var(--t-ink);
+    outline-offset: 3px;
+  }
+
   /* On a narrow screen the container is one column and the rail becomes two blue bands, so the
      sections paint their own ground and the container goes plain. */
   @media (max-width: 768px) {
@@ -1348,6 +1358,16 @@ body[data-layout='technical'] .hero-name {
   body[data-layout='spotlight'] button:focus-visible {
     outline: 2px solid var(--e-ember-deep);
     outline-offset: 2px;
+  }
+
+  /* A filled control takes its ring in the ink tone, a colour its fill does not use. In the deep tone, 2px out around a
+     deep fill, the ring on the current layout's link and on the Download button read as a second border rather than
+     as focus (#130). A pixel further out, the light gap between them reads as a halo; 3px is the most the switcher's
+     8px spacing allows, since a ring must stand 3px clear of the next link (#121). */
+  body[data-layout='spotlight'] .layout-switcher a[aria-current='page']:focus-visible,
+  body[data-layout='spotlight'] .print-button:focus-visible {
+    outline-color: var(--e-ink);
+    outline-offset: 3px;
   }
 
   /* On the ember masthead no dark ring can clear 3:1, the band running down to the deep tone itself. Its links take
