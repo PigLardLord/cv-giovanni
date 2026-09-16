@@ -103,6 +103,33 @@ export class BaseRenderer extends Renderer {
   }
 
   /**
+   * A line's pieces as nodes: a separator as text, and a field's value in a span of the class `classes` gives that
+   * field, or as text when it gives none. The pieces, and which separators they carry, come from the domain (#169).
+   * @param {Document} root - DOM root
+   * @param {(string|{ field: string, text: string })[]} pieces - A line, from `domain/EntryLines.js`
+   * @param {Record<string, string>} classes - The class of the span each field is set in
+   * @returns {(string|Element)[]} Pieces for `appendPieces`
+   */
+  fieldPieces(root, pieces, classes = {}) {
+    // Neighbouring text is one text node, as a template wrote it: split in two, the city after ", " shifted by a
+    // hundredth of a point in the printed PDF.
+    return pieces.reduce((laid, piece) => {
+      const spanned = typeof piece !== 'string' && classes[piece.field];
+      const next = spanned
+        ? this.createElement(root, 'span', classes[piece.field], piece.text)
+        : typeof piece === 'string'
+          ? piece
+          : piece.text;
+      if (typeof next === 'string' && typeof laid[laid.length - 1] === 'string') {
+        laid[laid.length - 1] += next;
+      } else {
+        laid.push(next);
+      }
+      return laid;
+    }, []);
+  }
+
+  /**
    * Render array of items to a container
    * @param {Element} container - Container element
    * @param {Array} items - Items to render

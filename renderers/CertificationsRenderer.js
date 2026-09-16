@@ -1,4 +1,5 @@
 import { BaseRenderer } from './BaseRenderer.js';
+import { certificationLine } from '../domain/EntryLines.js';
 
 export class CertificationsRenderer extends BaseRenderer {
   render(root, data) {
@@ -13,7 +14,8 @@ export class CertificationsRenderer extends BaseRenderer {
   }
 
   createCertificationItem(root, cert) {
-    // Every string from the data is text (#157); the name is a link to the certificate when there is one.
+    // Every string from the data is text (#157); the name is a link to the certificate when there is one, and the
+    // issuer and the year each bring their own separator only when the certification has them (#169).
     const name = this.createElement(root, 'strong', '', String(cert.name ?? ''));
     const title = cert.url ? this.createLink(root, cert.url, '') : null;
     if (title) title.appendChild(name);
@@ -21,7 +23,7 @@ export class CertificationsRenderer extends BaseRenderer {
     const description = typeof cert.description === 'string' ? cert.description.trim() : '';
     return this.appendPieces(root, this.createElement(root, 'li'), [
       title || name,
-      ` – ${cert.issuer ?? ''} (${cert.year ?? ''})`,
+      certificationLine(cert).join(''),
       description
         ? this.setProse(root, this.createElement(root, 'span', 'cert-description'), description)
         : null
