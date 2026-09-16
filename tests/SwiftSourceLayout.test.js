@@ -30,6 +30,7 @@ const profile = {
   title: 'Senior iOS Engineer',
   subtitle: 'Swift · SwiftUI',
   profile: 'Engineer with eleven years in native mobile.',
+  career_highlights: ['Owned the iOS client for 6 years', '75% faster CI, 4,800 tests'],
   availability: 'EU citizen',
   location: 'Berlin, Germany',
   email: 'ada@example.com',
@@ -120,6 +121,10 @@ describe('SwiftSourceLayout', () => {
         '    let summary = """',
         '        Engineer with eleven years in native mobile.',
         '        """',
+        '    let impact: [String] = [',
+        '        "Owned the iOS client for 6 years",',
+        '        "75% faster CI, 4,800 tests",',
+        '    ]',
         '    let availability = "EU citizen"',
         '',
         '    // MARK: - Professional Experience',
@@ -217,6 +222,8 @@ describe('SwiftSourceLayout', () => {
       'Profile',
       'Swift · SwiftUI',
       'Engineer with eleven years in native mobile.',
+      'Owned the iOS client for 6 years',
+      '75% faster CI, 4,800 tests',
       'EU citizen',
       'Professional Experience',
       'Mobile Engineer',
@@ -346,10 +353,17 @@ describe('SwiftSourceLayout', () => {
   });
 
   test('leaves out a section with nothing in it, heading and outline entry included', () => {
-    const sparse = { ...profile, certifications: [], interests: [], social: [], subtitle: '' };
+    const sparse = {
+      ...profile,
+      career_highlights: [],
+      certifications: [],
+      interests: [],
+      social: [],
+      subtitle: ''
+    };
     const source = layout.compose(sparse, { t });
 
-    expect(sourceOf(source)).not.toMatch(/Certifications|interests|links|focus/);
+    expect(sourceOf(source)).not.toMatch(/Certifications|interests|links|focus|impact/);
     expect(source.outline.map((entry) => entry.id)).toEqual([
       'source-profile',
       'source-experience',

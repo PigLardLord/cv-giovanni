@@ -9,6 +9,7 @@ import { LayoutResolver } from './core/LayoutResolver.js';
 import { CvFiles } from './core/CvFiles.js';
 import { HeaderRenderer } from './renderers/HeaderRenderer.js';
 import { ProfileRenderer } from './renderers/ProfileRenderer.js';
+import { CareerHighlightsRenderer } from './renderers/CareerHighlightsRenderer.js';
 import { ExperienceRenderer } from './renderers/ExperienceRenderer.js';
 import { EducationRenderer } from './renderers/EducationRenderer.js';
 import { SkillsRenderer } from './renderers/SkillsRenderer.js';
@@ -87,6 +88,7 @@ const app = new CVApplication(
 app.registerRenderer('header', new HeaderRenderer(i18n));
 app.registerRenderer('socialLinks', new SocialLinksRenderer());
 app.registerRenderer('profile', new ProfileRenderer());
+app.registerRenderer('careerHighlights', new CareerHighlightsRenderer());
 app.registerRenderer('experience', new ExperienceRenderer(i18n));
 app.registerRenderer('education', new EducationRenderer());
 app.registerRenderer('certifications', new CertificationsRenderer());
