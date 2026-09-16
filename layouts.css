@@ -81,7 +81,8 @@
     padding: 0;
   }
 
-  /* The base sections step aside; the footer stays, as the editor's bottom bar. */
+  /* The base sections step aside. The footer stayed as the editor's bottom bar until the page kept one download
+     control, in the toolbar (#150). */
   body[data-layout='nerd'] .hero-section,
   body[data-layout='nerd'] .career-highlights-section,
   body[data-layout='nerd'] .skills-spotlight,
@@ -137,7 +138,7 @@
   }
 
   /* Where an editor puts Run: the PDF at the right end of the toolbar, one click away at every scroll
-     position instead of at the footer, 4,000px down (#59). The toolbar is pinned, and so is this. */
+     position instead of 4,000px down, where the footer carried it (#59). The toolbar is pinned, and so is this. */
   body[data-layout='nerd'] .toolbar-download:not([hidden]) {
     position: fixed;
     top: calc((var(--x-toolbar) - 30px) / 2);
@@ -509,15 +510,6 @@
     flex: 1;
     min-height: 44px;
   }
-
-  /* --- The bottom bar ------------------------------------------------------------------------- */
-  body[data-layout='nerd'] .print-footer {
-    justify-content: flex-start;
-    align-items: center;
-    gap: 10px;
-    margin: 0;
-    padding: 9px 18px;
-  }
 }
 
 /* Nerd Mode below a laptop: there is no room for the navigator's column, so the navigator becomes the
@@ -672,21 +664,6 @@
 
   body[data-layout='nerd'] .source-code {
     padding: 12px 0 32px;
-  }
-
-  body[data-layout='nerd'] .print-footer {
-    padding: 16px 12px 22px;
-  }
-
-  body[data-layout='nerd'] .print-button {
-    flex: 1 1 0;
-    justify-content: center;
-  }
-
-  /* Both footer buttons as tall as the top copy. Each was as tall as its own content, and the two contents
-     differ: Browser print rendered 40px beside a 43px Download button (#109). */
-  body[data-layout='nerd'] .print-footer .print-button {
-    min-height: 44px;
   }
 }
 
@@ -1007,13 +984,12 @@ body[data-layout='technical'] {
     /* Row 4 is flexible so the evidence column, which spans rows 3 and 4, grows it and not row 3:
        with two auto rows the surplus is shared out and a gap opens between skills and education.
        Selected impact runs across both columns under the masthead, before the rail begins (#148). */
-    grid-template-rows: auto auto auto 1fr auto;
+    grid-template-rows: auto auto auto 1fr;
     grid-template-areas:
       'hero hero'
       'impact impact'
       'skills evidence'
-      'aside evidence'
-      'footer footer';
+      'aside evidence';
     max-width: 984px;
   }
 
@@ -1049,10 +1025,6 @@ body[data-layout='technical'] {
     grid-area: aside;
     display: block;
     padding: 0.45rem 1.15rem 1.6rem;
-  }
-
-  body[data-layout='technical'] .print-footer {
-    grid-area: footer;
   }
 
   /* The masthead: identity left, a badge card right. The sidebar column has a fixed width so the
@@ -1172,8 +1144,7 @@ body[data-layout='technical'] {
       'impact'
       'skills'
       'evidence'
-      'aside'
-      'footer';
+      'aside';
   }
 
   body[data-layout='technical'] .hero-content {
@@ -1221,7 +1192,7 @@ body[data-layout='technical'] {
 }
 
 /* Impact Spotlight and Technical Profile: the Download link under the layout switcher, centred and only as
-   wide as its label, so a recruiter meets it without scrolling to the footer. A link to the CV with no
+   wide as its label, so a recruiter meets it without scrolling to the end of the page. A link to the CV with no
    ?layout= opens Spotlight (#59). Each skin's .print-button gives it its colours. */
 @media screen {
   body[data-layout='spotlight'] .toolbar-download:not([hidden]),
@@ -1253,21 +1224,6 @@ body[data-layout='technical'] {
     justify-content: center;
     min-height: 44px;
     margin-bottom: 0.5rem;
-    padding: 9px 12px;
-  }
-
-  /* On a phone the footer's two buttons stack, full width and each as tall as the top copy. Side by side at
-     390px, 32px of padding a side left "Download PDF" 81px of the 102px its one line takes, and both labels
-     broke in two (#107). */
-  body[data-layout='spotlight'] .print-footer,
-  body[data-layout='technical'] .print-footer {
-    flex-direction: column;
-  }
-
-  body[data-layout='spotlight'] .print-footer .print-button,
-  body[data-layout='technical'] .print-footer .print-button {
-    justify-content: center;
-    min-height: 44px;
     padding: 9px 12px;
   }
 }

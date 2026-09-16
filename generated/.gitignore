@@ -1,1 +1,5 @@
-qa/
+# Everything here is written by `npm run build:pdf` and nothing is committed (#149). Chrome stamps each print with
+# its date, so a committed PDF changed on every build, and a copy nobody rebuilt offered a CV older than the page.
+# CI builds, audits and publishes its own.
+*
+!.gitignore

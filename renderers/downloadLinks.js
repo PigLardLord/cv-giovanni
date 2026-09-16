@@ -1,9 +1,9 @@
 /**
- * Offers the PDF from every Download link on the page, or hides them all (#59).
+ * Offers the PDF from the Download link on the page, or hides it (#59).
  *
- * Every layout carries the link twice, at the top of the page and in the footer, and a copy left visible
- * for a file that does not exist would 404. Which file exists is decided in core, by
- * `CvFiles.isAvailable`; this only applies that decision to the elements.
+ * The page carries one link, at the top (#150), and a link left visible for a file that does not exist would
+ * 404. Which file exists is decided in core, by `CvFiles.isAvailable`; this only applies that decision to the
+ * `[data-download-pdf]` element.
  * @param {Document} root - The page
  * @param {{ href: string, filename: string } | null} offer - The file to offer, or null when there is none
  */

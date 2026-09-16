@@ -13,14 +13,11 @@ export class LanguagesRenderer extends BaseRenderer {
   }
 
   createLanguageItem(root, language) {
-    return this.createElement(
-      root,
-      'li',
-      '',
-      `
-      <strong>${language.name}:</strong> ${language.level}
-    `
-    );
+    // The name and the level are text (#157).
+    return this.appendPieces(root, this.createElement(root, 'li'), [
+      this.createElement(root, 'strong', '', `${language.name ?? ''}:`),
+      ` ${language.level ?? ''}`
+    ]);
   }
 
   validate(data) {

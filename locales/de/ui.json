@@ -1,6 +1,6 @@
 {
   "meta": { "title": "{{name}} – Lebenslauf" },
-  "actions": { "downloadPdf": "PDF herunterladen", "print": "Browserdruck" },
+  "actions": { "downloadPdf": "PDF herunterladen" },
   "layouts": {
     "nerd": "Nerd-Modus",
     "spotlight": "Wirkung im Fokus",

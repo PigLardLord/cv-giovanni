@@ -26,10 +26,12 @@ tailored version leaves the machine only as an attached PDF.
 `tests/ApplicationsStayLocal.test.js` enforces it, because a rule the suite does not check is a
 rule you discover by pushing.
 
-The web page and the PDF share **the same profile JSON and the same catalogues** — not the same
-DOM. The page renders through `renderers/`; the PDF is composed from the model by
-`adapters/PdfLayout.js`. That is why there are two artefacts and three audits: nothing guarantees
-they agree except measuring both.
+**The PDF a recruiter downloads is the page, printed.** `npm run build:pdf` serves the site to a
+headless Chrome and prints each layout through `print.css`, so the page and the PDF share one DOM,
+one design and one set of words. They used to be two artefacts: the page through `renderers/`, and a
+PDF composed from the model by `adapters/PdfLayout.js` in a design of its own. They drifted — the PDF
+carried career highlights and an as-of month the page never showed (#148) — and the owner chose one
+CV over two (#144). A cover letter is still composed by pdfmake, until it is a page too (#151).
 
 These rules outlived `docs/ROADMAP.md`, which described milestones that GitHub now tracks. What
 remains of that file's unfinished work is filed under the milestone _Carried over from the old
@@ -142,10 +144,10 @@ where the screen audit cannot:
   the padding holds one language at one width: #107 measured the footer's row 4px short at 320px in
   English, before any longer label.
 - **A modifier class comes after the rule it modifies, or is more specific; otherwise the base wins every
-  property both declare.** `.print-button-secondary` sat above `.print-button` at the same specificity, so
-  the base's `border: none` and shadow won. An override that sets part of a shorthand, such as
-  `border-color`, sets the whole shorthand unless it is certain which rule supplies the rest: the skins set
-  `border-color`, and it drew nothing (#110).
+  property both declare.** `.print-button-secondary`, the footer's Browser print until #150, sat above
+  `.print-button` at the same specificity, so the base's `border: none` and shadow won. An override that sets
+  part of a shorthand, such as `border-color`, sets the whole shorthand unless it is certain which rule supplies
+  the rest: the skins set `border-color`, and it drew nothing (#110).
 - **The lesser of two paired actions carries no shadow, at rest or on hover.** Fill and shadow mark the
   primary. The secondary may share its hue in its outline and its label, never its fill or its shadow (#110).
 - **A focus ring takes the tone its surface cannot swallow, never a bright one.** Deep on a light surface,
@@ -155,7 +157,7 @@ where the screen audit cannot:
   as in Nerd Mode's segmented switcher, the focused one is raised above its neighbours (#121).
 - **A button that shares a row with a link sets its own `line-height` in the skin.** A `<button>` takes the
   browser's `font` shorthand, which resets the line height a link inherits, so the two render different heights
-  side by side: 32px against 35px in Nerd Mode's footer (#116).
+  side by side: 32px against 35px in Nerd Mode's footer, before #150 removed it (#116).
 - **A control marked as a button by its fill and shadow keeps a border in forced colours.** A contrast theme
   drops both and keeps border styles, so such a control shows as bare text while an outlined lesser action
   beside it still reads as a button. There the primary's border is at least as wide as the secondary's (#119).
@@ -166,14 +168,20 @@ where the screen audit cannot:
   state that needs a marker should say which one it takes and what else already uses it.
 
 What that review measured on the Download link itself — hidden without a PDF, reachable, tappable,
-a visible focus ring — `npm run audit:screen` checks on every render (#101). Since #110 it also checks
-that the footer's secondary button carries no shadow and, in every layout that does not keep its outline
-quiet with a stated reason, draws a border that clears 3:1 against the footer. Since #111 it focuses every
-control a keyboard reaches, at 320px too, and reads each ring from the screen's pixels: a ring clears 3:1
-against what lies just outside it and against what it surrounds, or the render fails. Since #116 it renders a
-tablet width, 820px, and holds the footer's copy of the link and the button beside it to one height. Since #119 it emulates forced colours and holds every action to a
-border there, and reads the secondary button with `:hover` forced. Since #127 it holds the current layout's link to a marker
-there that is not a colour, and fails a current link that is not shown.
+a visible focus ring — `npm run audit:screen` checks on every render (#101), and since #107 that its label
+holds one line. Since #111 it focuses every control a keyboard reaches, at 320px too, and reads each ring
+from the screen's pixels: a ring clears 3:1 against what lies just outside it and against what it
+surrounds, or the render fails. Since #116 it renders a tablet width, 820px. Since #119 it emulates forced
+colours and holds the Download link to a border there. Since #127 it holds the current layout's link to a
+marker there that is not a colour, and fails a current link that is not shown. Since #150 the page offers
+one download control, the link at the top, and a second copy that shows fails the render; a page that
+shows none already fails as unreachable.
+
+#150 removed the footer, with its copy of the link and Browser print, and the checks that existed only for
+them went too: that the secondary button carried no shadow and an outline clearing 3:1, at rest and with
+`:hover` forced (#110, #119); the footer button's tap height (#109) and its label on one line (#107); the footer's copy and
+that button at one height (#116); and, in forced colours, the primary's border no thinner than the
+secondary's (#119). The rules above that came from them stay, for the next pair of actions.
 
 ### Linked pages are part of the CV
 
@@ -299,22 +307,26 @@ nothing is noise.
 ### Prevention rules become tests where they can
 
 When a finding's prevention rule is mechanically checkable, the follow-up ticket should add the
-check rather than the reminder. `scripts/audit-pdfs.mjs` already scores every variant on format,
-page count, required text, reading order, absence of raster images, clean page starts and
-measured grayscale — an eighth check there outlives any number of review comments.
+check rather than the reminder. `scripts/audit-print.mjs` already scores every printed layout on
+format, page count, required text, reading order in both of the orders a parser reads, contrast on
+the paper, margins, typefaces, Type 3 fonts and images — an eighteenth check there outlives any
+number of review comments.
 
-There are **two artefacts and three audits**, and they fail differently. `npm run audit:pdf` scores
-the documents pdfmake builds. `npm run audit:print` scores what the browser prints: it serves the
-site, prints each layout with a headless Chrome, and reads the text layer poppler extracts and the
-pixels that reached the paper — contrast per word against the printed page, ink margins per page,
-every skill still attached to its category, nothing in the text layer the data did not write. A
-CV can pass every check in the first and still print a line of white on white, which is exactly
-what it did. Run both before claiming the document is sound.
+**One CV and three audits**, and they fail differently. `npm run audit:print` reads the PDFs
+`npm run build:pdf` printed — the files CI publishes, never a copy printed for the audit, which would
+pass whatever the generator wrote — through the text layer poppler extracts and the pixels that
+reached the paper: contrast per word against the printed page, ink margins per page, every skill
+still attached to its category, nothing in the text layer the data did not write, and, read in the
+order the PDF draws it, every name spaced and every section in its place. A check on the stylesheet
+passed a page that printed a line of white on white. `npm run audit:screen` reads what a reader
+copies off the screen, and the page's controls. `npm run audit:pdf` scored the twelve variants
+pdfmake composed; nothing runs it any more, and it goes with pdfmake (#153). `npm run verify:pdf`
+builds, then runs the print and ATS audits: run it before claiming the document is sound.
 
-The third asks a different question altogether. `npm run audit:ats` parses the generated PDF the
+The ATS audit asks a different question altogether. `npm run audit:ats` parses the generated PDF the
 way a stranger's parser would — no `-layout`, no access to `profiles/`, no knowledge of what the
 document was supposed to say — and diffs the structure it recovered against the structure that was
-authored. The other two ask _did my string survive_; this one asks _in the right slot, beside the
+authored. The print audit asks _did my string survive_; this one asks _in the right slot, beside the
 right neighbours, in the right order_, which is the question a recruiter's search puts to a parsed
 record. It reports **Recoverability**, never a score: the weights are in `core/AtsScore.js` with
 the reason for each, the report prints them, and it says plainly that no vendor produces the
@@ -325,10 +337,14 @@ on, and the content stream's (`pdftotext -raw`), which PDFBox and Tika read by d
 differently: on the two-column browser print, poppler's order kept the contacts above the career, while
 the content stream drew the skills first and the name after the first role, and lost the email (#147).
 
-`audit:print` needs a Chrome or Chromium binary. It looks for one on PATH, in the usual install
-locations and in the Playwright cache; `CHROME_PATH` overrides. When it finds none it **exits 2
-and checks nothing**, because an audit that did not run must never read as a pass — the same
-mistake the grayscale check made when its filename pattern matched no files for weeks.
+`build:pdf` and `audit:screen` need a Chrome or Chromium binary. They look for one on PATH, in the
+usual install locations and in the Playwright cache; `CHROME_PATH` overrides. When they find none
+they **exit 2** — the build having written nothing, the audit having checked nothing — because a run
+that did not happen must never read as a pass, the same mistake the grayscale check made when its
+filename pattern matched no files for weeks. `audit:print` and `audit:ats` need no browser, and exit
+2 when the files they read were never built. So does `audit:screen` without a built
+`generated/manifest.json`, where the Download link is rightly hidden and its checks would fail a page
+that is right.
 
 ## Branches, and how a change reaches the public CV
 
@@ -411,62 +427,53 @@ reports built from the committed profile. That commit is listed in `.git-blame-i
 `git blame` shows who wrote a line rather than who ran the formatter; locally that takes
 `git config blame.ignoreRevsFile .git-blame-ignore-revs`.
 
-## Known limitation — the PDF carries no structure tree
+## Known limitation — the PDF's structure tree is partial, and no screen reader has read it
 
-The generated PDFs report `Tagged: no`, and that is deliberate.
+Chrome writes a tagged PDF: `Tagged: yes`, over a real tree. Measured with `pdfinfo -struct` on the
+three printed layouts, poppler 26.01.0 (#149): `H1` for the name, `H2` for the title, seven `H3`
+section heads, six `P`, five lists with sixteen `LI` and eleven `Lbl`, and five `Link`s tied to their
+annotations. Most of the page — 183 to 196 elements a layout — is `NonStruct`, Chrome's element for a
+`div` or `span` with no role, and poppler reports `StructElem object is wrong type (Strong)` nine
+times in every layout, most likely Chrome's tagging of `<strong>`.
 
-Assistive software navigates a PDF through a structure tree: headings, paragraphs, lists and a
-declared reading order. pdfmake 0.2.20 writes the tagged _flag_ — `/Marked true` — but never
-builds the tree behind it: `/StructTreeRoot` comes out with no `/K` children, `/Nums []`,
-`/ParentTreeNextKey 0`, and the content streams hold no marked-content sequences. `structType` on
-a node changes nothing. There is no tagging API in the version's interface, README or changelog;
-the strings come from the bundled pdfkit, which pdfmake does not drive.
+pdfmake, which composed the PDF before, wrote the tagged flag over an empty tree, and the project
+refused to set it: a flag over nothing tells a screen reader structure exists, and the reader stops
+looking. Chrome's tree is not nothing, but its headings and lists are only as good as the page's
+markup, and nobody has listened to one. What was measured: a clean text layer in both reading
+orders, no image, no Type 3 font, real link annotations, and AA contrast on the paper. That is the
+accessible-enough floor, not accessibility. Until a screen reader has read the PDF, do not report
+it as accessible.
 
-Setting the flag anyway was tried and reverted. `Tagged: yes` over an empty tree tells a screen
-reader that structure exists when none does, which is worse than an honest `Tagged: no` — the
-reader stops looking. A test in `tests/PdfExporter.test.js` now fails if the flag returns without
-a renderer that emits marked content.
+## The downloadable PDF
 
-What the document does provide: a clean text layer, no raster text, extraction order matching
-visual order, real link annotations, a 9pt type floor and measured AA contrast. That is the
-accessible-enough floor, not accessibility.
+Settled on #144 by the owner, and not to be undone by someone reclaiming space:
 
-Closing this needs a renderer that emits tagged output, or a post-processing step that builds the
-tree from the layout. Either is a separate piece of work, and the choice belongs to whoever picks
-it up. Until then, do not report the PDFs as accessible.
+- **One CV, printed from the page.** `npm run build:pdf` prints each layout `config/cv-manifest.json`
+  declares, under the names the page already offers, and writes `generated/manifest.json` from what
+  it printed. There is no second design to keep in step.
+- **One reading column.** The sections print in the order the markup writes them: no grid moves a
+  section, and nothing is positioned or floated. Printed in two columns, the text layer put Education
+  between the first role's achievements, and a parser reading in drawing order met the name after
+  the skills (#142). The one column inside a section is Nerd Mode's dates, beside the role they date
+  and drawn before it, so no period leaves its role in either reading order (`print.css`).
+- **Two A4 pages, in colour.** The LETTER and monochrome variants existed to audit pdfmake's design
+  system. The target market is Germany, and contrast is measured word by word on the printed page,
+  which covers a monochrome printout. `audit:print` fails a third page.
+- **No photo.** The owner's decision on #144; `audit:print` fails a PDF that carries any image.
+- **Inter from its static TrueType files, and no tracking.** Skia, Chrome's PDF backend, embeds a
+  variable or CFF font as Type 3, which several extractors mishandle, and letter-spacing narrowed
+  the gap a drawing-order parser reads as a word break: "GiovanniTrovato" (#143). `print.css` loads
+  `vendor/fonts/inter/Inter-*.ttf` and sets `letter-spacing: 0`.
+- **Chrome is not pinned.** The print embeds only static TrueType faces, so a Chrome update would
+  have to change how Skia embeds TrueType before the PDF degraded, and `audit:print` would fail the
+  build on a Type 3 font or a glued word before anything was published. Pinning a Chrome for Testing
+  build is the fallback if a runner update ever does; the cost was weighed on #149.
+- **Nothing in `generated/` is committed.** Chrome stamps each print with its date, so a committed
+  PDF changed on every build, and the copies nobody rebuilt offered a CV older than the page. CI
+  builds, audits and publishes its own; a fresh clone offers no download until `npm run build:pdf`
+  has run.
+- **The gate** is `audit:print` green and `audit:ats`'s floors in both reading orders, on the files
+  CI publishes.
 
-## The PDF's design system
-
-Settled, and not to be undone by someone reclaiming space:
-
-- **A section rail.** Section labels sit in a 116pt left rail beside their block, not above it.
-  A single-line label beside a wrapping block is the one side-by-side shape a text extractor
-  handles; two blocks that both wrap interleave. The rail must therefore never be narrowed to
-  the point where a label wraps — widen it before letting that happen, and remember the German
-  labels are longer.
-- **No letter-spacing on the labels.** At 1pt of tracking, `pdftotext` reads the gaps as spaces
-  and "Professional Experience" extracts as "P ro fe s s i o n a l E x p e r i e n c e". The
-  weight of a real Bold carries the label; tracking is not needed and is not safe.
-- **Inter, vendored.** `vendor/fonts/inter/` with its OFL licence, embedded and subset at
-  generation. pdfmake's stock family maps `bold` to Roboto Medium 500, so a document that leans
-  on weight for hierarchy could not have any. A missing font file is a hard error, never a
-  silent fall back to Roboto.
-- **Colour has a role or it does not ship.** Every token in the palette states what it marks and
-  carries a grey equivalent, so the monochrome variant degrades rather than breaks. The previous
-  palette rendered on **zero glyphs** — the inverted header forced every foreground to white and
-  `nerd`'s accent was byte-identical to its muted grey — and no audit check could see it,
-  because a colour that never renders breaks nothing.
-- **Only the role's identity is unbreakable.** Title, employer, dates and summary travel
-  together so no reader meets a bare heading; achievements flow, each individually unbreakable
-  so no page opens mid-sentence. Holding the first achievement in the head too was tried and
-  wasted more space than the guarantee was worth.
-- **The body takes what the paper gives.** Side margins are fixed at 46pt and the measure
-  follows: 377pt on A4, 394pt on LETTER. Measured on the artefact, the longest body line runs
-  81 characters on A4 and 87 on LETTER, against the 80 of WCAG 1.4.8 — A4 sits at the ceiling,
-  LETTER above it. That is the price of two pages at 9.3pt, and it is a deliberate trade: the
-  previous layout ran to about 100. Buying the margin back means cutting content, which is the
-  candidate's call.
-- **Nothing prints inside the 12mm a printer can clip, with one exception.** The 40pt top and bottom
-  margins clear it. The downloadable PDF's "As of" line (#55), the month every length is counted to, sits at the top of the bottom margin, 10.3mm from
-  the edge: moving it clear with a 46pt bottom margin pushed spotlight on LETTER to a third page. A printer
-  that clips 12mm loses that line, never the CV.
+The cover letter keeps pdfmake's design system — `adapters/PdfDesignSystem.js`, Inter embedded from
+the same files, a missing face a hard error — until #151 makes it a page.

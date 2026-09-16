@@ -49,21 +49,25 @@ jobs:
       - name: Tests
         run: npm test
 
-      - name: Generate and audit the twelve PDF variants
-        run: npm run verify:pdf
+      # The CV a recruiter downloads is the page, printed by Chrome (#144, #149). generate-pdfs exits 2 and writes
+      # nothing when it finds no browser, and any exit but 0 fails the step. The runner image ships Chrome, and it
+      # is not pinned: the print embeds only static TrueType faces, and the print audit below fails the run on a
+      # Type 3 font or a glued word before anything is published (the decision on #149).
+      - name: Print the CV from the page
+        run: npm run build:pdf
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+
+      # audit-print reads the files the build step wrote, the ones this run publishes. It exits 2 and checks
+      # nothing when one is missing, so an audit that did not run can never read as a pass.
+      - name: Audit what the browser prints
+        run: npm run audit:print
 
       - name: Audit what a stranger's parser recovers
         run: npm run audit:ats
 
-      # audit-print exits 2 and checks nothing when it finds no browser. Any exit but 0 fails the step,
-      # so an audit that did not run can never read as a pass. The runner image ships Chrome.
-      - name: Audit what the browser prints
-        run: npm run audit:print
-        env:
-          CHROME_PATH: /usr/bin/google-chrome
-
-      # audit-screen exits 2 and checks nothing when it finds no browser, as the print audit does, and
-      # any exit but 0 fails the step. JSDOM cannot see what a selection copies; this can (#62, #89).
+      # audit-screen exits 2 and checks nothing when it finds no browser or no built manifest, and any exit
+      # but 0 fails the step. JSDOM cannot see what a selection copies; this can (#62, #89).
       - name: Audit what a reader copies off the screen
         run: npm run audit:screen
         env:
@@ -79,7 +83,7 @@ jobs:
           test ! -e applications
           # The editor (#23) writes the CV through the local API, which only npm run serve answers on the
           # owner's machine. Published, it could only fail, so the site leaves it out.
-          rsync -a --exclude='.*' --exclude=node_modules --exclude=generated/qa --exclude=editor.html --exclude=editor.js --exclude=editor.css --exclude=editor/ ./ "$RUNNER_TEMP/site/"
+          rsync -a --exclude='.*' --exclude=node_modules --exclude=editor.html --exclude=editor.js --exclude=editor.css --exclude=editor/ ./ "$RUNNER_TEMP/site/"
           test ! -e "$RUNNER_TEMP/site/applications"
           test ! -e "$RUNNER_TEMP/site/editor.html"
           test ! -e "$RUNNER_TEMP/site/editor"
