@@ -404,3 +404,57 @@ describe('the report', () => {
     expect(text).not.toContain('| Field |');
   });
 });
+
+describe('the workflow', () => {
+  const gates = readFileSync(`${root}.github/workflows/gates.yml`, 'utf8');
+  /** One step's lines, from its comment above `- name:` to the next step. */
+  const step = (text, run) => {
+    const at = text.indexOf(`run: ${run}\n`);
+    if (at < 0) return null;
+    const start = text.lastIndexOf('\n\n', at);
+    const end = text.indexOf('\n\n', at);
+    return text.slice(start + 2, end < 0 ? undefined : end);
+  };
+  /** What would let a pull request's parser grade its own print unread. */
+  const problems = (text) => {
+    const found = [];
+    const own = step(text, 'npm run audit:ats:base');
+    if (!own) return ['no step runs npm run audit:ats:base'];
+    if (!own.includes("if: github.event_name == 'pull_request'"))
+      found.push('the step is not limited to a pull request');
+    if (/continue-on-error/.test(own)) found.push('the step can fail without failing the job');
+    if (!/CHROME_PATH: \S+/.test(own))
+      found.push('the step names no browser to build the base with');
+    if (
+      !/PULL_REQUEST_LABELS: \$\{\{ toJSON\(github\.event\.pull_request\.labels\.\*\.name\) \}\}/.test(
+        own
+      )
+    )
+      found.push("the step is not handed the pull request's labels");
+    if (!own.includes(TRADE_LABEL)) found.push('the step does not say which label accepts a trade');
+    if (!own.includes('#181')) found.push('the step does not name its ticket');
+    if (text.indexOf('run: npm run audit:ats:base') < text.indexOf('run: npm run audit:ats\n'))
+      found.push('the step runs before audit:ats');
+    return found;
+  };
+
+  test('the check finds a step that runs on every push, or without the labels', () => {
+    const everywhere = gates.replace(
+      "        if: github.event_name == 'pull_request'\n        run: npm run audit:ats:base",
+      '        run: npm run audit:ats:base'
+    );
+    const unlabelled = gates.replace(/\n {10}PULL_REQUEST_LABELS:.*\n/, '\n');
+
+    expect(everywhere).not.toBe(gates);
+    expect(unlabelled).not.toBe(gates);
+    expect(problems(everywhere)).toContain('the step is not limited to a pull request');
+    expect(problems(unlabelled)).toContain("the step is not handed the pull request's labels");
+    expect(problems(gates.replace('run: npm run audit:ats:base', 'run: true'))).toEqual([
+      'no step runs npm run audit:ats:base'
+    ]);
+  });
+
+  test("every pull request is read by its base branch's parser, after audit:ats", () => {
+    expect(problems(gates)).toEqual([]);
+  });
+});
