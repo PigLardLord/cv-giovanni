@@ -113,6 +113,29 @@ describe('profile text reaches the page as text', () => {
     expect(oneLine('#contacts')).toBe(`Email: ${awkward('email')} Phone: ${awkward('phone')}`);
   });
 
+  // A template literal wrote a missing field as the word "undefined". Built from text, a field the profile leaves out
+  // shows nothing, in every renderer alike (the code review of #166).
+  test('a field the profile leaves out shows nothing, never the word undefined', () => {
+    const document = page();
+    const sparse = {
+      name: 'Ada Lovelace',
+      email: 'ada@example.com',
+      relevant_experience: [{ title: 'Engineer', company: 'Acme' }],
+      education: [{ degree: 'B.Sc.' }],
+      languages: [{ name: 'Italian' }],
+      certifications: [{ name: 'Lead Essentials' }]
+    };
+    [
+      new HeaderRenderer(),
+      new ExperienceRenderer(),
+      new EducationRenderer(),
+      new LanguagesRenderer(),
+      new CertificationsRenderer()
+    ].forEach((renderer) => fedTheModel(renderer).render(document, sparse));
+
+    expect(document.body.textContent).not.toMatch(/undefined|null/);
+  });
+
   // The error panel's message can carry a thrown error's text, which is not the page's own markup either.
   test('the error panel writes its words as text', () => {
     const document = page();

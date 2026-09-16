@@ -21,7 +21,7 @@ export class CertificationsRenderer extends BaseRenderer {
     const description = typeof cert.description === 'string' ? cert.description.trim() : '';
     return this.appendPieces(root, this.createElement(root, 'li'), [
       title || name,
-      ` – ${cert.issuer} (${cert.year})`,
+      ` – ${cert.issuer ?? ''} (${cert.year ?? ''})`,
       description
         ? this.setProse(root, this.createElement(root, 'span', 'cert-description'), description)
         : null
