@@ -219,6 +219,11 @@ describe.each(['page-print-spotlight', 'page-print-nerd'])(
       expect(diff.skills.every((group) => group.category === 'exact' && group.attached)).toBe(true);
       expect(diff.unexpected).toEqual({ skillCategories: [], roles: 0 });
     });
+
+    // A certification prints its issuer and year after its name (#169), and is compared as it prints.
+    test('every certification comes back as its line prints', () => {
+      expect(diff.certifications).toEqual(document.certifications.map(() => ({ name: 'exact' })));
+    });
   }
 );
 

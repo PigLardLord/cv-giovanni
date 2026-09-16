@@ -39,6 +39,14 @@ export const BANDS = {
   }
 };
 
+/** Each part of the fidelity band: the diff's section it reads, and the fields of each entry it scores. */
+const FIDELITY_FIELDS = {
+  roles: ['experience', ['title', 'employer', 'period', 'highlights']],
+  education: ['education', ['degree', 'school']],
+  skills: ['skills', ['category']],
+  languages: ['spokenLanguages', ['name', 'level']]
+};
+
 /** What each rung of the ladder is worth. */
 const CREDIT = { exact: 1, normalised: 1, partial: 0.5, wrong: 0, lost: 0 };
 
@@ -119,17 +127,27 @@ export class AtsScore {
    * @returns {{ roles: string[], education: string[], skills: string[], languages: string[] }} The verdicts
    */
   static fidelityVerdicts(diff) {
-    return {
-      roles: diff.experience.flatMap((role) => [
-        role.title,
-        role.employer,
-        role.period,
-        role.highlights
-      ]),
-      education: diff.education.flatMap((entry) => [entry.degree, entry.school]),
-      skills: diff.skills.map((group) => group.category),
-      languages: diff.spokenLanguages.flatMap((entry) => [entry.name, entry.level])
-    };
+    return Object.fromEntries(
+      Object.entries(FIDELITY_FIELDS).map(([part, [section, fields]]) => [
+        part,
+        diff[section].flatMap((entry) => fields.map((field) => entry[field]))
+      ])
+    );
+  }
+
+  /**
+   * Whether a graded field carries weight in the number. A loss in one that does not — the identity's title, a
+   * certification — is still listed, and said to cost nothing.
+   * @param {(string|number)[]} path - Where the verdict sits in a RecoveryDiff result, e.g. `['education', 0, 'degree']`
+   * @returns {boolean} True when a loss there costs points
+   */
+  static weighs(path) {
+    const [part] = path;
+    const field = path[path.length - 1];
+    if (part === 'identity') return Object.hasOwn(BANDS.contactability.parts, field);
+    return Object.values(FIDELITY_FIELDS).some(
+      ([section, fields]) => section === part && fields.includes(field)
+    );
   }
 
   static fidelity(diff) {

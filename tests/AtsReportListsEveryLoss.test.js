@@ -75,7 +75,14 @@ describe('What did not come back names every field graded short of recovered', (
     const diff = downgrade(diffOf(fixture('clean-english')), 'partial');
 
     expect(new Set(losses(diff).map(({ path }) => path[0]))).toEqual(
-      new Set(['identity', 'experience', 'education', 'skills', 'spokenLanguages'])
+      new Set([
+        'identity',
+        'experience',
+        'education',
+        'skills',
+        'spokenLanguages',
+        'certifications'
+      ])
     );
     expect(unlisted(diff)).toEqual([]);
   });
@@ -111,6 +118,49 @@ describe('a field short of recovered is quoted as written and as recovered', () 
     expect(section(diff)).toContain(
       `- email: lost — written "${document.identity.email}"; nothing recovered`
     );
+  });
+
+  // A certification is graded as its line prints, "Name – Issuer (year)", and listed, but carries no weight: the
+  // fidelity band's parts were set before certifications were compared, and weighing them is a decision of its own.
+  test('a certification cut short is named, and said to cost nothing', () => {
+    const [android] = document.certifications;
+    const printed = `${android.name} – ${android.issuer} (${android.year})`;
+    const text = fixture('page-print-nerd');
+    const diff = diffOf(text.replace(printed, android.name));
+
+    expect(text).toContain(printed);
+    expect(diff.certifications[0].name).toBe('partial');
+    expect(section(diff)).toContain(
+      `- certifications 1, name: partial, not scored — written "${printed}"; recovered "${android.name}"`
+    );
+    expect(AtsScore.compose(diff).points).toBe(AtsScore.compose(diffOf(text)).points);
+  });
+
+  // Whether a loss is said to cost nothing is checked against the number itself: each field is lost on its own, and
+  // the line says "not scored" exactly when the points did not move.
+  test('a loss is said to cost nothing exactly when losing it moves no point', () => {
+    const clean = diffOf(fixture('clean-english'));
+    const full = AtsScore.compose(clean).points;
+    const everything = downgrade(clean, 'partial');
+    const listed = section(everything);
+    const lose = (path) => {
+      const diff = structuredClone(clean);
+      const at = path.slice(0, -1).reduce((node, key) => node[key], diff);
+      at[path[path.length - 1]] = 'lost';
+      return diff;
+    };
+
+    const misread = losses(everything)
+      .filter(({ path }) => {
+        const costs = AtsScore.compose(lose(path)).points < full;
+        const said = listed.includes(`- ${label(path)}: partial, not scored — `);
+        return costs === said;
+      })
+      .map(({ path }) => path.join('.'));
+
+    expect(misread).toEqual([]);
+    expect(listed).toContain('- title: partial, not scored — ');
+    expect(listed).toContain('- education 1, degree: partial — ');
   });
 
   test('a clean document still says so', () => {

@@ -185,6 +185,8 @@ describe('a degree scored as the document prints it', () => {
     expect(composed).toMatch(/degreeLine/);
     expect(composed).toMatch(/lost nothing the document said/);
     expect(composed).toMatch(/cut to one decimal/);
+    expect(composed).toMatch(/A certification is compared the same way/);
+    expect(composed).toMatch(/_not scored_/);
   });
 });
 

@@ -1,6 +1,6 @@
 import { readableAddress } from '../domain/ReadableUrl.js';
 import { fold } from '../domain/fold.js';
-import { degreeLine } from '../domain/EntryLines.js';
+import { certificationLine, degreeLine } from '../domain/EntryLines.js';
 
 /** Collapse the differences that do not change what a string says. */
 const NORMALISE = {
@@ -28,7 +28,14 @@ const NORMALISE = {
 const SHORT = ['partial', 'wrong', 'lost'];
 
 /** The parts of a diff whose fields are graded on the ladder, in the order a reader meets them. */
-const GRADED = ['identity', 'experience', 'education', 'skills', 'spokenLanguages'];
+const GRADED = [
+  'identity',
+  'experience',
+  'education',
+  'skills',
+  'spokenLanguages',
+  'certifications'
+];
 
 /** True for a value that holds nothing to quote: none, an empty string, or an empty list. */
 const nothing = (value) =>
@@ -149,6 +156,7 @@ export class RecoveryDiff {
       education: RecoveryDiff.education(document, recovered, { ...grading, words }),
       skills: RecoveryDiff.skills(document, recovered, grading),
       spokenLanguages: RecoveryDiff.spokenLanguages(document, recovered, grading),
+      certifications: RecoveryDiff.certifications(document, recovered, grading),
       unexpected: RecoveryDiff.unexpected(document, recovered),
       evidence
     };
@@ -307,6 +315,23 @@ export class RecoveryDiff {
         level: grade(['spokenLanguages', index, 'level'], language.level, entry?.level || null)
       };
     });
+  }
+
+  /**
+   * Per certification: its line, compared as the page prints it — the name, then " – issuer" and " (year)" when it has
+   * them, from `certificationLine` (#169) — against the line recovered in the same place.
+   *
+   * Graded so a loss is named, and weighed nowhere: the fidelity band's parts were set before certifications were
+   * compared, and giving them weight is a decision of its own (#186).
+   */
+  static certifications(document, recovered, { grade }) {
+    return document.certifications.map((certification, index) => ({
+      name: grade(
+        ['certifications', index, 'name'],
+        `${String(certification.name ?? '')}${certificationLine(certification).join('')}`,
+        recovered.certifications[index]?.text || null
+      )
+    }));
   }
 
   /**

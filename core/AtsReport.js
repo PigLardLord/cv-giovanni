@@ -118,9 +118,9 @@ export class AtsReport {
    */
   static rules() {
     return [
-      '**A degree is compared as the document prints it.** Its name and the scope it states after the name, "… Development (60 ECTS)", are built by `degreeLine` in `domain/EntryLines.js`, the function the page prints the degree with, in the catalogue\'s words. A parser that returns that line lost nothing the document said, so a stated scope costs nothing. A degree recovered without the scope it printed, or cut short, lost part of what the document said, and is graded partial.',
+      '**A degree is compared as the document prints it.** Its name and the scope it states after the name, "… Development (60 ECTS)", are built by `degreeLine` in `domain/EntryLines.js`, the function the page prints the degree with, in the catalogue\'s words. A parser that returns that line lost nothing the document said, so a stated scope costs nothing. A degree recovered without the scope it printed, or cut short, lost part of what the document said, and is graded partial. A certification is compared the same way, as its line prints with its issuer and year.',
       '',
-      '**The number is printed as computed:** a whole number as one, a fraction cut to one decimal and never rounded, so a partial loss never reads as full marks. Every field graded partial, wrong or lost is listed under _What did not come back_.'
+      '**The number is printed as computed:** a whole number as one, a fraction cut to one decimal and never rounded, so a partial loss never reads as full marks. Every field graded partial, wrong or lost is listed under _What did not come back_, and one that carries no weight — the title under the name, a certification — is marked _not scored_: it is named so the loss is seen, and costs nothing because no band weighs it.'
     ];
   }
 
@@ -231,7 +231,8 @@ export class AtsReport {
     const wrote = written === null ? '' : ` — written ${AtsReport.quote(written)}`;
     const got =
       recovered === null ? 'nothing recovered' : `recovered ${AtsReport.quote(recovered)}`;
-    return `${where}: ${verdict}${wrote}${wrote ? '; ' : ' — '}${got}`;
+    const cost = AtsScore.weighs(path) ? '' : ', not scored';
+    return `${where}: ${verdict}${cost}${wrote}${wrote ? '; ' : ' — '}${got}`;
   }
 
   /** Each value in quotation marks, a list of them separated by commas. */
