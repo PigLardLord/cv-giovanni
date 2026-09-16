@@ -274,7 +274,10 @@ describe('the printed page, in the order poppler reads it', () => {
     ['a semester range', 'WS 2014/15 – SS 2016'],
     ['a German semester', 'Wintersemester 2014'],
     ['a season', 'Fall 2014'],
-    ['a range of seasons', 'Spring 2016 – Fall 2018']
+    ['a range of seasons', 'Spring 2016 – Fall 2018'],
+    // Common notations the pattern above did not cover (#192).
+    ['a semester with a four-digit second year', 'WS 2014/2015'],
+    ['a range opening on a four-digit second year', 'WS 2014/2015 – SS 2016']
   ])('a school line whose second segment is %s keeps it as the period', (what, period) => {
     const cv = AtsTextParser.parse(educationAfterARole(`TU München · ${period}`));
 

@@ -6,13 +6,12 @@ import { SectionLexicon } from '../domain/SectionLexicon.js';
 const EMAIL = /[\w.+-]+@[\w-]+\.[\w.-]+/g;
 const URL = /(?:https?:\/\/)?(?:www\.)?(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s·|]*)?/gi;
 const SEPARATORS = /\s*[·|•]\s*/;
+const YEAR = String.raw`(?:19|20)\d{2}`;
 // An academic term DateRange has no notation for: "WS 2014/15 – SS 2016", "Wintersemester 2014", "Fall 2014" (#187).
 // A term word opens it, since a bare year is DateRange's and a year alone is no period: "Founded 2005" is not one.
-const TERM = String.raw`(?:WS|SS|WiSe|SoSe|Wintersemester|Sommersemester|Fall|Spring|Summer|Autumn|Winter|Herbst|Frühjahr|Sommer)\.?\s+(?:19|20)\d{2}(?:\/\d{2})?`;
-const ACADEMIC_TERM = new RegExp(
-  String.raw`^${TERM}(?:\s*[–-]\s*(?:${TERM}|(?:19|20)\d{2}))?$`,
-  'i'
-);
+// The academic year a winter semester spans is written "2014/15" or "2014/2015" (#192).
+const TERM = String.raw`(?:WS|SS|WiSe|SoSe|Wintersemester|Sommersemester|Fall|Spring|Summer|Autumn|Winter|Herbst|Frühjahr|Sommer)\.?\s+${YEAR}(?:\/(?:${YEAR}|\d{2}))?`;
+const ACADEMIC_TERM = new RegExp(String.raw`^${TERM}(?:\s*[–-]\s*(?:${TERM}|${YEAR}))?$`, 'i');
 
 /**
  * The worst-case parser: what a stranger recovers from the text and nothing else.
