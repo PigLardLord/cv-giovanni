@@ -92,13 +92,26 @@ self-rating into the main evidence of competence.
 - **A qualification whose name contains a word the target market reads as a degree level states its
   scope, in credits or duration** (#48). A German reader hears _Master_ as the Bologna second cycle,
   typically 120 ECTS on top of a bachelor's, and fills a scope the line leaves out in upward; the
-  correction then arrives at the certificate check. The scope goes on the school's line, which costs
-  no printed line: a degree's `credits`, a whole number taken from its certificate, written after the
-  period in the catalogue's words — `education.credits`, `{{count}} ECTS` in English and in German —
-  with `Intl` writing the number: `Università degli Studi di Pisa (2014 – 2016) · 60 ECTS`. `period`
-  stays the dates alone, and the school and the period stay the line's first two segments, which the
-  print audit and the ATS parser read. The wording is the candidate's call.
-  `tests/QualificationsStateTheirScope.test.js` holds every published degree named a Master's to it.
+  correction then arrives at the certificate check. The scope follows the degree's name, in brackets
+  and set as the period is: a degree's `credits`, a whole number taken from its certificate, in the
+  catalogue's words — `education.credits`, `{{count}} ECTS` in English and in German — with `Intl`
+  writing the number, and in Nerd Mode as the string `credits: "60 ECTS"`, never a bare number. It
+  costs no printed line: _First Level Professional Master's Programme in Mobile Applications
+  Development (60 ECTS)_.
+- **The school's line is left as it is: `School (period)`,** with `period` the dates alone. The ATS
+  parser reads a line as a degree's school and period only when its last segment, or a parenthesis
+  closing it, reads as a period, so a scope written after the period (`School (2014 – 2016) · 60 ECTS`)
+  gave main's parser a wrong school and no period for that degree, and in content-stream order one
+  record for both degrees, as the product review on #179 measured. After the name, main's parser
+  recovers every degree, school and period in every reading order; it keeps the scope in the degree,
+  which the ATS audit grades partial, half a degree's credit. The print audit's "degree beside its
+  school" expects exactly the scope between the two (`scripts/lib/degree-lines.mjs`). The wording is
+  the candidate's call.
+- **A scope qualifier uses credits** — and, if ever, the issuer's legal title — **never a label that is
+  itself a degree type in the target market:** no _continuing-education master_, no _postgraduate
+  diploma_, each of which names a qualification of its own to a German reader.
+  `tests/QualificationsStateTheirScope.test.js` holds every published degree named a Master's to
+  stating its credits.
 - **A certification's name is the title on the page its link opens.** Lower tiers it includes go in
   brackets after it — `Android Enterprise Expert (incl. Associate, Professional)` — never as equal names
   in one entry, which reads as a credential nobody issues.
