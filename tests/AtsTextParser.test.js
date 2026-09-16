@@ -267,7 +267,22 @@ describe('the printed page, in the order poppler reads it', () => {
     ).toEqual([['M.Sc. Informatics', school, null]]);
   });
 
-  test('a school line whose segments hold a period after something else still finds it', () => {
+  // A period DateRange has no notation for is still a period when it names a year: the gate that turned away a city
+  // must not turn away a semester (the code review of #188).
+  test.each([
+    ['a semester range', 'WS 2014/15 – SS 2016'],
+    ['a German semester', 'Wintersemester 2014'],
+    ['a season', 'Fall 2014'],
+    ['a range of seasons', 'Spring 2016 – Fall 2018']
+  ])('a school line whose second segment is %s keeps it as the period', (what, period) => {
+    const cv = AtsTextParser.parse(educationAfterARole(`TU München · ${period}`));
+
+    expect(cv.education.map((entry) => [entry.school.value, entry.period])).toEqual([
+      ['TU München', period]
+    ]);
+  });
+
+  test('a school line whose period is followed by another segment still finds it', () => {
     const cv = AtsTextParser.parse(educationAfterARole('TU München · 2019 – 2021 · 120 ECTS'));
 
     expect(cv.education.map((entry) => [entry.school.value, entry.period])).toEqual([

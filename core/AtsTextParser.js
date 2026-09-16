@@ -6,6 +6,8 @@ import { SectionLexicon } from '../domain/SectionLexicon.js';
 const EMAIL = /[\w.+-]+@[\w-]+\.[\w.-]+/g;
 const URL = /(?:https?:\/\/)?(?:www\.)?(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s·|]*)?/gi;
 const SEPARATORS = /\s*[·|•]\s*/;
+// A calendar year, for a period DateRange has no notation for: "WS 2014/15 – SS 2016", "Fall 2014" (#187).
+const YEAR = /\b(?:19|20)\d{2}\b/;
 
 /**
  * The worst-case parser: what a stranger recovers from the text and nothing else.
@@ -469,12 +471,13 @@ export class AtsTextParser {
         .filter((candidate) => candidate.period);
       if (!closers.length) {
         // The school line's second segment is its period only when it reads as one: a city or a credit count is
-        // neither the school nor the period (#187).
+        // neither the school nor the period (#187). One that names a year is, even in a notation DateRange does not
+        // parse, such as a semester.
         const [school, second] = (group[1]?.text || '').split(SEPARATORS);
         entries.push({
           degree: RecoveredCv.field(group[0]?.text || null, group[0]?.line ?? -1),
           school: RecoveredCv.field(school || null, group[1]?.line ?? -1),
-          period: second && DateRange.parse(second) ? second : null,
+          period: second && (DateRange.parse(second) || YEAR.test(second)) ? second : null,
           line: group[0]?.line ?? -1
         });
         continue;
