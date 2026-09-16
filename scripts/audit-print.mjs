@@ -1,11 +1,16 @@
-import { execFileSync, spawn } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createStaticServer, previewKey } from './serve.mjs';
 import { writeReport } from './lib/write-report.mjs';
 import { fallbackRuns, typefacesFor } from './lib/printed-typefaces.mjs';
+import { gluedPhrases, type3Fonts } from './lib/extractable-text.mjs';
+import { openBrowser } from './lib/chrome.mjs';
+import { imageCount, outOfOrder } from './lib/section-order.mjs';
+import { printPage } from './lib/print-page.mjs';
+import { rendered, revealed } from './lib/page-ready.mjs';
 import { GenerationTarget } from '../core/GenerationTarget.js';
 
 /**
@@ -225,35 +230,6 @@ function findBrowser() {
   return null;
 }
 
-/**
- * Run the browser without blocking the event loop.
- *
- * execFileSync would be simpler and would also deadlock: the page is served by
- * this same process, and a blocked loop cannot answer the request the browser
- * is waiting on.
- * @param {string} command - Browser binary
- * @param {string[]} args - Arguments, including --print-to-pdf and the URL
- * @returns {Promise<void>} Resolves when the file has been written
- */
-function print(command, args) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { stdio: 'ignore' });
-    const timer = setTimeout(() => {
-      child.kill('SIGKILL');
-      reject(new Error(`the browser did not finish printing within 120s`));
-    }, 120000);
-    child.on('error', (error) => {
-      clearTimeout(timer);
-      reject(error);
-    });
-    child.on('exit', (code) => {
-      clearTimeout(timer);
-      if (code === 0) resolve();
-      else reject(new Error(`the browser exited with ${code}`));
-    });
-  });
-}
-
 const browser = findBrowser();
 if (!browser) {
   console.error('audit-print: no browser found, so nothing was checked.');
@@ -271,22 +247,23 @@ await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 const port = server.address().port;
 const workspace = await mkdtemp(join(tmpdir(), 'mycv-print-'));
 const rows = [];
+let chrome;
 
 try {
+  // Printed through DevTools rather than --print-to-pdf, so the fonts the print stylesheet asks for have
+  // loaded before the page is laid out for paper (#143).
+  chrome = await openBrowser(browser, join(workspace, 'browser'));
+  await chrome.send('Page.enable');
   for (const layout of manifest.layouts) {
     const pdf = join(workspace, `${layout}.pdf`);
     process.stderr.write(`audit-print: printing ${layout}\u2026\n`);
-    await print(browser, [
-      '--headless',
-      '--disable-gpu',
-      '--no-sandbox',
-      '--hide-scrollbars',
-      '--run-all-compositor-stages-before-draw',
-      '--virtual-time-budget=8000',
-      '--no-pdf-header-footer',
-      `--print-to-pdf=${pdf}`,
-      `http://127.0.0.1:${port}/index.html?layout=${layout}&profile=${target.profile}&key=${key}`
-    ]);
+    const address = `http://127.0.0.1:${port}/index.html?layout=${layout}&profile=${target.profile}&lang=${target.locale}&key=${key}`;
+    await writeFile(
+      pdf,
+      await printPage(chrome, address, {
+        ready: [rendered(layout, '#name', profile.name, target.locale), revealed]
+      })
+    );
 
     const info = execFileSync('pdfinfo', [pdf], { encoding: 'utf8' });
     const text = execFileSync('pdftotext', [pdf, '-'], { encoding: 'utf8' });
@@ -295,6 +272,30 @@ try {
       execFileSync('pdftohtml', ['-xml', '-i', '-stdout', '-q', pdf], { encoding: 'utf8' }),
       typefacesFor(layout)
     );
+    // Drawing order, as PDFBox and Tika read by default, and the fonts a text extractor has to decode (#143).
+    const drawn = execFileSync('pdftotext', ['-raw', pdf, '-'], { encoding: 'utf8' });
+    const type3 = type3Fonts(execFileSync('pdffonts', [pdf], { encoding: 'utf8' }));
+    const glued = gluedPhrases(drawn, [
+      profile.name,
+      profile.title,
+      ...profile.relevant_experience.flatMap((job) => [job.title, job.company]),
+      ...profile.education.flatMap((entry) => [entry.degree, entry.school]),
+      ...profile.skills.map((group) => group.category)
+    ]);
+    // The order a reader meets the CV in, which the text layer has to give in both reading orders (#142).
+    // A section label is a heading, found only as a line of its own: a word in the body is not the section.
+    const anchors = [
+      profile.name,
+      profile.email,
+      { heading: labels.skills },
+      { heading: labels.experience },
+      ...profile.relevant_experience.map((job) => job.title),
+      { heading: labels.education },
+      ...profile.education.map((entry) => entry.degree),
+      { heading: labels.languages }
+    ];
+    const sections = { read: outOfOrder(text, anchors), drawn: outOfOrder(drawn, anchors) };
+    const images = imageCount(execFileSync('pdfimages', ['-list', pdf], { encoding: 'utf8' }));
     const flat = text.replace(/\s+/g, ' ');
     const pageCount = Number(info.match(/Pages:\s+(\d+)/)?.[1]);
 
@@ -365,7 +366,19 @@ try {
       // count and the measure. Every run has to be set in a face its layout
       // prints in: Inter embedded somewhere used to be enough, and Technical
       // Profile printed its name in Liberation Serif under a full score (#68).
-      intendedTypeface: fallback.length === 0
+      intendedTypeface: fallback.length === 0,
+      // Every font a TrueType or CID font, which extractors map to text without drawing it: Chrome prints
+      // a variable web font as Type 3, and several extractors have documented bugs with those.
+      noType3Fonts: type3.length === 0,
+      // Read in drawing order, the name, every title, employer, school and skill category keeps the
+      // spaces between its words: "GiovanniTrovato" is a name no search finds.
+      wordsSpacedInDrawingOrder: glued.length === 0,
+      // Name, contacts, skills, every role, then education and languages, as poppler reconstructs the
+      // page and as the PDF draws it: a column beside the first role put the degrees inside it.
+      sectionsInOrder: sections.read.length === 0,
+      sectionsInOrderDrawn: sections.drawn.length === 0,
+      // No portrait (the owner's decision in #144), and no picture of anything a parser should read.
+      noImages: images === 0
     };
 
     const passed = Object.values(checks).filter(Boolean).length;
@@ -376,13 +389,22 @@ try {
       checks,
       faint: faint.slice(0, 8),
       fallback: fallback.slice(0, 8),
+      type3,
+      glued,
+      sections,
+      images,
       margins
     });
   }
 } finally {
+  await chrome?.close();
   server.closeAllConnections?.();
   server.close();
-  await rm(workspace, { recursive: true, force: true });
+  // What is left behind is a temporary directory, not a result: say so, and let the checks stand. A browser
+  // profile can still be written to for a moment after the browser exits, as audit-screen found (#89).
+  await rm(workspace, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }).catch(
+    (error) => console.error(`audit-print: left ${workspace} behind — ${error.message}`)
+  );
 }
 
 const failures = rows.filter((row) => Object.values(row.checks).some((value) => !value));
@@ -407,7 +429,10 @@ const report = [
   'reading order, canonical hyphenated compounds, degree beside its school, every skill',
   'attached to its category, every role present, every word at 4.5:1 on paper, margins',
   `no narrower than ${MARGIN_FLOOR_MM}mm and symmetric within ${SIDE_TOLERANCE_MM}mm, a text layer carrying nothing`,
-  'the data did not write, and every run of text set in a typeface its layout prints in.'
+  'the data did not write, every run of text set in a typeface its layout prints in, no Type 3 font,',
+  'and, read in drawing order as PDFBox and Tika read, the name, titles, employers, schools and',
+  'skill categories with the spaces between their words, the sections in reading order both as',
+  'poppler reconstructs the page and as the PDF draws it, and no image.'
 ].join('\n');
 
 await writeReport(new URL(target.reportPath('PRINT_AUDIT.md'), projectUrl), `${report}\n`);
@@ -417,13 +442,17 @@ if (failures.length) {
   console.error('');
   console.error(
     JSON.stringify(
-      failures.map(({ layout, checks, faint, fallback }) => ({
+      failures.map(({ layout, checks, faint, fallback, type3, glued, sections, images }) => ({
         layout,
         failed: Object.entries(checks)
           .filter(([, value]) => !value)
           .map(([name]) => name),
         faint,
-        fallback
+        fallback,
+        type3,
+        glued,
+        sections,
+        images
       })),
       null,
       2
