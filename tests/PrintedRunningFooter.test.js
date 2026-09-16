@@ -315,12 +315,14 @@ describe('the running footer in print.css', () => {
   );
   const box = (body) => /@bottom-right\s*\{([^{}]*)\}/.exec(body)?.[1] ?? '';
 
-  // `:first` outranks a bare `@page`, so the renderer's rule, a bare `@page` after this file, cannot reach page 1.
-  test('page 1 carries no footer', () => {
+  // The renderer's rule is a bare `@page` written after this file. `:first` should outrank it, but Chrome 151 cascades
+  // page rules by their order alone: printed, a later bare rule put the footer on page 1 over an earlier `:first` one.
+  // Only an important declaration holds page 1 empty whatever order the two arrive in.
+  test('page 1 carries no footer, whatever rule comes after', () => {
     const first = pageRules.find(({ selector }) => selector === ':first');
 
     expect(first).toBeDefined();
-    expect(box(first.body)).toMatch(/(?:^|[;\s])content:\s*none\s*;/);
+    expect(box(first.body)).toMatch(/(?:^|[;\s])content:\s*none\s*!important\s*;/);
   });
 
   // A stylesheet that wrote a name would print one candidate's name on everyone's CV (#34).

@@ -105,11 +105,13 @@ html body * {
   }
 }
 
-/* Page 1 opens on the name and carries no footer. `:first` outranks a bare `@page`, so the renderer's rule, a bare
-   `@page` written after this file, cannot reach it whatever order the two arrive in. */
+/* Page 1 opens on the name and carries no footer. The renderer's rule is a bare `@page` written after this file, and
+   `:first` should outrank it; Chrome 151 cascades page rules by their order alone, and printed with a plain `content:
+   none` here, page 1 read "Giovanni Trovato · CV · 1/2". Important, the declaration holds page 1 empty whatever order
+   the two rules arrive in. */
 @page :first {
   @bottom-right {
-    content: none;
+    content: none !important;
   }
 }
 
