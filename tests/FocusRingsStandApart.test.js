@@ -24,27 +24,78 @@ const rules = (source) =>
     })
   );
 
-const tokens = (value = '') => [...value.matchAll(/var\((--[\w-]+)\)/g)].map(([, token]) => token);
+/** Every custom property the stylesheet defines, by name, as written (the last definition wins). */
+const definitions = (all) =>
+  new Map(
+    all.flatMap((rule) =>
+      Object.entries(rule.declarations).filter(([name]) => name.startsWith('--'))
+    )
+  );
 
-/** The last value a property takes for any of the selectors, as the cascade reads same-specificity rules in order. */
-const lastValue = (all, selectors, property) =>
+/**
+ * The colour tokens a value paints with, each followed through the custom properties it aliases to the last token
+ * named: `--t-focus: var(--t-blue-deep)` paints `--t-blue-deep` (the code review of #172).
+ */
+const tokens = (value = '', defined = new Map(), seen = new Set()) =>
+  [...value.matchAll(/var\((--[\w-]+)\)/g)].flatMap(([, token]) => {
+    const alias = defined.get(token);
+    if (seen.has(token) || !alias || !/var\(--/.test(alias)) return [token];
+    return tokens(alias, defined, new Set([...seen, token]));
+  });
+
+/**
+ * The value a property takes on a control, as the cascade picks it among the rules given: an important declaration over
+ * a normal one, then the more specific selector, then the later rule. Each of `outline` and `outline-color` sets the
+ * ring's colour, so both are candidates (the code review of #172: a later shorthand, or an `!important` on the shared
+ * rule, won in the browser while the check read an earlier longhand).
+ * @param {object[]} all - The stylesheet's rules
+ * @param {{ selector: string, rank: number }[]} selectors - The selectors that reach the control, most specific highest
+ * @param {string[]} properties - The properties that set the value
+ * @returns {string|undefined} The winning declaration's value
+ */
+const cascaded = (all, selectors, properties) =>
   all
-    .filter((rule) => rule.selectors.some((selector) => selectors.includes(selector)))
-    .map((rule) => rule.declarations[property])
-    .filter(Boolean)
-    .at(-1);
+    .flatMap((rule, order) =>
+      selectors
+        .filter(({ selector }) => rule.selectors.includes(selector))
+        .flatMap(({ rank }) =>
+          properties
+            .filter((property) => rule.declarations[property])
+            .map((property) => ({
+              value: rule.declarations[property],
+              important: /!important/.test(rule.declarations[property]),
+              rank,
+              order
+            }))
+        )
+    )
+    .sort((a, b) => a.important - b.important || a.rank - b.rank || a.order - b.order)
+    .at(-1)?.value;
 
-/** The ring a control's :focus-visible draws: its own rule's outline colour, or the skin's rule for its element. */
-const ringTokens = (all, skin, control, element) => {
-  const own = `body[data-layout='${skin}'] ${control}:focus-visible`;
-  const shared = `body[data-layout='${skin}'] ${element}:focus-visible`;
-  const colour =
-    lastValue(all, [own], 'outline-color') ??
-    lastValue(all, [own], 'outline') ??
-    lastValue(all, [shared], 'outline-color') ??
-    lastValue(all, [shared], 'outline');
-  return tokens(colour);
-};
+/** The ring a control's :focus-visible draws, from its own rule and from the skin's rule for its element. */
+const ringTokens = (all, skin, control, element) =>
+  tokens(
+    cascaded(
+      all,
+      [
+        { selector: `body[data-layout='${skin}'] ${control}:focus-visible`, rank: 2 },
+        { selector: `body[data-layout='${skin}'] ${element}:focus-visible`, rank: 1 }
+      ],
+      ['outline', 'outline-color']
+    ),
+    definitions(all)
+  );
+
+/** The fill a control paints, from `background` or `background-color`. */
+const fillTokens = (all, skin, control) =>
+  tokens(
+    cascaded(
+      all,
+      [{ selector: `body[data-layout='${skin}'] ${control}`, rank: 1 }],
+      ['background', 'background-color']
+    ),
+    definitions(all)
+  );
 
 const FILLED = [
   { control: ".layout-switcher a[aria-current='page']", element: 'a' },
@@ -56,7 +107,7 @@ const sameAsFill = (source) => {
   const all = rules(source);
   return ['spotlight', 'technical'].flatMap((skin) =>
     FILLED.flatMap(({ control, element }) => {
-      const fill = tokens(lastValue(all, [`body[data-layout='${skin}'] ${control}`], 'background'));
+      const fill = fillTokens(all, skin, control);
       const ring = ringTokens(all, skin, control, element);
       if (!fill.length || !ring.length) return [`${skin} ${control}: no fill or ring token found`];
       return ring.some((token) => fill.includes(token))
@@ -81,6 +132,35 @@ describe('a filled control’s focus ring', () => {
       'spotlight .print-button: ring --e-ember-deep on fill --e-ember --e-ember-deep',
       'technical .print-button: ring --t-blue-deep on fill --t-blue-deep'
     ]);
+  });
+
+  // The code review of #172 reverted the ring to the fill's colour three ways the first check read as fine.
+  test.each([
+    [
+      'a later outline shorthand on the control',
+      `body[data-layout='technical'] .print-button:focus-visible { outline: 2px solid var(--t-blue-deep); }`
+    ],
+    [
+      'an alias of the fill’s token',
+      `body[data-layout='technical'] { --t-focus: var(--t-blue-deep); }
+       body[data-layout='technical'] .print-button:focus-visible { outline-color: var(--t-focus); }`
+    ],
+    [
+      'an important ring on the shared rule',
+      `body[data-layout='technical'] a:focus-visible { outline: 2px solid var(--t-blue-deep) !important; }`
+    ]
+  ])('the check finds the fill’s colour brought back by %s', (how, rule) => {
+    expect(sameAsFill(`${css}\n${rule}`)).toContain(
+      'technical .print-button: ring --t-blue-deep on fill --t-blue-deep'
+    );
+  });
+
+  test('a fill written as background-color is read too', () => {
+    expect(
+      sameAsFill(
+        `${css}\nbody[data-layout='spotlight'] .print-button { background-color: var(--e-ink); }`
+      )
+    ).toContain('spotlight .print-button: ring --e-ink on fill --e-ink');
   });
 
   test('is never the colour of the fill it surrounds, in either skin', () => {
