@@ -6,13 +6,17 @@ import { SectionLexicon } from '../domain/SectionLexicon.js';
 const EMAIL = /[\w.+-]+@[\w-]+\.[\w.-]+/g;
 const URL = /(?:https?:\/\/)?(?:www\.)?(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s·|]*)?/gi;
 const SEPARATORS = /\s*[·|•]\s*/;
+const YEAR = String.raw`(?:19|20)\d{2}`;
+const SHORT_YEAR = String.raw`(?:${YEAR}|\d{2})`;
 // An academic term DateRange has no notation for: "WS 2014/15 – SS 2016", "Wintersemester 2014", "Fall 2014" (#187).
 // A term word opens it, since a bare year is DateRange's and a year alone is no period: "Founded 2005" is not one.
-const TERM = String.raw`(?:WS|SS|WiSe|SoSe|Wintersemester|Sommersemester|Fall|Spring|Summer|Autumn|Winter|Herbst|Frühjahr|Sommer)\.?\s+(?:19|20)\d{2}(?:\/\d{2})?`;
-const ACADEMIC_TERM = new RegExp(
-  String.raw`^${TERM}(?:\s*[–-]\s*(?:${TERM}|(?:19|20)\d{2}))?$`,
-  'i'
-);
+// A season may be named a semester or a term, "Fall Semester 2014", and the academic year a winter semester spans is
+// written "2014/15" or "2014/2015" (#192). Any other word after the season is not a term: "Summer School 2019".
+// A semester abbreviation may take its year with no space and in two digits, "WS16/17", "SS16"; a word keeps it whole.
+// A term may close on a full stop, "Fall 2014.", and the period is kept as written.
+const SEASON = String.raw`(?:Fall|Spring|Summer|Autumn|Winter|Herbst|Frühjahr|Sommer)(?:\s+(?:Semester|Term))?`;
+const TERM = String.raw`(?:(?:WS|SS|WiSe|SoSe)\.?\s*${SHORT_YEAR}|(?:Wintersemester|Sommersemester|${SEASON})\.?\s+${YEAR})(?:\/${SHORT_YEAR})?`;
+const ACADEMIC_TERM = new RegExp(String.raw`^${TERM}(?:\s*[–-]\s*(?:${TERM}|${YEAR}))?\.?$`, 'i');
 
 /**
  * The worst-case parser: what a stranger recovers from the text and nothing else.
