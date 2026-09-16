@@ -86,6 +86,47 @@ describe('the number moves with the damage', () => {
   });
 });
 
+// A degree graded partial costs half of one of education's two fields per degree: 0.5 of 80. Rounded, the report
+// read "Recoverability 80/80" over a document that had lost it (#186).
+describe('a loss is never rounded up to full marks', () => {
+  const clean = diffOf('clean-english');
+  const partial = {
+    ...clean,
+    education: clean.education.map((entry, index) =>
+      index === 0 ? { ...entry, degree: 'partial' } : entry
+    )
+  };
+  const headline = (diff) =>
+    AtsReport.render(AtsScore.compose(diff), [{ artefact: 'x.pdf', diff }])
+      .split('\n')
+      .find((line) => line.includes('Recoverability') && line.includes('/'));
+
+  test('half a degree costs half a point, and the number keeps the half', () => {
+    expect(AtsScore.compose(clean).points).toBe(80);
+    expect(AtsScore.compose(partial).points).toBe(79.5);
+  });
+
+  test('the headline prints the fraction, and a whole number as a whole number', () => {
+    expect(headline(partial)).toMatch(/^\*\*Recoverability 79\.5\/80\*\*/);
+    expect(headline(clean)).toMatch(/^\*\*Recoverability 80\/80\*\*/);
+  });
+
+  test('a fraction is cut to one decimal, never rounded, so nothing short of full marks reads as full', () => {
+    expect(AtsReport.figure(80)).toBe('80');
+    expect(AtsReport.figure(79.5)).toBe('79.5');
+    expect(AtsReport.figure(79.96)).toBe('79.9');
+    expect(AtsReport.figure(73 + 1 / 3)).toBe('73.3');
+    expect(AtsReport.figure(0)).toBe('0');
+  });
+
+  // No loss this model grades is smaller than a part's weight split over its fields, so a millionth is noise.
+  test("a sum's floating-point noise neither costs a tenth nor hides one", () => {
+    expect(AtsReport.figure(79.49999999999999)).toBe('79.5');
+    expect(AtsReport.figure(79.99999999999999)).toBe('80');
+    expect(AtsReport.figure(79.9)).toBe('79.9');
+  });
+});
+
 describe('the report says what the number is not', () => {
   const score = scoreOf('clean-english');
   const markdown = AtsReport.render(score, [
@@ -95,7 +136,7 @@ describe('the report says what the number is not', () => {
   // The name matters: every commercial checker sells an "ATS score", and this is not one.
   test('it never calls itself an ATS score', () => {
     expect(markdown).not.toMatch(/ATS score/i);
-    expect(markdown).toMatch(/Recoverability \d+\/\d+/);
+    expect(markdown).toMatch(/Recoverability \d+(\.\d)?\/\d+/);
   });
 
   // The score itself is never a percentage or a grade. Percentages elsewhere in the page

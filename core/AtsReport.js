@@ -20,7 +20,7 @@ export class AtsReport {
     return [
       '# Recoverability',
       '',
-      `**Recoverability ${score.points}/${score.denominator}**${AtsReport.unscoredNote(score)}`,
+      `**Recoverability ${AtsReport.figure(score.points)}/${score.denominator}**${AtsReport.unscoredNote(score)}`,
       '',
       ...AtsReport.disclaimer(score),
       '',
@@ -101,6 +101,20 @@ export class AtsReport {
       );
     }
     return lines;
+  }
+
+  /**
+   * Points as the report prints them: a whole number as one, a fraction cut to one decimal.
+   *
+   * Cut, never rounded: rounding printed a degree graded partial, 79.5, as full marks (#186), and
+   * 79.96 would still round to 80. A millionth is added before cutting, because a sum of shares
+   * can come out a hair under its value, and no loss this model grades is that small.
+   * @param {number} points - A composed score's points
+   * @returns {string} The figure
+   */
+  static figure(points) {
+    const cut = Math.floor(points * 10 + 1e-6) / 10;
+    return Number.isInteger(cut) ? String(cut) : cut.toFixed(1);
   }
 
   static unscoredNote(score) {

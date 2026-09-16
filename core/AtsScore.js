@@ -51,6 +51,9 @@ export class AtsScore {
    * A band with no input is **unscored**, and the denominator drops. It is never rescaled to
    * 100: rescaling lets a missing input look like a pass, which is the mistake the grayscale
    * check made when its filename pattern matched no files for weeks.
+   *
+   * The points are the sum as computed, never rounded: rounded, a degree graded partial cost
+   * half a point and the report still read 80/80 (#186). The report decides how to print it.
    * @param {Object} diff - A RecoveryDiff result
    * @param {Object|null} [advert] - An advert match, when one was given
    * @returns {Object} `{ points, denominator, bands, weights }`
@@ -65,7 +68,7 @@ export class AtsScore {
 
     const scored = Object.entries(bands).filter(([, band]) => band !== null);
     return {
-      points: Math.round(scored.reduce((total, [, band]) => total + band.points, 0)),
+      points: scored.reduce((total, [, band]) => total + band.points, 0),
       denominator: scored.reduce((total, [name]) => total + BANDS[name].weight, 0),
       unscored: Object.entries(bands)
         .filter(([, band]) => band === null)
