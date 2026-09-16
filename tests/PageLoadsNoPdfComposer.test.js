@@ -76,8 +76,8 @@ function withoutComments(source) {
       char === '/' &&
       (last === '' ||
         /[(,=:[!&|?{};+\-*%<>~^]/.test(last) ||
-        /\b(?:return|typeof|case|in|of|void|yield|await|throw|else|do|delete|instanceof|new)$/.test(
-          out.trimEnd()
+        /(?:^|[^.\w$])(?:return|typeof|case|in|of|void|yield|await|throw|else|do|delete|instanceof|new)\s*$/.test(
+          out.slice(-24)
         ))
     ) {
       state = 'pattern';
@@ -248,6 +248,23 @@ describe('reading a module graph', () => {
       ]);
     }
   );
+
+  test('reads a division after a property named like one of those keywords', () => {
+    const tricky = {
+      'entry.js': [
+        'const share = totals.delete / 2;',
+        "/* once loaded with import('./ghost.js') */",
+        "import './after.js';"
+      ].join('\n'),
+      'after.js': ''
+    };
+    const read = (path) => {
+      if (!(path in tricky)) throw new Error(`no module ${path}`);
+      return tricky[path];
+    };
+
+    expect(moduleGraph('entry.js', read).sort()).toEqual(['after.js', 'entry.js']);
+  });
 
   test('follows every import form the browser follows, through parent directories', () => {
     expect(moduleGraph('entry.js', read).sort()).toEqual(
