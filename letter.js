@@ -52,7 +52,7 @@ const app = new CVApplication(
   localizer,
   i18n,
   new ErrorRenderer(),
-  (data) => LetterContent.of(data, { t: (key) => i18n.t(key), locale })
+  (data) => LetterContent.of(data, { t: (key, values) => i18n.t(key, values), locale })
 );
 app.registerRenderer('letter', new LetterRenderer());
 await app.initialize(document);

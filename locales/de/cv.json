@@ -18,7 +18,11 @@
   },
   "letter": {
     "subject": "Bewerbung",
-    "salutationNamed": "Sehr geehrte(r)",
+    "salutationMs": "Sehr geehrte Frau {{surname}}",
+    "salutationMr": "Sehr geehrter Herr {{surname}}",
+    "salutationMsTitled": "Sehr geehrte Frau {{title}} {{surname}}",
+    "salutationMrTitled": "Sehr geehrter Herr {{title}} {{surname}}",
+    "salutationNeutral": "Guten Tag {{name}}",
     "salutationAnonymous": "Sehr geehrte Damen und Herren",
     "closing": "Mit freundlichen Grüßen",
     "attachments": "Anlagen"

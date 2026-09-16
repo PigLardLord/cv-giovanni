@@ -139,7 +139,13 @@ describe('the cover letter printed from its page', () => {
 // runs it can see which profile to correct (the review of #151).
 describe("the build's warnings about a letter", () => {
   const letter = {
-    recipient: { company: 'Beispiel GmbH', name: 'Anna Schmidt', address: ['Musterstraße 12'] },
+    recipient: {
+      company: 'Beispiel GmbH',
+      name: 'Anna Schmidt',
+      form: 'ms',
+      surname: 'Schmidt',
+      address: ['Musterstraße 12']
+    },
     subject: 'Application',
     opening: 'I write.',
     body: ['About the role.'],
@@ -165,6 +171,16 @@ describe("the build's warnings about a letter", () => {
     expect(letterWarnings(path, crowded)).toEqual([
       'warning: the cover letter in applications/acme/en.json — opening: missing',
       'warning: the cover letter in applications/acme/en.json — recipient: 7 lines, the address zone holds 6'
+    ]);
+  });
+
+  // A named recipient nobody said how to address is greeted neutrally, and the author hears which field to fill (#174).
+  test('names a recipient greeted neutrally for want of a form of address', () => {
+    const { form, ...recipient } = letter.recipient;
+
+    expect(form).toBe('ms');
+    expect(letterWarnings(path, { ...data, letter: { ...letter, recipient } })).toEqual([
+      'warning: the cover letter in applications/acme/en.json — recipient.form: missing'
     ]);
   });
 });

@@ -1,19 +1,29 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
+import i18next from '../vendor/i18next/i18next.js';
 import { LetterContent } from '../core/LetterContent.js';
+import { catalogueTranslator } from '../scripts/lib/printed-letter.mjs';
 
 // The words of a cover letter, decided once and read by the page that prints it and by the audit that checks
 // the print (#151). pdfmake's letter layout decided them beside its geometry in points until #153; these are its
 // behavioural tests, carried over to the module that now decides.
 const strings = {
   'cv:letter.subject': 'Application',
-  'cv:letter.salutationNamed': 'Dear',
+  'cv:letter.salutationMs': 'Dear Ms {{surname}}',
+  'cv:letter.salutationMr': 'Dear Mr {{surname}}',
+  'cv:letter.salutationMsTitled': 'Dear {{title}} {{surname}}',
+  'cv:letter.salutationMrTitled': 'Dear {{title}} {{surname}}',
+  'cv:letter.salutationNeutral': 'Dear {{name}}',
   'cv:letter.salutationAnonymous': 'Dear Hiring Team',
   'cv:letter.closing': 'Kind regards,',
   'cv:letter.attachments': 'Enclosed',
   'ui:letter.absent': 'This profile carries no cover letter.'
 };
-const t = (key) => strings[key] || key;
+const t = (key, values = {}) =>
+  (strings[key] || key).replace(
+    /\{\{(\w+)\}\}/g,
+    (placeholder, name) => values[name] ?? placeholder
+  );
 
 const letter = {
   recipient: {
@@ -170,8 +180,31 @@ describe('what the letter says', () => {
 });
 
 describe('the salutation comes from the catalogue, the name from the model', () => {
-  test('a named recipient is addressed by name', () => {
+  const greeted = (recipient) =>
+    words(profile({ recipient: { company: 'ActAI', name: 'Anna Weber', ...recipient } }))
+      .salutation;
+
+  // The neutral form, and the build names the form of address as missing (#174).
+  test('a named recipient nobody said how to address is greeted by name', () => {
     expect(words(profile()).salutation).toBe('Dear Anna Weber,');
+  });
+
+  test('a recipient with a form of address is greeted by surname', () => {
+    expect(greeted({ form: 'ms', surname: 'Weber' })).toBe('Dear Ms Weber,');
+    expect(greeted({ name: 'Jonas Weber', form: 'mr', surname: 'Weber' })).toBe('Dear Mr Weber,');
+  });
+
+  test('a title takes the form the catalogue gives a titled recipient', () => {
+    expect(greeted({ form: 'ms', title: 'Dr', surname: 'Weber' })).toBe('Dear Dr Weber,');
+  });
+
+  // Splitting "Anna Weber" would be guessing: without a surname the letter greets the name as written.
+  test('a form of address without a surname is greeted by name, never by a surname cut from it', () => {
+    expect(greeted({ form: 'ms' })).toBe('Dear Anna Weber,');
+  });
+
+  test('the neutral form greets the name as written, and leaves the title to it', () => {
+    expect(greeted({ form: 'neutral', title: 'Dr', surname: 'Weber' })).toBe('Dear Anna Weber,');
   });
 
   // Nothing invents a name. Without one the letter opens the way the catalogue says.
@@ -294,8 +327,8 @@ describe('what travels with the letter', () => {
 // The catalogues the page loads, read as i18next reads a namespaced key. No profile the repository publishes is in
 // German, so a German letter is checked here, on the words, rather than on a print.
 describe('in the catalogues the page loads', () => {
-  const catalogue = (locale) => {
-    const namespaces = Object.fromEntries(
+  const namespacesOf = (locale) =>
+    Object.fromEntries(
       ['ui', 'cv'].map((namespace) => [
         namespace,
         JSON.parse(
@@ -303,10 +336,19 @@ describe('in the catalogues the page loads', () => {
         )
       ])
     );
-    return (key) => {
-      const [namespace, path] = key.split(':');
-      return path.split('.').reduce((value, part) => value?.[part], namespaces[namespace]) ?? key;
-    };
+  // The print audit reads the catalogues with a translator of its own, and expects on the paper what it composes.
+  const catalogue = (locale) => catalogueTranslator(namespacesOf(locale));
+  // The page reads them with i18next, configured as core/I18nService.js configures it.
+  const page = async (locale) => {
+    const instance = i18next.createInstance();
+    await instance.init({
+      lng: locale,
+      resources: { [locale]: namespacesOf(locale) },
+      ns: ['ui', 'cv'],
+      defaultNS: 'ui',
+      interpolation: { escapeValue: false }
+    });
+    return (key, values) => instance.t(key, values);
   };
 
   test('a German letter opens, closes and lists its attachments in German', () => {
@@ -321,10 +363,69 @@ describe('in the catalogues the page loads', () => {
     expect(content).toMatchObject({
       date: 'Bad Liebenstein, 9. September 2026',
       subject: 'Bewerbung',
-      salutation: 'Sehr geehrte(r) Anna Weber,',
+      salutation: 'Guten Tag Anna Weber,',
       closing: 'Mit freundlichen Grüßen',
       attachments: 'Anlagen: Lebenslauf, Zeugnisse'
     });
+  });
+
+  // The German reader does not accept "Sehr geehrte(r)" (#174): the form agrees with the person the author marked, or
+  // the letter greets them neutrally. Both translators, so the page cannot print a line the audit does not expect.
+  const anna = { company: 'Beispiel GmbH', name: 'Anna Schmidt', surname: 'Schmidt' };
+  const jonas = { company: 'Beispiel GmbH', name: 'Jonas Schmidt', surname: 'Schmidt' };
+  test.each([
+    ['de', 'Frau, by surname', 'Sehr geehrte Frau Schmidt,', { ...anna, form: 'ms' }],
+    ['de', 'Herr, by surname', 'Sehr geehrter Herr Schmidt,', { ...jonas, form: 'mr' }],
+    [
+      'de',
+      'a titled Frau',
+      'Sehr geehrte Frau Dr. Schmidt,',
+      { ...anna, form: 'ms', title: 'Dr.' }
+    ],
+    [
+      'de',
+      'a titled Herr',
+      'Sehr geehrter Herr Prof. Dr. Schmidt,',
+      { ...jonas, form: 'mr', title: 'Prof. Dr.' }
+    ],
+    ['de', 'a neutral form', 'Guten Tag Anna Schmidt,', { ...anna, form: 'neutral' }],
+    ['de', 'no form of address', 'Guten Tag Anna Schmidt,', anna],
+    ['de', 'nobody named', 'Sehr geehrte Damen und Herren,', { company: 'Beispiel GmbH' }],
+    ['en', 'Ms, by surname', 'Dear Ms Schmidt,', { ...anna, form: 'ms' }],
+    ['en', 'Mr, by surname', 'Dear Mr Schmidt,', { ...jonas, form: 'mr' }],
+    ['en', 'a titled Ms', 'Dear Dr Schmidt,', { ...anna, form: 'ms', title: 'Dr' }],
+    ['en', 'a titled Mr', 'Dear Dr Schmidt,', { ...jonas, form: 'mr', title: 'Dr' }],
+    ['en', 'a neutral form', 'Dear Anna Schmidt,', { ...anna, form: 'neutral' }],
+    ['en', 'no form of address', 'Dear Anna Schmidt,', anna],
+    ['en', 'nobody named', 'Dear Hiring Team,', { company: 'Beispiel GmbH' }]
+  ])('in %s, %s is greeted "%s"', async (locale, what, salutation, recipient) => {
+    const data = profile({ recipient });
+
+    expect(LetterContent.of(data, { t: catalogue(locale), locale }).letter.salutation).toBe(
+      salutation
+    );
+    expect(LetterContent.of(data, { t: await page(locale), locale }).letter.salutation).toBe(
+      salutation
+    );
+  });
+
+  test('no catalogue words a person with a bracketed ending', () => {
+    const bracketed = [];
+    const walk = (node, path) => {
+      if (typeof node === 'string') {
+        if (/\p{L}\((?:r|n|e|in|innen)\)/u.test(node)) bracketed.push(`${path}: ${node}`);
+      } else if (node && typeof node === 'object') {
+        Object.entries(node).forEach(([key, value]) => walk(value, `${path}.${key}`));
+      }
+    };
+    for (const locale of readdirSync(new URL('../locales/', import.meta.url))) {
+      for (const file of readdirSync(new URL(`../locales/${locale}/`, import.meta.url))) {
+        const url = new URL(`../locales/${locale}/${file}`, import.meta.url);
+        walk(JSON.parse(readFileSync(url, 'utf8')), `${locale}/${file}`);
+      }
+    }
+
+    expect(bracketed).toEqual([]);
   });
 
   test.each([
