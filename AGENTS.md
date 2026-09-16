@@ -29,9 +29,10 @@ rule you discover by pushing.
 **The PDF a recruiter downloads is the page, printed.** `npm run build:pdf` serves the site to a
 headless Chrome and prints each layout through `print.css`, so the page and the PDF share one DOM,
 one design and one set of words. They used to be two artefacts: the page through `renderers/`, and a
-PDF composed from the model by `adapters/PdfLayout.js` in a design of its own. They drifted — the PDF
-carried career highlights and an as-of month the page never showed (#148) — and the owner chose one
-CV over two (#144). A cover letter is a page too, `letter.html`, printed the same way (#151).
+PDF pdfmake composed from the model in a design of its own. They drifted — the PDF carried career
+highlights and an as-of month the page never showed (#148) — and the owner chose one CV over two
+(#144). A cover letter is a page too, `letter.html`, printed the same way (#151), and pdfmake was
+removed once it had no document left to write (#153).
 
 These rules outlived `docs/ROADMAP.md`, which described milestones that GitHub now tracks. What
 remains of that file's unfinished work is filed under the milestone _Carried over from the old
@@ -142,9 +143,10 @@ A ticket can pass `codex-cli` on the diff and still ship a CV that dies in a tex
 ### When the product review runs
 
 Extend step 7 with a product review whenever the ticket's diff touches what the CV says or how
-it renders: `profiles/`, `locales/`, `renderers/`, `index.html`, `style.css`, `layouts.css`,
-`print.css`, `core/PdfExporter.js`, `core/CvFiles.js` (the name the recruiter's inbox receives),
-`adapters/PdfDesignSystem.js`, `adapters/LayoutThemeRegistry.js`, and the cover letter's `letter.html`,
+it renders: `profiles/`, `locales/`, `renderers/`, `domain/EntryLines.js` (the lines they write),
+`adapters/SwiftSourceLayout.js` (Nerd Mode's source view), `index.html`, `style.css`, `layouts.css`,
+`design-glacier.css`, `print.css` (the PDF is the page printed through it), `vendor/fonts/`,
+`core/CvFiles.js` (the name the recruiter's inbox receives), and the cover letter's `letter.html`,
 `letter.css`, `core/LetterContent.js` and `renderers/LetterRenderer.js` (#151).
 
 A ticket touching only build tooling, scripts or tests does not need it — say that it was
@@ -348,9 +350,8 @@ room each page has left above its foot, and marks a last page with less than one
 text free, as a warning and never a failure: the page count is the gate, and the warning is the
 notice that it is close (#162). A check on the stylesheet passed a page that printed a line of
 white on white. `npm run audit:screen` reads what a reader
-copies off the screen, and the page's controls. `npm run audit:pdf` scored the twelve variants
-pdfmake composed; nothing runs it any more, and it goes with pdfmake (#153). `npm run verify:pdf`
-builds, then runs the print and ATS audits: run it before claiming the document is sound.
+copies off the screen, and the page's controls. `npm run verify:pdf` builds, then runs the print and
+ATS audits: run it before claiming the document is sound.
 
 **The CV is spelled in its locale, offline.** `tests/CvIsSpelledRight.test.js` reads every published
 profile and every catalogue of its locale (the labels, the page's words, the print's) against a
@@ -520,8 +521,8 @@ Settled on #144 by the owner, and not to be undone by someone reclaiming space:
 
 ## The cover letter
 
-Settled on #151 by the owner: one system for both documents a recruiter receives, so pdfmake can go
-(#153). A letter is far simpler than a CV, which kept the cost of re-expressing DIN 5008 small.
+Settled on #151 by the owner: one system for both documents a recruiter receives, so pdfmake could go,
+and did (#153). A letter is far simpler than a CV, which kept the cost of re-expressing DIN 5008 small.
 
 - **A page, printed by Chrome.** `letter.html?profile=<name>&lang=<locale>&layout=<layout>` renders
   the `letter` a tailored profile carries, and `npm run build:pdf` prints it beside each layout's CV,
@@ -537,13 +538,13 @@ Settled on #151 by the owner: one system for both documents a recruiter receives
   from the bottom: the return line sits at its foot in 8pt. Its lower 27.3mm, the Anschriftzone, from
   62.7mm to 90mm, holds the recipient in at most six lines of 10pt at 4.5mm. The date follows,
   right-aligned, with the reference beneath it, then the subject: at 98.46mm when the date stands
-  alone, lower when a reference joins it, rather than overlapping them. pdfmake's
-  `adapters/LetterLayout.js` had put the recipient at 45mm, where a window envelope does not show it;
-  the review of #151 found it against the standard. Nothing is positioned, floated or reordered by a
-  grid, so the text layer gives the letter in the order a reader meets it, in both of the orders a
-  parser reads. Measured on a probe letter with poppler: the text's left edge at 24.1mm, the return
-  line 59.2–62.6mm from the top, the recipient's five lines 62.7–85.0mm, the date and reference
-  90.6–99.2mm, the subject's glyphs from 102.5mm, one page.
+  alone, lower when a reference joins it, rather than overlapping them. pdfmake's letter layout had
+  put the recipient at 45mm, where a window envelope does not show it; the review of #151 found it
+  against the standard. Nothing is positioned, floated or reordered by a grid, so the text layer
+  gives the letter in the order a reader meets it, in both of the orders a parser reads. Measured on
+  a probe letter with poppler: the text's left edge at 24.1mm, the return line 59.2–62.6mm from the
+  top, the recipient's five lines 62.7–85.0mm, the date and reference 90.6–99.2mm, the subject's
+  glyphs from 102.5mm, one page.
 - **Inter from its static TrueType files, and no tracking,** as the CV prints, for the same reasons
   (#143). `letter.css` declares only the faces the letter prints in and never loads
   `vendor/fonts/fonts.css`. Impact Spotlight sets the sender's name in Instrument Serif, as
@@ -557,6 +558,14 @@ Settled on #151 by the owner: one system for both documents a recruiter receives
   both within a DL window envelope's window, 20–110mm across; a line outside is named with where it
   is. The sides are not compared, as a CV's are: form B is asymmetric by design. `npm run audit:ats`
   keeps asking a `-cover` file only whether the recipient and the subject survive extraction.
+- **The salutation follows the form of address the author writes (#174),** never one inferred from a
+  first name. The recipient carries `form` — `ms`, `mr` or `neutral`, codes the catalogue words in
+  each language — with `surname` and an optional `title` written as the letter's language writes
+  it: `ms` and `mr` greet by title and surname ("Sehr geehrte Frau Dr. Schmidt,", "Dear Dr Schmidt,"),
+  `neutral` greets `name` as the address writes it ("Guten Tag Anna Schmidt,"), and nobody named
+  gets the anonymous opening. A named recipient without a form, or a form without the surname it
+  needs, is greeted neutrally, since cutting a surname from a name is guessing, and
+  `CoverLetter.missing` names the field so the build warns.
 - **The build warns first.** A recipient past six lines runs out of the address zone onto the date's
   row, and the audit fails it; a letter missing a field it needs is weaker, and the audit may not see
   it. `CoverLetter.problems` names both — each field `missing` names, and a recipient longer than
@@ -574,5 +583,3 @@ Settled on #151 by the owner: one system for both documents a recruiter receives
   `--profile`, then both audits with the same one. The unit tests hold the words, the renderer, the
   file names and the audit's rules; nothing holds the printed letter but that run. That is a limit,
   and it is stated here so nobody reads a green CI as a checked letter.
-- **pdfmake's letter stays until #153,** unused: `core/LetterExporter.js`, `adapters/LetterLayout.js`,
-  their tests and `audit-pdfs`'s letter checks. Nothing runs them.

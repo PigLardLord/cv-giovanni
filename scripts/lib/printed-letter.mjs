@@ -39,17 +39,21 @@ export function letterAnchors(letter) {
 }
 
 /**
- * A translator over the catalogues the page loads, reading `namespace:path.to.key` as i18next does, and giving back
- * the key it cannot find, as i18next does. The audit composes the letter's words from the same catalogues the
- * printed page was written in.
+ * A translator over the catalogues the page loads, reading `namespace:path.to.key` as i18next does, filling each
+ * `{{placeholder}}` it is given a value for and leaving the rest as written, and giving back the key it cannot find,
+ * all as i18next does. The audit composes the letter's words from the same catalogues the printed page was written in,
+ * and a salutation greets by surname (#174).
  * @param {Record<string, object>} catalogues - Each namespace's catalogue, e.g. `{ cv, ui }`
- * @returns {(key: string) => string} The translator
+ * @returns {(key: string, values?: Record<string, string>) => string} The translator
  */
 export function catalogueTranslator(catalogues) {
-  return (key) => {
+  return (key, values = {}) => {
     const [namespace, path] = key.includes(':') ? key.split(':') : ['ui', key];
     const value = path.split('.').reduce((node, part) => node?.[part], catalogues[namespace]);
-    return typeof value === 'string' ? value : key;
+    if (typeof value !== 'string') return key;
+    return value.replace(/\{\{\s*([\w.-]+)\s*\}\}/g, (placeholder, name) =>
+      Object.hasOwn(values, name) && values[name] != null ? String(values[name]) : placeholder
+    );
   };
 }
 

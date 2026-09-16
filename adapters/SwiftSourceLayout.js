@@ -1,8 +1,8 @@
 /**
  * How the CV reads as a Swift file, for Nerd Mode on screen — and what that file's #Preview shows.
  *
- * The sibling of `adapters/PdfLayout.js` for a different surface: it turns the profile into
- * lines of tokens, and `renderers/SourceRenderer.js` only writes them into the page. Every token
+ * It turns the profile into lines of tokens, and `renderers/SourceRenderer.js` only writes them
+ * into the page. Every token
  * is one of two things, and the difference is the whole design:
  *
  * - `{ code }` is syntax — a keyword, a quote, a bracket, an argument label. The renderer never

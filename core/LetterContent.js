@@ -7,8 +7,8 @@ import { PlaceLexicon } from '../domain/PlaceLexicon.js';
  *
  * The letter is a page printed by Chrome, as the CV is, and two readers need its words: `letter.html`, which
  * writes them, and the print audit, which checks that they reached the paper in that order. Both ask here, so
- * the audit cannot expect a sentence the page never wrote. pdfmake's `adapters/LetterLayout.js` made the same
- * decisions beside its geometry in points; it stays, unused, until pdfmake goes (#153).
+ * the audit cannot expect a sentence the page never wrote. pdfmake's letter layout made the same decisions beside
+ * its geometry in points, until the letter became a page (#151).
  *
  * What is decided here is what the letter says, never how it looks: the geometry of DIN 5008 is `letter.css`'s.
  * Nothing is invented. A recipient line the data does not write is not printed, a letter the data does not date
@@ -26,7 +26,8 @@ export class LetterContent {
 
   /**
    * @param {object} data - The profile, its `letter` included
-   * @param {{ t: (key: string) => string, locale: string }} options - The catalogue and the letter's language
+   * @param {{ t: (key: string, values?: object) => string, locale: string }} options - The catalogue, which fills
+   *   `{{placeholders}}` from the values as i18next does, and the letter's language
    * @returns {{ title: string, notice: string, letter: object|null }} The document's title, and either the
    *   letter's words or, for a profile without one, the notice the page shows instead
    */
@@ -56,9 +57,7 @@ export class LetterContent {
         date: dateLine(letter.date, identity.location, locale),
         reference: letter.reference,
         subject,
-        salutation: letter.addressee
-          ? `${t('cv:letter.salutationNamed')} ${letter.addressee},`
-          : `${t('cv:letter.salutationAnonymous')},`,
+        salutation: salutation(letter.greeting, t),
         paragraphs: [letter.opening, ...letter.body].filter(Boolean),
         closingSentence: letter.closing,
         closing: t('cv:letter.closing'),
@@ -69,6 +68,27 @@ export class LetterContent {
       }
     };
   }
+}
+
+/**
+ * The catalogue's wording for each form of address, and for a titled recipient, whose title may join the form, as
+ * German's "Frau Dr." does, or take its place, as English's "Dr" does. The neutral form greets the name as the address
+ * writes it, so it has no titled wording: a title meant there belongs in the name.
+ */
+const SALUTATIONS = {
+  ms: { plain: 'cv:letter.salutationMs', titled: 'cv:letter.salutationMsTitled' },
+  mr: { plain: 'cv:letter.salutationMr', titled: 'cv:letter.salutationMrTitled' },
+  neutral: { plain: 'cv:letter.salutationNeutral' },
+  anonymous: { plain: 'cv:letter.salutationAnonymous' }
+};
+
+/**
+ * The salutation for the form the model resolved (#174), worded by the catalogue and filled with the recipient's names.
+ * Nothing here infers a form from a name: which form applies, and what is missing when none does, is the model's.
+ */
+function salutation({ form, name, surname, title }, t) {
+  const { plain, titled = plain } = SALUTATIONS[form];
+  return `${t(title ? titled : plain, { name, surname, title })},`;
 }
 
 /** The parts present, joined the way a letterhead joins them. */

@@ -17,11 +17,6 @@ export class GenerationTarget {
     this.outDir = outDir;
   }
 
-  /** `<outDir>/qa` — the twelve variants nobody sends, kept beside the three that ship. */
-  get qaDir() {
-    return `${this.outDir}/qa`;
-  }
-
   /** What the page reads to know which downloads exist. */
   get manifestPath() {
     return `${this.outDir}/manifest.json`;
@@ -38,7 +33,7 @@ export class GenerationTarget {
 
   /**
    * Where an audit's markdown belongs.
-   * @param {string} name - Report filename, e.g. `PDF_AUDIT.md`
+   * @param {string} name - Report filename, e.g. `PRINT_AUDIT.md`
    * @returns {string} Path relative to the project root
    */
   reportPath(name) {

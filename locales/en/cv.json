@@ -21,7 +21,11 @@
   },
   "letter": {
     "subject": "Application",
-    "salutationNamed": "Dear",
+    "salutationMs": "Dear Ms {{surname}}",
+    "salutationMr": "Dear Mr {{surname}}",
+    "salutationMsTitled": "Dear {{title}} {{surname}}",
+    "salutationMrTitled": "Dear {{title}} {{surname}}",
+    "salutationNeutral": "Dear {{name}}",
     "salutationAnonymous": "Dear Hiring Team",
     "closing": "Kind regards,",
     "attachments": "Enclosed"

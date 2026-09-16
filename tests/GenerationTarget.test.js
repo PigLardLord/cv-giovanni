@@ -37,22 +37,23 @@ describe('GenerationTarget', () => {
     expect(target.outDir).toBe('/tmp/x');
   });
 
-  test('the QA variants and the manifest sit under the output directory', () => {
+  test('the manifest sits under the output directory', () => {
     const target = GenerationTarget.fromArguments(['--out=build']);
 
-    expect(target.qaDir).toBe('build/qa');
     expect(target.manifestPath).toBe('build/manifest.json');
   });
 
   // The committed matrix must describe the CV that ships, not whichever application was
   // audited last. Auditing a tailored profile writes its report beside that profile.
   test('a report lands in docs/ only for the published CV', () => {
-    expect(GenerationTarget.fromArguments([]).reportPath('PDF_AUDIT.md')).toBe('docs/PDF_AUDIT.md');
+    expect(GenerationTarget.fromArguments([]).reportPath('PRINT_AUDIT.md')).toBe(
+      'docs/PRINT_AUDIT.md'
+    );
     expect(
       GenerationTarget.fromArguments(['--profile=applications/act-ai/en.json']).reportPath(
-        'PDF_AUDIT.md'
+        'PRINT_AUDIT.md'
       )
-    ).toBe('applications/act-ai/out/PDF_AUDIT.md');
+    ).toBe('applications/act-ai/out/PRINT_AUDIT.md');
   });
 
   // A path that does not name a profile and a locale would produce filenames nobody can
