@@ -128,6 +128,52 @@ The review runs on the **rendered artefact**, not the diff. Run `npm run build:p
 `cv-reviewer` needs a PDF to extract text from, and a review of the source that never looked at
 the output is not a product review.
 
+The product reviews of #59 and #107 asked for five more rules. The product review checks them, by hand
+where the screen audit cannot:
+
+- **Anything added above the masthead comes with a measured list of what leaves the first screen**,
+  at 390×844 and at 1280×720. Whatever goes above the name pushes the rest of the first screen down,
+  and the pull request says what it pushed out.
+- **A glyph that `aria-hidden` hides is not moved into generated content.** A `::before` or `::after`
+  joins the control's accessible name, so a screen reader would read the icon as part of the label.
+- **A row of buttons that would break a label on a narrow screen stacks rather than squeezes**,
+  primary first and in the page's order, each with a minimum height and never a fixed one. Cutting
+  the padding holds one language at one width: #107 measured the footer's row 4px short at 320px in
+  English, before any longer label.
+- **A modifier class comes after the rule it modifies, or is more specific; otherwise the base wins every
+  property both declare.** `.print-button-secondary` sat above `.print-button` at the same specificity, so
+  the base's `border: none` and shadow won. An override that sets part of a shorthand, such as
+  `border-color`, sets the whole shorthand unless it is certain which rule supplies the rest: the skins set
+  `border-color`, and it drew nothing (#110).
+- **The lesser of two paired actions carries no shadow, at rest or on hover.** Fill and shadow mark the
+  primary. The secondary may share its hue in its outline and its label, never its fill or its shadow (#110).
+- **A focus ring takes the tone its surface cannot swallow, never a bright one.** Deep on a light surface,
+  white on a dark one such as Spotlight's ember masthead. It is an outline, never a shadow, which forced
+  colours drop. And it is drawn whole: a focusable control stands at least the ring's offset and width, plus
+  3px, from the next one, so its ring meets the surface and not the next control's fill; where controls touch,
+  as in Nerd Mode's segmented switcher, the focused one is raised above its neighbours (#121).
+- **A button that shares a row with a link sets its own `line-height` in the skin.** A `<button>` takes the
+  browser's `font` shorthand, which resets the line height a link inherits, so the two render different heights
+  side by side: 32px against 35px in Nerd Mode's footer (#116).
+- **A control marked as a button by its fill and shadow keeps a border in forced colours.** A contrast theme
+  drops both and keeps border styles, so such a control shows as bare text while an outlined lesser action
+  beside it still reads as a button. There the primary's border is at least as wide as the secondary's (#119).
+- **In forced colours, a state marked only by colour takes a marker the palette keeps.** The current layout's
+  link in the switcher is underlined there, 3px thick, since its fill is replaced like every other link's (#127).
+  An underline already marks a link elsewhere on the page, and the reuse is deliberate: the switcher's other links
+  carry none, so the mark only has to set one link apart from its neighbours, as a tab's indicator does. A later
+  state that needs a marker should say which one it takes and what else already uses it.
+
+What that review measured on the Download link itself — hidden without a PDF, reachable, tappable,
+a visible focus ring — `npm run audit:screen` checks on every render (#101). Since #110 it also checks
+that the footer's secondary button carries no shadow and, in every layout that does not keep its outline
+quiet with a stated reason, draws a border that clears 3:1 against the footer. Since #111 it focuses every
+control a keyboard reaches, at 320px too, and reads each ring from the screen's pixels: a ring clears 3:1
+against what lies just outside it and against what it surrounds, or the render fails. Since #116 it renders a
+tablet width, 820px, and holds the footer's copy of the link and the button beside it to one height. Since #119 it emulates forced colours and holds every action to a
+border there, and reads the secondary button with `:hover` forced. Since #127 it holds the current layout's link to a marker
+there that is not a colour, and fails a current link that is not shown.
+
 ### Linked pages are part of the CV
 
 `profiles/<profile>/<locale>.json` is the single source of truth. The web CV and the PDFs are built
