@@ -157,7 +157,9 @@ describe("what the base branch's parser recovered, field by field", () => {
         'skills.0.category',
         'skills.0.attached',
         'spokenLanguages.0.level',
-        'certifications.0.name'
+        'certifications.0.name',
+        'unexpected.roles',
+        'unexpected.skillCategories'
       ])
     );
     expect(new Set(keys).size).toBe(keys.length);
@@ -200,6 +202,17 @@ describe("a field the base branch's parser loses from the new print", () => {
 
   test('the print as it is loses nothing', () => {
     expect(lostFields(read(print), read(print))).toEqual([]);
+  });
+
+  test('a role or a skill category the document never wrote is a loss too: the score charges for both', () => {
+    const torn = print.replace(
+      'Core Technologies\n',
+      'Core Technologies\nInvented Category — Foo, Bar\n'
+    );
+    const lines = lostFields(read(print), read(torn)).map(lossLine);
+
+    expect(torn).not.toBe(print);
+    expect(lines).toContain('skill categories the document did not write: held → broken');
   });
 
   const field = (key, verdict, values = {}) => ({

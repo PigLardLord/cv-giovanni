@@ -90,7 +90,8 @@ const structure = (kept) => (kept ? 'held' : 'broken');
 
 /**
  * Every field a recovered CV was graded on, as one list in reading order: the verdicts the audit's diff gives, the
- * degree's period, which the diff does not grade, and the structure the floors and the score read.
+ * degree's period, which the diff does not grade, and the structure the floors and the score read, down to a role or a
+ * skill category nobody wrote.
  *
  * The degree's period is graded here with the diff's own ladder because the loss #181 exists for is one: the base's
  * parser gave the Pisa programme no period on #179's first print. A degree that writes no period has none to lose.
@@ -166,6 +167,20 @@ export function fieldVerdicts(diff, document, recovered) {
     graded(language, 'level', at);
   });
   entries('certifications', (certification, index, at) => graded(certification, 'name', at));
+
+  // What came back that the document never wrote: a torn category, a shredded role. The score charges for both.
+  add(
+    'unexpected.roles',
+    'roles the document did not write',
+    structure(!diff.unexpected?.roles),
+    {}
+  );
+  add(
+    'unexpected.skillCategories',
+    'skill categories the document did not write',
+    structure(!diff.unexpected?.skillCategories?.length),
+    {}
+  );
   return fields;
 }
 
