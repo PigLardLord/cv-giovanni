@@ -8,6 +8,9 @@
     "certifications": "Certifications",
     "interests": "Interests"
   },
+  "education": {
+    "credits": "{{count}} ECTS"
+  },
   "experience": {
     "at": "at"
   },
@@ -24,6 +27,10 @@
     "salutationMrTitled": "Dear {{title}} {{surname}}",
     "salutationNeutral": "Dear {{name}}",
     "salutationAnonymous": "Dear Hiring Team",
+    "addressMs": "",
+    "addressMr": "",
+    "addressMsTitled": "",
+    "addressMrTitled": "",
     "closing": "Kind regards,",
     "attachments": "Enclosed"
   },

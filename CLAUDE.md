@@ -59,19 +59,19 @@ it once and hands it to the localizer, every renderer and Nerd Mode's editor, an
 
 **The downloadable PDF is the page, printed**: `npm run build:pdf` prints each layout through
 `print.css` with a headless Chrome (#144, #149). A tailored profile's cover letter is printed the same way
-from `letter.html` (#151), and pdfmake's CV and letter paths (`adapters/PdfLayout.js`,
-`adapters/LetterLayout.js`) are dead code until #153.
+from `letter.html` (#151). pdfmake composed both until then, and was removed in #153.
 
 ### Layers
 
 - `domain/` — the model, framework-free, no I/O.
-- `core/` — application services: `CVApplication`, `DataLoader`, `PdfExporter`, `ProfileResolver`,
+- `core/` — application services: `CVApplication`, `DataLoader`, `CvFiles`, `ProfileResolver`,
   `I18nService`. No markup, no typography, no hex colours — `tests/CoreHasNoUI.test.js` enforces it.
-- `interfaces/` and `boundaries/` — the ports.
+- `interfaces/` — the port the renderers implement.
 - `renderers/` — the DOM implementations, all extending `BaseRenderer`.
-- `adapters/` — the PDF implementations: layout, design system, theme registry, pdfmake renderer. And the
-  local app's: its API routes (`LocalApi.js`), the project's files and its scripts, and the two
-  inference backends, the claude CLI and an API key kept outside the repository (#22).
+- `adapters/` — Nerd Mode's Swift source layout (`SwiftSourceLayout.js`), the writer the PDF build saves
+  through (`NodeDirectoryWriter.js`), and the local app's: its API routes (`LocalApi.js`), the project's
+  files and its scripts, and the two inference backends, the claude CLI and an API key kept outside the
+  repository (#22).
 - `scripts/` — generation, the audits, and the no-store development server, which also answers the local
   app's API at `/api/` (#21). Each route passes its request to one service in `core/` (`ProfileStore`,
   `Applications`), and `tests/LocalApi.test.js` fails when a route holds logic of its own.

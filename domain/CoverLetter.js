@@ -59,12 +59,38 @@ export class CoverLetter {
 
   /** Every line of the recipient the data wrote, company first, in the order a window envelope shows them. */
   get recipientLines() {
-    return [
-      this.recipient.company,
-      this.recipient.name,
-      this.recipient.role,
-      ...this.recipient.address
-    ].filter(Boolean);
+    return this.recipientLinesNaming(({ name }) => name);
+  }
+
+  /**
+   * The same lines, the name's written by `word` from `addressedName` (#182), so the catalogue can put the form of
+   * address before the name. It takes the name's line and adds none: the count the address zone limits is the data's.
+   * A wording that writes nothing leaves the name as the data wrote it.
+   * @param {(addressee: { form: 'ms'|'mr'|'neutral', name: string, title: string }) => string} word - The name's line
+   * @returns {string[]} The recipient's lines, in the order a window envelope shows them
+   */
+  recipientLinesNaming(word) {
+    const { company, role, address } = this.recipient;
+    const addressee = this.addressedName;
+    return [company, addressee && (word(addressee) || addressee.name), role, ...address].filter(
+      Boolean
+    );
+  }
+
+  /**
+   * How the address block names the recipient, or null when nobody is named (#182): by the form of address the author
+   * wrote, `ms` or `mr`, with the title that goes before the name; otherwise neutrally, by the name as written, a title
+   * meant there belonging in the name, as in the salutation. Unlike the salutation it needs no surname: an address
+   * writes the whole name.
+   * @returns {{ form: 'ms'|'mr'|'neutral', name: string, title: string }|null} The form, and what its wording may use
+   */
+  get addressedName() {
+    const { name, title } = this.recipient;
+    if (!name) return null;
+    const form = this.#form;
+    return form === 'ms' || form === 'mr'
+      ? { form, name, title }
+      : { form: 'neutral', name, title: '' };
   }
 
   /** Who to address, or null. The wording is the catalogue's business. */

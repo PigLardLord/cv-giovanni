@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import {
   addressInWindow,
   bboxLines,
@@ -6,6 +7,7 @@ import {
   marginsClear
 } from '../scripts/lib/printed-letter.mjs';
 import { outOfOrder } from '../scripts/lib/section-order.mjs';
+import { LetterContent } from '../core/LetterContent.js';
 
 // What the print audit asks of a cover letter printed from letter.html (#151). A letter is not a CV: it has one page,
 // no sections, and a name that appears twice, so it is scored on checks of its own.
@@ -343,6 +345,49 @@ describe('the address in the window', () => {
     expect(addressInWindow(bboxLines(risen), sender)).toEqual([
       '"Ada Lovelace · Upper Slaughter near Stow-on-the-Wold," is 43.8–47.2mm from the top, outside 45–62.7mm'
     ]);
+  });
+
+  // The audit expects the address the page wrote, composed by the same `LetterContent` from the same catalogue (#182): a
+  // German recipient marked `ms` is "Frau Dr. Anna Schmidt" on the paper, and a page printing the bare name has not
+  // written that address.
+  test('expects the recipient named by the form of address the letter writes', () => {
+    const cv = JSON.parse(readFileSync(new URL('../locales/de/cv.json', import.meta.url), 'utf8'));
+    const german = (recipient) =>
+      LetterContent.of(
+        {
+          name: 'Ada Lovelace',
+          location: 'London',
+          letter: {
+            recipient: {
+              name: 'Anna Schmidt',
+              surname: 'Schmidt',
+              form: 'ms',
+              title: 'Dr.',
+              address: ['Musterstraße 12', '10115 Berlin'],
+              ...recipient
+            },
+            subject: 'Bewerbung'
+          }
+        },
+        { t: catalogueTranslator({ cv }), locale: 'de' }
+      ).letter;
+    const addressed = german({ company: 'Beispiel GmbH' });
+    const printedNaming = (name) =>
+      page(
+        line('Ada Lovelace · London', 58.9, 24.08, 3.4),
+        ...['Beispiel GmbH', name, 'Musterstraße 12', '10115 Berlin'].map((text, index) =>
+          line(text, 62.8 + index * 4.5)
+        )
+      );
+
+    expect(addressInWindow(bboxLines(printedNaming('Frau Dr. Anna Schmidt')), addressed)).toEqual(
+      []
+    );
+    expect(addressInWindow(bboxLines(printedNaming('Anna Schmidt')), addressed)).toEqual([
+      'the address "Beispiel GmbH, Frau Dr. Anna Schmidt, Musterstraße 12, 10115 Berlin" is not on the page as lines of its own'
+    ]);
+    // Without a company, the name's line opens the address, and anchors it in the reading order as written.
+    expect(letterAnchors(german({}))).toContain('Frau Dr. Anna Schmidt');
   });
 
   test('a letter without a return line still has its address checked', () => {

@@ -48,7 +48,7 @@ const stillClaimed = (files) =>
 
 /**
  * The tracked text files. A binary file is skipped: the PDFs compress their text, so reading their
- * bytes would find nothing, and what they say is audit:pdf's and audit:ats's to check.
+ * bytes would find nothing, and what they say is audit:print's and audit:ats's to check.
  */
 const trackedText = () =>
   execFileSync('git', ['ls-files', '-z'], { cwd: root, encoding: 'utf8' })

@@ -5,7 +5,6 @@ package-lock.json
 # Written by the scripts, not by hand. Formatting them would fight the generator on every run.
 generated/
 docs/ATS_AUDIT.md
-docs/PDF_AUDIT.md
 docs/PRINT_AUDIT.md
 docs/SCREEN_AUDIT.md
 

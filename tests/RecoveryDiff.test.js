@@ -200,9 +200,16 @@ describe.each(['page-print-spotlight', 'page-print-nerd'])(
       );
     });
 
-    test('every degree keeps its school', () => {
+    // A degree that states its credits prints them after its name, "… Development (60 ECTS)" (#48), and a parser
+    // that knows nothing of the profile keeps them in the degree: a partial degree, half its credit, and said here
+    // rather than hidden by a diff that forgives it.
+    test('every degree keeps its school, and one that states its credits reads partial', () => {
       expect(diff.education).toEqual(
-        document.education.map(() => ({ degree: 'exact', school: 'exact', adjacent: true }))
+        document.education.map((item) => ({
+          degree: item.credits ? 'partial' : 'exact',
+          school: 'exact',
+          adjacent: true
+        }))
       );
     });
 

@@ -1,8 +1,8 @@
 /**
  * How the CV reads as a Swift file, for Nerd Mode on screen — and what that file's #Preview shows.
  *
- * The sibling of `adapters/PdfLayout.js` for a different surface: it turns the profile into
- * lines of tokens, and `renderers/SourceRenderer.js` only writes them into the page. Every token
+ * It turns the profile into lines of tokens, and `renderers/SourceRenderer.js` only writes them
+ * into the page. Every token
  * is one of two things, and the difference is the whole design:
  *
  * - `{ code }` is syntax — a keyword, a quote, a bracket, an argument label. The renderer never
@@ -35,6 +35,7 @@
  */
 import { readableAddress } from '../domain/ReadableUrl.js';
 import { tenureText } from '../domain/Tenure.js';
+import { scopeText } from '../domain/EntryLines.js';
 
 /**
  * Who the candidate is comes first, then the evidence — experience before skills — and last how
@@ -205,7 +206,7 @@ export class SwiftSourceLayout {
     this.identity(data).forEach(([depth, tokens, extra]) => push(1 + depth, tokens, extra));
 
     SECTIONS.forEach((key) => {
-      const block = this[key](data, { locale });
+      const block = this[key](data, { locale, t });
       if (block.length === 0) return;
       if (lines.length > body) push(0);
 
@@ -374,7 +375,10 @@ export class SwiftSourceLayout {
     );
   }
 
-  education(data) {
+  education(data, { locale = 'en', t = (key) => key } = {}) {
+    // A degree's scope in the catalogue's words (#48): the argument label is drawn, so a number literal would copy as
+    // a bare "60" that says nothing of what it counts.
+    const words = { locale, credits: (count) => t('cv:education.credits', { count }) };
     return this.collection(
       'education',
       'Degree',
@@ -383,6 +387,7 @@ export class SwiftSourceLayout {
           ['title', degree.degree],
           ['school', degree.school],
           ['period', degree.period],
+          ['credits', scopeText(degree, words)],
           ['description', degree.description]
         ])
       )

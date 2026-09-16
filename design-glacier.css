@@ -562,7 +562,8 @@ body[data-layout='technical'] .hero-name {
     font-size: 0.82rem;
   }
 
-  body[data-layout='technical'] .edu-period {
+  body[data-layout='technical'] .edu-period,
+  body[data-layout='technical'] .edu-credits {
     color: var(--t-muted);
     font-size: 0.8rem;
   }
@@ -1296,7 +1297,8 @@ body[data-layout='technical'] .hero-name {
     font-size: 0.85rem;
   }
 
-  body[data-layout='spotlight'] .edu-period {
+  body[data-layout='spotlight'] .edu-period,
+  body[data-layout='spotlight'] .edu-credits {
     color: var(--e-muted);
     font-size: 0.8rem;
   }

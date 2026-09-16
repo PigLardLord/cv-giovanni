@@ -7,12 +7,13 @@ import { PlaceLexicon } from '../domain/PlaceLexicon.js';
  *
  * The letter is a page printed by Chrome, as the CV is, and two readers need its words: `letter.html`, which
  * writes them, and the print audit, which checks that they reached the paper in that order. Both ask here, so
- * the audit cannot expect a sentence the page never wrote. pdfmake's `adapters/LetterLayout.js` made the same
- * decisions beside its geometry in points; it stays, unused, until pdfmake goes (#153).
+ * the audit cannot expect a sentence the page never wrote. pdfmake's letter layout made the same decisions beside
+ * its geometry in points, until the letter became a page (#151).
  *
  * What is decided here is what the letter says, never how it looks: the geometry of DIN 5008 is `letter.css`'s.
  * Nothing is invented. A recipient line the data does not write is not printed, a letter the data does not date
- * is not dated, and the wording of a salutation, a closing or an attachments line is the catalogue's.
+ * is not dated, and the wording of a salutation, a form of address, a closing or an attachments line is the
+ * catalogue's.
  */
 export class LetterContent {
   /**
@@ -53,7 +54,7 @@ export class LetterContent {
         // In the address field above the recipient, where a postal sender belongs; the email and the phone are in the
         // letterhead already.
         returnAddress: joined([name, identity.location]),
-        recipient: letter.recipientLines,
+        recipient: letter.recipientLinesNaming((addressee) => nameLine(addressee, t)),
         date: dateLine(letter.date, identity.location, locale),
         reference: letter.reference,
         subject,
@@ -89,6 +90,27 @@ const SALUTATIONS = {
 function salutation({ form, name, surname, title }, t) {
   const { plain, titled = plain } = SALUTATIONS[form];
   return `${t(title ? titled : plain, { name, surname, title })},`;
+}
+
+/**
+ * The catalogue's wording for the name's line of the address block (#182), for each form of address that carries one:
+ * German's "Frau Dr. Anna Schmidt" and "Herrn Max Mustermann", in the accusative. The neutral form has none, and the
+ * name stands as the data wrote it.
+ */
+const NAME_LINES = {
+  ms: { plain: 'cv:letter.addressMs', titled: 'cv:letter.addressMsTitled' },
+  mr: { plain: 'cv:letter.addressMr', titled: 'cv:letter.addressMrTitled' }
+};
+
+/**
+ * The recipient's name as the address block writes it, worded by the catalogue for the form the model resolved. A
+ * language whose address block carries no form of address says so with an empty wording, which the model reads as the
+ * name as written: whether a language writes one is the catalogue's decision, never this function's.
+ */
+function nameLine({ form, name, title }, t) {
+  const wording = NAME_LINES[form];
+  if (!wording) return name;
+  return t(title ? wording.titled : wording.plain, { name, title });
 }
 
 /** The parts present, joined the way a letterhead joins them. */

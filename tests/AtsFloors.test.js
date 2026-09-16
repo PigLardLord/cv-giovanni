@@ -38,13 +38,20 @@ describe('the four floors, one failure each', () => {
   });
 });
 
+// Not a print of the page: the label beside its block that the retired pdfmake layout drew (#153). The parser still
+// has to read that shape, because a stranger's CV can have it (#184).
+describe('a label beside its block, as the retired pdfmake layout drew it', () => {
+  test('in content-stream order it fails no floor', () => {
+    expect(floorsOf('pdfmake-rail.raw')).toEqual([]);
+  });
+});
+
 describe('the page’s print holds in both reading orders', () => {
   test.each([
     'page-print-spotlight',
     'page-print-spotlight.raw',
     'page-print-nerd',
-    'page-print-nerd.raw',
-    'pdfmake-rail.raw'
+    'page-print-nerd.raw'
   ])('%s fails no floor', (fixture) => {
     expect(floorsOf(fixture)).toEqual([]);
   });

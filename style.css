@@ -456,9 +456,15 @@ section {
   color: var(--text-primary);
 }
 
-.edu-period {
+.edu-period,
+.edu-credits {
   color: var(--text-muted);
   font-size: 0.85rem;
+}
+
+/* A degree's scope after its name, set as its period is and not in the name's weight (#48). */
+.edu-credits {
+  font-weight: 400;
 }
 
 .edu-description {

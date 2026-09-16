@@ -9,6 +9,7 @@ Cortado # employer
 degli # Università degli Studi
 DevicePolicyManager # Android API
 di # Università degli Studi di
+ECTS # European Credit Transfer and Accumulation System: a degree's credits
 Fastlane # tool
 GitLab # product
 Gradle # tool

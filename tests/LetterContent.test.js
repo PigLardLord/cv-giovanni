@@ -2,11 +2,12 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync, readdirSync } from 'node:fs';
 import i18next from '../vendor/i18next/i18next.js';
 import { LetterContent } from '../core/LetterContent.js';
+import { CoverLetter } from '../domain/CoverLetter.js';
 import { catalogueTranslator } from '../scripts/lib/printed-letter.mjs';
 
 // The words of a cover letter, decided once and read by the page that prints it and by the audit that checks
-// the print (#151). pdfmake's `adapters/LetterLayout.js` decided them beside its geometry in points; these are
-// its behavioural tests, carried over to the module that now decides.
+// the print (#151). pdfmake's letter layout decided them beside its geometry in points until #153; these are its
+// behavioural tests, carried over to the module that now decides.
 const strings = {
   'cv:letter.subject': 'Application',
   'cv:letter.salutationMs': 'Dear Ms {{surname}}',
@@ -215,6 +216,53 @@ describe('the salutation comes from the catalogue, the name from the model', () 
   });
 });
 
+// The address block carries the form of address on the name's line (#182), worded by the catalogue from the form the
+// model resolved. The line count the address zone limits does not change.
+describe('the name line of the address block comes from the catalogue, the form from the model', () => {
+  // A catalogue whose address block writes a form of address, as German's does.
+  const wordings = {
+    'cv:letter.addressMs': 'Frau {{name}}',
+    'cv:letter.addressMr': 'Herrn {{name}}',
+    'cv:letter.addressMsTitled': 'Frau {{title}} {{name}}',
+    'cv:letter.addressMrTitled': 'Herrn {{title}} {{name}}'
+  };
+  const writing = (key, values = {}) =>
+    key in wordings
+      ? wordings[key].replace(/\{\{(\w+)\}\}/g, (placeholder, name) => values[name] ?? placeholder)
+      : t(key, values);
+  const addressed = (recipient, translate = writing) =>
+    LetterContent.of(
+      profile({ recipient: { company: 'ActAI', name: 'Anna Weber', ...recipient } }),
+      { t: translate, locale: 'de' }
+    ).letter.recipient;
+
+  test('a recipient with a form of address is named by it, on the name’s own line', () => {
+    expect(addressed({ form: 'ms', address: ['Chausseestraße 1'] })).toEqual([
+      'ActAI',
+      'Frau Anna Weber',
+      'Chausseestraße 1'
+    ]);
+    expect(addressed({ name: 'Jonas Weber', form: 'mr' })).toEqual(['ActAI', 'Herrn Jonas Weber']);
+  });
+
+  test('a title takes the wording the catalogue gives a titled recipient', () => {
+    expect(addressed({ form: 'ms', title: 'Dr.' })).toEqual(['ActAI', 'Frau Dr. Anna Weber']);
+  });
+
+  test('the neutral form, or none, leaves the name as written, its title with it', () => {
+    expect(addressed({ form: 'neutral', title: 'Dr.' })).toEqual(['ActAI', 'Anna Weber']);
+    expect(addressed({ title: 'Dr.' })).toEqual(['ActAI', 'Anna Weber']);
+  });
+
+  // A language whose address block carries no form of address says so with an empty wording: data, not code.
+  test('an empty wording in the catalogue leaves the name as written', () => {
+    const none = (key, values) => (key in wordings ? '' : t(key, values));
+
+    expect(addressed({ form: 'ms', title: 'Dr.' }, none)).toEqual(['ActAI', 'Anna Weber']);
+    expect(addressed({ form: 'mr' }, none)).toEqual(['ActAI', 'Anna Weber']);
+  });
+});
+
 describe('the date is formatted, never spelled', () => {
   // AGENTS.md gives dates to Intl. A German letter dated in American order was not written for its reader.
   test('English and German render the same date differently', () => {
@@ -407,6 +455,66 @@ describe('in the catalogues the page loads', () => {
     expect(LetterContent.of(data, { t: await page(locale), locale }).letter.salutation).toBe(
       salutation
     );
+  });
+
+  // German writes the form of address in the accusative on the name's line, "Herrn Dr. Max Mustermann", as the Duden
+  // and DIN 5008's examples do (#182). English writes none: the catalogue's wording is empty, and the name stands.
+  test.each([
+    ['de', 'Frau', 'Frau Anna Schmidt', { ...anna, form: 'ms' }],
+    ['de', 'Herrn, in the accusative', 'Herrn Jonas Schmidt', { ...jonas, form: 'mr' }],
+    ['de', 'a titled Frau', 'Frau Dr. Anna Schmidt', { ...anna, form: 'ms', title: 'Dr.' }],
+    [
+      'de',
+      'a titled Herr',
+      'Herrn Prof. Dr. Jonas Schmidt',
+      { ...jonas, form: 'mr', title: 'Prof. Dr.' }
+    ],
+    ['de', 'a neutral form', 'Anna Schmidt', { ...anna, form: 'neutral', title: 'Dr.' }],
+    ['de', 'no form of address', 'Anna Schmidt', anna],
+    ['en', 'Ms', 'Anna Schmidt', { ...anna, form: 'ms' }],
+    ['en', 'Mr', 'Jonas Schmidt', { ...jonas, form: 'mr' }],
+    ['en', 'a titled Ms', 'Anna Schmidt', { ...anna, form: 'ms', title: 'Dr' }],
+    ['en', 'a titled Mr', 'Jonas Schmidt', { ...jonas, form: 'mr', title: 'Dr' }],
+    ['en', 'a neutral form', 'Anna Schmidt', { ...anna, form: 'neutral' }],
+    ['en', 'no form of address', 'Anna Schmidt', anna]
+  ])('in %s, the address block names %s "%s"', async (locale, what, line, recipient) => {
+    const data = profile({
+      recipient: { ...recipient, address: ['Musterstraße 12', '10115 Berlin'] }
+    });
+    const expected = ['Beispiel GmbH', line, 'Musterstraße 12', '10115 Berlin'];
+
+    expect(LetterContent.of(data, { t: catalogue(locale), locale }).letter.recipient).toEqual(
+      expected
+    );
+    expect(LetterContent.of(data, { t: await page(locale), locale }).letter.recipient).toEqual(
+      expected
+    );
+  });
+
+  // #182's acceptance: an English letter's address block is the one it printed before the form of address reached the
+  // address. Royal Mail treats a title there as optional, so English writes none, and says so with empty wordings,
+  // which i18next gives back as written, as the audit's translator does: the page and the audit print the bare name.
+  test.each([
+    ['a titled Ms', { form: 'ms', title: 'Dr' }],
+    ['a titled Mr', { form: 'mr', title: 'Dr' }],
+    ['a Ms', { form: 'ms' }],
+    ['a Mr', { form: 'mr' }]
+  ])('an English letter names %s as it did before', async (what, fields) => {
+    const data = profile({
+      recipient: { ...anna, ...fields, address: ['Musterstraße 12', '10115 Berlin'] }
+    });
+    const before = new CoverLetter(data.letter).recipientLines;
+
+    expect(before).toEqual(['Beispiel GmbH', 'Anna Schmidt', 'Musterstraße 12', '10115 Berlin']);
+    expect(namespacesOf('en').cv.letter).toMatchObject({
+      addressMs: '',
+      addressMr: '',
+      addressMsTitled: '',
+      addressMrTitled: ''
+    });
+    for (const t of [catalogue('en'), await page('en')]) {
+      expect(LetterContent.of(data, { t, locale: 'en' }).letter.recipient).toEqual(before);
+    }
   });
 
   test('no catalogue words a person with a bracketed ending', () => {

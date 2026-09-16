@@ -43,6 +43,38 @@ export function schoolLine({ school, period }) {
 }
 
 /**
+ * A degree's scope in the CV's words, "60 ECTS", or '' when it states none (#48).
+ *
+ * Only a count of credits is a scope: a whole number above zero. A count nobody can read reads as nothing, never as a
+ * guess. `Intl` writes the number in the CV's language; the words around it are the caller's, which has the
+ * catalogue, and a caller that gives none gets no bare number.
+ * @param {{ credits?: number }} degree - One degree of the education
+ * @param {{ credits?: (count: string) => string, locale?: string }} [words] - How the CV writes a count of credits,
+ *   handed the count as its language writes it
+ * @returns {string} The scope, or ''
+ */
+export function scopeText({ credits }, { credits: write, locale = 'en' } = {}) {
+  if (!Number.isInteger(credits) || credits <= 0 || typeof write !== 'function') return '';
+  return valueOf(write(new Intl.NumberFormat(locale).format(credits)));
+}
+
+/**
+ * "Degree (60 ECTS)", and the degree alone when it states no scope. A Master's programme a German reader would
+ * otherwise take for the Bologna second cycle states its credits after its name (#48), where they cost no printed
+ * line and leave the school's line, which parsers read for the school and the period, as it was.
+ * @param {{ degree?: string, credits?: number }} degree - One degree of the education
+ * @param {{ credits?: (count: string) => string, locale?: string }} [words] - As `scopeText` takes them
+ * @returns {(string|{ field: string, text: string })[]} The line's pieces
+ */
+export function degreeLine(degree, words = {}) {
+  const scope = scopeText(degree, words);
+  return [
+    { field: 'degree', text: valueOf(degree.degree) },
+    ...(scope ? [' ', { field: 'credits', text: `(${scope})` }] : [])
+  ];
+}
+
+/**
  * What follows a certification's name: " – issuer" and " (year)", each only when the certification has it.
  * @param {{ issuer?: string, year?: number|string }} certification - One certification
  * @returns {string[]} The pieces after the name
