@@ -84,8 +84,8 @@ CI builds, audits and publishes its own.
 
 - `npm run audit:print` reads the PDFs the build printed, from the text layer and the pixels on the paper: format,
   page count, the text an ATS looks for, reading order in both of the orders parsers read, contrast word by word,
-  margins, the typefaces actually used, no Type 3 font and no image, and reports each page's room left, warning when a
-  last page has less than one line free. It exits 2 when a PDF was never built.
+  margins, the typefaces actually used, no Type 3 font and no image, no line of prose past 80 characters, Nerd Mode's
+  dates inside their column, and reports each page's room left, warning when a last page has less than one line free. It exits 2 when a PDF was never built.
   Report: `docs/PRINT_AUDIT.md`.
 - `npm run audit:ats` parses the generated PDF with no knowledge of the profile and diffs what it recovered against
   what was written. It reports Recoverability, never a pass mark. Report: `docs/ATS_AUDIT.md`.

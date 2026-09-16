@@ -317,7 +317,10 @@ number of review comments.
 pass whatever the generator wrote — through the text layer poppler extracts and the pixels that
 reached the paper: contrast per word against the printed page, ink margins per page, every skill
 still attached to its category, nothing in the text layer the data did not write, and, read in the
-order the PDF draws it, every name spaced and every section in its place. It also reports how much
+order the PDF draws it, every name spaced and every section in its place. No line of prose, the
+summary, the highlights and what a role, a certificate or a degree says, runs past WCAG 1.4.8's 80
+characters; a line of skills, interests or contacts is a list, scanned item by item, and is exempt.
+In Nerd Mode no line of a role's dates runs out of its 128pt column (#155). It also reports how much
 room each page has left above its foot, and marks a last page with less than one line of running
 text free, as a warning and never a failure: the page count is the gate, and the warning is the
 notice that it is close (#162). A check on the stylesheet passed a page that printed a line of
