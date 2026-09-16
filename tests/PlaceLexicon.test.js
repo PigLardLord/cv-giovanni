@@ -6,7 +6,10 @@ describe('the city a location names, for the line that dates a letter', () => {
     ['Bad Liebenstein, Thüringen, Deutschland', 'Bad Liebenstein'],
     ['Munich, Bavaria, Germany', 'Munich'],
     // Berlin is a state as well as a city: the first part is the city, whatever else it names.
-    ['Berlin, Germany', 'Berlin']
+    ['Berlin, Germany', 'Berlin'],
+    ['Hamburg, Germany', 'Hamburg'],
+    ['Bremen, Deutschland', 'Bremen'],
+    ['Amburgo, Germania', 'Amburgo']
   ])('%s is dated from %s', (location, city) => {
     expect(PlaceLexicon.cityOf(location)).toBe(city);
   });
@@ -22,6 +25,12 @@ describe('the city a location names, for the line that dates a letter', () => {
     // number in it is an address, even when every part after it is a place the lexicon knows.
     'Germany, Berlin',
     'Musterstraße 1, Berlin, Deutschland',
+    // Found by the code review of #36's merge: a state named first is not a city, unless it is one of the three
+    // that are cities as well (#122).
+    'Thuringia, Germany',
+    'Bavaria, Germany',
+    'Sachsen, Deutschland',
+    'Turingia, Germania',
     ''
   ])('"%s" comes back as written', (location) => {
     expect(PlaceLexicon.cityOf(location)).toBe(location);
