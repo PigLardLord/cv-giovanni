@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { mkdtemp, readdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -7,7 +8,8 @@ import { readableAddress } from '../domain/ReadableUrl.js';
 import { CoverLetter } from '../domain/CoverLetter.js';
 import { certificationProblems } from './lib/certification-lines.mjs';
 import { pdfVariant } from './lib/pdf-variant.mjs';
-import { bodyGlyph, pages as bboxPages, roomLeft } from './lib/room-left.mjs';
+import { pages as bboxPages, roomLeft } from './lib/room-left.mjs';
+import { lineBox } from './lib/font-metrics.mjs';
 import { PdfExporter } from '../core/PdfExporter.js';
 import { LetterExporter } from '../core/LetterExporter.js';
 
@@ -163,10 +165,23 @@ const letter = profile.letter ? new CoverLetter(profile.letter) : null;
 // The bottom margin and line height each document was laid out with, from the composer that laid it
 // out: the room left is measured against the page the generator used, not against a copy of its numbers.
 const untranslated = { t: (key) => key };
-const laidOutWith = (definition) => ({
-  bottomMargin: definition.pageMargins[3],
-  lineHeight: definition.defaultStyle.lineHeight
-});
+// The body type's line box, in the face generate-pdfs.mjs registers as Inter's normal: counted from the page's lines,
+// the body type tied on a sparse page and lost to a page of labels (#124).
+const bodyLineBox = lineBox(
+  readFileSync(new URL('../vendor/fonts/inter/Inter-Regular.ttf', import.meta.url))
+);
+const laidOutWith = (definition) => {
+  if (definition.defaultStyle.font !== 'Inter') {
+    throw new Error(
+      `The room is counted in Inter's line box, and a document is set in ${definition.defaultStyle.font}.`
+    );
+  }
+  return {
+    bottomMargin: definition.pageMargins[3],
+    lineHeight: definition.defaultStyle.lineHeight,
+    glyph: definition.defaultStyle.fontSize * bodyLineBox
+  };
+};
 const cvSettings = laidOutWith(new PdfExporter(null, untranslated).buildDocument(profile, {}));
 const letterSettings = letter
   ? laidOutWith(new LetterExporter(null, untranslated).buildDocument(profile, {}))
@@ -183,17 +198,23 @@ for (const filename of pdfFiles) {
   const sizeOk = expectedLetter ? /612 x 792 pts/.test(info) : /595\.28 x 841\.89 pts/.test(info);
   const pages = Number(info.match(/Pages:\s+(\d+)/)?.[1]);
   // How much of the last page is left: whether a copy change fits, known before anyone builds it (#49).
-  // Every page, so the body type is read across the document: a sparse last page alone can tie (#124).
-  const laidOut =
+  const [lastPage] =
     pages > 0
-      ? bboxPages(execFileSync('pdftotext', ['-bbox-layout', path, '-'], { encoding: 'utf8' }))
+      ? bboxPages(
+          execFileSync(
+            'pdftotext',
+            ['-bbox-layout', '-f', `${pages}`, '-l', `${pages}`, path, '-'],
+            {
+              encoding: 'utf8'
+            }
+          )
+        )
       : [];
-  const lastPage = laidOut.at(-1);
   const settings = isCoverLetter(filename) ? letterSettings : cvSettings;
   // A last page can hold nothing but the date line in its bottom margin (#55): there is no content to measure
   // from, and the page count is what fails.
   const room = lastPage?.lines.some(({ top }) => top < lastPage.height - settings.bottomMargin)
-    ? roomLeft(lastPage, { ...settings, glyph: bodyGlyph(laidOut) })
+    ? roomLeft(lastPage, settings)
     : null;
   const pageTwo =
     pages > 1

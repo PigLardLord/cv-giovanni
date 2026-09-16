@@ -34,53 +34,27 @@ export function pages(extract) {
 }
 
 /**
- * The glyph height of the type most lines are set in, across the pages given: the body type, since titles, labels
- * and dates come in other sizes.
- *
- * A page alone can tie. A sparse last page with one heading line and one body line has two heights, once each, and
- * a sort kept whichever the extract listed first, so the same page measured differently in another order (#124).
- * Read across a whole document, the body type outnumbers every other. Where heights still tie, no body type can be
- * told, and this says so rather than pick one.
- * @param {{ lines: { top: number, bottom: number }[] }[]} pages - Pages from `pages`
- * @returns {number} The glyph height, in points
- * @throws {Error} When the pages hold no line, or two heights are equally common
- */
-export function bodyGlyph(pages) {
-  const counts = new Map();
-  for (const { lines } of pages) {
-    for (const { top, bottom } of lines) {
-      const glyph = (bottom - top).toFixed(2);
-      counts.set(glyph, (counts.get(glyph) || 0) + 1);
-    }
-  }
-  const ranked = [...counts].sort((a, b) => b[1] - a[1]);
-  if (!ranked.length) throw new Error('Pages with no line have no body type.');
-  if (ranked.length > 1 && ranked[0][1] === ranked[1][1]) {
-    throw new Error(
-      `No body type can be told: ${ranked[0][0]}pt and ${ranked[1][0]}pt glyphs are equally common.`
-    );
-  }
-  return Number(ranked[0][0]);
-}
-
-/**
  * The room between a page's lowest line and its bottom margin, in points and in body lines.
  *
- * A body line is the pitch of the body type: its glyph height, times the line height. Titles, labels and dates
- * come in other sizes, but the lines a copy change adds to a CV are body lines. The glyph height is the document's,
- * from `bodyGlyph`, when the caller has it; a page read alone takes its own, and refuses a tie.
+ * A body line is the body type's line box times the line height. Titles, labels and dates come in other sizes, but the
+ * lines a copy change adds to a CV are body lines. The line box comes from the size and the font the document was set
+ * in (`lineBox`, in `font-metrics.mjs`), never from counting the page's lines: a sparse page can tie, and a page of
+ * labels outnumbers its body (#124).
  * @param {{ height: number, lines: { top: number, bottom: number }[] }} page - One page, from `pages`
- * @param {{ bottomMargin: number, lineHeight: number, glyph?: number }} settings - What the document was laid out
- *   with, and the glyph height of its body type
+ * @param {{ bottomMargin: number, lineHeight: number, glyph: number }} settings - What the document was laid out
+ *   with: its bottom margin, its line height, and its body type's line box in points
  * @returns {{ points: number, lines: number, bodyPitch: number }} The room left
  */
 export function roomLeft({ height, lines: all }, { bottomMargin, lineHeight, glyph }) {
+  if (!(glyph > 0)) {
+    throw new Error('The room is counted in body lines, and no body type was given to count in.');
+  }
   // A line that starts inside the bottom margin is not content: the downloadable PDF prints the day it was
   // made there (#55), and the room is measured above the margin.
   const lines = all.filter(({ top }) => top < height - bottomMargin);
   if (!lines.length) throw new Error('A page with no line has no last line to measure from.');
 
-  const bodyPitch = (glyph ?? bodyGlyph([{ lines }])) * lineHeight;
+  const bodyPitch = glyph * lineHeight;
 
   const lowest = Math.max(...lines.map(({ top, bottom }) => top + (bottom - top) * lineHeight));
   const points = height - bottomMargin - lowest;

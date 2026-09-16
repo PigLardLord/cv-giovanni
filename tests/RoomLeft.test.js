@@ -2,7 +2,8 @@
  * @jest-environment node
  */
 import { readFileSync } from 'node:fs';
-import { bodyGlyph, pages, roomLeft } from '../scripts/lib/room-left.mjs';
+import { lineBox } from '../scripts/lib/font-metrics.mjs';
+import { pages, roomLeft } from '../scripts/lib/room-left.mjs';
 
 // `pdftotext -bbox-layout` of a document pdfmake built from 46 one-line paragraphs on LETTER, set the
 // way the CV sets its body: Inter at 9.3pt, a line height of 1.4, 40pt top and bottom margins. Page one
@@ -12,7 +13,10 @@ const extract = readFileSync(
   new URL('./fixtures/room-left/forty-six-lines.txt', import.meta.url),
   'utf8'
 );
-const settings = { bottomMargin: 40, lineHeight: 1.4 };
+// The body type the document was set in, 9.3pt Inter, as the PDF audit gives it (#124).
+const glyph =
+  9.3 * lineBox(readFileSync(new URL('../vendor/fonts/inter/Inter-Regular.ttf', import.meta.url)));
+const settings = { bottomMargin: 40, lineHeight: 1.4, glyph };
 
 describe('the room left on a page', () => {
   test('reads every page of the extract, and the lines on each', () => {
@@ -58,25 +62,29 @@ describe('the room left on a page', () => {
     expect(roomLeft(withFooter, settings)).toEqual(roomLeft(full, settings));
   });
 
-  // The code review of #49's merge: a heading line and a body line tie, once each, and the sort kept whichever the
-  // extract listed first, so the same page read 3.38 or 4.21 lines left (#124).
+  // The code review of #49's merge found a tie on a sparse page settled by the order of its lines. The review of the
+  // first fix found a one-page document tying the same way, and a page of labels outnumbering its body. The body type
+  // is the design system's, not something to count on the page (#124).
   const body = (top) => ({ top, bottom: top + 11.253 });
   const heading = (top) => ({ top, bottom: top + 14 });
   const sparse = (lines) => ({ width: 612, height: 792, lines });
 
-  test("a page whose glyph heights tie reads the same in either order, with its document's body type", () => {
-    const [full] = pages(extract);
-    const glyph = bodyGlyph([full, sparse([heading(700), body(720)])]);
-    const listed = roomLeft(sparse([heading(700), body(720)]), { ...settings, glyph });
-    const reversed = roomLeft(sparse([body(720), heading(700)]), { ...settings, glyph });
+  test('a page whose line heights tie reads the same in either order, in body lines', () => {
+    const listed = roomLeft(sparse([heading(700), body(720)]), settings);
 
-    expect(glyph).toBeCloseTo(11.25, 2);
-    expect(listed).toEqual(reversed);
-    expect(listed.bodyPitch).toBeCloseTo(15.75, 1);
+    expect(roomLeft(sparse([body(720), heading(700)]), settings)).toEqual(listed);
+    expect(listed.bodyPitch).toBeCloseTo(15.75, 2);
   });
 
-  test('read alone, a page whose glyph heights tie has no body type to count in, and says so', () => {
-    expect(() => roomLeft(sparse([heading(700), body(720)]), settings)).toThrow(/equally common/);
-    expect(() => roomLeft(sparse([body(720), heading(700)]), settings)).toThrow(/equally common/);
+  test('a page of labels is counted in body lines, not in the labels', () => {
+    const labels = sparse([heading(600), heading(630), heading(660)]);
+
+    expect(roomLeft(labels, settings).bodyPitch).toBeCloseTo(15.75, 2);
+  });
+
+  test('without the body type there is nothing to count in', () => {
+    expect(() => roomLeft(pages(extract)[0], { bottomMargin: 40, lineHeight: 1.4 })).toThrow(
+      /no body type/
+    );
   });
 });
