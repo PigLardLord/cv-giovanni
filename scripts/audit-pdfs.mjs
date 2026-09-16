@@ -318,7 +318,7 @@ const report = [
   '|---|---:|---:|---:|',
   ...rows.map((row) => `| ${row.filename} | ${row.pages} | ${roomText(row.room)} | ${row.score} |`),
   '',
-  'Room left: the space between the lowest line on the last page and its bottom margin, in points and in body lines — the pitch of the type most of that page is set in. A copy change that adds more body lines than a variant has left makes it a page longer: judge an edit against the tightest variant before building, then build and audit.',
+  'Room left: the space between the lowest line on the last page and its bottom margin, in points and in body lines — the line of the body type the document was set in, from its size and the line box of its font, whatever that page holds. A copy change that adds more body lines than a variant has left makes it a page longer: judge an edit against the tightest variant before building, then build and audit.',
   '',
   'Checks: exact format, maximum two pages, required ATS text, reading order, no raster images, clean page starts, measured grayscale output, canonical compound spelling, block integrity in extraction, every skill category still attached to its own list, every web address recoverable from the text layer, and every certification on one line of its own, in the order the profile writes them.'
 ].join('\n');
