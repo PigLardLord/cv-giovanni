@@ -10,7 +10,6 @@ import { rendered, revealed } from './lib/page-ready.mjs';
 import { screenCopy } from './lib/screen-copy.mjs';
 import { RECORD_LAYOUT_SHIFTS, layoutShift } from './lib/layout-shift.mjs';
 import { downloadReach } from './lib/download-reach.mjs';
-import { secondaryButton } from './lib/footer-buttons.mjs';
 import { currentLayoutMarked, forcedBoundaries } from './lib/forced-colours.mjs';
 import { decodePng } from './lib/png.mjs';
 import { ringOnPixels, ringsReport } from './lib/ring-pixels.mjs';
@@ -54,9 +53,10 @@ try {
 }
 
 /**
- * A desktop, a tablet and two phones: 820px, a tablet held upright, where Nerd Mode sets its footer's buttons side by
- * side (#116); the phone most readers hold; and 320px, the narrowest a page must reflow to without scrolling sideways
- * (WCAG 1.4.10), where the case for stacking the footer rests (#107, #111).
+ * A desktop, a tablet and two phones: 820px, a tablet held upright, first rendered because Nerd Mode's footer set its
+ * buttons side by side there (#116) and kept when the footer went (#150); the phone most readers hold; and 320px, the
+ * narrowest a page must reflow to without scrolling sideways (WCAG 1.4.10), where a label is likeliest to break (#107,
+ * #111).
  */
 const SIZES = [
   { width: 1280, height: 900, mobile: false },
@@ -67,7 +67,7 @@ const SIZES = [
 
 /**
  * Where each layout's CV begins and ends. Nerd Mode writes it into the editor; the other two lay it out
- * from the masthead to the end of the main column. The download footer after it is the page's.
+ * from the masthead to the end of the main column.
  */
 const BOUNDS = {
   nerd: ['#source-code', '#source-code'],
@@ -80,15 +80,6 @@ const BOUNDS = {
  * end of its toolbar from 769px up. The other layouts let it scroll away with the switcher (#59).
  */
 const PINNED = { nerd: true };
-
-/**
- * The layouts whose footer keeps Browser print's outline quiet on purpose, each with its reason (#110). Every other
- * layout is held to a border that clears 3:1 against the footer, so a new layout is checked unless it is listed
- * here, the way BOUNDS refuses a layout it does not know.
- */
-const QUIET = {
-  nerd: 'its label names the button, and the skin keeps its signal colour for the primary (#109)'
-};
 
 const unbounded = manifest.layouts.filter((layout) => !Object.hasOwn(BOUNDS, layout));
 if (unbounded.length) {
@@ -140,10 +131,10 @@ const LINES = `(control) => {
 }`;
 
 /**
- * Every copy of the Download link, top copy first: whether it shows, how tall it renders, where it spans down
- * and across the page, so the first screen is the first screen whatever the page was scrolled to, and on how
- * many lines its label renders. The values are the browser's own, unrounded: rounding is the report's, and
- * 45.4px is not 44px ±1.
+ * Every copy of the Download link, in page order, so a second one is counted (#150): whether it shows, how tall
+ * it renders, where it spans down and across the page, so the first screen is the first screen whatever the page
+ * was scrolled to, and on how many lines its label renders. The values are the browser's own, unrounded: rounding
+ * is the report's, and 45.4px is not 44px ±1.
  */
 const downloadLinks = `(() => {
   const lines = ${LINES};
@@ -160,18 +151,6 @@ const downloadLinks = `(() => {
       lines: lines(link)
     };
   });
-})()`;
-
-/** The footer's other buttons: whether they show, how tall they render (#109), and their label's lines (#107). */
-const footerButtons = `(() => {
-  const lines = ${LINES};
-  return [...document.querySelectorAll('footer .print-button:not([data-download-pdf])')].map((button) => ({
-    place: 'footer',
-    label: button.textContent.trim().replace(/\\s+/g, ' '),
-    display: getComputedStyle(button).display,
-    lines: lines(button),
-    height: button.getBoundingClientRect().height
-  }));
 })()`;
 
 /** One press of Tab, the way a keyboard user moves focus. */
@@ -270,34 +249,16 @@ const PAINTED = `(element) => {
   return 'rgb(' + colour.map(Math.round).join(', ') + ')';
 }`;
 
-/** The footer's secondary button, as computed: its shadow, its outline, and the footer painted behind it (#110). */
-const secondaryStyle = `(() => {
-  const painted = ${PAINTED};
-  const button = document.querySelector('footer .print-button-secondary');
-  if (!button) return null;
-  const style = getComputedStyle(button);
-  return {
-    label: button.textContent.trim().replace(/\\s+/g, ' '),
-    display: style.display,
-    shadow: style.boxShadow,
-    borderStyle: style.borderTopStyle,
-    borderWidth: style.borderTopWidth,
-    borderColour: style.borderTopColor,
-    behind: painted(button.parentElement)
-  };
-})()`;
-
 /**
- * Every copy of the Download link and the footer's buttons as forced colours draw them: whether each is the primary,
- * and its border, once a border the forced palette adds has finished its transition (#119).
+ * Every copy of the Download link as forced colours draw it: its border, once a border the forced palette adds has
+ * finished its transition (#119).
  */
 const forcedControls = `new Promise((resolve) => setTimeout(() => resolve(
-  [...document.querySelectorAll('.toolbar-download, footer .print-button')].map((control) => {
+  [...document.querySelectorAll('[data-download-pdf]')].map((control) => {
     const style = getComputedStyle(control);
     return {
-      place: control.classList.contains('toolbar-download') ? 'top' : 'footer',
+      place: control.closest('footer') ? 'footer' : 'top',
       label: control.textContent.trim().replace(/\\s+/g, ' '),
-      primary: !control.classList.contains('print-button-secondary'),
       display: style.display,
       borderStyle: style.borderTopStyle,
       borderWidth: style.borderTopWidth
@@ -361,8 +322,6 @@ try {
   chrome = await openBrowser(browser, dataDir);
   await chrome.send('Page.enable');
   await chrome.send('Runtime.enable');
-  await chrome.send('DOM.enable');
-  await chrome.send('CSS.enable');
   // Every document this tab opens records its layout shifts from its first byte (#74).
   await chrome.send('Page.addScriptToEvaluateOnNewDocument', { source: RECORD_LAYOUT_SHIFTS });
   for (const layout of manifest.layouts) {
@@ -393,27 +352,7 @@ try {
       // The Download link (#101): measured as the page loaded, reached with Tab the way a keyboard user reaches
       // it, scrolled past where a layout pins it, and loaded again with no PDF to offer.
       const links = await chrome.evaluate(downloadLinks);
-      const buttons = await chrome.evaluate(footerButtons);
-      const atRest = await chrome.evaluate(secondaryStyle);
-      // A hover shadow would reach the secondary button unseen at rest, so it is read with :hover forced too (#119).
-      const { root } = await chrome.send('DOM.getDocument', { depth: 0 });
-      const { nodeId } = await chrome.send('DOM.querySelector', {
-        nodeId: root.nodeId,
-        selector: 'footer .print-button-secondary'
-      });
-      let hovered = null;
-      if (nodeId) {
-        await chrome.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: ['hover'] });
-        hovered = await chrome.evaluate(
-          `new Promise((resolve) => setTimeout(() => resolve(${secondaryStyle}), 400))`
-        );
-        await chrome.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: [] });
-      }
-      const secondary = secondaryButton(atRest, {
-        outlined: !Object.hasOwn(QUIET, layout),
-        hovered
-      });
-      // Forced colours drop fills and shadows and keep borders: every action keeps a boundary there (#119).
+      // Forced colours drop fills and shadows and keep borders: the Download link keeps a boundary there (#119).
       await chrome.send('Emulation.setEmulatedMedia', {
         features: [{ name: 'forced-colors', value: 'active' }]
       });
@@ -491,13 +430,12 @@ try {
       await within(chrome.evaluate(revealed), 30000, `${layout} did not render without a PDF`);
       const withoutPdf = await chrome.evaluate(downloadLinks);
       await chrome.send('Fetch.disable');
-      const reach = downloadReach({ links, withoutPdf, afterScroll, focus, buttons }, size);
+      const reach = downloadReach({ links, withoutPdf, afterScroll, focus }, size);
 
       const checks = {
         ...copy.checks,
         holdsStill: shift.holdsStill,
         ...reach.checks,
-        ...secondary.checks,
         ...forced.checks,
         ...marked.checks,
         ...ringCheck.checks
@@ -506,7 +444,6 @@ try {
         ...copy.findings,
         movedWhileLoading: shift.holdsStill ? [] : shift.moved,
         ...reach.findings,
-        ...secondary.findings,
         ...forced.findings,
         ...marked.findings,
         ...ringCheck.findings
@@ -519,13 +456,7 @@ try {
         score: `${passed}/${Object.keys(checks).length}`,
         checks,
         findings,
-        download: {
-          ...reach.measures,
-          secondary: Object.hasOwn(QUIET, layout)
-            ? `${secondary.measures.secondary} (quiet)`
-            : secondary.measures.secondary,
-          forced: forced.measures.forced
-        },
+        download: { ...reach.measures, forced: forced.measures.forced },
         rings: ringCheck.measures.rings
       });
     }
@@ -566,31 +497,32 @@ const report = [
   '',
   '## The Download PDF link',
   '',
-  '| Layout | Width | Top copy | Heights | Label lines | Focus ring | Secondary button | Forced colours |',
+  '| Layout | Width | Controls | Top copy | Heights | Label lines | Focus ring | Forced colours |',
   '|---|---:|---:|---:|---:|---:|---:|---:|',
   ...rows.map(
     ({ layout, width, download }) =>
-      `| ${layout} | ${width}px | ${download.top} | ${download.heights} | ${download.lines} | ${download.ring} | ${download.secondary} | ${download.forced} |`
+      `| ${layout} | ${width}px | ${download.controls} | ${download.top} | ${download.heights} | ${download.lines} | ${download.ring} | ${download.forced} |`
   ),
   '',
   'Checks, the four the product review of #59 measured by hand (#101): hidden without a PDF — loaded',
   'with `generated/manifest.json` answered 404, every copy computes `display: none`; reachable — the',
   'top copy inside the first screen and, where the layout pins it, still inside the viewport and',
-  'topmost after scrolling to the end; tappable — on a phone every visible copy, and the footer button',
-  'beside it (#109), renders at least 43px, and the top copy 44px, ±1; and a visible focus — reached',
-  'with Tab, a drawn ring that clears 3:1 against the background just outside the link, once its',
-  'transitions finish. A fifth since #107: every visible copy, and the footer button beside it,',
-  'renders its label on one line, at every width. A sixth since #116: the footer copy and the button',
-  'beside it render one height, within a pixel. Top copy is where it spans from the top of the page;',
-  'heights and label lines are every visible copy in page order, then the footer button; the ring is',
-  'its contrast. The secondary button in the footer is checked as well (#110): it carries no shadow in any',
-  'layout, at rest or with :hover forced (#119), and its border clears 3:1 against the footer as painted in',
-  'every layout that does not keep it quiet on purpose with a stated reason, as Nerd Mode does, marked',
-  '(quiet). Secondary button is that border and its contrast. And with forced colours emulated, which drop',
-  'fills and shadows and keep borders, every copy of the link and every footer button draws a border, the',
-  "primary's no thinner than the secondary's (#119); and the current layout's link in the switcher is told",
-  'from the others there by a marker the palette keeps, an underline or a wider border (#127). Forced colours',
-  "is each border's width, in page order.",
+  'topmost after scrolling to the end; tappable — on a phone every visible copy renders at least 43px,',
+  'and the top copy 44px, ±1; and a visible focus — reached with Tab, a drawn ring that clears 3:1',
+  'against the background just outside the link, once its transitions finish. A fifth since #107: every',
+  'visible copy renders its label on one line, at every width. A sixth since #150: the page shows one',
+  'download control, and a second visible copy fails; a page that shows none already fails as not',
+  'reachable, and is not reported twice. With forced colours emulated, which drop fills and shadows and',
+  "keep borders, every visible copy draws a border (#119); and the current layout's link in the switcher",
+  'is told from the others there by a marker the palette keeps, an underline or a wider border (#127).',
+  'Controls is how many copies show; top copy is where it spans from the top of the page; heights, label',
+  "lines and forced colours are each visible copy's, in page order; the ring is its contrast.",
+  '',
+  '#150 removed the footer, its copy of the link and its Browser print button, and the checks that existed',
+  'only for them: the secondary button drawing no shadow at rest or on hover and an outline that clears',
+  "3:1 (#110, #119); the footer's button tappable beside the link (#109) and holding its label on one line",
+  "(#107); the footer's copy and that button at one height (#116); and, in forced colours, the primary's",
+  "border no thinner than the secondary's (#119).",
   '',
   '## Focus rings',
   '',

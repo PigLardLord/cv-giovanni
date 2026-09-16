@@ -144,10 +144,10 @@ where the screen audit cannot:
   the padding holds one language at one width: #107 measured the footer's row 4px short at 320px in
   English, before any longer label.
 - **A modifier class comes after the rule it modifies, or is more specific; otherwise the base wins every
-  property both declare.** `.print-button-secondary` sat above `.print-button` at the same specificity, so
-  the base's `border: none` and shadow won. An override that sets part of a shorthand, such as
-  `border-color`, sets the whole shorthand unless it is certain which rule supplies the rest: the skins set
-  `border-color`, and it drew nothing (#110).
+  property both declare.** `.print-button-secondary`, the footer's Browser print until #150, sat above
+  `.print-button` at the same specificity, so the base's `border: none` and shadow won. An override that sets
+  part of a shorthand, such as `border-color`, sets the whole shorthand unless it is certain which rule supplies
+  the rest: the skins set `border-color`, and it drew nothing (#110).
 - **The lesser of two paired actions carries no shadow, at rest or on hover.** Fill and shadow mark the
   primary. The secondary may share its hue in its outline and its label, never its fill or its shadow (#110).
 - **A focus ring takes the tone its surface cannot swallow, never a bright one.** Deep on a light surface,
@@ -157,7 +157,7 @@ where the screen audit cannot:
   as in Nerd Mode's segmented switcher, the focused one is raised above its neighbours (#121).
 - **A button that shares a row with a link sets its own `line-height` in the skin.** A `<button>` takes the
   browser's `font` shorthand, which resets the line height a link inherits, so the two render different heights
-  side by side: 32px against 35px in Nerd Mode's footer (#116).
+  side by side: 32px against 35px in Nerd Mode's footer, before #150 removed it (#116).
 - **A control marked as a button by its fill and shadow keeps a border in forced colours.** A contrast theme
   drops both and keeps border styles, so such a control shows as bare text while an outlined lesser action
   beside it still reads as a button. There the primary's border is at least as wide as the secondary's (#119).
@@ -168,14 +168,20 @@ where the screen audit cannot:
   state that needs a marker should say which one it takes and what else already uses it.
 
 What that review measured on the Download link itself — hidden without a PDF, reachable, tappable,
-a visible focus ring — `npm run audit:screen` checks on every render (#101). Since #110 it also checks
-that the footer's secondary button carries no shadow and, in every layout that does not keep its outline
-quiet with a stated reason, draws a border that clears 3:1 against the footer. Since #111 it focuses every
-control a keyboard reaches, at 320px too, and reads each ring from the screen's pixels: a ring clears 3:1
-against what lies just outside it and against what it surrounds, or the render fails. Since #116 it renders a
-tablet width, 820px, and holds the footer's copy of the link and the button beside it to one height. Since #119 it emulates forced colours and holds every action to a
-border there, and reads the secondary button with `:hover` forced. Since #127 it holds the current layout's link to a marker
-there that is not a colour, and fails a current link that is not shown.
+a visible focus ring — `npm run audit:screen` checks on every render (#101), and since #107 that its label
+holds one line. Since #111 it focuses every control a keyboard reaches, at 320px too, and reads each ring
+from the screen's pixels: a ring clears 3:1 against what lies just outside it and against what it
+surrounds, or the render fails. Since #116 it renders a tablet width, 820px. Since #119 it emulates forced
+colours and holds the Download link to a border there. Since #127 it holds the current layout's link to a
+marker there that is not a colour, and fails a current link that is not shown. Since #150 the page offers
+one download control, the link at the top, and a second copy that shows fails the render; a page that
+shows none already fails as unreachable.
+
+#150 removed the footer, with its copy of the link and Browser print, and the checks that existed only for
+them went too: that the secondary button carried no shadow and an outline clearing 3:1, at rest and with
+`:hover` forced (#110, #119); the footer button's tap height (#109) and its label on one line (#107); the footer's copy and
+that button at one height (#116); and, in forced colours, the primary's border no thinner than the
+secondary's (#119). The rules above that came from them stay, for the next pair of actions.
 
 ### Linked pages are part of the CV
 

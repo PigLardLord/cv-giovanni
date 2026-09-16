@@ -1,6 +1,6 @@
 {
   "meta": { "title": "{{name}} – Curriculum Vitae" },
-  "actions": { "downloadPdf": "Download PDF", "print": "Browser print" },
+  "actions": { "downloadPdf": "Download PDF" },
   "layouts": {
     "nerd": "Nerd Mode",
     "spotlight": "Impact Spotlight",

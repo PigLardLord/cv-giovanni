@@ -117,7 +117,6 @@ if (document.querySelector('[data-download-pdf]')) {
       : null
   );
 }
-document.getElementById('print-browser')?.addEventListener('click', () => window.print());
 await reveal();
 
 window.cvApp = app;
