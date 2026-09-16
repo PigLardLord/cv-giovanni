@@ -21,9 +21,13 @@ const labels = {
   'cv:sections.certifications': 'Certifications',
   'cv:sections.education': 'Education',
   'cv:sections.languages': 'Languages',
-  'cv:sections.interests': 'Interests'
+  'cv:sections.interests': 'Interests',
+  'cv:education.credits': '{{count}} ECTS'
 };
-const t = (key, options = {}) => (labels[key] ?? key).replace('{{value}}', options.value ?? '');
+const t = (key, options = {}) =>
+  (labels[key] ?? key)
+    .replace('{{value}}', options.value ?? '')
+    .replace('{{count}}', options.count ?? '');
 
 const profile = {
   name: 'Ada Lovelace',
@@ -241,7 +245,7 @@ describe('SwiftSourceLayout', () => {
         '            title: "B.Sc. Computer Engineering",',
         '            school: "Università di Catania",',
         '            period: "2009",',
-        '            credits: 180',
+        '            credits: "180 ECTS"',
         '        ),',
         '    ]',
         '',
@@ -316,7 +320,7 @@ describe('SwiftSourceLayout', () => {
       'B.Sc. Computer Engineering',
       'Università di Catania',
       '2009',
-      '180',
+      '180 ECTS',
       'Languages',
       'Italian: Native',
       'English: C1 — professional',
@@ -328,6 +332,26 @@ describe('SwiftSourceLayout', () => {
       '+49 30 1234',
       'GitHub, github.com/ada'
     ]);
+  });
+
+  // A degree's scope carries its unit (#48). The argument label is drawn, so a number literal copied as a bare "60"
+  // that says nothing of what it counts; the catalogue's words say it, in the CV's numbers.
+  test('writes a degree’s credits as the CV writes them, so a reader copies "60 ECTS"', () => {
+    const copied = textLinesOf(layout.compose(published, { t }));
+
+    expect(copied).toContain('60 ECTS');
+    expect(copied).not.toContain('60');
+    expect(
+      textLinesOf(
+        layout.compose(
+          { ...profile, education: [{ ...profile.education[0], credits: 1500 }] },
+          {
+            t,
+            locale: 'de'
+          }
+        )
+      )
+    ).toContain('1.500 ECTS');
   });
 
   test('never lets two words on one line meet without real text between them', () => {

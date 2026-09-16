@@ -34,6 +34,7 @@
  */
 import { readableAddress } from '../domain/ReadableUrl.js';
 import { tenureText } from '../domain/Tenure.js';
+import { scopeText } from '../domain/EntryLines.js';
 
 /**
  * Who the candidate is comes first, then the evidence — experience before skills — and last how
@@ -204,7 +205,7 @@ export class SwiftSourceLayout {
     this.identity(data).forEach(([depth, tokens, extra]) => push(1 + depth, tokens, extra));
 
     SECTIONS.forEach((key) => {
-      const block = this[key](data, { locale });
+      const block = this[key](data, { locale, t });
       if (block.length === 0) return;
       if (lines.length > body) push(0);
 
@@ -373,7 +374,10 @@ export class SwiftSourceLayout {
     );
   }
 
-  education(data) {
+  education(data, { locale = 'en', t = (key) => key } = {}) {
+    // A degree's scope in the catalogue's words (#48): the argument label is drawn, so a number literal would copy as
+    // a bare "60" that says nothing of what it counts.
+    const words = { locale, credits: (count) => t('cv:education.credits', { count }) };
     return this.collection(
       'education',
       'Degree',
@@ -382,7 +386,7 @@ export class SwiftSourceLayout {
           ['title', degree.degree],
           ['school', degree.school],
           ['period', degree.period],
-          ['credits', degree.credits],
+          ['credits', scopeText(degree, words)],
           ['description', degree.description]
         ])
       )

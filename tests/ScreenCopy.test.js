@@ -290,23 +290,6 @@ describe('what a reader copies when they select the CV', () => {
     ).toEqual([]);
   });
 
-  // Nerd Mode draws a degree's argument label, so its credits copy as a number on a line of their own (#48).
-  test('a number the profile writes as a number is data, not a line number', () => {
-    const school = {
-      ...profile,
-      education: [{ degree: 'Software Engineering', school: 'Pisa', credits: 60 }]
-    };
-
-    expect(
-      screenCopy(copy(...nerd, 'Software Engineering', 'Pisa', '60'), school, options).findings
-        .unwritten
-    ).toEqual([]);
-    expect(
-      screenCopy(copy(...nerd, 'Software Engineering', 'Pisa', '61'), school, options).findings
-        .unwritten
-    ).toEqual(['61']);
-  });
-
   test('a short number the profile writes is data, not a line number', () => {
     const school = { ...profile, education: [{ degree: 'Software Engineering', school: '42' }] };
 
