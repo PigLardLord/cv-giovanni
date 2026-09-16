@@ -565,7 +565,11 @@ and did (#153). A letter is far simpler than a CV, which kept the cost of re-exp
   `neutral` greets `name` as the address writes it ("Guten Tag Anna Schmidt,"), and nobody named
   gets the anonymous opening. A named recipient without a form, or a form without the surname it
   needs, is greeted neutrally, since cutting a surname from a name is guessing, and
-  `CoverLetter.missing` names the field so the build warns.
+  `CoverLetter.missing` names the field so the build warns. The address block carries the form too,
+  on the name's line and adding none (#182): `ms` and `mr` put the catalogue's `addressMs` or
+  `addressMr` before the name — "Frau Dr. Anna Schmidt", "Herrn Max Mustermann" in the accusative —
+  and an empty wording leaves the name as written, as English's does, since Royal Mail treats a
+  title there as optional: whether a language writes one is the catalogue's call.
 - **The build warns first.** A recipient past six lines runs out of the address zone onto the date's
   row, and the audit fails it; a letter missing a field it needs is weaker, and the audit may not see
   it. `CoverLetter.problems` names both — each field `missing` names, and a recipient longer than

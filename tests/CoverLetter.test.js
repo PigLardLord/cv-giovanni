@@ -182,6 +182,82 @@ describe('how the recipient is greeted', () => {
   });
 });
 
+// A German address block writes the form of address on the name's line, "Frau Dr. Anna Schmidt" (#182). Which line
+// carries it, and which form, is the model's; the words are the catalogue's, so the caller writes that one line.
+describe('the name in the address block', () => {
+  const recipient = (fields) => new CoverLetter({ ...complete, recipient: fields });
+  const named = { company: 'ActAI', name: 'Anna Schmidt', address: ['Musterstraße 12'] };
+  const worded = ({ form, name, title }) => [form, title, name].filter(Boolean).join(' ');
+
+  test.each(['ms', 'mr'])('a recipient marked %s is named by that form, with the title', (form) => {
+    expect(recipient({ ...named, form, title: 'Dr.' }).addressedName).toEqual({
+      form,
+      name: 'Anna Schmidt',
+      title: 'Dr.'
+    });
+  });
+
+  // The address writes the whole name, so the form needs no surname there, as the salutation does.
+  test('a form of address without a surname still names the recipient by it', () => {
+    expect(recipient({ ...named, form: 'MS' }).addressedName).toEqual({
+      form: 'ms',
+      name: 'Anna Schmidt',
+      title: ''
+    });
+  });
+
+  test.each([
+    ['the neutral form', { form: 'neutral', title: 'Dr.' }],
+    ['no form of address', { title: 'Dr.' }],
+    ['a form the model does not know', { form: 'Frau' }]
+  ])('%s leaves the name as the data wrote it', (what, fields) => {
+    expect(recipient({ ...named, ...fields }).addressedName).toEqual({
+      form: 'neutral',
+      name: 'Anna Schmidt',
+      title: ''
+    });
+  });
+
+  test('nobody named is no name line', () => {
+    expect(
+      recipient({ company: 'ActAI', form: 'ms', surname: 'Schmidt' }).addressedName
+    ).toBeNull();
+  });
+
+  test('the worded name takes the name’s line, and adds none', () => {
+    const letter = recipient({ ...named, form: 'ms', title: 'Dr.', role: 'Head of Mobile' });
+
+    expect(letter.recipientLinesNaming(worded)).toEqual([
+      'ActAI',
+      'ms Dr. Anna Schmidt',
+      'Head of Mobile',
+      'Musterstraße 12'
+    ]);
+    expect(letter.recipientLinesNaming(worded)).toHaveLength(letter.recipientLines.length);
+    expect(recipient({ name: 'Anna Schmidt', form: 'mr' }).recipientLinesNaming(worded)).toEqual([
+      'mr Anna Schmidt'
+    ]);
+  });
+
+  test('a wording that writes nothing leaves the name as the data wrote it, never an empty line', () => {
+    expect(recipient({ ...named, form: 'ms' }).recipientLinesNaming(() => '')).toEqual([
+      'ActAI',
+      'Anna Schmidt',
+      'Musterstraße 12'
+    ]);
+  });
+
+  test('without a name, nothing is worded and no line is added', () => {
+    const asked = [];
+    const wording = (addressee) => asked.push(addressee) && worded(addressee);
+
+    expect(recipient({ company: 'ActAI', form: 'ms' }).recipientLinesNaming(wording)).toEqual([
+      'ActAI'
+    ]);
+    expect(asked).toEqual([]);
+  });
+});
+
 describe('a body that arrives as one string', () => {
   test('blank lines are the paragraphs', () => {
     const letter = new CoverLetter({ body: 'First paragraph.\n\nSecond paragraph.\n\n\nThird.' });
