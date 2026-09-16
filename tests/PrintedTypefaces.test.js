@@ -68,6 +68,16 @@ describe('text a printed page set in a typeface its layout does not print in', (
     expect(() => typefacesFor('constructor')).toThrow(/constructor/);
   });
 
+  // The cover letter is printed from its own page (#151), in Inter, with Impact Spotlight's name in Instrument Serif
+  // as the CV sets it. Its faces are declared on their own: a face the CV adds is not one the letter may print in.
+  test('the cover letter prints in the faces declared for it, per layout', () => {
+    expect(typefacesFor('nerd', 'letter')).toEqual(['Inter']);
+    expect(typefacesFor('spotlight', 'letter')).toEqual(['Inter', 'InstrumentSerif']);
+    expect(typefacesFor('technical', 'letter')).toEqual(['Inter']);
+    expect(() => typefacesFor('magazine', 'letter')).toThrow(/magazine/);
+    expect(() => typefacesFor('nerd', 'invoice')).toThrow(/invoice/);
+  });
+
   test('follows a face declared on one page to the text it sets on the next', () => {
     const document = pdf(
       [fontspec(0, 'AAAAAA+Inter'), run(0, 'Professional Experience')],

@@ -41,6 +41,17 @@ describe('the PDFs are printed from the page', () => {
     expect(generator).not.toContain('../core/PdfExporter.js');
   });
 
+  // The cover letter is printed from letter.html too (#151), so pdfmake is left with nothing to write and can go
+  // (#153).
+  test('the generator imports nothing of pdfmake, the cover letter included', () => {
+    const generator = imports(read('scripts/generate-pdfs.mjs'));
+
+    expect(generator.filter((path) => path.startsWith('pdfmake'))).toEqual([]);
+    expect(generator).not.toContain('../core/LetterExporter.js');
+    expect(generator).not.toContain('../core/PdfGenerationService.js');
+    expect(generator).not.toContain('../adapters/PdfMakeRenderer.js');
+  });
+
   test('the print audit reads the files the generator wrote, and prints nothing itself', () => {
     const audit = imports(read('scripts/audit-print.mjs'));
 

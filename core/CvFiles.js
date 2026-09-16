@@ -35,6 +35,20 @@ export class CvFiles {
     return `${name}-${profile}-${locale}-${layout}${suffix}.pdf`;
   }
 
+  /**
+   * The file a cover letter is printed to, beside the CV of the same layout (#151).
+   *
+   * `-cover` rather than `-letter`, as pdfmake named it: the print and ATS audits tell a letter from a CV by it,
+   * and it cannot be read as a paper size.
+   * @param {object} data - The profile, which names the file after the candidate
+   * @param {{ profile?: string, locale?: string, layout?: string }} options - The combination it accompanies
+   * @returns {string} The filename
+   */
+  letterFilename(data, { profile = 'general', locale = 'en', layout = 'spotlight' } = {}) {
+    const name = nameSlug(this.documentFactory(data).identity.name);
+    return `${name}-${profile}-${locale}-${layout}-cover.pdf`;
+  }
+
   /** The name the recruiter's inbox receives: the person and the role, no build vocabulary. */
   downloadName({ name = '', title = '' } = {}) {
     return `${[...fileWords(name), ...fileWords(title), 'CV'].join('-')}.pdf`;

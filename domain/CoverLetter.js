@@ -15,6 +15,12 @@
  * catalogue, like every other user-visible string in this project; a domain object that wrote
  * "Dear Hiring Team" would be a German letter's bug waiting to happen.
  */
+/**
+ * The lines DIN 5008's address zone holds: 27.3mm, filled from the top. A seventh prints below the zone, on the row of
+ * the date and outside a window envelope's window (the review of #151).
+ */
+export const ADDRESS_ZONE_LINES = 6;
+
 export class CoverLetter {
   constructor(data = {}) {
     const recipient = data.recipient || {};
@@ -34,6 +40,16 @@ export class CoverLetter {
     this.closing = text(data.closing);
     this.signature = text(data.signature);
     this.attachments = lines(data.attachments);
+  }
+
+  /** Every line of the recipient the data wrote, company first, in the order a window envelope shows them. */
+  get recipientLines() {
+    return [
+      this.recipient.company,
+      this.recipient.name,
+      this.recipient.role,
+      ...this.recipient.address
+    ].filter(Boolean);
   }
 
   /** Who to address, or null. The wording is the catalogue's business. */
@@ -57,6 +73,22 @@ export class CoverLetter {
       ['signature', this.signature]
     ];
     return required.filter(([, value]) => !value).map(([name]) => name);
+  }
+
+  /**
+   * What the letter needs before it is sent: every field it still misses, and a recipient longer than the address
+   * zone holds. Named, never corrected: no line is dropped to make an address fit, since which one can go is the
+   * writer's call.
+   * @returns {string[]} Each problem as `field: what is wrong`, missing fields first
+   */
+  get problems() {
+    const lines = this.recipientLines.length;
+    return [
+      ...this.missing.map((field) => `${field}: missing`),
+      ...(lines > ADDRESS_ZONE_LINES
+        ? [`recipient: ${lines} lines, the address zone holds ${ADDRESS_ZONE_LINES}`]
+        : [])
+    ];
   }
 
   /** Enough to put in front of an employer. */

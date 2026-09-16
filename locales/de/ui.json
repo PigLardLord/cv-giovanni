@@ -25,6 +25,7 @@
       "location": "Standort"
     }
   },
+  "letter": { "absent": "Dieses Profil enthält kein Anschreiben." },
   "errors": {
     "loadingTitle": "Lebenslauf konnte nicht geladen werden",
     "loadingHint": "Weitere Informationen finden Sie in der Konsole."

@@ -31,7 +31,7 @@ headless Chrome and prints each layout through `print.css`, so the page and the 
 one design and one set of words. They used to be two artefacts: the page through `renderers/`, and a
 PDF composed from the model by `adapters/PdfLayout.js` in a design of its own. They drifted — the PDF
 carried career highlights and an as-of month the page never showed (#148) — and the owner chose one
-CV over two (#144). A cover letter is still composed by pdfmake, until it is a page too (#151).
+CV over two (#144). A cover letter is a page too, `letter.html`, printed the same way (#151).
 
 These rules outlived `docs/ROADMAP.md`, which described milestones that GitHub now tracks. What
 remains of that file's unfinished work is filed under the milestone _Carried over from the old
@@ -131,7 +131,8 @@ A ticket can pass `codex-cli` on the diff and still ship a CV that dies in a tex
 Extend step 7 with a product review whenever the ticket's diff touches what the CV says or how
 it renders: `profiles/`, `locales/`, `renderers/`, `index.html`, `style.css`, `layouts.css`,
 `print.css`, `core/PdfExporter.js`, `core/CvFiles.js` (the name the recruiter's inbox receives),
-`adapters/PdfDesignSystem.js`, `adapters/LayoutThemeRegistry.js`.
+`adapters/PdfDesignSystem.js`, `adapters/LayoutThemeRegistry.js`, and the cover letter's `letter.html`,
+`letter.css`, `core/LetterContent.js` and `renderers/LetterRenderer.js` (#151).
 
 A ticket touching only build tooling, scripts or tests does not need it — say that it was
 skipped and why, rather than skipping it silently.
@@ -318,15 +319,18 @@ nothing is noise.
 When a finding's prevention rule is mechanically checkable, the follow-up ticket should add the
 check rather than the reminder. `scripts/audit-print.mjs` already scores every printed layout on
 format, page count, required text, reading order in both of the orders a parser reads, contrast on
-the paper, margins, typefaces, Type 3 fonts and images — an eighteenth check there outlives any
-number of review comments.
+the paper, margins, typefaces, Type 3 fonts and images, and every printed cover letter on checks of
+its own — an eighteenth check there outlives any number of review comments.
 
 **One CV and three audits**, and they fail differently. `npm run audit:print` reads the PDFs
 `npm run build:pdf` printed — the files CI publishes, never a copy printed for the audit, which would
 pass whatever the generator wrote — through the text layer poppler extracts and the pixels that
 reached the paper: contrast per word against the printed page, ink margins per page, every skill
 still attached to its category, nothing in the text layer the data did not write, and, read in the
-order the PDF draws it, every name spaced and every section in its place. It also reports how much
+order the PDF draws it, every name spaced and every section in its place. No line of prose, the
+summary, the highlights and what a role, a certificate or a degree says, runs past WCAG 1.4.8's 80
+characters; a line of skills, interests or contacts is a list, scanned item by item, and is exempt.
+In Nerd Mode no line of a role's dates runs out of its 128pt column (#155). It also reports how much
 room each page has left above its foot, and marks a last page with less than one line of running
 text free, as a warning and never a failure: the page count is the gate, and the warning is the
 notice that it is close (#162). A check on the stylesheet passed a page that printed a line of
@@ -501,5 +505,61 @@ Settled on #144 by the owner, and not to be undone by someone reclaiming space:
 - **The gate** is `audit:print` green and `audit:ats`'s floors in both reading orders, on the files
   CI publishes.
 
-The cover letter keeps pdfmake's design system — `adapters/PdfDesignSystem.js`, Inter embedded from
-the same files, a missing face a hard error — until #151 makes it a page.
+## The cover letter
+
+Settled on #151 by the owner: one system for both documents a recruiter receives, so pdfmake can go
+(#153). A letter is far simpler than a CV, which kept the cost of re-expressing DIN 5008 small.
+
+- **A page, printed by Chrome.** `letter.html?profile=<name>&lang=<locale>&layout=<layout>` renders
+  the `letter` a tailored profile carries, and `npm run build:pdf` prints it beside each layout's CV,
+  in the same browser session, to `<name>-<profile>-<locale>-<layout>-cover.pdf`
+  (`CvFiles.letterFilename`). The `-cover` is what the audits tell a letter by. `core/LetterContent.js`
+  decides the words, once, for the page and the audit alike; `renderers/LetterRenderer.js` writes them
+  as text. The page never offers a letter for download, and `generated/manifest.json` lists only the
+  CV. A profile without a letter, the published one included, shows a notice saying so.
+- **DIN 5008 form B, in CSS millimetres.** `letter.css` sets A4 with the form's margins, 20mm and
+  24.1mm on the left, and lays the letter out as blocks of fixed height in normal flow. The letterhead
+  fills the 25mm down to the address field, which is 85mm by 45mm, 45mm from the top edge and 20mm
+  from the left, and holds no blank line. Its upper 17.7mm, the Zusatz- und Vermerkzone, is filled
+  from the bottom: the return line sits at its foot in 8pt. Its lower 27.3mm, the Anschriftzone, from
+  62.7mm to 90mm, holds the recipient in at most six lines of 10pt at 4.5mm. The date follows,
+  right-aligned, with the reference beneath it, then the subject: at 98.46mm when the date stands
+  alone, lower when a reference joins it, rather than overlapping them. pdfmake's
+  `adapters/LetterLayout.js` had put the recipient at 45mm, where a window envelope does not show it;
+  the review of #151 found it against the standard. Nothing is positioned, floated or reordered by a
+  grid, so the text layer gives the letter in the order a reader meets it, in both of the orders a
+  parser reads. Measured on a probe letter with poppler: the text's left edge at 24.1mm, the return
+  line 59.2–62.6mm from the top, the recipient's five lines 62.7–85.0mm, the date and reference
+  90.6–99.2mm, the subject's glyphs from 102.5mm, one page.
+- **Inter from its static TrueType files, and no tracking,** as the CV prints, for the same reasons
+  (#143). `letter.css` declares only the faces the letter prints in and never loads
+  `vendor/fonts/fonts.css`. Impact Spotlight sets the sender's name in Instrument Serif, as
+  `print.css` sets the CV's name.
+- **Its audit.** `npm run audit:print` reads every letter the build wrote beside the CV, exits 2 when
+  one is missing, and scores each on checks of its own: A4, one page, the recipient's company, the
+  subject and the signature, the letter's parts in reading order in both orders, the address in the
+  window, contrast on the paper, no pictograph, the intended typefaces, no Type 3 font, no image, and
+  every margin at least 10mm. The address in the window is read from where poppler places each line:
+  the return line within 45–62.7mm of the top edge, every line of the recipient within 62.7–90mm, and
+  both within a DL window envelope's window, 20–110mm across; a line outside is named with where it
+  is. The sides are not compared, as a CV's are: form B is asymmetric by design. `npm run audit:ats`
+  keeps asking a `-cover` file only whether the recipient and the subject survive extraction.
+- **The build warns first.** A recipient past six lines runs out of the address zone onto the date's
+  row, and the audit fails it; a letter missing a field it needs is weaker, and the audit may not see
+  it. `CoverLetter.problems` names both — each field `missing` names, and a recipient longer than
+  `ADDRESS_ZONE_LINES` — and `npm run build:pdf` prints each to stderr, with the profile's path, before
+  it prints anything. It still writes the files as the data wrote them: no line is dropped to make an
+  address fit, and the audit stays the gate.
+- **The letter's page is not published.** The site CI assembles leaves out `letter.html`, `letter.js`
+  and `letter.css`, as it leaves out the editor, and checks that it did: the published profile carries
+  no letter, so published, the page could only say so. `tests/EditorStaysLocal.test.js` holds the
+  assembly to it. The page is served by `npm run serve`, which hands a tailored profile only to this
+  machine's browser holding the run's key.
+- **CI never prints a letter.** The published profile carries none, so the gates build and audit no
+  letter, and a change that breaks `letter.html` passes every gate. A letter is verified
+  only on a machine where an `applications/` profile carries one: `npm run build:pdf` with its
+  `--profile`, then both audits with the same one. The unit tests hold the words, the renderer, the
+  file names and the audit's rules; nothing holds the printed letter but that run. That is a limit,
+  and it is stated here so nobody reads a green CI as a checked letter.
+- **pdfmake's letter stays until #153,** unused: `core/LetterExporter.js`, `adapters/LetterLayout.js`,
+  their tests and `audit-pdfs`'s letter checks. Nothing runs them.
