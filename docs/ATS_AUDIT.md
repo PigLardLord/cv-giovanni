@@ -33,6 +33,19 @@ traces to a 2012 sales pitch with no published method; it is not repeated here.
 Nothing. Every field the document writes came back in its own slot.
 
 
+## Floors, in both reading orders
+
+Four failures gate the audit whatever the number says: a document that did not segment, a lost email, a role severed from its title or period, and a chronology that does not run one way. Each is checked in poppler's reading order (`pdftotext`) and in content-stream order (`pdftotext -raw`), which PDFBox and Tika read by default.
+
+| Artefact | Poppler's order | Content-stream order |
+|---|---|---|
+| generated/giovanni-trovato-general-en-nerd.pdf | pass | pass |
+| generated/giovanni-trovato-general-en-spotlight.pdf | pass | pass |
+| generated/giovanni-trovato-general-en-technical.pdf | pass | pass |
+| generated/qa/giovanni-trovato-general-en-nerd-letter-color.pdf | pass | pass |
+| generated/qa/giovanni-trovato-general-en-spotlight-letter-color.pdf | pass | pass |
+| generated/qa/giovanni-trovato-general-en-technical-letter-color.pdf | pass | pass |
+
 ## The advert
 
 No advert was given, so nothing was matched against one.
@@ -52,12 +65,12 @@ Regenerate with `npm run audit:ats`.
 
 15 artefacts, 6 distinct streams.
 
-- `04db02357fb4` — generated/giovanni-trovato-general-en-nerd.pdf, generated/qa/giovanni-trovato-general-en-nerd-a4-color.pdf, generated/qa/giovanni-trovato-general-en-nerd-a4-monochrome.pdf
-- `959d1482c32e` — generated/giovanni-trovato-general-en-spotlight.pdf, generated/qa/giovanni-trovato-general-en-spotlight-a4-color.pdf, generated/qa/giovanni-trovato-general-en-spotlight-a4-monochrome.pdf
-- `09e1856a2746` — generated/giovanni-trovato-general-en-technical.pdf, generated/qa/giovanni-trovato-general-en-technical-a4-color.pdf, generated/qa/giovanni-trovato-general-en-technical-a4-monochrome.pdf
-- `72d3ea130753` — generated/qa/giovanni-trovato-general-en-nerd-letter-color.pdf, generated/qa/giovanni-trovato-general-en-nerd-letter-monochrome.pdf
-- `054d45ff51fe` — generated/qa/giovanni-trovato-general-en-spotlight-letter-color.pdf, generated/qa/giovanni-trovato-general-en-spotlight-letter-monochrome.pdf
-- `a49369fae96d` — generated/qa/giovanni-trovato-general-en-technical-letter-color.pdf, generated/qa/giovanni-trovato-general-en-technical-letter-monochrome.pdf
+- `64ed1f428819` — generated/giovanni-trovato-general-en-nerd.pdf, generated/qa/giovanni-trovato-general-en-nerd-a4-color.pdf, generated/qa/giovanni-trovato-general-en-nerd-a4-monochrome.pdf
+- `2947a8588007` — generated/giovanni-trovato-general-en-spotlight.pdf, generated/qa/giovanni-trovato-general-en-spotlight-a4-color.pdf, generated/qa/giovanni-trovato-general-en-spotlight-a4-monochrome.pdf
+- `fd765aba690f` — generated/giovanni-trovato-general-en-technical.pdf, generated/qa/giovanni-trovato-general-en-technical-a4-color.pdf, generated/qa/giovanni-trovato-general-en-technical-a4-monochrome.pdf
+- `9102ab829867` — generated/qa/giovanni-trovato-general-en-nerd-letter-color.pdf, generated/qa/giovanni-trovato-general-en-nerd-letter-monochrome.pdf
+- `b84888086b8c` — generated/qa/giovanni-trovato-general-en-spotlight-letter-color.pdf, generated/qa/giovanni-trovato-general-en-spotlight-letter-monochrome.pdf
+- `4560121a08ec` — generated/qa/giovanni-trovato-general-en-technical-letter-color.pdf, generated/qa/giovanni-trovato-general-en-technical-letter-monochrome.pdf
 
 
-A layout-aware read of at least one artefact recovers a different number of roles. That is where a column is being serialised; reported, not scored.
+A layout-aware read recovers the same structure everywhere, so no column is being serialised.

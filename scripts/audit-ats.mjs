@@ -6,6 +6,7 @@ import { AtsTextParser } from '../core/AtsTextParser.js';
 import { RecoveryDiff } from '../core/RecoveryDiff.js';
 import { AtsScore } from '../core/AtsScore.js';
 import { AtsReport } from '../core/AtsReport.js';
+import { AtsFloors } from '../core/AtsFloors.js';
 import { AdvertMatcher } from '../core/AdvertMatcher.js';
 import { GenerationTarget } from '../core/GenerationTarget.js';
 
@@ -113,7 +114,11 @@ for (const { artefact, path, isCover } of files) {
     });
     continue;
   }
-  const fingerprint = createHash('sha256').update(text).digest('hex');
+  // The same file in the order its content stream draws it, which PDFBox and Tika read by default. Poppler's
+  // own order reassembles columns by position, and the two can fail differently: the two-column browser
+  // print kept its contacts on top in poppler's order and lost its email in the content stream's (#147).
+  const raw = execFileSync('pdftotext', ['-raw', path, '-'], { encoding: 'utf8' });
+  const fingerprint = createHash('sha256').update(text).update('\0').update(raw).digest('hex');
 
   // The colour and monochrome variants are textually identical and A4 and LETTER are not,
   // so the set of distinct text streams is smaller than the set of files. Saying which is
@@ -141,7 +146,13 @@ for (const { artefact, path, isCover } of files) {
   const layout = execFileSync('pdftotext', ['-layout', path, '-'], { encoding: 'utf8' });
   const divergence = AtsTextParser.parse(layout).experience.length !== recovered.experience.length;
 
-  results.push({ artefact, diff, recovered, divergence, fingerprint });
+  // Scored on poppler's order alone, so the number stays comparable with itself over time; gated on both.
+  const floors = {
+    default: AtsFloors.failures(diff),
+    raw: AtsFloors.failures(RecoveryDiff.diff(document, AtsTextParser.parse(raw)))
+  };
+
+  results.push({ artefact, diff, recovered, divergence, fingerprint, floors });
 }
 
 // The worst artefact, not the first. You send one of these, and the headline should be the
@@ -152,7 +163,7 @@ const score = scores.reduce((worst, candidate) =>
 );
 
 // The floors: not the score, which never gates anything, but the four failures that mean the
-// parsed record is unusable however good the rest looks.
+// parsed record is unusable however good the rest looks — in either reading order.
 const floors = letters
   .filter((entry) => entry.recovered !== true)
   .map((entry) =>
@@ -161,15 +172,12 @@ const floors = letters
       : `${entry.artefact}: the letter's recipient or subject did not survive extraction`
   )
   .concat(
-    results.flatMap(({ artefact, diff }) =>
-      [
-        diff.segmentation !== 'ok' && `${artefact}: the document did not segment`,
-        diff.identity.email === 'lost' && `${artefact}: the email address was not recovered`,
-        diff.experience.some((role) => !role.tripleAdjacent) &&
-          `${artefact}: a role lost its title, employer or period`,
-        !diff.roleOrderMonotonic && `${artefact}: the chronology does not run one way`
-      ].filter(Boolean)
-    )
+    results.flatMap(({ artefact, floors: failed }) => [
+      ...failed.default.map((failure) => `${artefact}: ${failure}`),
+      ...failed.raw.map(
+        (failure) => `${artefact}, in content-stream order (pdftotext -raw): ${failure}`
+      )
+    ])
   );
 
 const report = [

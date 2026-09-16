@@ -95,6 +95,17 @@ export const SECTIONS = {
   }
 };
 
+/**
+ * The word a role header joins its title to its employer with, per language: "Mobile Developer at Acme",
+ * "Entwickler bei Acme", "Sviluppatore presso Acme". It is the page's own form (#147), and the
+ * way a CV writes a role in running text.
+ */
+export const CONNECTORS = {
+  en: ['at'],
+  de: ['bei'],
+  it: ['presso']
+};
+
 /** Folded heading → { section, language }, built once. */
 const INDEX = new Map();
 for (const [section, byLanguage] of Object.entries(SECTIONS)) {
@@ -136,6 +147,43 @@ export class SectionLexicon {
       }
     }
     return null;
+  }
+
+  /**
+   * The section a label names when it opens a line and its block follows on the same line.
+   *
+   * A layout that sets its labels in a rail beside each block draws the label on the block's first
+   * baseline, and read in content-stream order the two come out as one line: "Professional Experience
+   * Mobile Software Engineer / …". That is the rail convention of pdfmake's output here and of the classic
+   * Europass CV, not a guess. The label must be a section name exactly, and the word after it must carry a
+   * capital or a digit, because a sentence that opens on a section word goes on in lower case: "Experience
+   * with Swift", "Training for new hires". A capitalised word after one is still read as a label, so a
+   * role header "Training Manager at …" would open a section; that fails a floor loudly rather than
+   * passing quietly.
+   * @param {string} line - One line of extracted text
+   * @returns {{section: string, language: string, match: 'exact', label: string, rest: string}|null} The label
+   */
+  static label(line) {
+    const words = String(line ?? '')
+      .trim()
+      .split(/\s+/);
+    for (let count = Math.min(words.length - 1, 4); count >= 1; count -= 1) {
+      const where = INDEX.get(fold(words.slice(0, count).join(' ')));
+      if (where && /[\p{Lu}\d]/u.test(words[count])) {
+        return {
+          ...where,
+          match: 'exact',
+          label: words.slice(0, count).join(' '),
+          rest: words.slice(count).join(' ')
+        };
+      }
+    }
+    return null;
+  }
+
+  /** Every connector the lexicon knows, in every language at once, as section names are. */
+  static connectors() {
+    return [...new Set(Object.values(CONNECTORS).flat())];
   }
 
   /** Every language the lexicon knows, discovered rather than declared. */

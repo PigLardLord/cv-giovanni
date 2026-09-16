@@ -11,7 +11,8 @@ const SEPARATORS = /\s*[·|•]\s*/;
  * The worst-case parser: what a stranger recovers from the text and nothing else.
  *
  * It takes a **string** — the output of `pdftotext` with no `-layout`, because that flag
- * makes poppler a better extractor than the naive reading this models. It never sees the
+ * makes poppler a better extractor than the naive reading this models, or of `pdftotext -raw`,
+ * the content-stream order PDFBox and Tika read, which writes no blank line anywhere. It never sees the
  * authored JSON, which `tests/AtsParserIsBlind.test.js` enforces: a parser that can read the
  * answer key measures nothing.
  *
@@ -26,6 +27,10 @@ export class AtsTextParser {
   static parse(text) {
     const lines = String(text ?? '')
       .replace(/ | | /g, ' ')
+      // A page break is a line break. Poppler's own order opens the next page on a line of its own;
+      // content-stream order writes the form feed between two lines it never parted,
+      // "colleagues.\fLed annual", and the two would read as one sentence.
+      .replace(/([^\n])\f/g, '$1\n')
       .split(/\r?\n/)
       .map((line) =>
         line
@@ -41,7 +46,7 @@ export class AtsTextParser {
       return new RecoveredCv({
         segmentation: 'failed',
         identity: AtsTextParser.identity(lines, lines.length),
-        sections: headings.map(({ line, ...rest }) => ({ ...rest, line }))
+        sections: headings.map(({ beside, ...heading }) => heading)
       });
     }
 
@@ -52,7 +57,7 @@ export class AtsTextParser {
       segmentation: 'ok',
       languages: SectionLexicon.languagesUsed(headings),
       identity: AtsTextParser.identity(lines, headings[0].line),
-      sections: headings,
+      sections: headings.map(({ beside, ...heading }) => heading),
       profile: AtsTextParser.profile(lines, headings[0].line, blocks.profile),
       experience,
       education: AtsTextParser.education(blocks.education || []),
@@ -65,13 +70,25 @@ export class AtsTextParser {
     });
   }
 
-  /** Every line that names a section, with the language it named it in. */
+  /**
+   * Every line that names a section, with the language it named it in.
+   *
+   * A section name alone on its line is a heading wherever it stands, because content-stream order
+   * writes no blank line above one (#147). A name the lexicon only half recognises still needs the
+   * blank line: without it, a truncated heading and the start of a sentence look alike. A label set
+   * beside its block comes out welded to the block's first line, and that line is kept as the block's.
+   */
   static headings(lines) {
     return lines.flatMap((text, line) => {
       const previous = line === 0 ? '' : lines[line - 1];
-      if (previous !== '') return [];
       const recognised = SectionLexicon.recognise(text);
-      return recognised ? [{ ...recognised, text, line }] : [];
+      if (recognised && (recognised.match === 'exact' || previous === '')) {
+        return [{ ...recognised, text, line }];
+      }
+      const label = SectionLexicon.label(text);
+      if (!label) return [];
+      const { rest, label: name, ...where } = label;
+      return [{ ...where, text: name, line, beside: rest }];
     });
   }
 
@@ -80,7 +97,7 @@ export class AtsTextParser {
     const result = { unassigned: [] };
     headings.forEach((heading, index) => {
       const end = index + 1 < headings.length ? headings[index + 1].line : lines.length;
-      const body = [];
+      const body = heading.beside ? [{ text: heading.beside, line: heading.line }] : [];
       for (let line = heading.line + 1; line < end; line += 1) {
         body.push({ text: lines[line], line });
       }
@@ -208,52 +225,216 @@ export class AtsTextParser {
   }
 
   /**
-   * Roles, read as blank-line-separated blocks.
+   * Roles, anchored on their periods.
    *
-   * The rule is the date: a block with no line that is wholly a period is not a role, and
-   * its prose belongs to the role above. `tripleAdjacent` records whether the title, the
-   * employer and the period arrived within three consecutive lines — the thing a sidebar
-   * destroys while leaving all three strings present.
+   * The rule is the date: a line that is wholly a period, or a period opening a role's header on
+   * the same line, starts a role, and every line up to the next role's first line is its body.
+   * Nothing before the first role is a role.
+   *
+   * A role's header stands on one side of its period, and which side is read off the section's
+   * first line, as a reader reads it: a section that opens on a period writes every period first.
+   * Deciding role by role would bind a period that sits between two headers to whichever looked
+   * better, and a career of roles without achievements is exactly that shape.
+   *
+   * `tripleAdjacent` records whether the title, the employer and the period arrived within three
+   * consecutive lines of text — the thing a sidebar destroys while leaving all three strings
+   * present. A blank line is not text: a column of dates beside the roles leaves one between a
+   * period and its title, and nothing else.
    */
   static experience(block) {
-    const roles = [];
-    for (const group of AtsTextParser.groups(block)) {
-      const dateAt = group.findIndex((entry) => DateRange.parse(entry.text));
-      if (dateAt < 0) {
-        if (roles.length) roles[roles.length - 1].body.push(...group);
-        continue;
-      }
-      const period = DateRange.parse(group[dateAt].text);
-      const employerLine = dateAt >= 1 ? group[dateAt - 1] : null;
-      const titleLine = dateAt >= 2 ? group[dateAt - 2] : null;
-      const [employer, location] = employerLine
-        ? employerLine.text.split(SEPARATORS)
-        : [null, null];
+    const entries = block.filter((entry) => entry.text);
+    const anchors = entries.flatMap((entry, index) => {
+      const whole = DateRange.parse(entry.text);
+      if (whole) return [{ index, period: whole, opens: null }];
+      const opening = AtsTextParser.openingPeriod(entry.text);
+      return opening ? [{ index, period: opening.period, opens: opening.rest }] : [];
+    });
+    const periodFirst = anchors.length > 0 && anchors[0].index === 0;
 
-      roles.push({
-        title: RecoveredCv.field(titleLine?.text || null, titleLine?.line ?? -1),
-        // Refused rather than guessed: with one line above the date there is no way to tell
-        // a title from an employer, and binding the wrong one is worse than binding neither.
-        employer: RecoveredCv.field(titleLine ? employer || null : null, employerLine?.line ?? -1),
-        location: RecoveredCv.field(titleLine ? location || null : null, employerLine?.line ?? -1),
-        period,
-        periodLine: group[dateAt].line,
-        tripleAdjacent: dateAt >= 2 && group[dateAt].line - group[dateAt - 2].line <= 2,
-        body: group.slice(dateAt + 1)
-      });
-    }
+    const roles = [];
+    anchors.forEach((anchor, n) => {
+      // A header never reaches past the role before it or into the role after it.
+      const floor = n === 0 ? 0 : roles[n - 1].header.to + 1;
+      const ceiling = n + 1 < anchors.length ? anchors[n + 1].index : entries.length;
+      const header =
+        anchor.opens !== null || periodFirst
+          ? AtsTextParser.headerAfter(entries, anchor, ceiling)
+          : AtsTextParser.headerBefore(entries, anchor, floor);
+      roles.push({ anchor, header });
+    });
+
     // Lines, not achievements. Extraction drops the bullet glyphs, so where one achievement
     // ends and the next begins is not decidable from the stream — and inventing the boundary
     // is exactly the kind of guess this parser exists to refuse. The joined text is offered
     // beside them so a diff can search prose without pretending to know its structure.
-    return roles.map((role) => ({
-      ...role,
-      bodyLines: role.body.map((entry) => entry.text).filter(Boolean),
-      bodyText: role.body
-        .map((entry) => entry.text)
-        .filter(Boolean)
-        .join(' ')
-    }));
+    return roles.map(({ anchor, header }, n) => {
+      const next = roles[n + 1];
+      const body = entries.slice(header.to + 1, next ? next.header.from : entries.length);
+      const { title, employer, location } = header;
+      return {
+        title: RecoveredCv.field(title?.value || null, title?.line ?? -1),
+        employer: RecoveredCv.field(employer?.value || null, employer?.line ?? -1),
+        location: RecoveredCv.field(location?.value || null, location?.line ?? -1),
+        period: anchor.period,
+        periodLine: entries[anchor.index].line,
+        tripleAdjacent: Boolean(title && employer) && header.to - header.from <= 2,
+        body,
+        bodyLines: body.map((entry) => entry.text),
+        bodyText: body.map((entry) => entry.text).join(' ')
+      };
+    });
+  }
+
+  /**
+   * A role's header, read from the lines above its period, and no higher than the role before.
+   *
+   * Three shapes, tried in this order: "Title at Employer, City" on the line above; the same
+   * wrapped after its connector, "Title at" over "Employer, City"; and a title over
+   * "Employer · City", which has no connector to confirm it and so is only read when both lines
+   * sit in the period's own paragraph.
+   * @returns {{title, employer, location, from: number, to: number}} Fields, and the lines they span
+   */
+  static headerBefore(entries, anchor, floor) {
+    const at = anchor.index;
+    const above = at - 1 >= floor ? entries[at - 1] : null;
+    const twoAbove = at - 2 >= floor ? entries[at - 2] : null;
+    const period = entries[at];
+
+    const oneLine = above && AtsTextParser.roleHeader(above.text);
+    if (oneLine) return AtsTextParser.header(oneLine, above, above, at - 1, at);
+
+    const wrapped = twoAbove && AtsTextParser.wrappedTitle(twoAbove.text);
+    if (wrapped) {
+      return AtsTextParser.header(
+        { title: wrapped, ...AtsTextParser.employerAndPlace(above.text) },
+        twoAbove,
+        above,
+        at - 2,
+        at
+      );
+    }
+
+    const adjacent = (entry, distance) => entry && entry.line === period.line - distance;
+    if (adjacent(above, 1) && adjacent(twoAbove, 2)) {
+      const [employer, location] = above.text.split(SEPARATORS);
+      return AtsTextParser.header(
+        { title: twoAbove.text, employer, location },
+        twoAbove,
+        above,
+        at - 2,
+        at
+      );
+    }
+    // Refused rather than guessed: with one line above the date there is no way to tell a title
+    // from an employer, and binding the wrong one is worse than binding neither.
+    return {
+      title: null,
+      employer: null,
+      location: null,
+      from: adjacent(above, 1) ? at - 1 : at,
+      to: at
+    };
+  }
+
+  /**
+   * A role's header, read from its period's own line or from the lines below it, and no lower
+   * than the next role. Only the shapes a connector confirms: a title and an employer below a
+   * period with nothing joining them could as well be a summary's first two lines.
+   */
+  static headerAfter(entries, anchor, ceiling) {
+    const at = anchor.index;
+    const [line, next] = anchor.opens !== null ? [at, at + 1] : [at + 1, at + 2];
+    const first =
+      line < ceiling ? { ...entries[line], text: anchor.opens ?? entries[line].text } : null;
+    const second = next < ceiling ? entries[next] : null;
+
+    const oneLine = first && AtsTextParser.roleHeader(first.text);
+    if (oneLine) return AtsTextParser.header(oneLine, first, first, at, line);
+
+    const wrapped = first && second && AtsTextParser.wrappedTitle(first.text);
+    if (wrapped) {
+      return AtsTextParser.header(
+        { title: wrapped, ...AtsTextParser.employerAndPlace(second.text) },
+        first,
+        second,
+        at,
+        next
+      );
+    }
+    return { title: null, employer: null, location: null, from: at, to: at };
+  }
+
+  /** The header's fields, each with the line it was read from. */
+  static header({ title, employer, location }, titleLine, employerLine, from, to) {
+    const on = (value, entry) => (value ? { value: value.trim(), line: entry.line } : null);
+    return {
+      title: on(title, titleLine),
+      employer: on(employer, employerLine),
+      location: on(location, employerLine),
+      from,
+      to
+    };
+  }
+
+  /**
+   * "Title at Employer, City" — a role as the page writes it and as running text says it.
+   *
+   * A header names; it does not end a sentence. A line that closes on a full stop is prose that
+   * happens to mention a place of work, and it is refused.
+   * @param {string} text - One line
+   * @returns {{title: string, employer: string, location: string|null}|null} The header
+   */
+  static roleHeader(text) {
+    const value = String(text ?? '').trim();
+    if (!value || /[.;:!?]$/.test(value)) return null;
+    const match = new RegExp(`^(.+?)\\s(?:${AtsTextParser.connectors()})\\s(.+)$`).exec(value);
+    return match ? { title: match[1].trim(), ...AtsTextParser.employerAndPlace(match[2]) } : null;
+  }
+
+  /** A title whose line ends on its connector, "… iOS & Android at": the employer is on the next line. */
+  static wrappedTitle(text) {
+    const match = new RegExp(`^(.+?)\\s(?:${AtsTextParser.connectors()})$`).exec(
+      String(text ?? '').trim()
+    );
+    return match ? match[1].trim() : null;
+  }
+
+  /** "Employer, City" or "Employer · City", parted at the first separator. */
+  static employerAndPlace(text) {
+    const value = String(text ?? '').trim();
+    const split = /\s*[·|•]\s*|,\s+/.exec(value);
+    return split
+      ? {
+          employer: value.slice(0, split.index),
+          location: value.slice(split.index + split[0].length)
+        }
+      : { employer: value, location: null };
+  }
+
+  /** The connectors, as one alternation for a pattern. */
+  static connectors() {
+    return SectionLexicon.connectors()
+      .map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+      .join('|');
+  }
+
+  /**
+   * A period that opens a line and a role header that follows it on the same line: "September 2015 –
+   * July 2018 Mobile Developer at Acme, Pisa, Italy", which is how a column of dates drawn first
+   * reads in content-stream order. The longest period wins, so "May 2015" is never cut from
+   * "May 2015 – August 2015".
+   * @param {string} text - One line
+   * @returns {{period: DateRange, rest: string}|null} The period and the header after it
+   */
+  static openingPeriod(text) {
+    const words = text.split(' ');
+    for (let count = Math.min(words.length - 1, 8); count >= 1; count -= 1) {
+      const rest = words.slice(count).join(' ');
+      if (!AtsTextParser.roleHeader(rest) && !AtsTextParser.wrappedTitle(rest)) continue;
+      const period = DateRange.parse(words.slice(0, count).join(' '));
+      if (period) return { period, rest };
+    }
+    return null;
   }
 
   /** Blank-line-separated groups of non-empty lines. */
@@ -272,23 +453,67 @@ export class AtsTextParser {
     return groups;
   }
 
-  /** Degrees, each with whatever school and period followed it. */
+  /**
+   * Degrees, each with the school and period that close it.
+   *
+   * A line that ends in a period — "School · 2014 – 2016" or "School (2014 – 2016)" — closes an
+   * entry, and every line above it since the last one is the degree, so a degree the measure
+   * wrapped stays one degree. A paragraph with no such line keeps the older reading: the degree,
+   * then the school.
+   */
   static education(block) {
-    return AtsTextParser.groups(block)
-      .map((group) => {
+    const entries = [];
+    for (const group of AtsTextParser.groups(block)) {
+      const closers = group
+        .map((entry, index) => ({ index, ...AtsTextParser.schoolAndPeriod(entry.text) }))
+        .filter((candidate) => candidate.period);
+      if (!closers.length) {
         const [school, period] = (group[1]?.text || '').split(SEPARATORS);
-        return {
+        entries.push({
           degree: RecoveredCv.field(group[0]?.text || null, group[0]?.line ?? -1),
           school: RecoveredCv.field(school || null, group[1]?.line ?? -1),
           period: period || null,
           line: group[0]?.line ?? -1
-        };
-      })
-      .filter((entry) => entry.degree);
+        });
+        continue;
+      }
+      let start = 0;
+      for (const closer of closers) {
+        const degree = group.slice(start, closer.index);
+        entries.push({
+          degree: RecoveredCv.field(
+            degree.map((entry) => entry.text).join(' ') || null,
+            degree[0]?.line ?? -1
+          ),
+          school: RecoveredCv.field(closer.school, group[closer.index].line),
+          period: closer.period,
+          line: degree[0]?.line ?? -1
+        });
+        start = closer.index + 1;
+      }
+    }
+    return entries.filter((entry) => entry.degree);
   }
 
   /**
-   * Skill groups: a short line with no comma, then the comma-bearing lines under it.
+   * "School · period" or "School (period)", when what closes the line reads as a period. A
+   * parenthesis that does not — "(TUM)", "(remote)" — is part of the name.
+   */
+  static schoolAndPeriod(text) {
+    const parenthesised = /^(.*\S)\s*\(([^()]+)\)$/.exec(text);
+    if (parenthesised && DateRange.parse(parenthesised[2])) {
+      return { school: parenthesised[1], period: parenthesised[2] };
+    }
+    const parts = text.split(SEPARATORS);
+    if (parts.length >= 2 && DateRange.parse(parts[parts.length - 1])) {
+      return { school: parts[0], period: parts[parts.length - 1] };
+    }
+    return { school: null, period: null };
+  }
+
+  /**
+   * Skill groups: a short line with no comma, then the comma-bearing lines under it — or
+   * "Category — items" on one line, whose list runs on over the lines until the next category.
    *
    * Items split on `,` and `·` only. Never on `/`, or `XCTest / XCUITest` and
    * `SBOM / Dependency-Track` shatter into halves that are not skills.
@@ -296,22 +521,50 @@ export class AtsTextParser {
   static skills(block) {
     const groups = [];
     for (const group of AtsTextParser.groups(block)) {
-      const isCategory = group[0] && group[0].text.length <= 40 && !group[0].text.includes(',');
+      if (AtsTextParser.inlineCategory(group[0].text)) {
+        const lists = [];
+        for (const entry of group) {
+          const inline = AtsTextParser.inlineCategory(entry.text);
+          if (inline) {
+            lists.push({ category: inline.category, line: entry.line, text: [inline.items] });
+          } else {
+            lists[lists.length - 1].text.push(entry.text);
+          }
+        }
+        groups.push(
+          ...lists.map(({ text, ...list }) => ({ ...list, items: AtsTextParser.items(text) }))
+        );
+        continue;
+      }
+      const isCategory = group[0].text.length <= 40 && !group[0].text.includes(',');
       if (isCategory && group.length === 1) {
         groups.push({ category: group[0].text, line: group[0].line, items: [] });
         continue;
       }
       const target = groups[groups.length - 1];
-      const items = group
-        .map((entry) => entry.text)
-        .join(' ')
-        .split(/\s*[,·]\s*/)
-        .map((item) => item.trim())
-        .filter(Boolean);
+      const items = AtsTextParser.items(group.map((entry) => entry.text));
       if (target && !target.items.length) target.items = items;
       else groups.push({ category: null, line: group[0].line, items });
     }
     return groups;
+  }
+
+  /**
+   * "Category — items" or "Category: items". The category is short and carries no comma, so a
+   * wrapped line of the list that happens to hold a dash is never taken for one.
+   */
+  static inlineCategory(text) {
+    const match = /^([^,:—–]{1,40}?)(?:\s+[—–]|:)\s+(.+)$/.exec(text);
+    return match ? { category: match[1].trim(), items: match[2] } : null;
+  }
+
+  /** A list's lines, joined and split into items. */
+  static items(lines) {
+    return lines
+      .join(' ')
+      .split(/\s*[,·]\s*/)
+      .map((item) => item.trim())
+      .filter(Boolean);
   }
 
   /** `Language: level`, `Language — level` or `Language (level)`. CEFR only when written. */
