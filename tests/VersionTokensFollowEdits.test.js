@@ -79,6 +79,8 @@ describe('a versioned file that changes takes a new token', () => {
     expect(catalogueToken(service('20260911-xcode3'))).toBe('20260911-xcode3');
     expect(catalogueToken(`loadPath: "locales/{{lng}}/{{ns}}.json?cache=1&v=NEW"`)).toBe('NEW');
     expect(catalogueToken("loadPath: 'locales/{{lng}}/{{ns}}.json'")).toBeNull();
+    // A token after a fragment is not the one the browser sends, as versionedFiles already reads it.
+    expect(catalogueToken("loadPath: 'locales/{{lng}}/{{ns}}.json#part?v=FAKE'")).toBeNull();
   });
 
   test('an edited catalogue under the old token is stale, and under a new one is not', () => {
@@ -92,6 +94,13 @@ describe('a versioned file that changes takes a new token', () => {
         after: service('20260917-labels1')
       })
     ).toBe(false);
+    expect(
+      staleCatalogues({
+        changed: ['locales/en/ui.json'],
+        before,
+        after: "backend: { loadPath: 'locales/{{lng}}/{{ns}}.json' },"
+      })
+    ).toBe(true);
     expect(staleCatalogues({ changed: ['style.css', 'locales.md'], before, after: before })).toBe(
       false
     );

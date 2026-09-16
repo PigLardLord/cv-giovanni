@@ -27,7 +27,7 @@ export function versionedFiles(html) {
  */
 export function catalogueToken(source) {
   return (
-    /loadPath:\s*(["'`])[^"'`]*\?(?:[^"'`#]*&)?v=([^"'`&#]+)/.exec(String(source))?.[2] ?? null
+    /loadPath:\s*(["'`])[^"'`?#]*\?(?:[^"'`#]*&)?v=([^"'`&#]+)/.exec(String(source))?.[2] ?? null
   );
 }
 
@@ -35,11 +35,14 @@ export function catalogueToken(source) {
  * Whether a branch changed a catalogue under `locales/` and left the catalogues' token as it was.
  * @param {{ changed: string[], before: string, after: string }} branch - The files that differ from where the branch
  *   began, and `core/I18nService.js` there and now
- * @returns {boolean} True when an edited catalogue would load under its old name
+ * @returns {boolean} True when an edited catalogue would load under its old name, or under none
  */
 export function staleCatalogues({ changed, before, after }) {
   const edited = changed.some((file) => /^locales\/.+\.json$/.test(file));
-  return edited && catalogueToken(after) === catalogueToken(before);
+  const token = catalogueToken(after);
+  // A token dropped on the branch leaves the catalogues unversioned, which is worse than one left unmoved (the code
+  // review of #173).
+  return edited && (token === null || token === catalogueToken(before));
 }
 
 /**
