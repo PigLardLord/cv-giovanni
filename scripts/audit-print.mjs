@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { writeReport } from './lib/write-report.mjs';
 import { fallbackRuns, typefacesFor } from './lib/printed-typefaces.mjs';
 import { gluedPhrases, type3Fonts } from './lib/extractable-text.mjs';
+import { degreeBesideSchool } from './lib/degree-lines.mjs';
 import { imageCount, outOfOrder } from './lib/section-order.mjs';
 import { builtCv, builtLetters } from './lib/printed-cv.mjs';
 import { PRINTED_PAGE, bboxPages, printedRoom, roomReport } from './lib/page-room.mjs';
@@ -115,13 +116,9 @@ const brokenForms = [
   broken: new RegExp(`\\b${escapeForRegExp(compound.replace(/-/g, ''))}\\b`)
 }));
 
-// A degree and its school must stay adjacent. The web renderer writes
-// "<school> (<period>)" where the PDF writes "<school> · <period>".
-const educationPairs = profile.education.map(
-  (item) =>
-    new RegExp(
-      `${escapeForRegExp(item.degree)}\\s+${escapeForRegExp(item.school)}\\s*[·(]\\s*${escapeForRegExp(item.period)}`
-    )
+// A degree and its school must stay adjacent, with only the degree's scope between them when it states one (#48).
+const educationPairs = profile.education.map((item) =>
+  degreeBesideSchool(item, { credits: catalogue.education.credits, locale: target.locale })
 );
 
 /** Contrast of a grey against the white of the paper. */

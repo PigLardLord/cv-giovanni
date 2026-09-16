@@ -218,6 +218,7 @@ describe('the printed page, in the order poppler reads it', () => {
     }
   );
 
+  // The scope a degree states after its name (#48) is drawn on the degree's line, and read as part of the degree.
   test.each(['page-print-spotlight', 'page-print-nerd'])(
     '%s: a wrapped degree stays one degree, and "School (period)" splits',
     (fixture) => {
@@ -227,7 +228,7 @@ describe('the printed page, in the order poppler reads it', () => {
         cv.education.map((entry) => [entry.degree.value, entry.school.value, entry.period])
       ).toEqual([
         [
-          "First Level Professional Master's Programme in Mobile Applications Development",
+          "First Level Professional Master's Programme in Mobile Applications Development (60 ECTS)",
           'Università degli Studi di Pisa',
           '2014 – 2016'
         ],

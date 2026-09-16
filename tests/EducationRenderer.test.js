@@ -84,21 +84,23 @@ describe('EducationRenderer', () => {
         period: '2009'
       }
     ];
-    const schoolLines = () =>
-      [...document.querySelectorAll('.edu-entry > div:nth-child(2)')].map((line) =>
-        line.textContent.replace(/\s+/g, ' ')
-      );
+    const lines = (selector) =>
+      [...document.querySelectorAll(selector)].map((line) => line.textContent.replace(/\s+/g, ' '));
+    const credits = () => lines('.edu-credits');
 
-    test('reads "School (period) · 60 ECTS", and a degree without credits is unchanged', async () => {
+    test('reads "Degree (60 ECTS)", the school lines unchanged, and a degree without credits as it was', async () => {
       fedTheModel(new EducationRenderer(await i18nIn('en'))).render(document, { education });
 
-      expect(schoolLines()).toEqual([
-        'Università degli Studi di Pisa (2014 – 2016) · 60 ECTS',
+      expect(lines('.edu-degree')).toEqual([
+        "First Level Professional Master's Programme in Mobile Applications Development (60 ECTS)",
+        'B.Sc. Computer Engineering'
+      ]);
+      expect(credits()).toEqual(['(60 ECTS)']);
+      expect(document.querySelector('.edu-credits').classList.contains('no-break')).toBe(true);
+      expect(lines('.edu-entry > div:nth-child(2)')).toEqual([
+        'Università degli Studi di Pisa (2014 – 2016)',
         'Università degli Studi di Catania (2009)'
       ]);
-      expect(
-        [...document.querySelectorAll('.edu-credits')].map((span) => span.textContent)
-      ).toEqual(['60 ECTS']);
     });
 
     test('writes the count as the CV’s language writes numbers', async () => {
@@ -106,7 +108,14 @@ describe('EducationRenderer', () => {
         education: [{ ...education[0], credits: 1500 }]
       });
 
-      expect(document.querySelector('.edu-credits').textContent).toBe('1.500 ECTS');
+      expect(credits()).toEqual(['(1.500 ECTS)']);
+    });
+
+    // The code review of #179: a renderer built without the i18n service still states the scope.
+    test('without the i18n service, still writes the credits in the catalogue’s English words', () => {
+      fedTheModel(new EducationRenderer()).render(document, { education });
+
+      expect(credits()).toEqual(['(60 ECTS)']);
     });
   });
 
