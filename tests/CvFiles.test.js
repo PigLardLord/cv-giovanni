@@ -1,8 +1,8 @@
 import { CvFiles } from '../core/CvFiles.js';
 import { LetterExporter } from '../core/LetterExporter.js';
 
-// The rules that name the files a CV is delivered as. They moved here from `PdfExporter` so the page can
-// use them without importing pdfmake's composer (#145); what they assert is unchanged.
+// The rules that name the files a CV is delivered as, which the page, the generator and the print audit share
+// (#145).
 describe('CvFiles', () => {
   const data = {
     name: 'Giovanni Trovato',
@@ -59,19 +59,13 @@ describe('CvFiles', () => {
   // else still produced files named after this repository's owner (#34).
   test('names every file after the candidate its profile describes', () => {
     const files = new CvFiles();
-    const options = {
-      profile: 'acme',
-      locale: 'de',
-      layout: 'nerd',
-      pageSize: 'LETTER',
-      variant: true
-    };
+    const options = { profile: 'acme', locale: 'de', layout: 'nerd' };
 
     expect(files.filename({ ...data, name: 'Ada Lovelace' }, options)).toBe(
-      'ada-lovelace-acme-de-nerd-letter-color.pdf'
+      'ada-lovelace-acme-de-nerd.pdf'
     );
     expect(files.filename({ ...data, name: 'Niccolò D’Amico' }, options)).toBe(
-      'niccolo-d-amico-acme-de-nerd-letter-color.pdf'
+      'niccolo-d-amico-acme-de-nerd.pdf'
     );
   });
 
