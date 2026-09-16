@@ -1,4 +1,11 @@
-import { lineBoxes, lineBreaks, renderedGlyphs } from '../scripts/lib/line-breaks.mjs';
+import {
+  DASHES,
+  SEPARATORS,
+  lineBoxes,
+  lineBreaks,
+  renderedGlyphs
+} from '../scripts/lib/line-breaks.mjs';
+import { DASH_GLYPHS, SEPARATOR_GLYPHS } from '../renderers/inlineSeparator.js';
 
 /**
  * A run of text as Chrome lays it out on one line box: a rectangle per character, spaces narrower than letters, from
@@ -267,5 +274,14 @@ describe('the glyphs the audit collects from the page', () => {
 
   test('are null when a bound is missing', () => {
     expect(window.eval(renderedGlyphs('#start', '#nowhere'))).toBeNull();
+  });
+});
+
+// The glyphs the audit holds to a line are the glyphs the renderers hold together, from one list: a glyph added to
+// one and not the other would be held on screen and never checked, or checked and never held (code review of #195).
+describe('the glyphs the check knows', () => {
+  test('are the separators and dashes the renderers hold', () => {
+    expect(SEPARATORS).toBe(SEPARATOR_GLYPHS);
+    expect(DASHES).toBe(DASH_GLYPHS);
   });
 });

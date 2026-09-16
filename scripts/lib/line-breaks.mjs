@@ -1,3 +1,5 @@
+import { DASH_GLYPHS, SEPARATOR_GLYPHS } from '../../renderers/inlineSeparator.js';
+
 /**
  * Where the screen breaks the CV's lines, checked against what a break must never do (#180).
  *
@@ -8,11 +10,11 @@
  * character, taken in the page, and grouped into lines here, where each rule can be shown to fail.
  */
 
-/** A glyph that stands between two things and belongs to neither, so it never starts or ends a line. */
-export const SEPARATORS = ['·', '–', '—', '|'];
+/** A glyph that stands between two things and belongs to neither, so it never starts or ends a line: the renderers'. */
+export const SEPARATORS = SEPARATOR_GLYPHS;
 
 /** The dashes a period writes between its two ends, after which a period too wide for its line may break. */
-const DASHES = ['–', '—'];
+export const DASHES = DASH_GLYPHS;
 
 /** How far a period may be from filling its line and still count as wider: glyph boxes add up to 1/64px apiece. */
 const MEASURE_TOLERANCE = 0.5;
@@ -125,7 +127,11 @@ function layOut(glyphs) {
  */
 export const lineBoxes = (glyphs) => layOut(glyphs).lines;
 
-/** Every string the profile writes under a key named `period`, however deep. */
+/**
+ * Every string the profile writes under a key named `period`, however deep. It is the key `core/ProfileShape.js` gives
+ * every date range a role or a degree carries, so a date range under any other key would go unchecked: a new one
+ * belongs under `period`, or here.
+ */
 const periodsIn = (node) =>
   Array.isArray(node)
     ? node.flatMap(periodsIn)

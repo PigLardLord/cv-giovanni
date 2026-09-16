@@ -58,8 +58,17 @@ export function bindSeparators(text, glyph = SEPARATOR_GLYPH) {
   return text.replace(spaced, `${NO_BREAK_SPACE}${glyph}${NO_BREAK_SPACE}`);
 }
 
+/**
+ * The glyphs that stand between two things and belong to neither: held to the words either side of them here, and
+ * never at a line's start or end in the screen audit, which reads this list rather than one of its own (#180).
+ */
+export const SEPARATOR_GLYPHS = Object.freeze(['·', '–', '—', '|']);
+
+/** The dashes a period writes between its two ends, the one place a period too wide for its line may break. */
+export const DASH_GLYPHS = Object.freeze(['–', '—']);
+
 /** A separator glyph with the spaces the data wrote either side of it. */
-const SEPARATED = /(\s*[·–—|]\s*)/u;
+const SEPARATED = new RegExp(`(\\s*[${SEPARATOR_GLYPHS.join('')}]\\s*)`, 'u');
 
 /**
  * A line of text as pieces, with every separator held to the words either side of it (#180).
