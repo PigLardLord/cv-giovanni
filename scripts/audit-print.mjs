@@ -8,6 +8,7 @@ import { writeReport } from './lib/write-report.mjs';
 import { fallbackRuns, typefacesFor } from './lib/printed-typefaces.mjs';
 import { gluedPhrases, type3Fonts } from './lib/extractable-text.mjs';
 import { openBrowser } from './lib/chrome.mjs';
+import { imageCount, outOfOrder } from './lib/section-order.mjs';
 import { printPage } from './lib/print-page.mjs';
 import { rendered, revealed } from './lib/page-ready.mjs';
 import { GenerationTarget } from '../core/GenerationTarget.js';
@@ -281,6 +282,19 @@ try {
       ...profile.education.flatMap((entry) => [entry.degree, entry.school]),
       ...profile.skills.map((group) => group.category)
     ]);
+    // The order a reader meets the CV in, which the text layer has to give in both reading orders (#142).
+    const anchors = [
+      profile.name,
+      profile.email,
+      labels.skills,
+      labels.experience,
+      ...profile.relevant_experience.map((job) => job.title),
+      labels.education,
+      ...profile.education.map((entry) => entry.degree),
+      labels.languages
+    ];
+    const sections = { read: outOfOrder(text, anchors), drawn: outOfOrder(drawn, anchors) };
+    const images = imageCount(execFileSync('pdfimages', ['-list', pdf], { encoding: 'utf8' }));
     const flat = text.replace(/\s+/g, ' ');
     const pageCount = Number(info.match(/Pages:\s+(\d+)/)?.[1]);
 
@@ -357,7 +371,13 @@ try {
       noType3Fonts: type3.length === 0,
       // Read in drawing order, the name, every title, employer, school and skill category keeps the
       // spaces between its words: "GiovanniTrovato" is a name no search finds.
-      wordsSpacedInDrawingOrder: glued.length === 0
+      wordsSpacedInDrawingOrder: glued.length === 0,
+      // Name, contacts, skills, every role, then education and languages, as poppler reconstructs the
+      // page and as the PDF draws it: a column beside the first role put the degrees inside it.
+      sectionsInOrder: sections.read.length === 0,
+      sectionsInOrderDrawn: sections.drawn.length === 0,
+      // No portrait (the owner's decision in #144), and no picture of anything a parser should read.
+      noImages: images === 0
     };
 
     const passed = Object.values(checks).filter(Boolean).length;
@@ -370,6 +390,8 @@ try {
       fallback: fallback.slice(0, 8),
       type3,
       glued,
+      sections,
+      images,
       margins
     });
   }
@@ -408,7 +430,8 @@ const report = [
   `no narrower than ${MARGIN_FLOOR_MM}mm and symmetric within ${SIDE_TOLERANCE_MM}mm, a text layer carrying nothing`,
   'the data did not write, every run of text set in a typeface its layout prints in, no Type 3 font,',
   'and, read in drawing order as PDFBox and Tika read, the name, titles, employers, schools and',
-  'skill categories with the spaces between their words.'
+  'skill categories with the spaces between their words, the sections in reading order both as',
+  'poppler reconstructs the page and as the PDF draws it, and no image.'
 ].join('\n');
 
 await writeReport(new URL(target.reportPath('PRINT_AUDIT.md'), projectUrl), `${report}\n`);
@@ -418,7 +441,7 @@ if (failures.length) {
   console.error('');
   console.error(
     JSON.stringify(
-      failures.map(({ layout, checks, faint, fallback, type3, glued }) => ({
+      failures.map(({ layout, checks, faint, fallback, type3, glued, sections, images }) => ({
         layout,
         failed: Object.entries(checks)
           .filter(([, value]) => !value)
@@ -426,7 +449,9 @@ if (failures.length) {
         faint,
         fallback,
         type3,
-        glued
+        glued,
+        sections,
+        images
       })),
       null,
       2
