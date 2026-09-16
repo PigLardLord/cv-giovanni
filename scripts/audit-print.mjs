@@ -10,6 +10,9 @@ import { gluedPhrases, type3Fonts } from './lib/extractable-text.mjs';
 import { imageCount, outOfOrder } from './lib/section-order.mjs';
 import { builtCv } from './lib/printed-cv.mjs';
 import { PRINTED_PAGE, bboxPages, printedRoom, roomReport } from './lib/page-room.mjs';
+import { MEASURE_LIMIT, longProseLines, overflowingPeriods, proseOf } from './lib/line-length.mjs';
+import { CvDocument } from '../domain/CvDocument.js';
+import { periodText } from '../domain/Tenure.js';
 import { GenerationTarget } from '../core/GenerationTarget.js';
 
 /**
@@ -30,6 +33,12 @@ const projectUrl = new URL('..', import.meta.url);
 const target = GenerationTarget.fromArguments(process.argv.slice(2));
 const profile = await readJson(target.dataPath);
 const labels = (await readJson(`locales/${target.locale}/cv.json`)).sections;
+// The prose a reader follows along a line, and each role's dates as Nerd Mode prints them, with their length (#155).
+const prose = proseOf(profile);
+const cv = new CvDocument(profile);
+// Each role's dates as the page writes them, the period with its length (Nerd Mode's print hides the length; a run of
+// the period still matches).
+const periods = cv.experience.map((role) => periodText(cv, role, target.locale));
 
 /** Read a file the audit cannot run without. Missing means unchecked, which is exit 2. */
 async function readJson(path) {
@@ -257,6 +266,8 @@ try {
       maxBuffer: 64 * 1024 * 1024
     });
     const faint = faintWords(bbox, pages);
+    const long = longProseLines(text, prose, { periods });
+    const overflow = layout === 'nerd' ? overflowingPeriods(bbox, periods) : [];
     // How close each page runs to its foot, reported and never gated: the page count is the gate (#162). A page with
     // no line has no room to measure.
     const room = bboxPages(bbox).map((page) =>
@@ -337,7 +348,13 @@ try {
       sectionsInOrder: sections.read.length === 0,
       sectionsInOrderDrawn: sections.drawn.length === 0,
       // No portrait (the owner's decision in #144), and no picture of anything a parser should read.
-      noImages: images === 0
+      noImages: images === 0,
+      // No line of prose past WCAG 1.4.8's 80 characters. A line of skills, interests or contacts is a list, scanned
+      // item by item, and is not held to the measure (#155).
+      measure: long.length === 0,
+      // Nerd Mode's dates stay inside their 128pt column: a longer period runs into the gap beside its role and wraps
+      // nothing a text check would see.
+      datesInColumn: overflow.length === 0
     };
 
     const passed = Object.values(checks).filter(Boolean).length;
@@ -353,7 +370,9 @@ try {
       sections,
       images,
       margins,
-      room
+      room,
+      long,
+      overflow
     });
   }
 } finally {
@@ -396,7 +415,9 @@ const report = [
   'the data did not write, every run of text set in a typeface its layout prints in, no Type 3 font,',
   'and, read in drawing order as PDFBox and Tika read, the name, titles, employers, schools and',
   'skill categories with the spaces between their words, the sections in reading order both as',
-  'poppler reconstructs the page and as the PDF draws it, and no image.'
+  'poppler reconstructs the page and as the PDF draws it, no image, no line of prose past',
+  `${MEASURE_LIMIT} characters (WCAG 1.4.8; lists of skills, interests and contacts are scanned, not read along a`,
+  "measure, and are exempt), and in Nerd Mode every line of a role's dates inside its column."
 ].join('\n');
 
 await writeReport(new URL(target.reportPath('PRINT_AUDIT.md'), projectUrl), `${report}\n`);
@@ -406,18 +427,22 @@ if (failures.length) {
   console.error('');
   console.error(
     JSON.stringify(
-      failures.map(({ layout, checks, faint, fallback, type3, glued, sections, images }) => ({
-        layout,
-        failed: Object.entries(checks)
-          .filter(([, value]) => !value)
-          .map(([name]) => name),
-        faint,
-        fallback,
-        type3,
-        glued,
-        sections,
-        images
-      })),
+      failures.map(
+        ({ layout, checks, faint, fallback, type3, glued, sections, images, long, overflow }) => ({
+          layout,
+          failed: Object.entries(checks)
+            .filter(([, value]) => !value)
+            .map(([name]) => name),
+          faint,
+          fallback,
+          type3,
+          glued,
+          sections,
+          images,
+          long,
+          overflow
+        })
+      ),
       null,
       2
     )
