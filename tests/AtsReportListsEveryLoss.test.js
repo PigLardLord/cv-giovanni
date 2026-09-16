@@ -119,3 +119,28 @@ describe('a field short of recovered is quoted as written and as recovered', () 
     );
   });
 });
+
+// The per-artefact table's Fidelity column read the role titles alone, so a degree graded partial left it "exact".
+describe("the table's Fidelity column reads every field the fidelity band scores", () => {
+  const clean = diffOf(fixture('clean-english'));
+  const fidelity = (diff) => AtsReport.row({ artefact: 'x.pdf', diff }).split('|')[4].trim();
+  const set = (part, index, field, verdict) => ({
+    ...clean,
+    [part]: clean[part].map((entry, at) => (at === index ? { ...entry, [field]: verdict } : entry))
+  });
+
+  test('a clean document reads exact', () => {
+    expect(fidelity(clean)).toBe('exact');
+  });
+
+  test.each([
+    ['experience', 1, 'employer', 'wrong'],
+    ['experience', 2, 'highlights', 'partial'],
+    ['education', 0, 'degree', 'partial'],
+    ['education', 1, 'school', 'lost'],
+    ['skills', 3, 'category', 'partial'],
+    ['spokenLanguages', 2, 'level', 'lost']
+  ])('%s %i %s graded %s reads as that', (part, index, field, verdict) => {
+    expect(fidelity(set(part, index, field, verdict))).toBe(verdict);
+  });
+});

@@ -1,4 +1,4 @@
-import { BANDS } from './AtsScore.js';
+import { AtsScore, BANDS } from './AtsScore.js';
 import { RecoveryDiff } from './RecoveryDiff.js';
 
 const LADDER = ['exact', 'normalised', 'partial', 'wrong', 'lost'];
@@ -155,13 +155,19 @@ export class AtsReport {
     ];
   }
 
+  /**
+   * One artefact's row. Fidelity is the worst verdict of every field the fidelity band scores — a role's title,
+   * employer, period and highlights, a degree and its school, a skill category, a language's name and level — not
+   * the role titles alone, which left the column "exact" over a degree graded partial (#186).
+   */
   static row({ artefact, diff }) {
     const tick = (value) => (value ? 'yes' : 'no');
     const worst = (verdicts) =>
       LADDER[Math.max(...verdicts.map((verdict) => LADDER.indexOf(verdict)), 0)];
+    const fidelity = Object.values(AtsScore.fidelityVerdicts(diff)).flat();
     return (
       `| ${artefact} | ${worst(Object.values(diff.identity))} | ` +
-      `${diff.segmentation} | ${worst(diff.experience.map((role) => role.title))} | ` +
+      `${diff.segmentation} | ${worst(fidelity)} | ` +
       `${diff.links.filter((link) => link.recovered).length}/${diff.links.length} | ` +
       `${tick(diff.experience.every((role) => role.tripleAdjacent) && diff.roleOrderMonotonic)} |`
     );

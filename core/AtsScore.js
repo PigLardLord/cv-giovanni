@@ -113,18 +113,29 @@ export class AtsScore {
     });
   }
 
+  /**
+   * The verdicts the fidelity band scores, by part: what the report's Fidelity column reads too.
+   * @param {Object} diff - A RecoveryDiff result
+   * @returns {{ roles: string[], education: string[], skills: string[], languages: string[] }} The verdicts
+   */
+  static fidelityVerdicts(diff) {
+    return {
+      roles: diff.experience.flatMap((role) => [
+        role.title,
+        role.employer,
+        role.period,
+        role.highlights
+      ]),
+      education: diff.education.flatMap((entry) => [entry.degree, entry.school]),
+      skills: diff.skills.map((group) => group.category),
+      languages: diff.spokenLanguages.flatMap((entry) => [entry.name, entry.level])
+    };
+  }
+
   static fidelity(diff) {
     const { parts } = BANDS.fidelity;
     const credit = (verdicts) => share(verdicts.map((verdict) => CREDIT[verdict] ?? 0));
-    const roles = diff.experience.flatMap((role) => [
-      role.title,
-      role.employer,
-      role.period,
-      role.highlights
-    ]);
-    const education = diff.education.flatMap((entry) => [entry.degree, entry.school]);
-    const skills = diff.skills.map((group) => group.category);
-    const languages = diff.spokenLanguages.flatMap((entry) => [entry.name, entry.level]);
+    const { roles, education, skills, languages } = AtsScore.fidelityVerdicts(diff);
 
     // Anything recovered that was never written costs, because it is not a smaller version of
     // the truth: it is a record with something in it that came from nowhere.
