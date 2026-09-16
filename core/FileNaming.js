@@ -3,11 +3,12 @@
  *
  * A letter loses its accent rather than the whole letter — `Niccolò` is `Niccolo`, not `Niccol` — and
  * anything that is neither a letter nor a digit becomes a break between words.
- * @param {string} text - A name or a title
+ * @param {string|null|undefined} text - A name or a title; a missing one has no words
  * @returns {string[]} Its words
  */
-export function fileWords(text = '') {
-  return String(text)
+export function fileWords(text) {
+  // `null` is no name, as `undefined` is: a default parameter stands in for undefined alone (#123).
+  return String(text ?? '')
     .normalize('NFD')
     .replace(/\p{M}+/gu, '')
     .replace(/[^A-Za-z0-9]+/g, ' ')

@@ -90,8 +90,10 @@ The two artefacts fail in different ways, so each is measured on its own, and th
   what was written. It reports Recoverability, never a pass mark. Report: `docs/ATS_AUDIT.md`.
 - `npm run audit:screen` selects the CV in headless Chrome, at a desktop and a phone width, and checks what a reader
   copies: the CV whole, no two words welded together, every skill under its own category, every language with its
-  level, and nothing the data did not write. Like the print audit it exits 2 when it finds no browser. Report:
-  `docs/SCREEN_AUDIT.md`.
+  level, and nothing the data did not write. It checks that the first screen holds still while it loads, and that
+  the Download PDF link does its job: hidden when there is no PDF, on the first screen, tall enough to tap on a
+  phone, its label on one line, and a focus ring a keyboard user can see. Like the print audit it exits 2 when it finds no browser.
+  Report: `docs/SCREEN_AUDIT.md`.
 
 ## Applications
 

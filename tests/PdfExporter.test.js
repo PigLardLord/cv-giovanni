@@ -57,6 +57,7 @@ describe('PdfExporter', () => {
     const exporter = new PdfExporter(null, { t: (key) => key });
 
     expect(() => exporter.filename({ ...data, name: ' ' }, {})).toThrow(/no name/);
+    expect(() => exporter.filename({ ...data, name: null }, {})).toThrow(/no name/);
   });
 
   test('supports injected document, page-format and theme boundaries', () => {
@@ -314,6 +315,7 @@ describe('PdfExporter — what has to survive extraction and assistive reading',
     );
     expect(exporter.isAvailable(generated, undefined, spotlight)).toBe(false);
     expect(exporter.isAvailable(generated, { ...rich, name: '' }, spotlight)).toBe(false);
+    expect(exporter.isAvailable(generated, { ...rich, name: null }, spotlight)).toBe(false);
   });
 
   test('treats a missing or unreadable manifest as nothing being available', () => {
