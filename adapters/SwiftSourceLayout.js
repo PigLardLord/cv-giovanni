@@ -84,14 +84,27 @@ const LITERALS = ['string', 'number'];
  */
 const BREAKS = new RegExp(`\\s*[${SEPARATOR_GLYPHS.join('')}]\\s*|\\s+|[/-]+`, 'gu');
 
-/** Where a value's last word begins: after the last place a line may break with text still to come. */
-const lastWordAt = (text) => {
-  let at = 0;
+/**
+ * Where the parts a value's closing syntax holds begin (#219).
+ *
+ * A line breaks before a word a space precedes wherever the word fits a row, so there the syntax holds only the word's
+ * last letter or digit and what follows it: a row never opens without one, and a word too long for any row breaks
+ * inside rather than run past the editor. Held whole, the code review of #223's `\"NightingaleMigrationToolX\""`
+ * ran 5.6px past its 210px row at 320px. After a slash, a hyphen or a separator, or at the start of a value, nothing
+ * but the hold keeps a line from breaking inside the word, and the syntax holds all of it: held from its last letter,
+ * "linkedin.com/in/piglardlord" would break as "…piglardlor" / `d"),`.
+ * @param {string} text - The value as the data wrote it
+ * @returns {number} How many of its characters come before the held ones
+ */
+const heldFrom = (text) => {
+  let word = 0;
+  let spaced = false;
   for (const match of text.matchAll(BREAKS)) {
     const end = match.index + match[0].length;
-    if (end < text.length) at = end;
+    if (end < text.length) [word, spaced] = [end, /^\s+$/u.test(match[0])];
   }
-  return at;
+  const last = text.slice(word).search(/[\p{L}\p{N}][^\p{L}\p{N}]*$/u);
+  return spaced && last >= 0 ? word + last : word;
 };
 
 /**
@@ -109,10 +122,10 @@ const withEnds = (token) => {
 };
 
 /**
- * A literal with its last word marked `held`: the parts from where that word begins, split there, with every escape
- * inside it. The value is read whole, before its escapes part it: a highlight ending in a quote of its own ends in three
+ * A literal with the parts its closing syntax holds marked `held`, split where they begin, with every escape among
+ * them. The value is read whole, before its escapes part it: a highlight ending in a quote of its own ends in three
  * parts, the escape, the quote and the word before them, and holding the last part alone left the word a row above
- * its `\""` (code review of #223). A period's last end is its last word.
+ * its `\""` (code review of #223). A period's last end is held whole.
  * @param {object} token - A literal some syntax closes
  * @returns {object} The literal, its last word's parts marked
  */
@@ -120,7 +133,7 @@ const withLastWordHeld = (token) => {
   const parts = token.parts ?? [{ text: token.text }];
   if (parts.at(-1).whole)
     return { ...token, parts: [...parts.slice(0, -1), { ...parts.at(-1), held: true }] };
-  const start = lastWordAt(token.text);
+  const start = heldFrom(token.text);
   let at = 0;
   return {
     ...token,

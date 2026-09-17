@@ -144,22 +144,18 @@ describe('SourceRenderer', () => {
     const lineOf = (text) =>
       [...code().querySelectorAll('.source-line')].find((line) => line.textContent === text);
 
-    test('is held inside the value, with its last word', () => {
+    test('is held inside the value, with what the layout marks: after a space, the last letter or digit on', () => {
       render();
 
       const value = lineOf('Cut CI time by 75%.').querySelector('.tok-string:not([data-code])');
       const held = value.lastElementChild;
       expect(value.textContent).toBe('Cut CI time by 75%.');
-      expect([held.className, held.textContent, drawnIn(held)]).toEqual([
-        'no-break',
-        '75%.',
-        ['"']
-      ]);
+      expect([held.className, held.textContent, drawnIn(held)]).toEqual(['no-break', '5%.', ['"']]);
     });
 
     // The code review of #223: an escape cut the last word of a highlight ending in a quote of its own into three
     // nodes, and the renderer held only the last, so `\\""` opened a row at 320px. It holds what the layout marks.
-    test('is held with the whole last word of a value ending in a character it escapes', () => {
+    test('is held with the last letter and the escapes after it, in a value ending in a character it escapes', () => {
       const highlight = 'Shipped the tool the team still calls "NightingaleMigrationToolX"';
       fedTheModel(new SourceRenderer(i18n)).render(document, {
         ...profile,
@@ -169,14 +165,17 @@ describe('SourceRenderer', () => {
       const value = lineOf(highlight).querySelector('.tok-string:not([data-code])');
       const held = value.lastElementChild;
       expect(value.textContent).toBe(highlight);
-      expect([...value.childNodes].map((node) => node.textContent)).toEqual([
+      expect([...value.childNodes].map((node) => node.dataset?.code ?? node.textContent)).toEqual([
         'Shipped the tool the team still calls ',
-        '"NightingaleMigrationToolX"'
+        '\\',
+        '"',
+        'NightingaleMigrationTool',
+        'X"'
       ]);
       expect([held.className, held.textContent, drawnIn(held)]).toEqual([
         'no-break',
-        '"NightingaleMigrationToolX"',
-        ['\\', '\\', '"']
+        'X"',
+        ['\\', '"']
       ]);
     });
 
@@ -187,7 +186,7 @@ describe('SourceRenderer', () => {
       expect(title.textContent).toBe('Mobile Engineer');
       expect(title.lastElementChild.className).toBe('no-break');
       expect([title.lastElementChild.textContent, drawnIn(title.lastElementChild)]).toEqual([
-        'Engineer',
+        'r',
         ['"', ',']
       ]);
     });

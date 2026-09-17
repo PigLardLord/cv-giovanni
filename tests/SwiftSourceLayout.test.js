@@ -686,13 +686,28 @@ describe('the parts of a value its closing syntax holds', () => {
     relevant_experience: [{ ...profile.relevant_experience[0], ...changes }]
   });
 
-  test('are its last word, after its last space, slash or hyphen', () => {
+  // A line breaks before a word a space precedes wherever the word fits a row, so the syntax needs only the word's last
+  // letter or digit to keep a row from opening without one. A word too long for any row then breaks inside, rather
+  // than run past the editor: held whole, `\"NightingaleMigrationToolX\""` ran 5.6px past its 210px row at 320px.
+  test('are the last letter or digit of a last word a space precedes, and what follows it', () => {
     const tokens = tokensOf();
 
     expect(partsOf(tokens, 'Cut CI time by 75%.')).toEqual([
-      { text: 'Cut CI time by ' },
-      { text: '75%.', held: true }
+      { text: 'Cut CI time by 7' },
+      { text: '5%.', held: true }
     ]);
+    expect(partsOf(tokens, 'Mobile Engineer')).toEqual([
+      { text: 'Mobile Enginee' },
+      { text: 'r', held: true }
+    ]);
+  });
+
+  // Nothing but the hold keeps a line from breaking inside a word after a slash, a hyphen or a separator, or at the
+  // start of a value: held from its last letter, "linkedin.com/in/piglardlord" broke as "…piglardlor" / `d"),`.
+  test('are the whole last word where no space precedes it', () => {
+    const tokens = tokensOf();
+
+    expect(partsOf(tokens, 'Acme')).toEqual([{ text: 'Acme', held: true }]);
     expect(partsOf(tokens, 'github.com/ada')).toEqual([
       { text: 'github.com/' },
       { text: 'ada', held: true }
@@ -704,27 +719,40 @@ describe('the parts of a value its closing syntax holds', () => {
     ]);
   });
 
-  test('are its last word with every escape inside it, when the value ends in a character it escapes', () => {
+  test('are its last letter with every escape after it, when the value ends in a character it escapes', () => {
     const value = 'Shipped the tool the team still calls "NightingaleMigrationToolX"';
 
     expect(partsOf(tokensOf(role({ highlights: [value] })), value)).toEqual([
       { text: 'Shipped the tool the team still calls ' },
+      { code: '\\' },
+      { text: '"' },
+      { text: 'NightingaleMigrationTool' },
+      { text: 'X', held: true },
       { code: '\\', held: true },
-      { text: '"', held: true },
-      { text: 'NightingaleMigrationToolX', held: true },
+      { text: '"', held: true }
+    ]);
+    expect(
+      partsOf(tokensOf(role({ highlights: ['Calls it "Nightingale"'] })), 'Calls it "Nightingale"')
+    ).toEqual([
+      { text: 'Calls it ' },
+      { code: '\\' },
+      { text: '"' },
+      { text: 'Nightingal' },
+      { text: 'e', held: true },
       { code: '\\', held: true },
       { text: '"', held: true }
     ]);
   });
 
-  test('start after a line break the value writes, and keep it out of sight', () => {
+  test('split after a line break the value writes, and keep it out of sight', () => {
     const tokens = tokensOf({ languages: [{ name: 'Italian', level: 'Native\nfluent' }] });
 
     expect(partsOf(tokens, 'Native\nfluent')).toEqual([
       { text: 'Native' },
       { code: '\\n' },
       { text: '\n', unseen: true },
-      { text: 'fluent', held: true }
+      { text: 'fluen' },
+      { text: 't', held: true }
     ]);
   });
 
