@@ -1,6 +1,7 @@
 import { JSDOM } from 'jsdom';
 import { SourceRenderer } from '../renderers/SourceRenderer.js';
 import { fedTheModel } from './support/model.js';
+import { SEPARATOR_GLYPHS } from '../domain/Separators.js';
 
 const labels = {
   'source.marks.profile': 'Profile',
@@ -280,16 +281,22 @@ describe('SourceRenderer', () => {
     fedTheModel(new SourceRenderer(i18n)).render(document, {
       ...profile,
       subtitle: 'Swift · SwiftUI',
+      career_highlights: ['14% → 83%'],
       languages: [{ name: 'English', level: 'C1 — professional' }]
     });
+
+    // The glyphs come from the one list the renderers hold and the audits check, the arrow included (the code review
+    // of #229): a copy here would pass while the editor stranded a glyph the list had gained.
+    const held = new RegExp(`^\\s*[${SEPARATOR_GLYPHS.join('')}]\\s*$`, 'u');
 
     // A period's ends and a value's last word are held too (#219).
     expect(
       [...code().querySelectorAll('.tok .no-break')]
         .map((span) => span.textContent)
-        .filter((text) => /^\s*[·–—|]\s*$/u.test(text))
-    ).toEqual([' · ', ' — ']);
+        .filter((text) => held.test(text))
+    ).toEqual([' · ', ' → ', ' — ']);
     expect(code().textContent).toContain('Swift · SwiftUI');
+    expect(code().textContent).toContain('14% → 83%');
   });
 
   test('copies a line of names as a list, and a language as a name and its level', () => {
