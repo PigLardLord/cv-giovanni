@@ -45,7 +45,7 @@ describe('a clean document, as the artefact actually extracts', () => {
       'MDM Android, 2026: 1,040 → 5,308 tests, branch coverage 14% → 83%',
       'Cortado MDM for iOS (since 2020; ~30k downloads by 2026)',
       '300k downloads since release, 15k still installed in 2026.',
-      'and cut summed test runtime from 37.7 to 5.2 minutes.',
+      'and cut summed test runtime from a July peak of 37.7 to 5.2 minutes.',
       'in a mobile team of two since 2020.'
     ]) {
       expect(AtsTextParser.phone([line])).toBeNull();
@@ -385,11 +385,11 @@ describe('the same artefacts, in content-stream order', () => {
     expect(cv.roleOrderMonotonic).toBe(true);
   });
 
-  // In content-stream order a page break writes no newline: "to 5.2 minutes.\fEarlier products …".
+  // In content-stream order a page break writes no newline: "37.7 to 5.2 minutes.\fEarlier products …".
   test('a page break is a line break', () => {
     const [first] = parse('page-print-spotlight.raw').experience;
 
-    expect(first.bodyLines).toContain('to 5.2 minutes.');
+    expect(first.bodyLines).toContain('July peak of 37.7 to 5.2 minutes.');
     expect(first.bodyLines.some((line) => line.startsWith('Earlier products (2018 – 2023)'))).toBe(
       true
     );
