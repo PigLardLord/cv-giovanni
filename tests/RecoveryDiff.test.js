@@ -478,7 +478,7 @@ describe('an entry is matched to the one written by what it says, not by where i
       const invented = nerd
         .replace('August 2018 – Present', 'January 2019 – March 2020')
         .replace(
-          'Mobile Software Engineer / Technical Owner, iOS & Android at\nCortado Mobile Solutions, Berlin (remote)',
+          'iOS Developer at Cortado Mobile Solutions, Berlin (remote)',
           'Head Chef at Trattoria Da Mario, Rome, Italy'
         );
       const diff = diffOfText(invented, profile);
@@ -497,7 +497,7 @@ describe('an entry is matched to the one written by what it says, not by where i
     // counted as a role nobody wrote.
     test('a role that shares only its period with a written one matches none, and that one is lost', () => {
       const chef = nerd.replace(
-        'Mobile Software Engineer / Technical Owner, iOS & Android at\nCortado Mobile Solutions, Berlin (remote)',
+        'iOS Developer at Cortado Mobile Solutions, Berlin (remote)',
         'Head Chef at Trattoria Da Mario, Rome, Italy'
       );
       const diff = diffOfText(chef, profile);

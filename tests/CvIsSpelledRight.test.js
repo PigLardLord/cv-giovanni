@@ -55,8 +55,9 @@ describe('the published CV is spelled right', () => {
 
   test('a misspelling planted in the profile fails, named with its path', () => {
     const profile = JSON.parse(read('profiles/general/en.json'));
-    profile.relevant_experience[0].highlights[0] =
-      profile.relevant_experience[0].highlights[0].replace(/\bthe\b/, 'teh');
+    // Appended, not swapped for a word the highlight writes: replacing its first "the" planted nothing once the
+    // highlight stopped writing one (#229), and a plant that depends on the copy tests the copy.
+    profile.relevant_experience[0].highlights[0] += ' teh';
 
     expect(misspelt(wordsOf(profile, { notWords: PROFILE_NOT_WORDS }), spellerFor('en'))).toEqual([
       '"teh" at relevant_experience[0].highlights[0]'

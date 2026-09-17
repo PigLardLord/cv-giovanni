@@ -1,27 +1,26 @@
 Giovanni Trovato
-Senior iOS Engineer / Mobile Platform Owner
-Swift · SwiftUI · Enterprise Mobility · CI/CD
+Senior iOS Engineer
+Swift · SwiftUI · Enterprise Mobility · CI/CD · Agentic Development
 
-Senior iOS engineer with 11+ years in native mobile and six years
-owning an enterprise MDM client from architecture to production.
-Delivered software used across tens of thousands of managed devices,
-with measurable improvements in automated quality and release
-speed. Brings Android depth, security review, CI/CD ownership and
-direct platform coordination with Apple and Google.
+Senior iOS engineer with 11+ years in native mobile. Built Cortado's
+MDM iOS client in SwiftUI from its first commit and co-rewrote ezeep
+Blue (300k downloads since release). Android again since 2025, on the
+MDM client: in 2026 grew branch coverage from 14% to 83%. Runs
+CI/CD and releases on both platforms; agentic development since
+2025.
 EU citizen · unrestricted German work authorisation
 
 Bad Liebenstein, Thuringia, Germany · trovato.giovanni@gmail.com · +39 329 8484 046
 github.com/PigLardLord · linkedin.com/in/piglardlord · piglardlord.github.io/cv-giovanni
 
 Selected Impact
-6 years owning an enterprise iOS MDM client from its first commit
-~4,800 Android tests, 82% of app screens UI-tested, 75% faster CI
-MDM clients in production across tens of thousands of managed
-devices
+Six years on Cortado's MDM iOS client, SwiftUI from its first commit
+MDM Android, 2026: 1,040 → 5,308 tests, branch coverage 14% →
+83%
 
 Core Technologies
-iOS — Swift, SwiftUI, UIKit, Swift Concurrency, XCTest / XCUITest, App Intents,
-Live Activities, Swift Package Manager (SPM)
+iOS — Swift, SwiftUI, UIKit, Swift Concurrency, Combine, XCTest / XCUITest,
+App Intents, Live Activities, Swift Package Manager (SPM)
 Android — Kotlin, Jetpack Compose, Android Enterprise, Mobile Device
 Management (MDM), DevicePolicyManager, JUnit, Robolectric, Gradle, Hilt
 Delivery & platform — GitLab CI/CD, Fastlane, code signing & provisioning,
@@ -29,36 +28,36 @@ TestFlight, App Store Connect, Google Play Console, staged rollout, release
 management, SBOM / Dependency-Track, security scanning & vulnerability
 review
 Architecture & practices — Clean Architecture, MVVM, modularisation, REST
-APIs, TDD, code review, Git, AI-assisted engineering, technical mentoring
+APIs, TDD, code review, Git, agentic development (Claude Code / Codex),
+technical mentoring
 
 Professional Experience
 August 2018 – Present
 
-Mobile Software Engineer / Technical Owner, iOS & Android at
-Cortado Mobile Solutions, Berlin (remote)
-Enterprise mobility and device management (MDM, secure printing) in a
-mobile team of 3–7 engineers.
-Expanded the Android test suite to ~4,800 tests and raised UI-test
-coverage of the app's screens from 15% to 82%, while cutting CI test
-runtime by 75% (32 to 8 minutes) to give the team same-hour merge
-feedback.
-Technical owner of the Cortado MDM iOS client for six years from its
-first commit — owned layered Clean Architecture and TDD business
-logic, release decisions and code review, coordinating delivery with
-product, QA and backend while mentoring mobile colleagues.
+iOS Developer at Cortado Mobile Solutions, Berlin (remote)
+Enterprise mobility and device management, in a mobile team of two
+since 2020.
+Cortado MDM for iOS (since 2020; ~30k downloads by 2026): built in
+SwiftUI from its first commit, with a layered Clean Architecture and
+TDD business logic — managed configuration, server commands,
+Swift 6 concurrency; decides its architecture and internal releases;
+led Dynamic Island and Live Activities; co-developed App Intents.
+ezeep Blue for iOS (2020–2023): rewrote it from scratch in SwiftUI
+with one other developer. 300k downloads since release, 15k still
+installed in 2026.
 
-Led annual iOS compatibility and platform beta validation, including
-Swift 6 concurrency and iOS 26 migrations; coordinated directly with
-Apple on App Review while adopting Dynamic Island, Live Activities,
-Siri and App Intents without dropping support for older devices.
-Migrated nearly every Android screen from XML to Jetpack
-Compose, including kiosk mode, adding unit tests throughout; also
-managed Android Enterprise Partner Program certifications and
-worked directly with Google on platform issues.
-Owned delivery and security across both platforms: code and
-vulnerability reviews, GitLab CI/CD and Fastlane, signing and
-provisioning, security scans and SBOM generation, TestFlight and
-Play Store staged rollout.
+Cortado MDM for Android (since 2025): migrated nearly every
+screen to Jetpack Compose; in 2026 grew the suite from 1,040 to
+5,308 tests and branch coverage from 14% to 83%, and cut summed
+test runtime from 37.7 to 5.2 minutes.
+Earlier products (2018–2023): Workplace and Teamplace iOS clients,
+incl. Objective-C to Swift and RxSwift to Combine migrations; an
+unreleased UIKit app with offline sync; NFCReader, sole author.
+Across products: CI/CD, signing and releases for iOS and Android
+(GitLab CI, Fastlane, SBOM, TestFlight, staged rollout); security
+scans, code and security reviews; Android Enterprise certification;
+agentic development since 2025; mentoring two developers in
+agentic workflows.
 September 2015 – July 2018
 
 Mobile Developer at Apparound, Pisa, Italy

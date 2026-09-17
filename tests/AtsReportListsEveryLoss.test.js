@@ -256,7 +256,7 @@ describe('what came back that matches nothing written is quoted as nobody wrote 
   const invented = fixture('page-print-nerd')
     .replace('August 2018 – Present', 'January 2019 – March 2020')
     .replace(
-      'Mobile Software Engineer / Technical Owner, iOS & Android at\nCortado Mobile Solutions, Berlin (remote)',
+      'iOS Developer at Cortado Mobile Solutions, Berlin (remote)',
       'Head Chef at Trattoria Da Mario, Rome, Italy'
     )
     .replace(

@@ -91,7 +91,7 @@ describe('where the CV answers', () => {
   // a date and an employer attached; the same term in a list is a word.
   test('prose beats a list', () => {
     expect(evidence('Swift')).toBe('inProse');
-    expect(evidence('SwiftUI')).toBe('inSkillsOnly');
+    expect(evidence('APIs')).toBe('inSkillsOnly');
   });
 
   test('a term the CV does not claim is absent, and stays absent', () => {
@@ -101,7 +101,7 @@ describe('where the CV answers', () => {
 
   test('an answer names where it was found', () => {
     expect(evidenceFor('Swift', matched).where).toBe('Cortado Mobile Solutions');
-    expect(evidenceFor('SwiftUI', matched).where).toBe('the skills list');
+    expect(evidenceFor('APIs', matched).where).toBe('the skills list');
     expect(evidenceFor('CoreML', matched).where).toBeNull();
   });
 });
