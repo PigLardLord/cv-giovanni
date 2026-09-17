@@ -3,35 +3,35 @@ import {
   appendFileSync,
   existsSync,
   lstatSync,
-  mkdirSync,
   mkdtempSync,
   readdirSync,
   readFileSync,
   rmSync,
   symlinkSync,
-  unlinkSync,
-  writeFileSync
+  unlinkSync
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { AtsTextParser } from '../core/AtsTextParser.js';
 import { GenerationTarget } from '../core/GenerationTarget.js';
 import { RecoveryDiff } from '../core/RecoveryDiff.js';
 import { CvDocument } from '../domain/CvDocument.js';
 import {
   applicability,
-  fieldVerdicts,
+  gradedReadings,
+  GRADER,
   outcome,
   PARSER,
   productReviewPaths,
   pullRequestLabels,
   READING_ORDERS,
   readingLosses,
+  readingsUnmatched,
   renderingModules,
   report
 } from './lib/base-parser.mjs';
-import { importClosure } from './lib/import-closure.mjs';
+import { importApart, importClosure } from './lib/import-closure.mjs';
 import { builtCv } from './lib/printed-cv.mjs';
 import { catalogueTranslator } from './lib/printed-letter.mjs';
 
@@ -46,9 +46,12 @@ import { catalogueTranslator } from './lib/printed-letter.mjs';
  * So when a change since the merge base touches the parser and what renders the CV, this builds the base's print in a temporary
  * worktree, reads it and this branch's print with the base's parser in every order `audit:ats` reads, and fails on a
  * field the base's parser recovered from its own print and recovers less of from this one — unless the pull request
- * carries `ats-trade-accepted`. Otherwise it says why it did not apply, and exits 0.
+ * carries `ats-trade-accepted`. Otherwise it says why it did not apply, and exits 0. Each print is graded by the branch
+ * that printed it, the base's by the base's own diff and lines: graded by this branch's, a change that rewords a line
+ * held the base's print to the new words, and a loss read "partial → partial" (#201).
  *
- * Exit codes: 0 compared and nothing lost, a trade accepted, or not applicable; 1 a loss; 2 nothing was compared.
+ * Exit codes: 0 compared and nothing lost, a trade accepted, or not applicable; 1 a loss; 2 nothing was compared, or a
+ * section whose entries the two prints number differently was read short, where a lost entry and a moved one read alike.
  */
 const projectRoot = fileURLToPath(new URL('../', import.meta.url));
 const target = GenerationTarget.fromArguments([]);
@@ -197,18 +200,35 @@ const texts = (path) =>
 const scratch = mkdtempSync(join(tmpdir(), 'audit-ats-base-'));
 cleanups.push(() => rmSync(scratch, { recursive: true, force: true }));
 
-// The base's parser, alone: every module it imports, at the base's commit, where its relative imports still resolve.
-// A module the closure missed fails the import here, rather than being read from this branch.
-const parserRoot = join(scratch, 'parser');
-for (const path of parserModules.base) {
-  const source = readBase(path);
-  if (source === null)
-    cannotCheck(`${path}, which the base's parser imports, is not in ${base.commit}`);
-  mkdirSync(dirname(join(parserRoot, path)), { recursive: true });
-  writeFileSync(join(parserRoot, path), source);
+// The base's parser, and what the base grades a print with: its diff, the lines the diff expects, and its document
+// model (#201). Every module they import, at the base's commit, imported apart from this branch's: the base's
+// `EntryLines` answers only the base's diff, and a module the closure missed fails the import rather than being read
+// from this branch. A base that does not have them cannot grade its own print, and nothing is compared.
+let fromBase;
+try {
+  const [parser, diff, model] = await importApart(
+    [PARSER, ...GRADER],
+    readBase,
+    join(scratch, 'base-modules')
+  );
+  fromBase = {
+    parser: parser.AtsTextParser,
+    grader: diff.RecoveryDiff,
+    Document: model.CvDocument
+  };
+} catch (error) {
+  cannotCheck(`cannot import the base's parser and grader from ${base.commit}`, error.message);
 }
-writeFileSync(join(parserRoot, 'package.json'), '{ "type": "module" }\n');
-const { AtsTextParser: BaseParser } = await import(pathToFileURL(join(parserRoot, PARSER)).href);
+if (
+  typeof fromBase.parser?.parse !== 'function' ||
+  typeof fromBase.grader?.diff !== 'function' ||
+  typeof fromBase.Document !== 'function'
+) {
+  cannotCheck(
+    `${base.commit}'s parser or grader does not export what this step reads`,
+    `It reads AtsTextParser.parse from ${PARSER}, RecoveryDiff.diff and CvDocument from ${GRADER.join(' and ')}.`
+  );
+}
 
 // The base's print, built by the base's own build in a worktree of its own.
 const worktree = join(scratch, 'base');
@@ -288,36 +308,55 @@ const baseCatalogue = JSON.parse(
 );
 cleanUp();
 
-// Each print is graded against its own profile, in its own catalogue's words, by this branch's diff: only the parser
-// differs between the base's print and this one.
+// Each print is graded by the branch that printed it (#201): the base's against the base's profile, by the base's diff
+// and the lines it expects, in the base's catalogue's words; this print against this branch's. The base's parser reads
+// both.
 const wordsOf = (catalogue) => {
   const t = catalogueTranslator({ cv: catalogue });
   return { locale: target.locale, credits: (count) => t('cv:education.credits', { count }) };
 };
-const sides = {
-  base: { document: new CvDocument(baseData), words: wordsOf(baseCatalogue) },
-  head: {
-    document: new CvDocument(headData),
-    words: wordsOf(JSON.parse(readHead(`locales/${target.locale}/cv.json`)))
-  }
-};
-const grade = (Parser, text, { document, words }) =>
-  fieldVerdicts(RecoveryDiff.diff(document, Parser.parse(text), { words }));
-
-const readings = printed.flatMap(({ layout, baseText, headText }) =>
-  READING_ORDERS.map((order) => ({
-    artefact: layout,
-    order: order.name,
-    baseOnBase: grade(BaseParser, baseText[order.name], sides.base),
-    baseOnHead: grade(BaseParser, headText[order.name], sides.head),
-    headOnHead: grade(AtsTextParser, headText[order.name], sides.head)
-  }))
-);
+let readings;
+try {
+  const sides = {
+    base: {
+      parser: fromBase.parser,
+      grader: fromBase.grader,
+      document: new fromBase.Document(baseData),
+      words: wordsOf(baseCatalogue)
+    },
+    head: {
+      parser: AtsTextParser,
+      grader: RecoveryDiff,
+      document: new CvDocument(headData),
+      words: wordsOf(JSON.parse(readHead(`locales/${target.locale}/cv.json`)))
+    }
+  };
+  readings = printed.flatMap(({ layout, baseText, headText }) =>
+    READING_ORDERS.map((order) => ({
+      artefact: layout,
+      order: order.name,
+      ...gradedReadings({ base: baseText[order.name], head: headText[order.name] }, sides)
+    }))
+  );
+} catch (error) {
+  cannotCheck('the prints could not be graded', error.message);
+}
 const losses = readingLosses(readings);
+const unmatched = readingsUnmatched(readings);
 const labels = pullRequestLabels(process.env.PULL_REQUEST_LABELS);
-const { exitCode, accepted } = outcome(losses, labels);
+const { exitCode, accepted } = outcome(losses, labels, unmatched);
 
 publish(report({ base, decision, readings, losses, labels, seconds }));
+const uncompared = new Map(
+  unmatched
+    .filter((section) => section.short.length)
+    .map((section) => [`${section.section}\0${section.base}\0${section.head}`, section])
+);
+for (const { section, base: before, head: after } of uncompared.values()) {
+  console.error(
+    `audit-ats-base: ${section} holds ${before} entries on the base's print and ${after} on this one, and the base's parser reads some of them short from this print: not compared, check them by hand.`
+  );
+}
 if (losses.length) {
   console.error(
     `audit-ats-base: the base's parser loses ${losses.length} field readings from this print${accepted ? ', a trade the pull request declares accepted' : ''}.`
