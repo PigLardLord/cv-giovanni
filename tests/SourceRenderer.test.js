@@ -111,13 +111,27 @@ describe('SourceRenderer', () => {
     expect(level.querySelector('.tok-unseen').textContent).toBe('\n');
   });
 
-  // A period is one piece in the editor as on the page: wrapped, "August 2018 –" / "Present" read as two dates (#180).
-  test('holds a value the layout marks whole on one row', () => {
-    render();
+  // A period is two held ends in the editor, as on the page: wrapped inside one, "August 2018 –" / "Present" read as two
+  // dates (#180). It breaks after its dash, and only where no row holds it with its quotes and its comma (#219). The
+  // space after the dash is held with the second end, so it is no place a line prefers to break.
+  test('holds each end of a period the layout marks whole, and the space after its dash with the second', () => {
+    const endsOf = (period) =>
+      [...code().querySelectorAll('.tok-string')]
+        .filter((value) => value.textContent === period)
+        .flatMap((value) => [...value.querySelectorAll('.no-break')])
+        .map((held) => held.firstChild)
+        .filter((node) => node.nodeType === node.TEXT_NODE)
+        .map((node) => node.data);
 
-    expect([...code().querySelectorAll('.tok.no-break')].map((value) => value.textContent)).toEqual(
-      ['2018 – Present']
-    );
+    render();
+    expect(endsOf('2018 – Present')).toEqual(['2018 –', ' Present']);
+    expect(code().querySelectorAll('.tok.no-break')).toHaveLength(0);
+
+    fedTheModel(new SourceRenderer(i18n)).render(document, {
+      ...profile,
+      relevant_experience: [{ ...profile.relevant_experience[0], period: '2015' }]
+    });
+    expect(endsOf('2015')).toEqual(['2015']);
   });
 
   /** What the stylesheet draws inside or after an element, in order. */
@@ -165,10 +179,17 @@ describe('SourceRenderer', () => {
       expect(drawnIn(separator.parentElement)).toEqual(['"']);
     });
 
-    test('is held with a whole period, inside it', () => {
+    test('is held with the last end of a period', () => {
       render();
 
-      expect(drawnIn(code().querySelector('.tok.no-break'))).toEqual(['"']);
+      const [, last] = [...code().querySelectorAll('.tok-string')].find(
+        (value) => value.textContent === '2018 – Present'
+      ).children;
+      expect([last.className, last.textContent, drawnIn(last)]).toEqual([
+        'no-break',
+        ' Present',
+        ['"']
+      ]);
     });
 
     // A link underlines everything inside it, so the syntax stays outside the link: the words before its last one
@@ -240,11 +261,11 @@ describe('SourceRenderer', () => {
       languages: [{ name: 'English', level: 'C1 — professional' }]
     });
 
-    // A value's last word is held too, with the syntax that closes it (#219).
+    // A period's ends and a value's last word are held too (#219).
     expect(
-      [...code().querySelectorAll('.tok:not(.no-break) .no-break')]
-        .filter((span) => !span.querySelector('[data-code]'))
+      [...code().querySelectorAll('.tok .no-break')]
         .map((span) => span.textContent)
+        .filter((text) => /^\s*[·–—|]\s*$/u.test(text))
     ).toEqual([' · ', ' — ']);
     expect(code().textContent).toContain('Swift · SwiftUI');
   });

@@ -1,6 +1,6 @@
 import { BaseRenderer } from './BaseRenderer.js';
 import { SwiftSourceLayout } from '../adapters/SwiftSourceLayout.js';
-import { holdSeparators } from './inlineSeparator.js';
+import { DASH_GLYPHS, holdSeparators } from './inlineSeparator.js';
 
 /**
  * How far below the pinned tab row a heading may sit and still count as reached. A jump from the
@@ -15,6 +15,13 @@ const LANDING_SLACK = 16;
  * at 320px, where the whole address with it would not fit (#219).
  */
 const LAST_WORD = /[^\s/-]*[/-]*$/u;
+
+/**
+ * A period's first end, up to and with its dash, and its second, from the space after the dash. Held apart, the ends
+ * give a line one place to break, after the dash; the space held with the second is no place a line prefers to break,
+ * so a period moves down a row whole where it fits one (#180, #219).
+ */
+const PERIOD_ENDS = new RegExp(`^(.*?[${DASH_GLYPHS.join('')}])(\\s*.+)$`, 'su');
 
 /**
  * Writes the CV into Nerd Mode's editor as a Swift file, and its contact card into the phone.
@@ -332,19 +339,31 @@ export class SourceRenderer extends BaseRenderer {
         ? this.createAddress(root, token.href, token.text)
         : this.createElement(root, token.element || 'span');
     element.classList.add('tok', `tok-${token.kind}`);
-    // A value the layout marks whole, a period, never wraps inside, however narrow the editor (#180).
-    if (token.whole) element.classList.add('no-break');
+    // A value the layout marks whole, a period, never wraps inside either end, however narrow the editor (#180).
     element.textContent = '';
     // A separator in a value stays with the words either side of it: the editor wrapped "EU citizen ·" (#180).
     if (!token.parts) {
       return this.appendPieces(
         root,
         element,
-        token.whole ? [token.text] : holdSeparators(root, token.text)
+        token.whole ? this.periodEnds(root, token.text) : holdSeparators(root, token.text)
       );
     }
     token.parts.forEach((part) => element.appendChild(this.createPart(root, part, token.kind)));
     return element;
+  }
+
+  /**
+   * A period's ends, each held: "September 2015 –" and " July 2018" (#180, #219).
+   * @param {Document} root - DOM root
+   * @param {string} period - The period as the profile writes it
+   * @returns {Element[]} A `no-break` span for each end, or one for a period with no dash
+   */
+  periodEnds(root, period) {
+    const [, first, second] = PERIOD_ENDS.exec(period) ?? [];
+    return (first ? [first, second] : [period]).map((end) =>
+      this.createElement(root, 'span', 'no-break', end)
+    );
   }
 
   /** A piece of a value: an escape drawn like any syntax, a character kept in the text out of sight, or the text. */

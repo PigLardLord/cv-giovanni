@@ -614,8 +614,8 @@ test('gives a role its length after its period', () => {
   expect(source).toContain('            period: "2015",\n            summary: "Built AR apps."');
 });
 
-// A narrow editor wrapped a role's dates as "August 2018 –" / "Present" at 320px (#180). A period is one piece, which
-// the renderer holds on one row, and nothing else is.
+// A narrow editor wrapped a role's dates as "August 2018 –" / "Present" at 320px (#180). A period is whole, which the
+// renderer holds at each end, and nothing else is.
 test('marks every period whole, and nothing else', () => {
   const tokens = composingTheModel(new SwiftSourceLayout())
     .compose({ ...profile, asOf: '2026-09' }, { t })

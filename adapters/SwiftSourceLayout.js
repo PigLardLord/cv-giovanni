@@ -17,7 +17,8 @@
  *   break — also carries `parts`: the text as the data wrote it, with each escape as syntax
  *   before the character it escapes. A line break or a tab is `unseen`: kept in the text, so a
  *   copy does not weld the words around it, and out of sight, where its `\n` is drawn (#160).
- *   A period is `whole`: one piece, which the editor never wraps inside (#180).
+ *   A period is `whole`: the editor never wraps inside either of its ends, and parts them after
+ *   the dash only where no row holds the period with its quotes and its comma (#180, #219).
  * - `{ code, closes }` is syntax that closes the literal before it — its quote, and the comma,
  *   parenthesis or bracket after that — which the editor never parts from the literal's last word
  *   (#219).
@@ -532,7 +533,8 @@ export class SwiftSourceLayout {
         ];
       }
 
-      // A period is one piece: a narrow editor wrapped a role's dates as "August 2018 –" / "Present" (#180).
+      // A period is whole: a narrow editor wrapped a role's dates as "August 2018 –" / "Present" (#180), where a row
+      // could hold them. It breaks there only where none can (#219).
       const piece = label === 'period' ? { ...extra, whole: true } : extra;
       const literal =
         typeof value === 'number'
