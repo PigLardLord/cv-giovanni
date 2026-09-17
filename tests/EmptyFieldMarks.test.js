@@ -34,6 +34,21 @@ describe('the traces of an empty field in printed text', () => {
     ]);
   });
 
+  // The code review of #205: prose that writes a call, "init()", failed the audit whatever it said.
+  test('empty brackets the profile writes are its own, and a stray pair elsewhere is still named', () => {
+    const written = 'Refactored the legacy init() call graph to reduce startup cost';
+
+    expect(emptyFieldMarks(written, { written })).toEqual([]);
+    expect(
+      emptyFieldMarks(
+        `Refactored the legacy init()\ncall graph to reduce startup cost\nGoogle ()`,
+        {
+          written: [written, 'Google']
+        }
+      )
+    ).toEqual([{ mark: '()', line: 'Google ()' }]);
+  });
+
   test('names "undefined" and "null" where a field printed as the word for nothing', () => {
     expect(
       emptyFieldMarks('Mobile Developer at Apparound, undefined\nAndroid Enterprise – null (2026)')

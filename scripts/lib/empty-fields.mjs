@@ -9,9 +9,8 @@ import { SEPARATOR_GLYPHS } from '../../renderers/inlineSeparator.js';
  * Developer ()", and before that the word `undefined` (#169). The published profile fills every field, so the print
  * audit never met one. This reads the text layer for what an empty field leaves behind, whichever profile printed it:
  *
- * - empty brackets, `()`;
- * - `undefined` or `null` printed as a word, except where the text carries the profile's own words around it ("Kotlin
- *   null safety");
+ * - empty brackets, `()`, and `undefined` or `null` printed as a word, except where the text carries the profile's own
+ *   words around them ("the legacy init() call", "Kotlin null safety");
  * - a separator doubled on its line, `· ·`, where whatever stood between the two printed nothing;
  * - an entry that ends on the separator of a part it does not have: a role header ending in a comma, a certification's
  *   name followed by a dash that introduces no issuer.
@@ -25,8 +24,8 @@ const collapse = (text) => text.replace(/\s+/g, ' ').trim();
 
 /** A separator: a comma, or a glyph that stands between two things and belongs to neither. */
 const SEPARATOR = `[,${escapeInClass(SEPARATOR_GLYPHS.join(''))}]`;
-const EMPTY_BRACKETS = /\(\s*\)/g;
-const NOTHING_WORDS = ['undefined', 'null'];
+/** What a field left empty prints instead of itself: its brackets with nothing inside, or the word for nothing. */
+const EMPTY = [/\(\s*\)/g, /\bundefined\b/g, /\bnull\b/g];
 const DOUBLED = new RegExp(`${SEPARATOR}[ \\t\\u00a0]*${SEPARATOR}`, 'g');
 
 /**
@@ -82,9 +81,7 @@ export function emptyFieldMarks(text, { ends = [], written = [] } = {}) {
   const note = (index, mark) =>
     found.push({ index, mark: collapse(mark), line: linesAround(text, index, mark.length) });
 
-  for (const match of text.matchAll(EMPTY_BRACKETS)) note(match.index, match[0]);
-  for (const word of NOTHING_WORDS) {
-    const pattern = new RegExp(`\\b${word}\\b`, 'g');
+  for (const pattern of EMPTY) {
     const own = ownWords(text, strings, pattern);
     for (const match of text.matchAll(pattern)) {
       if (!own.some(([start, end]) => match.index >= start && match.index < end)) {
