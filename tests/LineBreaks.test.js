@@ -9,7 +9,7 @@ import {
   pageWidth,
   renderedGlyphs
 } from '../scripts/lib/line-breaks.mjs';
-import { DASH_GLYPHS, SEPARATOR_GLYPHS } from '../renderers/inlineSeparator.js';
+import { DASH_GLYPHS, SEPARATOR_GLYPHS } from '../domain/Separators.js';
 import { CLOSING_MARKS } from '../adapters/SwiftSourceLayout.js';
 
 /**

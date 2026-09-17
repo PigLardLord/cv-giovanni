@@ -1,6 +1,7 @@
 import { BaseRenderer } from './BaseRenderer.js';
 import { SwiftSourceLayout } from '../adapters/SwiftSourceLayout.js';
-import { DASH_GLYPHS, holdSeparators } from './inlineSeparator.js';
+import { holdSeparators } from './inlineSeparator.js';
+import { periodEnds } from '../domain/Separators.js';
 
 /**
  * How far below the pinned tab row a heading may sit and still count as reached. A jump from the
@@ -15,13 +16,6 @@ const LANDING_SLACK = 16;
  * at 320px, where the whole address with it would not fit (#219).
  */
 const LAST_WORD = /[^\s/-]*[/-]*$/u;
-
-/**
- * A period's first end, up to and with its dash, and its second, from the space after the dash. Held apart, the ends
- * give a line one place to break, after the dash; the space held with the second is no place a line prefers to break,
- * so a period moves down a row whole where it fits one (#180, #219).
- */
-const PERIOD_ENDS = new RegExp(`^(.*?[${DASH_GLYPHS.join('')}])(\\s*.+)$`, 'su');
 
 /**
  * Writes the CV into Nerd Mode's editor as a Swift file, and its contact card into the phone.
@@ -354,14 +348,16 @@ export class SourceRenderer extends BaseRenderer {
   }
 
   /**
-   * A period's ends, each held: "September 2015 –" and " July 2018" (#180, #219).
+   * A period's ends, each held: "September 2015 –" and " July 2018" (#180, #219). Held apart, the ends give a line one
+   * place to break, after the dash; the space held with the second is no place a line prefers to break, so a period
+   * moves down a row whole where it fits one.
    * @param {Document} root - DOM root
    * @param {string} period - The period as the profile writes it
    * @returns {Element[]} A `no-break` span for each end, or one for a period with no dash
    */
   periodEnds(root, period) {
-    const [, first, second] = PERIOD_ENDS.exec(period) ?? [];
-    return (first ? [first, second] : [period]).map((end) =>
+    const ends = periodEnds(period);
+    return (ends ? [ends.first, ends.space + ends.second] : [period]).map((end) =>
       this.createElement(root, 'span', 'no-break', end)
     );
   }
