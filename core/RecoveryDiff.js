@@ -56,6 +56,20 @@ const printedPeriod = (degree) => {
   return piece ? piece.text.replace(/^\((.*)\)$/, '$1') : null;
 };
 
+/**
+ * How much a verdict says a recovered entry is the one written: a whole value more than part of one, a wrong or a lost
+ * value nothing.
+ */
+const LIKENESS = { exact: 2, normalised: 2, partial: 1, wrong: 0, lost: 0 };
+
+/** Two likenesses, the most telling field first: negative when the first is the better match. */
+const better = (a, b) => {
+  for (let at = 0; at < Math.max(a.length, b.length); at += 1) {
+    if ((a[at] ?? 0) !== (b[at] ?? 0)) return (b[at] ?? 0) - (a[at] ?? 0);
+  }
+  return 0;
+};
+
 /** True when the shorter string is a whole-word run inside the longer. */
 function overlaps(a, b) {
   const [shorter, longer] = a.length <= b.length ? [a, b] : [b, a];
@@ -205,6 +219,42 @@ export class RecoveryDiff {
     });
   }
 
+  /**
+   * Which recovered entry answers for each written one, matched by what the two say rather than where they stand (#217).
+   *
+   * By position, a parser that dropped the first of three degrees compared the second with the first and the third with
+   * the second: one loss read as three, and none of them named the degree it was. So every written entry is weighed
+   * against every recovered one on the fields that identify it, on the verdict ladder, the most telling field first. The
+   * best pairs are taken first, a tie going to the earlier written entry and then to the earlier recovered one, and
+   * each entry is taken once. A written entry that nothing recovered says anything of is matched to none, and is lost; a
+   * recovered entry no written one took is left over, and was never written.
+   * @param {Object[]} written - The document's entries
+   * @param {Object[]} recovered - The entries a parser recovered, in the order it recovered them
+   * @param {(written: Object, recovered: Object) => number[]} likeness - How much a recovered entry says of a written
+   *   one, per identifying field, most telling first, each from `LIKENESS`
+   * @returns {{ matched: (Object|null)[], unmatched: Object[] }} Each written entry's match, in the document's order,
+   *   and the recovered entries nothing was matched to, in the order they were recovered
+   */
+  static match(written, recovered, likeness) {
+    const pairs = written
+      .flatMap((entry, at) =>
+        recovered.map((candidate, from) => ({ at, from, likeness: likeness(entry, candidate) }))
+      )
+      .filter((pair) => pair.likeness.some((value) => value > 0))
+      .sort((a, b) => better(a.likeness, b.likeness) || a.at - b.at || a.from - b.from);
+    const matched = written.map(() => null);
+    const taken = new Set();
+    for (const { at, from } of pairs) {
+      if (matched[at] !== null || taken.has(from)) continue;
+      matched[at] = from;
+      taken.add(from);
+    }
+    return {
+      matched: matched.map((from) => (from === null ? null : recovered[from])),
+      unmatched: recovered.filter((_, from) => !taken.has(from))
+    };
+  }
+
   /** Which sections the document has content for, and which of those were recognised. */
   static sections(document, recovered) {
     const expected = [
@@ -266,8 +316,15 @@ export class RecoveryDiff {
    */
   static education(document, recovered, { grade, words }) {
     const value = (field) => (field && field.value !== undefined ? field.value : null);
+    const like = (written, got, kind) => LIKENESS[RecoveryDiff.verdict(written, got, kind)];
+    // A degree is identified by its name and its school; its period tells two apart only where those say nothing.
+    const { matched } = RecoveryDiff.match(document.education, recovered.education, (item, got) => [
+      like(lineText(degreeLine(item, words)), value(got.degree)) +
+        like(item.school, value(got.school)),
+      printedPeriod(item) === null ? 0 : like(printedPeriod(item), got.period)
+    ]);
     return document.education.map((item, index) => {
-      const entry = recovered.education[index];
+      const entry = matched[index];
       const period = printedPeriod(item);
       return {
         degree: grade(

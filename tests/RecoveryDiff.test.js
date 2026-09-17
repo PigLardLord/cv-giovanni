@@ -337,3 +337,57 @@ describe("a degree's period is compared as the school line prints it", () => {
     }
   );
 });
+
+// An entry was matched to the document's by its position alone: a parser that dropped the first of three degrees
+// compared the second with the first and the third with the second, so one loss read as three and none named the degree
+// it was (#217). A recovered entry is matched to a written one by what it says.
+describe('an entry is matched to the one written by what it says, not by where it stands', () => {
+  const profile = JSON.parse(readFileSync(`${root}profiles/general/en.json`, 'utf8'));
+  const nerd = readFileSync(`${root}tests/fixtures/ats/page-print-nerd.txt`, 'utf8');
+  const diffOfText = (text, from) =>
+    RecoveryDiff.diff(new CvDocument(from), AtsTextParser.parse(text), { words });
+
+  describe('a degree, by its name and its school', () => {
+    const phd = {
+      degree: 'PhD in Computer Science',
+      school: 'Università di Bologna',
+      period: '2017 – 2020'
+    };
+    const three = { ...profile, education: [phd, ...profile.education] };
+    const whole = { degree: 'exact', school: 'exact', period: 'exact', adjacent: true };
+    const printed = nerd.replace(
+      'Education\n',
+      `Education\n${phd.degree}\n${phd.school} (${phd.period})\n\n`
+    );
+
+    test('three degrees printed come back whole', () => {
+      expect(printed).not.toBe(nerd);
+      expect(diffOfText(printed, three).education).toEqual([whole, whole, whole]);
+    });
+
+    test('a parse that drops the first of three loses that one, and the other two come back whole', () => {
+      const diff = diffOfText(nerd, three);
+
+      expect(diff.education).toEqual([
+        { degree: 'lost', school: 'lost', period: 'lost', adjacent: false },
+        whole,
+        whole
+      ]);
+      expect(RecoveryDiff.losses(diff)).toEqual([
+        { path: ['education', 0, 'degree'], verdict: 'lost', written: phd.degree, recovered: null },
+        { path: ['education', 0, 'school'], verdict: 'lost', written: phd.school, recovered: null },
+        { path: ['education', 0, 'period'], verdict: 'lost', written: phd.period, recovered: null }
+      ]);
+    });
+
+    test('degrees printed in another order come back whole', () => {
+      const pisa =
+        "First Level Professional Master's Programme in Mobile Applications\nDevelopment (60 ECTS)\nUniversità degli Studi di Pisa (2014 – 2016)";
+      const catania = 'B.Sc. Computer Engineering\nUniversità degli Studi di Catania (2009)';
+      const reordered = nerd.replace(`${pisa}\n\n${catania}`, `${catania}\n\n${pisa}`);
+
+      expect(reordered).not.toBe(nerd);
+      expect(diffOfText(reordered, profile).education).toEqual([whole, whole]);
+    });
+  });
+});
