@@ -240,8 +240,10 @@ since #198 the audit also fails a glyph drawn more than half a pixel past the vi
 box around its line (a first line may hang its indent as far as its block's own edge), or a page more than a pixel
 wider than its viewport, and names the run past the edge, its line, how far, and whose edge it passed. Since #207 it
 holds the syntax Nerd Mode's stylesheet draws to the same columns, by the box each line of it is drawn in, less a
-space the line hangs past the edge, and names the line the syntax follows. The editor moves a period's closing `",`
-to a line of its own today rather than past its edge, but only because its lines may break anywhere.
+space the line hangs past the edge, and names the line the syntax follows. Because the editor's lines may break
+anywhere, since #219 the audit also fails a row the editor wraps a line onto that opens with syntax closing the row
+above it, a lone `",` or `),`, and names the line it closes; the editor holds that syntax to the value's last word,
+and a period too wide for a row with its quotes and comma breaks after its dash, the syntax counted in its width.
 
 ### Linked pages are part of the CV
 
