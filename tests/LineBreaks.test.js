@@ -190,6 +190,59 @@ describe('a line break that strands a separator or splits a period', () => {
       );
     });
 
+    // Nerd Mode's editor holds a literal's quotes and comma to its value (#219): "September 2015 – August 2018" is 208px
+    // here, 224px with the `",` after it, and 232px with the `"` before it too, which a row of 228px cannot hold.
+    describe('with the syntax drawn against it', () => {
+      const planted = { period: 'September 2015 – August 2018' };
+      const glyphs = [
+        ...run('September 2015 –', { left: 8, room: 228 }),
+        { text: ' ', top: null, bottom: null, left: null, right: null, room: 228 },
+        ...run('August 2018', { top: 20, room: 228 })
+      ];
+      const piece = (text, after, top, left) => ({
+        text,
+        top,
+        bottom: top + 16,
+        left,
+        right: left + [...text].length * 8,
+        after
+      });
+
+      test('counts the syntax flush against either end as part of its width', () => {
+        const syntax = [piece('"', 0, 0, 0), piece('"', 28, 20, 84), piece(',', 28, 20, 92)];
+
+        expect(lineBreaks(glyphs, planted).checks.periodsWhole).toBe(false);
+        expect(lineBreaks(glyphs, planted, syntax).checks).toEqual({
+          separatorsHeld: true,
+          periodsWhole: true
+        });
+      });
+
+      test('leaves out syntax a space parts from either end', () => {
+        const syntax = [
+          piece('period:', 0, 0, -64),
+          piece('"', 0, 0, 0),
+          piece('"', 28, 20, 88),
+          piece(',', 28, 20, 96)
+        ];
+
+        expect(lineBreaks(glyphs, planted, syntax).checks.periodsWhole).toBe(false);
+      });
+
+      test('leaves out syntax on another row than either end', () => {
+        const closed = [piece('"', 28, 20, 84), piece(',', 28, 20, 92)];
+        const opened = [piece('"', 0, 0, 0)];
+
+        expect(
+          lineBreaks(glyphs, planted, [piece('"', 0, -20, 0), ...closed]).checks.periodsWhole
+        ).toBe(false);
+        expect(
+          lineBreaks(glyphs, planted, [...opened, piece('"', 28, 40, 84), piece(',', 28, 40, 92)])
+            .checks.periodsWhole
+        ).toBe(false);
+      });
+    });
+
     test('never breaks before its dash', () => {
       const { checks } = lineBreaks(narrow(['September 2015', '– July 2018'], 180), profile);
 

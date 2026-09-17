@@ -359,10 +359,10 @@ try {
 
       const copy = screenCopy(copied, profile, { skillsLabel: labels.skills });
       // Where the lines of the same stretch of the page broke (#180): no separator at either end of one, and no
-      // period split across two.
+      // period split across two. A period's width counts the syntax Nerd Mode draws flush against it (#219).
       const drawn = await chrome.evaluate(renderedGlyphs(start, end));
       if (drawn === null) throw new Error(`${layout} has no ${start} or no ${end}`);
-      const breaks = lineBreaks(drawn.glyphs, profile);
+      const breaks = lineBreaks(drawn.glyphs, profile, drawn.syntax);
       // The same glyphs against the edges of their columns, and the page against its viewport (#198): text held
       // together cannot wrap, and runs past its line when it is too wide for it. The syntax Nerd Mode's stylesheet
       // draws beside that text is held to the same columns, since it has no glyphs to judge (#207).
@@ -541,7 +541,8 @@ const report = [
   '',
   "Since #219 no row Nerd Mode's editor wraps a line onto opens with syntax that closes what the row above",
   'it wrote: a comma, a parenthesis, a bracket, or a quote that closes a literal. A line of the file may',
-  'open with one. A failure names the syntax and the line of text it closes.',
+  'open with one. A failure names the syntax and the line of text it closes. The quotes and the comma',
+  'drawn flush against a period count toward how wide it is, since the editor holds them to it.',
   '',
   '## The Download PDF link',
   '',

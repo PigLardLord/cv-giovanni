@@ -439,16 +439,45 @@ export function closingSyntax({ glyphs, syntax }) {
 }
 
 /**
+ * How wide the syntax drawn flush against a run is: each piece side by side with the glyph or piece beside it, with no
+ * glyph between and no gap a space would leave, going out from the run's first glyph and from its last.
+ * @param {{ glyph: object, index: number }} first - The run's first glyph, as `layOut` lays it
+ * @param {{ glyph: object, index: number }} last - Its last
+ * @param {object[]} syntax - Every piece of syntax, in the page's order
+ * @returns {number} The width of the pieces flush against either end
+ */
+const flushWidth = (first, last, syntax) => {
+  let width = 0;
+  let edge = first.glyph;
+  for (const piece of syntax.filter((drawn) => drawn.after === first.index).reverse()) {
+    if (!sideBySide(piece, edge) || parted(piece, edge, false)) break;
+    width += piece.right - piece.left;
+    edge = piece;
+  }
+  edge = last.glyph;
+  for (const piece of syntax.filter((drawn) => drawn.after === last.index + 1)) {
+    if (!sideBySide(edge, piece) || parted(edge, piece, false)) break;
+    width += piece.right - piece.left;
+    edge = piece;
+  }
+  return width;
+};
+
+/**
  * No line of the CV starts or ends with a separator, and no period the profile writes is split across two lines. A
  * period wider than its line cannot keep to one, and the least bad place for it to break is after its dash, where
  * the line that ends says the range goes on: there, and only there, it may break, and its dash may end the line.
+ * Syntax drawn flush against either end of a period, with no space between, is part of the width it needs: Nerd Mode's
+ * editor holds a literal's quotes and comma to its value, and at 320px "September 2015 – August 2018" fits a row
+ * that `"September 2015 – August 2018",` does not (#219).
  * @param {object[]} glyphs - Every glyph of the CV, as `renderedGlyphs` collects them
  * @param {object} profile - The profile the page was rendered from
+ * @param {object[]} [syntax] - The syntax the stylesheet draws beside the glyphs, as `renderedGlyphs` collects it
  * @returns {{ checks: { separatorsHeld: boolean, periodsWhole: boolean },
  *   findings: { stranded: string[], split: string[] } }} Each check, and the text either side of each break that
  *   failed it
  */
-export function lineBreaks(glyphs, profile) {
+export function lineBreaks(glyphs, profile, syntax = []) {
   const { lines, laid } = layOut(glyphs);
   const letters = laid
     .map((entry, position) => ({ ...entry, position }))
@@ -467,8 +496,9 @@ export function lineBreaks(glyphs, profile) {
       const afterDash =
         final === first + 1 && DASHES.includes(beforeBreak[beforeBreak.length - 1].glyph.text);
       const run = laid.slice(own[0].position, own[own.length - 1].position + 1);
-      const wider =
-        widthOnOneLine(run.map((entry) => entry.glyph)) > own[0].glyph.room - MEASURE_TOLERANCE;
+      const needs =
+        widthOnOneLine(run.map((entry) => entry.glyph)) + flushWidth(own[0], own.at(-1), syntax);
+      const wider = needs > own[0].glyph.room - MEASURE_TOLERANCE;
       if (afterDash && wider) endsInDash.add(first);
       else split.push(acrossBreak(lines[first], lines[first + 1]));
     }
