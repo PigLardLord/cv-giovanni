@@ -6,8 +6,8 @@ import nspell from 'nspell';
 import englishBritish from 'dictionary-en-gb';
 import { PROFILE_NOT_WORDS, allowList, misspelt, wordsOf } from '../scripts/lib/spelling.mjs';
 
-// Every published profile, and every catalogue of its locale, spelled in its locale (#152): the labels, the page's own
-// words and the print's are the CV's text as much as the profile is (the code review of #171). A locale with no dictionary
+// Every published profile, and every catalogue of its locale, spelled in its locale (#152): the labels and the page's
+// own words are the CV's text as much as the profile is (the code review of #171). A locale with no dictionary
 // fails rather than passing unchecked: German is enabled only once its CV is written, and a check that silently skipped
 // it would read as a pass.
 const DICTIONARIES = { en: englishBritish };
@@ -48,7 +48,7 @@ describe('the published CV is spelled right', () => {
         )
       ];
 
-      expect(catalogues).toEqual(expect.arrayContaining(['cv.json', 'print.json', 'ui.json']));
+      expect(catalogues).toEqual(expect.arrayContaining(['cv.json', 'ui.json']));
       expect(misspelt(words, spellerFor(locale))).toEqual([]);
     }
   );

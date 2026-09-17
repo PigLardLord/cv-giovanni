@@ -16,8 +16,7 @@
   },
   "contacts": {
     "email": "E-Mail",
-    "phone": "Telefon",
-    "portfolio": "Portfolio"
+    "phone": "Telefon"
   },
   "letter": {
     "subject": "Bewerbung",
@@ -33,8 +32,5 @@
     "addressMrTitled": "Herrn {{title}} {{name}}",
     "closing": "Mit freundlichen Grüßen",
     "attachments": "Anlagen"
-  },
-  "pdf": {
-    "asOf": "Stand:"
   }
 }
