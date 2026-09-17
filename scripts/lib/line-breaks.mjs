@@ -26,16 +26,18 @@ const MEASURE_TOLERANCE = 0.5;
  * indent belongs to it as far as the block's own edge, and each block's it sits in, since a box sized to what it holds
  * grows past its column with text that cannot wrap and keeps that text inside itself (#198). A box placed with
  * absolute or fixed positioning is put there on purpose, and is a column of its own, which `columnOverflow` still
- * holds inside the viewport. Text the page hides, with `visibility` or clipped to a pixel the way text for a screen
- * reader is, is left out. A space in a drawn element is kept even with no box: Chrome gives none to a space a line
- * broke at when it is a text node of its own.
+ * holds inside the viewport. Each glyph carries the number of the block its line boxes fill, counted in the page's
+ * order, so a row a block wraps onto is told from the first row of the next (#219). Text the page hides, with
+ * `visibility` or clipped to a pixel the way text for a screen reader is, is left out. A space in a drawn element is
+ * kept even with no box: Chrome gives none to a space a line broke at when it is a text node of its own.
  *
  * Beside the glyphs, the syntax the stylesheet draws: an empty element whose `data-code` its `::before` draws, as Nerd
  * Mode's quotes, commas and brackets are (#160). It has no text, so no glyph, and a range cannot reach inside a
  * pseudo-element; but the element's own boxes are the drawn text's, one a line (#207). A piece of syntax is what one
  * of those boxes draws, found by measuring the code in the font `::before` draws it in, and without the spaces at
  * either end: Chrome hangs a space a `pre-wrap` line ends on past the edge, inside the box, and a space is never
- * judged. Each piece carries how many glyphs come before it, so a finding can name the line it follows.
+ * judged. Each piece carries how many glyphs come before it, so a finding can name the line it follows, and the
+ * number of its block, as a glyph does.
  * @param {string} start - Selector of the CV's first element, as the audit's bounds name it
  * @param {string} end - Selector of its last
  * @returns {string} An expression for the page, resolving to `{ glyphs, syntax }`, or null when a bound is missing
@@ -71,7 +73,7 @@ export const renderedGlyphs = (start, end) => `(() => {
         column.left = Math.max(column.left, around.left);
         column.right = Math.min(column.right, around.right);
       }
-      places.set(holder, { room: own.right - own.left, column });
+      places.set(holder, { room: own.right - own.left, column, block: places.size });
     }
     return places.get(holder);
   };
@@ -100,7 +102,7 @@ export const renderedGlyphs = (start, end) => `(() => {
     if (getComputedStyle(parent).visibility !== 'visible') continue;
     const drawn = parent.getBoundingClientRect();
     if (drawn.width <= 1 && drawn.height <= 1) continue;
-    const { room, column } = placeOf(parent);
+    const { room, column, block } = placeOf(parent);
     if (code !== null) {
       const width = widthIn(getComputedStyle(node, '::before'));
       const lines = [...node.getClientRects()].filter((rect) => rect.width > 0);
@@ -123,6 +125,7 @@ export const renderedGlyphs = (start, end) => `(() => {
           left: rect.left + scrollX + without(text.trimStart()),
           right: rect.right + scrollX - without(text.trimEnd()),
           column,
+          block,
           after: glyphs.length
         });
       });
@@ -143,11 +146,12 @@ export const renderedGlyphs = (start, end) => `(() => {
           left: box.left + scrollX,
           right: box.right + scrollX,
           room,
-          column
+          column,
+          block
         });
       } else if (shown && /^\\s+$/.test(text.slice(index, index + size))) {
         const unboxed = { top: null, bottom: null, left: null, right: null };
-        glyphs.push({ text: text.slice(index, index + size), ...unboxed, room, column });
+        glyphs.push({ text: text.slice(index, index + size), ...unboxed, room, column, block });
       }
       index += size;
     }

@@ -514,7 +514,8 @@ describe('the glyphs the audit collects from the page', () => {
       left: 0,
       right: 8,
       room: 300,
-      column: { left: 0, right: 300 }
+      column: { left: 0, right: 300 },
+      block: 0
     });
     expect(glyphs.at(-1)).toMatchObject({ room: 280, column: { left: 10, right: 290 } });
   });
@@ -595,12 +596,31 @@ describe('the glyphs the audit collects from the page', () => {
       left: null,
       right: null,
       room: 280,
-      column: { left: 10, right: 290 }
+      column: { left: 10, right: 290 },
+      block: 0
     });
   });
 
   test('are null when a bound is missing', () => {
     expect(window.eval(renderedGlyphs('#start', '#nowhere'))).toBeNull();
+  });
+
+  // Nerd Mode's editor writes a line of the file as one block, and a row that block wraps onto is not a line of its
+  // own: a `]` that opens a line closes nothing on the line above it (#219).
+  test('number the block each is laid in, the same for every box inside it and apart from the next', () => {
+    document.getElementById('room').innerHTML =
+      '<div>Pi<span style="display: inline">sa</span></div><div>Livorno</div>';
+    const { glyphs } = window.eval(renderedGlyphs('#start', '#end'));
+
+    const letters = glyphs.filter((glyph) => glyph.text.trim());
+    const [name, pisa, livorno] = [0, 8, 12].map((index) => letters[index].block);
+
+    expect(new Set([name, pisa, livorno]).size).toBe(3);
+    expect(letters.map((glyph) => [glyph.text, glyph.block])).toEqual([
+      ...[...'Giovanni'].map((letter) => [letter, name]),
+      ...[...'Pisa'].map((letter) => [letter, pisa]),
+      ...[...'Livorno'].map((letter) => [letter, livorno])
+    ]);
   });
 
   // Nerd Mode's quotes, commas and brackets are empty elements whose `data-code` the stylesheet draws with `::before`
@@ -645,8 +665,10 @@ describe('the glyphs the audit collects from the page', () => {
     });
 
     test('are each piece of it, with its box, its column and how many glyphs come before it', () => {
+      // JSDOM computes no display for a span, so each says it is inline, as Chrome lays it out.
       document.getElementById('room').innerHTML =
-        'Pisa<span data-code="&quot;"></span><span data-code=","></span>';
+        'Pisa<span style="display: inline" data-code="&quot;"></span>' +
+        '<span style="display: inline" data-code=","></span>';
       const [quote, comma] = document.querySelectorAll('[data-code]');
       drawnIn(quote, [32, 40]);
       drawnIn(comma, [40, 48]);
@@ -661,6 +683,7 @@ describe('the glyphs the audit collects from the page', () => {
           left: 32,
           right: 40,
           column: { left: 10, right: 290 },
+          block: 0,
           after: 4
         },
         {
@@ -670,6 +693,7 @@ describe('the glyphs the audit collects from the page', () => {
           left: 40,
           right: 48,
           column: { left: 10, right: 290 },
+          block: 0,
           after: 4
         }
       ]);
