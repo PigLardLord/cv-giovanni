@@ -787,6 +787,56 @@ describe("the base's entries, lined up with this branch's by what they say", () 
     expect(outcome(readingLosses(readings), [], readingsUnmatched(readings)).exitCode).toBe(1);
   });
 
+  /** One entry's fields in a section, as `fieldVerdicts` lists them, every one read in full unless named. */
+  const entryFields = (section, index, writes, short = {}) =>
+    Object.entries(writes).map(([name, written]) => ({
+      key: `${section}.${index}.${name}`,
+      label: `${section === 'spokenLanguages' ? 'languages' : section} ${index + 1}, ${name}`,
+      verdict: short[name] ?? 'exact',
+      written,
+      recovered: recoveredAs(written, short[name] ?? 'exact')
+    }));
+
+  // Every section the diff grades entry by entry is lined up by what identifies an entry of it.
+  test.each([
+    [
+      'experience',
+      { title: 'Mobile Developer', employer: 'Apparound' },
+      { title: 'Mobile Software Engineer', employer: 'Cortado Mobile Solutions' },
+      'employer'
+    ],
+    ['skills', { category: 'iOS' }, { category: 'Delivery & platform' }, 'category'],
+    ['spokenLanguages', { name: 'Italian' }, { name: 'English' }, 'name'],
+    [
+      'certifications',
+      { name: 'Android Enterprise Expert – Google (2026)' },
+      { name: 'iOS Lead Essentials – Essential Developer (2024)' },
+      'name'
+    ]
+  ])('%s reordered, hiding a loss by position, fails naming the entry', (section, a, b, field) => {
+    const name = section === 'spokenLanguages' ? 'languages' : section;
+    const before = [
+      ...whole,
+      ...entryFields(section, 0, a),
+      ...entryFields(section, 1, b, { [field]: 'partial' })
+    ];
+    const after = [
+      ...whole,
+      ...entryFields(section, 0, b),
+      ...entryFields(section, 1, a, { [field]: 'partial' })
+    ];
+
+    expect(
+      lostFields(before, after).map(({ label, moved, from, to, was }) => [
+        label,
+        moved,
+        from,
+        to,
+        was
+      ])
+    ).toEqual([[`${name} 2, ${field}`, `${name} 1`, 'exact', 'partial', a[field]]]);
+  });
+
   test('a pure reorder that reads nothing short loses nothing, and passes', () => {
     const before = [...whole, ...degreeFields(0, 'Master'), ...degreeFields(1, 'Bachelor')];
     const after = [...whole, ...degreeFields(0, 'Bachelor'), ...degreeFields(1, 'Master')];
