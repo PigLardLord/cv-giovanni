@@ -43,7 +43,7 @@ coverage of the app's screens from 15% to 82%, while cutting CI test
 runtime by 75% (32 to 8 minutes) to give the team same-hour merge
 feedback.
 Technical owner of the Cortado MDM iOS client for six years from its
-first commit — owned its layered Clean Architecture, TDD business
+first commit — owned layered Clean Architecture and TDD business
 logic, release decisions and code review, coordinating delivery with
 product, QA and backend while mentoring mobile colleagues.
 
