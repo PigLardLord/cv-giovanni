@@ -22,7 +22,9 @@ import { SEPARATOR_GLYPHS } from '../../renderers/inlineSeparator.js';
  * each is found at the first line its start opens after the one the entry before it of that kind was found at. Two
  * roles sharing a header, "Engineer at Acme" and "Engineer at Acme, Berlin", take their lines in turn, and the second's
  * comma, wrapped or not, is never blamed on the first (the code review of #205, and its re-check). A line that opens
- * with an entry's start before that entry's own line, a wrapped line of prose, would take its place in that order.
+ * with an entry's start inside a string the profile writes that runs past it, a summary or a highlight naming a
+ * later role, "Mobile Developer at Apparound alumni now lead two teams", is that string's line and never the entry's,
+ * wherever it wraps: it neither takes the entry's line from it nor is blamed for a separator of its own (#213).
  *
  * It reads `pdftotext` output and nothing else, so each rule can be shown to fail on text that breaks it.
  */
@@ -30,6 +32,12 @@ import { SEPARATOR_GLYPHS } from '../../renderers/inlineSeparator.js';
 const escapeForRegExp = (text) => String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const escapeInClass = (text) => text.replace(/[\]\\^-]/g, '\\$&');
 const collapse = (text) => text.replace(/\s+/g, ' ').trim();
+/**
+ * Words as a line breaks them, as a pattern: in any whitespace, a line break included, and with a compound's hyphen
+ * kept, left at a line's end or welded shut.
+ */
+const brokenWords = (words) =>
+  words.map((word) => word.split('-').map(escapeForRegExp).join('(?:-\\s*)?')).join('\\s+');
 
 /** A separator: a comma, or a glyph that stands between two things and belongs to neither. */
 const SEPARATOR = `[,${escapeInClass(SEPARATOR_GLYPHS.join(''))}]`;
@@ -63,9 +71,7 @@ function ownWords(text, written, pattern) {
       const end = context[context.length - 1].end;
       const beside = `${piece.slice(start, match.index)}${piece.slice(match.index + match[0].length, end)}`;
       if (!/\S/.test(beside)) continue;
-      const around = context
-        .map((word) => word.text.split('-').map(escapeForRegExp).join('(?:-\\s*)?'))
-        .join('\\s+');
+      const around = brokenWords(context.map((word) => word.text));
       for (const own of text.matchAll(new RegExp(around, 'g'))) {
         ranges.push([own.index, own.index + own[0].length]);
       }
@@ -93,17 +99,44 @@ function matchAt(text, pattern, index) {
 }
 
 /**
+ * Where each string the profile writes that runs past `start` prints: a summary or a highlight that names the entry,
+ * "Mobile Developer at Apparound alumni now lead two teams". Its own words are the entry's start and more, so it is
+ * never the entry's header, which the profile writes as no single string: a role's is its title and employer, and a
+ * school's or a certification's name is the start itself, and runs past nothing (#213).
+ * @param {string} text - The text layer
+ * @param {string[]} written - Every string the profile writes
+ * @param {string} start - Where the entry's line opens
+ * @returns {[number, number][]} The ranges of the text those strings print over
+ */
+function proseNaming(text, written, start) {
+  const name = collapse(start);
+  const ranges = [];
+  for (const piece of written.map((string) => collapse(String(string)))) {
+    if (!name || piece === name || !piece.includes(name)) continue;
+    for (const prose of text.matchAll(new RegExp(brokenWords(piece.split(' ')), 'g'))) {
+      ranges.push([prose.index, prose.index + prose[0].length]);
+    }
+  }
+  return ranges;
+}
+
+/**
  * Where the first line at or after `from` opens with `start`, as a whole name: "Engineer at Apparound" does not open
- * "Engineer at Apparounds GmbH". Leading spaces are not the line's.
+ * "Engineer at Apparounds GmbH". Leading spaces are not the line's, and neither is a start printed inside one of the
+ * `prose` ranges: that line is the prose's, wherever it wraps (#213).
  * @returns {number} The index the start begins at, or -1 when no line opens with it
  */
-function lineOpening(text, start, from) {
+function lineOpening(text, start, from, prose = []) {
   const words = spaced(start);
   if (!words) return -1;
   const pattern = new RegExp(`^([ \\t]*)${words}(?![\\p{L}\\p{N}])`, 'gmu');
   pattern.lastIndex = from;
-  const match = pattern.exec(text);
-  return match ? match.index + match[1].length : -1;
+  for (let match = pattern.exec(text); match; match = pattern.exec(text)) {
+    const at = match.index + match[1].length;
+    const end = match.index + match[0].length;
+    if (!prose.some(([first, last]) => first <= at && end <= last)) return at;
+  }
+  return -1;
 }
 
 /**
@@ -129,13 +162,14 @@ export function emptyFieldMarks(text, { entries = [], written = [] } = {}) {
     }
   }
   for (const match of text.matchAll(DOUBLED)) note(match.index, match[0]);
-  // An entry's header opens its line in every layout; prose that names the entry mid-line and goes on is not one. Each
-  // kind's entries take their lines in the profile's order, and each answers only for its own: its separator is a trace
-  // where it follows a part the entry does not have, whatever comes after it, unless it is part of the entry's own line
-  // as EntryLines writes it, read in any whitespace from where the entry opens (#212).
+  // An entry's header opens its line in every layout; prose that names the entry is not one, whether it names it
+  // mid-line or a line of it opens with the name (#213). Each kind's entries take their lines in the profile's order,
+  // and each answers only for its own: its separator is a trace where it follows a part the entry does not have,
+  // whatever comes after it, unless it is part of the entry's own line as EntryLines writes it, read in any whitespace
+  // from where the entry opens (#212).
   const foundAt = new Map();
   for (const { kind, start, line = '', open } of entries) {
-    const at = lineOpening(text, start, foundAt.get(kind) ?? 0);
+    const at = lineOpening(text, start, foundAt.get(kind) ?? 0, proseNaming(text, strings, start));
     if (at < 0) continue;
     foundAt.set(kind, at + 1);
     const own = matchAt(text, spaced(line), at)?.[0].length ?? 0;

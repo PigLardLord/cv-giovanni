@@ -313,6 +313,91 @@ describe('the traces of an empty field in printed text', () => {
         })
       ).toEqual(['Engineer at Apparound,']);
     });
+
+    // #213: each entry took the first line its start opened, so a line of prose opening with a later role's whole
+    // header took that role's place. The role's own dangling comma went unchecked, and prose going on with a comma was
+    // blamed instead.
+    describe("a line of prose that opens with an entry's header", () => {
+      const entries = roles(
+        { title: 'Mobile Software Engineer', company: 'Cortado', location: 'Berlin' },
+        { title: 'Mobile Developer', company: 'Apparound' }
+      );
+      const header = 'Mobile Software Engineer at Cortado, Berlin';
+
+      test("is not the entry's line, whose dangling separator is still named", () => {
+        const written = [
+          'Mobile Developer at Apparound alumni now lead two of the three mobile teams.'
+        ];
+        const text = [
+          header,
+          'Mobile Developer at Apparound alumni now lead two of the three',
+          'mobile teams.',
+          'Mobile Developer at Apparound,',
+          'September 2015 – July 2018'
+        ].join('\n');
+
+        expect(emptyFieldMarks(text, { entries, written })).toEqual([
+          { mark: 'Mobile Developer at Apparound,', line: 'Mobile Developer at Apparound,' }
+        ]);
+      });
+
+      test('is not blamed for the separator it goes on with', () => {
+        const written = [
+          'Mobile Developer at Apparound, Marte 5 and Cortado: three mobile teams in nine years.'
+        ];
+        const prose = [
+          'Mobile Developer at Apparound, Marte 5 and Cortado: three mobile',
+          'teams in nine years.'
+        ];
+
+        expect(
+          marks([header, ...prose, 'Mobile Developer at Apparound', 'September 2015'].join('\n'), {
+            entries,
+            written
+          })
+        ).toEqual([]);
+        expect(
+          emptyFieldMarks(
+            [header, ...prose, 'Mobile Developer at Apparound, September 2015'].join('\n'),
+            { entries, written }
+          )
+        ).toEqual([
+          {
+            mark: 'Mobile Developer at Apparound,',
+            line: 'Mobile Developer at Apparound, September 2015'
+          }
+        ]);
+      });
+
+      test("is not the entry's line where it wraps onto the header mid-string, past a broken compound", () => {
+        const written = ['Mentored an offline-first Mobile Developer at Apparound, later a lead.'];
+        const text = [
+          header,
+          'Mentored an offline-',
+          'first',
+          'Mobile Developer at Apparound, later a lead.',
+          'Mobile Developer at Apparound',
+          'September 2015'
+        ].join('\n');
+
+        expect(marks(text, { entries, written })).toEqual([]);
+      });
+
+      test('an entry whose start is a string the profile writes is still found at its own line', () => {
+        expect(
+          marks('CISSP – (2021)', {
+            entries: certifications({ name: 'CISSP', year: 2021 }),
+            written: ['CISSP']
+          })
+        ).toEqual(['CISSP –']);
+        expect(
+          marks('Università di Pisa,\n2016', {
+            entries: printedEntries({ education: [{ school: 'Università di Pisa' }] }, at),
+            written: ['Università di Pisa']
+          })
+        ).toEqual(['Università di Pisa,']);
+      });
+    });
   });
 });
 
