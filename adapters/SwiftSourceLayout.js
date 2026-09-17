@@ -62,6 +62,13 @@ const LABELS = {
 /** A phone screen has room for four buttons across; a fifth would wrap into a second row. */
 const CARD_ACTIONS = 4;
 
+/**
+ * The marks syntax that closes a literal begins with: its closing quote, and the comma, parenthesis or bracket written
+ * after it. The screen audit fails a row of the editor that opens with one, and reads this list rather than one of its
+ * own (#219).
+ */
+export const CLOSING_MARKS = Object.freeze(['"', ',', ')', ']']);
+
 const code = (value, kind = 'plain') => ({ code: value, kind });
 const content = (value, kind, extra = {}) => ({ text: value, kind, ...extra });
 /** Punctuation that separates two words on one line: real text, so a copy keeps it. */

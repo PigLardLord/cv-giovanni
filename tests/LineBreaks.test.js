@@ -1,6 +1,8 @@
 import {
+  CLOSING_SYNTAX,
   DASHES,
   SEPARATORS,
+  closingSyntax,
   columnOverflow,
   lineBoxes,
   lineBreaks,
@@ -8,6 +10,7 @@ import {
   renderedGlyphs
 } from '../scripts/lib/line-breaks.mjs';
 import { DASH_GLYPHS, SEPARATOR_GLYPHS } from '../renderers/inlineSeparator.js';
+import { CLOSING_MARKS } from '../adapters/SwiftSourceLayout.js';
 
 /**
  * A run of text as Chrome lays it out on one line box: a rectangle per character, spaces narrower than letters, from
@@ -453,6 +456,158 @@ describe('text that runs past its column, or a page that scrolls sideways', () =
   });
 });
 
+// Nerd Mode's editor lets a line break anywhere, the drawn syntax included, so a row could open with a lone `",`: at
+// 320px the period "September 2015 – August 2018" left its `",` a row of its own, and the published CV's LinkedIn
+// address its `),`. No check saw either, since the syntax has no glyphs (#219).
+describe('closing syntax that opens a row the editor wrapped onto', () => {
+  /** Text on a row of a block, 8px a letter and 4px a space, from `left`. */
+  const text = (value, { row = 0, left = 0, block = 0 } = {}) =>
+    run(value, { top: row * 20, left }).map((glyph) => ({ ...glyph, block }));
+  /** A piece of syntax on a row of a block, drawn after the `after`th glyph, 8px a character. */
+  const drawn = (value, after, { row = 0, left = 0, block = 0 } = {}) => ({
+    text: value,
+    top: row * 20,
+    bottom: row * 20 + 16,
+    left,
+    right: left + [...value].length * 8,
+    column: { left: 0, right: 400 },
+    block,
+    after
+  });
+  // "September 2015 – July 2018" is 192px from 8px, and "September 2015 – August 2018" 208px.
+  const period = (value, closing) => ({
+    glyphs: text(value, { left: 8 }),
+    syntax: [drawn('"', 0), ...closing([...value].length, 8 + (value.includes('July') ? 192 : 208))]
+  });
+
+  test('syntax that closes a value on the value’s row passes', () => {
+    const { checks, findings } = closingSyntax(
+      period('September 2015 – July 2018', (after, left) => [
+        drawn('"', after, { left }),
+        drawn(',', after, { left: left + 8 })
+      ])
+    );
+
+    expect(checks).toEqual({ closingSyntaxHeld: true });
+    expect(findings).toEqual({ strandedSyntax: [] });
+  });
+
+  test('closing syntax that opens the next row fails, named as one run by the line it closes', () => {
+    const { checks, findings } = closingSyntax(
+      period('September 2015 – August 2018', (after) => [
+        drawn('"', after, { row: 1 }),
+        drawn(',', after, { row: 1, left: 8 })
+      ])
+    );
+
+    expect(checks.closingSyntaxHeld).toBe(false);
+    expect(findings.strandedSyntax).toEqual([
+      '“",” opens a row after “September 2015 – August 2018”'
+    ]);
+  });
+
+  // The published CV at 320px, before #219.
+  test.each([
+    [[')', ','], '“),” opens a row after “linkedin.com/in/piglardlord”'],
+    [[','], '“,” opens a row after “linkedin.com/in/piglardlord”'],
+    [[']'], '“]” opens a row after “linkedin.com/in/piglardlord”']
+  ])('%j after a closing quote opens a row and fails', (marks, finding) => {
+    const glyphs = text('linkedin.com/in/piglardlord', { left: 8 });
+    const syntax = [
+      drawn('"', 0),
+      drawn('"', 27, { left: 216 }),
+      ...marks.map((mark, index) => drawn(mark, 27, { row: 1, left: index * 8 }))
+    ];
+
+    expect(closingSyntax({ glyphs, syntax }).findings.strandedSyntax).toEqual([finding]);
+  });
+
+  test('closing syntax that follows the last word of its value onto the next row passes', () => {
+    const glyphs = [...text('linkedin.com/in/', { left: 8 }), ...text('piglardlord', { row: 1 })];
+    const syntax = [
+      drawn('"', 0),
+      drawn('"', 27, { row: 1, left: 88 }),
+      drawn(')', 27, { row: 1, left: 96 }),
+      drawn(',', 27, { row: 1, left: 104 })
+    ];
+
+    expect(closingSyntax({ glyphs, syntax }).checks.closingSyntaxHeld).toBe(true);
+  });
+
+  // `period:` / `"August 2018 – Present",`: the value moved down whole, with the quote that opens it.
+  test('a quote that opens a value may open a row', () => {
+    const glyphs = text('August 2018 – Present', { row: 1, left: 8 });
+    const syntax = [drawn('period:', 0), drawn('"', 0, { row: 1 }), drawn('"', 21, { row: 1 })];
+    syntax[2].left = 176;
+    syntax[2].right = 184;
+
+    expect(closingSyntax({ glyphs, syntax }).checks.closingSyntaxHeld).toBe(true);
+  });
+
+  // Swift draws every quote that delimits a literal, and writes one inside a literal as text after a drawn backslash.
+  test('a quote closes when an odd number of quotes come before it on its line', () => {
+    const skills = (separator, rows) => ({
+      glyphs: [...text('Swift', { left: 16 }), ...text(', ', separator)],
+      syntax: [drawn('[', 0), drawn('"', 0, { left: 8 }), ...rows]
+    });
+    // `["Swift", ` / `"SwiftUI"`, and `["Swift` / `", `.
+    const opening = skills({ left: 64 }, [drawn('"', 5, { left: 56 }), drawn('"', 7, { row: 1 })]);
+    const closing = skills({ row: 1, left: 8 }, [drawn('"', 5, { row: 1 })]);
+
+    expect(closingSyntax(opening).checks.closingSyntaxHeld).toBe(true);
+    expect(closingSyntax(closing).findings.strandedSyntax).toEqual([
+      '“"” opens a row after “Swift”'
+    ]);
+  });
+
+  // `ContactCard` / `())`, as two pieces: the parenthesis that closes follows the one that opens, on its own row.
+  test('closing syntax after other syntax on its row passes, whatever row the text before it is on', () => {
+    const glyphs = text('ContactCard');
+    const syntax = [drawn('(', 11, { row: 1 }), drawn(')', 11, { row: 1, left: 8 })];
+
+    expect(closingSyntax({ glyphs, syntax }).checks.closingSyntaxHeld).toBe(true);
+  });
+
+  test('closing syntax that opens a line of its own passes', () => {
+    const glyphs = text('Hilt', { left: 8 });
+    const syntax = [
+      drawn('"', 0),
+      drawn('"', 4, { left: 40 }),
+      drawn(']', 4, { row: 1, block: 1 })
+    ];
+
+    expect(closingSyntax({ glyphs, syntax }).checks.closingSyntaxHeld).toBe(true);
+  });
+
+  // `let impact: [String` / `]`: nothing of the line is text, and the text before it belongs to another line.
+  test('closing syntax with no text of its line before it is named by itself', () => {
+    const glyphs = text('Profile');
+    const syntax = [
+      drawn('[', 7, { row: 1, block: 1 }),
+      drawn('String', 7, { row: 1, left: 8, block: 1 }),
+      drawn(']', 7, { row: 2, block: 1 })
+    ];
+
+    expect(closingSyntax({ glyphs, syntax }).findings.strandedSyntax).toEqual(['“]” opens a row']);
+  });
+
+  test('every run is named in the order the page writes it, and text on its row ends it', () => {
+    const glyphs = [...text('Swift', { left: 8 }), ...text(', x', { row: 1, left: 16 })];
+    const syntax = [
+      drawn('"', 0),
+      drawn('"', 5, { row: 1 }),
+      drawn(')', 5, { row: 1, left: 8 }),
+      drawn(']', 8, { row: 1, left: 40 }),
+      drawn(',', 8, { row: 2 })
+    ];
+
+    expect(closingSyntax({ glyphs, syntax }).findings.strandedSyntax).toEqual([
+      '“")” opens a row after “Swift”',
+      '“,” opens a row after “, x”'
+    ]);
+  });
+});
+
 // The collector runs in the page, where no unit test reaches it, so here it runs in JSDOM, which lays nothing out:
 // each range and element reports the box a stand-in gives it. Compiled and never run, a collector reading the wrong
 // region would pass.
@@ -769,5 +924,10 @@ describe('the glyphs the check knows', () => {
   test('are the separators and dashes the renderers hold', () => {
     expect(SEPARATORS).toBe(SEPARATOR_GLYPHS);
     expect(DASHES).toBe(DASH_GLYPHS);
+  });
+
+  // The same for the syntax Nerd Mode's file holds to the literal it closes (#219).
+  test('are the closing marks the Swift file holds to its literals', () => {
+    expect(CLOSING_SYNTAX).toBe(CLOSING_MARKS);
   });
 });

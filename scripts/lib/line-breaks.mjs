@@ -1,4 +1,5 @@
 import { DASH_GLYPHS, SEPARATOR_GLYPHS } from '../../renderers/inlineSeparator.js';
+import { CLOSING_MARKS } from '../../adapters/SwiftSourceLayout.js';
 
 /**
  * Where the screen breaks the CV's lines, checked against what a break must never do (#180).
@@ -375,6 +376,65 @@ export function columnOverflow({ glyphs, syntax }, page) {
   return {
     checks: { staysInColumn: overflowing.length === 0 && sideways.length === 0 },
     findings: { overflowing, sideways }
+  };
+}
+
+/** The marks syntax that closes a literal begins with, as Nerd Mode's Swift file writes it. */
+export const CLOSING_SYNTAX = CLOSING_MARKS;
+
+/** How many quotes a piece of syntax draws. */
+const quotesIn = (piece) => [...piece.text].filter((mark) => mark === '"').length;
+
+/**
+ * No row of Nerd Mode's editor opens with syntax that closes what the row above it wrote (#219). The editor's lines
+ * may break anywhere, the drawn syntax included, and at 320px a longer period left its `",` a row of its own: a row
+ * that opens with a lone `",` reads as broken code. A piece of syntax opens a row when the last thing drawn before it,
+ * a glyph or a piece, is on a row above it in the same block; the first row of a block is a line of the file, and a `]`
+ * may open that. It closes when it begins with a comma, a parenthesis, a bracket, or a quote after an odd number of
+ * quotes in its block: Swift draws every quote that delimits a literal, and writes one inside a literal as text. Pieces
+ * of syntax side by side after it, with no glyph between them but a space, are one run, named by the line of text it
+ * follows in its block, or by itself when none does.
+ * @param {{ glyphs: object[], syntax: object[] }} drawn - As `renderedGlyphs` collects them, each with its block
+ * @returns {{ checks: { closingSyntaxHeld: boolean }, findings: { strandedSyntax: string[] } }} The check, and each run
+ *   of closing syntax that opens a row
+ */
+export function closingSyntax({ glyphs, syntax }) {
+  const { lines, laid } = layOut(glyphs);
+  const letters = laid.filter((entry) => !blank(entry.glyph));
+  const letterBefore = (piece) => letters.findLast((entry) => entry.index < piece.after);
+  const quotes = new Map();
+  const runs = [];
+  let open = null;
+  syntax.forEach((piece, index) => {
+    const quotesBefore = quotes.get(piece.block) ?? 0;
+    quotes.set(piece.block, quotesBefore + quotesIn(piece));
+    const between = open ? glyphs.slice(open.last.after, piece.after) : [];
+    if (open && between.every(blank) && sideBySide(open.last, piece)) {
+      open.text += (parted(open.last, piece, between.length > 0) ? ' ' : '') + piece.text;
+      open.last = piece;
+      return;
+    }
+    open = null;
+    const letter = letterBefore(piece);
+    const earlier = syntax[index - 1];
+    const previous = earlier && (!letter || earlier.after > letter.index) ? earlier : letter?.glyph;
+    const opensRow = previous?.block === piece.block && !sideBySide(previous, piece);
+    const [mark] = piece.text;
+    const closes = CLOSING_SYNTAX.includes(mark) && (mark !== '"' || quotesBefore % 2 === 1);
+    if (opensRow && closes) {
+      open = { text: piece.text, last: piece, letter };
+      runs.push(open);
+    }
+  });
+
+  const strandedSyntax = runs.map(({ text, last, letter }) =>
+    letter?.glyph.block === last.block
+      ? `“${text}” opens a row after “${lines[letter.line].text}”`
+      : `“${text}” opens a row`
+  );
+  return {
+    checks: { closingSyntaxHeld: strandedSyntax.length === 0 },
+    findings: { strandedSyntax }
   };
 }
 
