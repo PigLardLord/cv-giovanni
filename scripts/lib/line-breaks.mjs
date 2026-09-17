@@ -21,9 +21,14 @@ const MEASURE_TOLERANCE = 0.5;
 
 /**
  * Every visible character of the CV, from the first bound to the last, in the page's order: the box Chrome drew it
- * in, and the room of the line it sits on — the content width of the block its line boxes fill. Text the page hides,
- * with `visibility` or clipped to a pixel the way text for a screen reader is, is left out. A space in a drawn element
- * is kept even with no box: Chrome gives none to a space a line broke at when it is a text node of its own.
+ * in, the room of the line it sits on — the content width of the block its line boxes fill — and the edges of its
+ * column. The column is the narrowest content box around the line: its own block's, where a first line's hanging
+ * indent belongs to it as far as the block's own edge, and each block's it sits in, since a box sized to what it holds
+ * grows past its column with text that cannot wrap and keeps that text inside itself (#198). A box placed with
+ * absolute or fixed positioning is put there on purpose, and is a column of its own, which `columnOverflow` still
+ * holds inside the viewport. Text the page hides, with `visibility` or clipped to a pixel the way text for a screen
+ * reader is, is left out. A space in a drawn element is kept even with no box: Chrome gives none to a space a line
+ * broke at when it is a text node of its own.
  * @param {string} start - Selector of the CV's first element, as the audit's bounds name it
  * @param {string} end - Selector of its last
  * @returns {string} An expression for the page, resolving to the glyphs, or null when a bound is missing
@@ -35,19 +40,33 @@ export const renderedGlyphs = (start, end) => `(() => {
   const bounds = document.createRange();
   bounds.setStartBefore(first);
   bounds.setEndAfter(last);
-  const rooms = new Map();
-  const roomOf = (element) => {
+  const flowing = (element) => ['inline', 'contents'].includes(getComputedStyle(element).display);
+  const content = (element) => {
+    const style = getComputedStyle(element);
+    const inset = (side) =>
+      (parseFloat(style['padding' + side]) || 0) + (parseFloat(style['border' + side + 'Width']) || 0);
+    const drawn = element.getBoundingClientRect();
+    const outer = drawn.left + scrollX;
+    return { style, outer, left: outer + inset('Left'), right: drawn.right + scrollX - inset('Right') };
+  };
+  const places = new Map();
+  const placeOf = (element) => {
     let holder = element;
-    while (holder.parentElement && ['inline', 'contents'].includes(getComputedStyle(holder).display)) {
-      holder = holder.parentElement;
+    while (holder.parentElement && flowing(holder)) holder = holder.parentElement;
+    if (!places.has(holder)) {
+      const own = content(holder);
+      const indent = own.style.textIndent.endsWith('px') ? Math.min(0, parseFloat(own.style.textIndent)) : 0;
+      const column = { left: Math.max(own.outer, own.left + indent), right: own.right };
+      for (let box = holder; box.parentElement && !['absolute', 'fixed'].includes(getComputedStyle(box).position); ) {
+        box = box.parentElement;
+        if (flowing(box)) continue;
+        const around = content(box);
+        column.left = Math.max(column.left, around.left);
+        column.right = Math.min(column.right, around.right);
+      }
+      places.set(holder, { room: own.right - own.left, column });
     }
-    if (!rooms.has(holder)) {
-      const style = getComputedStyle(holder);
-      const inset = ['paddingLeft', 'paddingRight', 'borderLeftWidth', 'borderRightWidth']
-        .reduce((sum, side) => sum + (parseFloat(style[side]) || 0), 0);
-      rooms.set(holder, holder.getBoundingClientRect().width - inset);
-    }
-    return rooms.get(holder);
+    return places.get(holder);
   };
   const glyphs = [];
   const piece = document.createRange();
@@ -58,7 +77,7 @@ export const renderedGlyphs = (start, end) => `(() => {
     if (getComputedStyle(parent).visibility !== 'visible') continue;
     const drawn = parent.getBoundingClientRect();
     if (drawn.width <= 1 && drawn.height <= 1) continue;
-    const room = roomOf(parent);
+    const { room, column } = placeOf(parent);
     const shown = parent.getClientRects().length > 0;
     const text = node.data;
     for (let index = 0; index < text.length; ) {
@@ -73,10 +92,12 @@ export const renderedGlyphs = (start, end) => `(() => {
           bottom: box.bottom + scrollY,
           left: box.left + scrollX,
           right: box.right + scrollX,
-          room
+          room,
+          column
         });
       } else if (shown && /^\\s+$/.test(text.slice(index, index + size))) {
-        glyphs.push({ text: text.slice(index, index + size), top: null, bottom: null, left: null, right: null, room });
+        const unboxed = { top: null, bottom: null, left: null, right: null };
+        glyphs.push({ text: text.slice(index, index + size), ...unboxed, room, column });
       }
       index += size;
     }
@@ -90,6 +111,13 @@ const blank = (glyph) => /^\s+$/u.test(glyph.text);
 const sideBySide = (before, after) =>
   Math.min(before.bottom, after.bottom) - Math.max(before.top, after.top) >
   Math.min(before.bottom - before.top, after.bottom - after.top) / 2;
+
+/**
+ * Whether a space parts two glyphs side by side: one the page writes between them, or a gap wider than a fifth of the
+ * text's height.
+ */
+const parted = (previous, glyph, spaced) =>
+  spaced || glyph.left - previous.right > (previous.bottom - previous.top) / 5;
 
 /** The lines, and every glyph in order with the index of the line it sits on; a space takes the line before it. */
 function layOut(glyphs) {
@@ -105,8 +133,7 @@ function layOut(glyphs) {
       if (!previous || !sideBySide(previous, glyph) || glyph.left + 1 < previous.left) {
         lines.push({ text: glyph.text, glyphs: [glyph] });
       } else {
-        const gap = glyph.left - previous.right > (previous.bottom - previous.top) / 5;
-        line.text += (spaced || gap ? ' ' : '') + glyph.text;
+        line.text += (parted(previous, glyph, spaced) ? ' ' : '') + glyph.text;
         line.glyphs.push(glyph);
       }
       spaced = false;
@@ -169,6 +196,96 @@ const widthOnOneLine = (glyphs) => {
     0
   );
 };
+
+/**
+ * How far past its column's edge a glyph may be drawn and still count as inside. Chrome lays text out in sixty-fourths
+ * of a pixel and reads a box's padding back as a decimal, so a line that fills its column measures a hair past it:
+ * 0.0125px at most, over all twelve renders on main (#198). A glyph's box is its advance, not its ink, so an italic's
+ * overhang never reaches it.
+ */
+const COLUMN_TOLERANCE = 0.5;
+
+/** How much wider than its viewport a page may measure before it scrolls sideways: its widths are whole pixels. */
+const PAGE_TOLERANCE = 1;
+
+/** How wide the page scrolls, and how wide its viewport shows it: the root element's two widths. */
+export const pageWidth = `({
+  scrollWidth: document.documentElement.scrollWidth,
+  clientWidth: document.documentElement.clientWidth
+})`;
+
+/**
+ * How far a glyph is drawn past its column, and past which edge of what; zero or less is inside. The viewport, as the
+ * audit lays the page out, unscrolled, is every glyph's outermost column: a box placed with fixed positioning is a
+ * column of its own and adds nothing to how wide the page scrolls, so text it draws off the screen would otherwise
+ * pass (code review of #211).
+ */
+const pastColumn = (glyph, viewport) => {
+  const right = Math.min(glyph.column.right, viewport);
+  const left = Math.max(glyph.column.left, 0);
+  const pastRight = glyph.right - right;
+  const pastLeft = left - glyph.left;
+  return pastRight >= pastLeft
+    ? {
+        by: pastRight,
+        edge: 'right',
+        of: right < glyph.column.right ? 'the viewport' : 'its column'
+      }
+    : { by: pastLeft, edge: 'left', of: left > glyph.column.left ? 'the viewport' : 'its column' };
+};
+
+/**
+ * No text of the CV is drawn past its column or out of the viewport, and the page does not scroll sideways (#198). A
+ * run the page holds together, a period or a separator with the words either side, cannot wrap however narrow its line
+ * is, and a run too wide for its line runs past it. A space is never judged: one a line ends at hangs past the edge by
+ * design, and one a break took has no box. A run of glyphs past an edge is named line by line, by its text and the line
+ * it sits on, since a run can be a single letter, by the furthest any of its glyphs is, and by whether the edge is its
+ * column's or the viewport's.
+ * @param {object[]} glyphs - Every glyph of the CV, as `renderedGlyphs` collects them, each with its column's edges
+ * @param {{ scrollWidth: number, clientWidth: number }} page - The page's widths, as `pageWidth` reads them: the
+ *   viewport's is every glyph's outermost column
+ * @returns {{ checks: { staysInColumn: boolean }, findings: { overflowing: string[], sideways: string[] } }} The check,
+ *   each run past its column, and the page's width when it scrolls sideways
+ */
+export function columnOverflow(glyphs, page) {
+  const { lines, laid } = layOut(glyphs);
+  const runs = [];
+  let open = null;
+  let spaced = false;
+  for (const { glyph, line } of laid) {
+    if (blank(glyph)) {
+      spaced = true;
+      continue;
+    }
+    const past = pastColumn(glyph, page.clientWidth);
+    if (past.by <= COLUMN_TOLERANCE) {
+      open = null;
+    } else if (open?.line === line) {
+      open.text += (parted(open.last, glyph, spaced) ? ' ' : '') + glyph.text;
+      open.last = glyph;
+      if (past.by > open.by) Object.assign(open, past);
+    } else {
+      open = { line, text: glyph.text, last: glyph, ...past };
+      runs.push(open);
+    }
+    spaced = false;
+  }
+
+  const overflowing = runs.map(({ line, text, by, edge, of }) => {
+    const named = text === lines[line].text ? `“${text}”` : `“${text}” in “${lines[line].text}”`;
+    return `${named}: ${by.toFixed(1)}px past the ${edge} edge of ${of}`;
+  });
+  const sideways =
+    page.scrollWidth > page.clientWidth + PAGE_TOLERANCE
+      ? [
+          `the page scrolls sideways: ${page.scrollWidth}px wide in a ${page.clientWidth}px viewport`
+        ]
+      : [];
+  return {
+    checks: { staysInColumn: overflowing.length === 0 && sideways.length === 0 },
+    findings: { overflowing, sideways }
+  };
+}
 
 /**
  * No line of the CV starts or ends with a separator, and no period the profile writes is split across two lines. A

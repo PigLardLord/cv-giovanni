@@ -1,21 +1,42 @@
 import {
   DASHES,
   SEPARATORS,
+  columnOverflow,
   lineBoxes,
   lineBreaks,
+  pageWidth,
   renderedGlyphs
 } from '../scripts/lib/line-breaks.mjs';
 import { DASH_GLYPHS, SEPARATOR_GLYPHS } from '../renderers/inlineSeparator.js';
 
 /**
  * A run of text as Chrome lays it out on one line box: a rectangle per character, spaces narrower than letters, from
- * `left` along the line at `top`. `room` is how wide the line's block is.
+ * `left` along the line at `top`. `room` is how wide the line's block is, and `column` where its edges are.
  */
-const run = (text, { top = 0, left = 0, height = 16, letter = 8, space = 4, room = 400 } = {}) => {
+const run = (
+  text,
+  {
+    top = 0,
+    left = 0,
+    height = 16,
+    letter = 8,
+    space = 4,
+    room = 400,
+    column = { left: 0, right: room }
+  } = {}
+) => {
   let x = left;
   return [...text].map((character) => {
     const width = /\s/u.test(character) ? space : letter;
-    const glyph = { text: character, top, bottom: top + height, left: x, right: x + width, room };
+    const glyph = {
+      text: character,
+      top,
+      bottom: top + height,
+      left: x,
+      right: x + width,
+      room,
+      column
+    };
     x += width;
     return glyph;
   });
@@ -198,6 +219,135 @@ describe('a line break that strands a separator or splits a period', () => {
   });
 });
 
+// Held text cannot wrap, however narrow its line (#198): "(Septembre 2015 – Décembre 2018 (3 ans 4 mois))" in a
+// degree's never-wrapping period runs past a 320px column, and every other check still passes.
+describe('text that runs past its column, or a page that scrolls sideways', () => {
+  const page = { scrollWidth: 320, clientWidth: 320 };
+
+  test('text inside its column, on a page no wider than its viewport, passes', () => {
+    const { checks, findings } = columnOverflow(
+      block(['September 2015 – July 2018', '(2014 – 2016)'], { room: 208 }),
+      page
+    );
+
+    expect(checks).toEqual({ staysInColumn: true });
+    expect(findings).toEqual({ overflowing: [], sideways: [] });
+  });
+
+  // "(Septembre 2015 – Décembre" is 196px at 8px a letter and 4px a space; the space after it ends at 200px.
+  test('a glyph past the right edge of its column fails, naming the run past it, its line and how far', () => {
+    const { checks, findings } = columnOverflow(
+      run('(Septembre 2015 – Décembre 2018)', { room: 200 }),
+      page
+    );
+
+    expect(checks.staysInColumn).toBe(false);
+    expect(findings.overflowing).toEqual([
+      '“2018)” in “(Septembre 2015 – Décembre 2018)”: 40.0px past the right edge of its column'
+    ]);
+  });
+
+  test('a glyph before the left edge of its column fails', () => {
+    const glyphs = run('Pisa', { column: { left: 16, right: 400 } });
+
+    expect(columnOverflow(glyphs, page).findings.overflowing).toEqual([
+      '“Pi” in “Pisa”: 16.0px past the left edge of its column'
+    ]);
+  });
+
+  // A box placed with fixed positioning is a column of its own and adds nothing to how wide the page scrolls: one at
+  // 400px on a 320px viewport drew its text wholly off the screen and failed neither half of the check (code review
+  // of #211). The viewport is every glyph's outermost column.
+  test('a glyph past the right of the viewport fails, however wide its own column, and says the viewport', () => {
+    const glyphs = run('Held', { left: 400, column: { left: 400, right: 600 } });
+
+    expect(columnOverflow(glyphs, page).findings.overflowing).toEqual([
+      '“Held”: 112.0px past the right edge of the viewport'
+    ]);
+  });
+
+  test('a glyph before the left of the viewport fails', () => {
+    const glyphs = run('Held text', { left: -16, column: { left: -16, right: 300 } });
+
+    expect(columnOverflow(glyphs, page).findings.overflowing).toEqual([
+      '“He” in “Held text”: 16.0px past the left edge of the viewport'
+    ]);
+  });
+
+  // Every glyph of both lines is past an edge of a column 8px wide, the last of one line and the first of the next too.
+  test('a run keeps the spaces between the glyphs past the edge, names each line apart, and a whole line once', () => {
+    const glyphs = block(['ab cd', 'ef gh'], { column: { left: 4, right: 12 } });
+
+    expect(columnOverflow(glyphs, page).findings.overflowing).toEqual([
+      '“ab cd”: 24.0px past the right edge of its column',
+      '“ef gh”: 24.0px past the right edge of its column'
+    ]);
+  });
+
+  test('a space at either end of a run stays out of its name', () => {
+    const glyphs = run('x (3 ans) y', { column: { left: 0, right: 8 } });
+    glyphs.at(-1).column = { left: 0, right: 400 };
+
+    expect(columnOverflow(glyphs, page).findings.overflowing).toEqual([
+      '“(3 ans)” in “x (3 ans) y”: 56.0px past the right edge of its column'
+    ]);
+  });
+
+  test('a run parts two glyphs where a gap parts them, as its line does', () => {
+    const glyphs = [...run('iOS'), ...run('Swift', { left: 60 })].map((glyph) => ({
+      ...glyph,
+      column: { left: 0, right: 0 }
+    }));
+
+    expect(columnOverflow(glyphs, page).findings.overflowing).toEqual([
+      '“iOS Swift”: 100.0px past the right edge of its column'
+    ]);
+  });
+
+  // Chrome lays text out in sixty-fourths of a pixel, and a box's padding comes back as a decimal: a line that fills
+  // its column measured at most 0.0125px past it, over all twelve renders on main.
+  test('a glyph up to half a pixel past its edge passes, and one further fails', () => {
+    const within = run('a', { column: { left: 0, right: 7.5 } });
+    const past = run('a', { column: { left: 0, right: 7.4 } });
+
+    expect(columnOverflow(within, page).checks.staysInColumn).toBe(true);
+    expect(columnOverflow(past, page).findings.overflowing).toEqual([
+      '“a”: 0.6px past the right edge of its column'
+    ]);
+  });
+
+  test('a space the page gave no box stays out of the judgement', () => {
+    const glyphs = [
+      ...run('May 2015 –', { room: 80 }),
+      { text: ' ', top: null, bottom: null, left: null, right: null, room: 80 },
+      ...run('August 2015', { top: 20, room: 88 })
+    ];
+
+    expect(columnOverflow(glyphs, page).checks.staysInColumn).toBe(true);
+  });
+
+  // Nerd Mode's container lets its content out: a planted period too wide for the editor widened the page to 429px at
+  // 320px.
+  test('a page wider than its viewport by more than a pixel fails, with every glyph inside its column', () => {
+    const { checks, findings } = columnOverflow(block(['July 2018']), {
+      scrollWidth: 429,
+      clientWidth: 320
+    });
+
+    expect(checks.staysInColumn).toBe(false);
+    expect(findings.sideways).toEqual([
+      'the page scrolls sideways: 429px wide in a 320px viewport'
+    ]);
+  });
+
+  test('a page a pixel wider than its viewport passes', () => {
+    expect(
+      columnOverflow(block(['July 2018']), { scrollWidth: 321, clientWidth: 320 }).checks
+        .staysInColumn
+    ).toBe(true);
+  });
+});
+
 // The collector runs in the page, where no unit test reaches it, so here it runs in JSDOM, which lays nothing out:
 // each range and element reports the box a stand-in gives it. Compiled and never run, a collector reading the wrong
 // region would pass.
@@ -243,7 +393,7 @@ describe('the glyphs the audit collects from the page', () => {
     restore(Element.prototype, 'getBoundingClientRect', originals.box);
   });
 
-  test('are every visible character from the first bound to the last, each with the room of its line', () => {
+  test('are every visible character from the first bound to the last, with the room and column of its line', () => {
     const glyphs = window.eval(renderedGlyphs('#start', '#end'));
 
     expect(
@@ -252,8 +402,71 @@ describe('the glyphs the audit collects from the page', () => {
         .join('')
         .replace(/\s+/g, ' ')
     ).toBe('Giovanni Pisa');
-    expect(glyphs[0]).toEqual({ text: 'G', top: 0, bottom: 16, left: 0, right: 8, room: 300 });
-    expect(glyphs.at(-1).room).toBe(280);
+    expect(glyphs[0]).toEqual({
+      text: 'G',
+      top: 0,
+      bottom: 16,
+      left: 0,
+      right: 8,
+      room: 300,
+      column: { left: 0, right: 300 }
+    });
+    expect(glyphs.at(-1)).toMatchObject({ room: 280, column: { left: 10, right: 290 } });
+  });
+
+  // Every box here is 300px wide, so the inner block is drawn across its parent's padding: a box sized to what it
+  // holds, an inline-block or a flex item, grows past its column with a period that cannot wrap, and the period stays
+  // inside the box. Technical's role dates are one, at 320px (#198).
+  test('take as a column the narrowest content box around the line: its own block and each block it sits in', () => {
+    document.getElementById('room').innerHTML = '<div style="padding-right: 20px">Pisa</div>';
+    const [glyph] = window.eval(renderedGlyphs('#room', '#room'));
+
+    expect(glyph).toMatchObject({ room: 280, column: { left: 10, right: 280 } });
+  });
+
+  // A link around a block draws a box per line of what it holds, not a column. JSDOM computes no display for a span, so
+  // the span says it.
+  test('take no column from an inline box the block sits in', () => {
+    document.getElementById('room').innerHTML =
+      '<span style="display: inline; padding: 0 40px"><div>Pisa</div></span>';
+    const [glyph] = window.eval(renderedGlyphs('#room', '#room'));
+
+    expect(glyph.column).toEqual({ left: 10, right: 290 });
+  });
+
+  // Nerd Mode's editor hangs the first row of each line an indent to the left of the rows it wraps onto.
+  test("take a first line's hanging indent into its column", () => {
+    document.getElementById('room').innerHTML =
+      '<div style="padding-left: 30px; text-indent: -12px">Pisa</div>';
+    const [glyph] = window.eval(renderedGlyphs('#room', '#room'));
+
+    expect(glyph.column).toEqual({ left: 18, right: 290 });
+  });
+
+  // `margin-left: 40px; padding-left: 10px; text-indent: -30px` hangs the first line 20px outside the block itself, into
+  // its margin, and the column took it (code review of #211).
+  test('take a hanging indent no further than the edge of its own block', () => {
+    document.getElementById('room').innerHTML =
+      '<div style="padding-left: 10px; text-indent: -30px">Pisa</div>';
+    document.querySelector('#room > div').getBoundingClientRect = () => ({
+      top: 0,
+      bottom: 16,
+      left: 40,
+      right: 300,
+      width: 260,
+      height: 16
+    });
+    const [glyph] = window.eval(renderedGlyphs('#room', '#room'));
+
+    expect(glyph.column).toEqual({ left: 40, right: 290 });
+  });
+
+  test('take a box placed with absolute or fixed positioning as a column of its own', () => {
+    document.getElementById('room').innerHTML =
+      '<div style="position: absolute">Pisa</div><div style="position: fixed">Pisa</div>';
+    const glyphs = window.eval(renderedGlyphs('#room', '#room'));
+
+    expect(glyphs.map((glyph) => glyph.column)).toEqual(Array(8).fill({ left: 0, right: 300 }));
   });
 
   test('keep a space with no box, where its element is drawn, and leave out one whose element is not', () => {
@@ -268,12 +481,33 @@ describe('the glyphs the audit collects from the page', () => {
       bottom: null,
       left: null,
       right: null,
-      room: 280
+      room: 280,
+      column: { left: 10, right: 290 }
     });
   });
 
   test('are null when a bound is missing', () => {
     expect(window.eval(renderedGlyphs('#start', '#nowhere'))).toBeNull();
+  });
+});
+
+describe('the width the audit reads off the page', () => {
+  afterEach(() => {
+    delete document.documentElement.scrollWidth;
+    delete document.documentElement.clientWidth;
+  });
+
+  test('is how wide the page scrolls and how wide its viewport shows', () => {
+    Object.defineProperty(document.documentElement, 'scrollWidth', {
+      value: 429,
+      configurable: true
+    });
+    Object.defineProperty(document.documentElement, 'clientWidth', {
+      value: 320,
+      configurable: true
+    });
+
+    expect(window.eval(pageWidth)).toEqual({ scrollWidth: 429, clientWidth: 320 });
   });
 });
 
