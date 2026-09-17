@@ -385,15 +385,23 @@ export const CLOSING_SYNTAX = CLOSING_MARKS;
 /** How many quotes a piece of syntax draws. */
 const quotesIn = (piece) => [...piece.text].filter((mark) => mark === '"').length;
 
+/** Swift begins every escape it writes inside a literal with a backslash: `\"`, `\\`, `\n`. */
+const escapes = (piece) => piece.text.startsWith('\\');
+
+/** A glyph a word is made of: a letter or a digit. */
+const wordy = (glyph) => /[\p{L}\p{N}]/u.test(glyph.text);
+
 /**
  * No row of Nerd Mode's editor opens with syntax that closes what the row above it wrote (#219). The editor's lines
  * may break anywhere, the drawn syntax included, and at 320px a longer period left its `",` a row of its own: a row
- * that opens with a lone `",` reads as broken code. A piece of syntax opens a row when the last thing drawn before it,
- * a glyph or a piece, is on a row above it in the same block; the first row of a block is a line of the file, and a `]`
- * may open that. It closes when it begins with a comma, a parenthesis, a bracket, or a quote after an odd number of
- * quotes in its block: Swift draws every quote that delimits a literal, and writes one inside a literal as text. Pieces
- * of syntax side by side after it, with no glyph between them but a space, are one run, named by the line of text it
- * follows in its block, or by itself when none does.
+ * that opens with a lone `",` reads as broken code. A piece of syntax closes when it begins with a comma, a
+ * parenthesis, a bracket, or a quote after an odd number of quotes in its block: Swift draws every quote that delimits
+ * a literal, and writes one inside a literal as text. It opens a row when nothing comes before it on its row but
+ * escapes and glyphs that are neither letters nor digits, and the row is not the first of its block: the first row of
+ * a block is a line of the file, and a `]` may open that. So `\""`, the quote a value ends in with its escape and the
+ * quote that closes the value, opens a row as a lone `",` does (code review of #223). Pieces of syntax side by side
+ * after it, with no glyph between them but a space, belong to the same run, which is named by the line of text before
+ * it in its block, or by itself when there is none.
  * @param {{ glyphs: object[], syntax: object[] }} drawn - As `renderedGlyphs` collects them, each with its block
  * @returns {{ checks: { closingSyntaxHeld: boolean }, findings: { strandedSyntax: string[] } }} The check, and each run
  *   of closing syntax that opens a row
@@ -401,11 +409,26 @@ const quotesIn = (piece) => [...piece.text].filter((mark) => mark === '"').lengt
 export function closingSyntax({ glyphs, syntax }) {
   const { lines, laid } = layOut(glyphs);
   const letters = laid.filter((entry) => !blank(entry.glyph));
-  const letterBefore = (piece) => letters.findLast((entry) => entry.index < piece.after);
+  // Everything drawn, in the page's order: each glyph, and each piece of syntax after the glyphs before it.
+  const drawn = [];
+  let next = 0;
+  const glyphsBefore = (after) => {
+    while (next < letters.length && letters[next].index < after) {
+      const entry = letters[next++];
+      drawn.push({ box: entry.glyph, text: entry.glyph.text, entry });
+    }
+  };
+  syntax.forEach((piece) => {
+    glyphsBefore(piece.after);
+    drawn.push({ box: piece, text: piece.text, piece });
+  });
+  glyphsBefore(Infinity);
+
   const quotes = new Map();
   const runs = [];
   let open = null;
-  syntax.forEach((piece, index) => {
+  drawn.forEach(({ piece }, position) => {
+    if (!piece) return;
     const quotesBefore = quotes.get(piece.block) ?? 0;
     quotes.set(piece.block, quotesBefore + quotesIn(piece));
     const between = open ? glyphs.slice(open.last.after, piece.after) : [];
@@ -415,16 +438,30 @@ export function closingSyntax({ glyphs, syntax }) {
       return;
     }
     open = null;
-    const letter = letterBefore(piece);
-    const earlier = syntax[index - 1];
-    const previous = earlier && (!letter || earlier.after > letter.index) ? earlier : letter?.glyph;
-    const opensRow = previous?.block === piece.block && !sideBySide(previous, piece);
     const [mark] = piece.text;
-    const closes = CLOSING_SYNTAX.includes(mark) && (mark !== '"' || quotesBefore % 2 === 1);
-    if (opensRow && closes) {
-      open = { text: piece.text, last: piece, letter };
-      runs.push(open);
+    if (!CLOSING_SYNTAX.includes(mark) || (mark === '"' && quotesBefore % 2 === 0)) return;
+
+    let first = position;
+    for (; first > 0; first -= 1) {
+      const { box, entry, piece: before } = drawn[first - 1];
+      if (box.block !== piece.block || !sideBySide(box, piece)) break;
+      if (before ? !escapes(before) : wordy(entry.glyph)) return;
     }
+    if (drawn[first - 1]?.box.block !== piece.block) return;
+
+    const lead = drawn.slice(first, position);
+    open = {
+      text: [...lead, drawn[position]].reduce(
+        (text, item, index, items) =>
+          text +
+          (index > 0 && parted(items[index - 1].box, item.box, false) ? ' ' : '') +
+          item.text,
+        ''
+      ),
+      last: piece,
+      letter: drawn.slice(0, first).findLast((item) => item.entry)?.entry
+    };
+    runs.push(open);
   });
 
   const strandedSyntax = runs.map(({ text, last, letter }) =>

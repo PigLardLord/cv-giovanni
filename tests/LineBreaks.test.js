@@ -659,6 +659,83 @@ describe('closing syntax that opens a row the editor wrapped onto', () => {
       '“,” opens a row after “, x”'
     ]);
   });
+
+  // The code review of #223, at 320px: a highlight ending in a quote of its own, `…calls \"NightingaleMigrationToolX\"`,
+  // left `\""` a row of its own. The row opened with a drawn escape and the quote it escapes, which is text, so no
+  // piece of syntax opened it.
+  describe('with the escaped character a value ends in', () => {
+    // `"calls \"NightingaleMigrationToolX` on one row, from 8px: the escape at 56px and the quote it escapes at 64px.
+    const escaped = (row) => ({
+      glyphs: [
+        ...text('calls ', { left: 8 }),
+        ...text('"NightingaleMigrationToolX', { left: 64 }),
+        ...text('"', { row: 1, left: 8 })
+      ],
+      syntax: [drawn('"', 0), drawn('\\', 6, { left: 56 }), ...row]
+    });
+
+    test('a row it opens with the syntax that closes the value fails, named as one run', () => {
+      const { checks, findings } = closingSyntax(
+        escaped([drawn('\\', 32, { row: 1 }), drawn('"', 33, { row: 1, left: 16 })])
+      );
+
+      expect(checks.closingSyntaxHeld).toBe(false);
+      expect(findings.strandedSyntax).toEqual([
+        '“\\""” opens a row after “calls "NightingaleMigrationToolX”'
+      ]);
+    });
+
+    test('a row it opens without its escape fails too, and so does a bracket a value ends in', () => {
+      const { glyphs } = escaped([]);
+      const quote = { glyphs, syntax: [drawn('"', 0), drawn('"', 33, { row: 1, left: 16 })] };
+      const bracket = {
+        glyphs: [...text('Owned CI (all', { left: 8 }), ...text(')', { row: 1 })],
+        syntax: [
+          drawn('"', 0),
+          drawn('"', 14, { row: 1, left: 8 }),
+          drawn(',', 14, { row: 1, left: 16 })
+        ]
+      };
+
+      expect(closingSyntax(quote).findings.strandedSyntax).toEqual([
+        '“""” opens a row after “calls "NightingaleMigrationToolX”'
+      ]);
+      expect(closingSyntax(bracket).findings.strandedSyntax).toEqual([
+        '“)",” opens a row after “Owned CI (all”'
+      ]);
+    });
+
+    test('a row where a letter or a digit comes before it passes', () => {
+      const glyphs = [
+        ...text('calls ', { left: 8 }),
+        ...text('"Nightingale', { left: 64 }),
+        ...text('ToolX"', { row: 1 })
+      ];
+      const syntax = [
+        drawn('"', 0),
+        drawn('\\', 6, { left: 56 }),
+        drawn('\\', 23, { row: 1, left: 40 }),
+        drawn('"', 24, { row: 1, left: 56 })
+      ];
+      glyphs.at(-1).left = 48;
+      glyphs.at(-1).right = 56;
+
+      expect(closingSyntax({ glyphs, syntax }).checks.closingSyntaxHeld).toBe(true);
+    });
+
+    // `let languages:` / `KeyValuePairs<String, String> = [` at 320px: the comma follows other syntax, not an escape.
+    test('a row where syntax other than an escape comes before it passes', () => {
+      const glyphs = text('languages');
+      const syntax = [
+        drawn('KeyValuePairs', 9, { row: 1 }),
+        drawn('<', 9, { row: 1, left: 104 }),
+        drawn('String', 9, { row: 1, left: 112 }),
+        drawn(',', 9, { row: 1, left: 160 })
+      ];
+
+      expect(closingSyntax({ glyphs, syntax }).checks.closingSyntaxHeld).toBe(true);
+    });
+  });
 });
 
 // The collector runs in the page, where no unit test reaches it, so here it runs in JSDOM, which lays nothing out:
