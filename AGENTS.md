@@ -146,16 +146,19 @@ A ticket can pass `codex-cli` on the diff and still ship a CV that dies in a tex
 
 Extend step 7 with a product review whenever the ticket's diff touches what the CV says or how
 it renders: `profiles/`, `locales/`, `renderers/`, `domain/EntryLines.js` (the lines they write),
-`adapters/SwiftSourceLayout.js` (Nerd Mode's source view), `index.html`, `style.css`, `layouts.css`,
-`design-glacier.css`, `print.css` (the PDF is the page printed through it), `vendor/fonts/`,
+`adapters/SwiftSourceLayout.js` (Nerd Mode's source view), `script.js` (what the page renders),
+`core/I18nService.js` and `core/DocumentLocalizer.js` (every label it prints), `index.html`,
+`style.css`, `layouts.css`, `design-glacier.css`, `print.css` (the PDF is the page printed through
+it), `scripts/generate-pdfs.mjs`, `scripts/lib/printed-cv.mjs`, `scripts/lib/print-page.mjs` and
+`scripts/lib/page-ready.mjs` (the pipeline Chrome prints it through, #144, #149), `vendor/fonts/`,
 `core/CvFiles.js` (the name the recruiter's inbox receives), and the cover letter's `letter.html`,
 `letter.css`, `core/LetterContent.js` and `renderers/LetterRenderer.js` (#151).
 
 `npm run audit:ats:base` reads that list, so a path added to it is one the base branch's parser is
 asked about too (#181): keep it one paragraph, directly under this heading.
 
-A ticket touching only build tooling, scripts or tests does not need it — say that it was
-skipped and why, rather than skipping it silently.
+A ticket touching only build tooling, the other scripts or tests does not need it — say that it
+was skipped and why, rather than skipping it silently.
 
 The review runs on the **rendered artefact**, not the diff. Run `npm run build:pdf` first;
 `cv-reviewer` needs a PDF to extract text from, and a review of the source that never looked at
@@ -405,14 +408,17 @@ the school as "Development", gave it no period, and in content-stream order merg
 one (#181). CI holds every pull request to it with `npm run audit:ats:base`. The step applies when
 the change touches the parser — `core/AtsTextParser.js` and every module it imports, read from the
 imports — and what renders the CV — the paths the product review runs on, read from that paragraph
-above, and every module the renderers import. It builds the base's print in a temporary worktree,
-reads that print and the new one with the base's parser in the three orders `audit:ats` reads, each
-graded against its own profile, and fails on a field the base's parser recovered from the base's
-print and recovers less of from the new one. **The label `ats-trade-accepted` records a trade the
-owner accepted:** the losses are still reported, in the job summary, and the step passes. A change
-to one side only exits 0 and says why; a base that could not be built or read exits 2. Locally it
-compares the working tree with its merge base with `origin/main` (`--base=<ref>` names another),
-after `npm run build:pdf`.
+above, and every module the page's entry script, the renderers and the print pipeline import
+(#202). A parser module only the pipeline reaches does not count: the pipeline prints the cover
+letter, whose place line reads the parser's `PlaceLexicon`, and counted, a change to the parser
+alone would apply. It builds the base's print in a temporary worktree, reads that print and the
+new one with the base's parser in the three orders `audit:ats` reads, each graded against its own
+profile, and fails on a field the base's parser recovered from the base's print and recovers less
+of from the new one. **The label `ats-trade-accepted` records a trade the owner accepted:** the
+losses are still reported, in the job summary, and the step passes. A change to one side only
+exits 0 and says why; a base that could not be built or read exits 2. Locally it compares the
+working tree with its merge base with `origin/main` (`--base=<ref>` names another), after
+`npm run build:pdf`.
 
 `build:pdf` and `audit:screen` need a Chrome or Chromium binary. They look for one on PATH, in the
 usual install locations and in the Playwright cache; `CHROME_PATH` overrides. When they find none

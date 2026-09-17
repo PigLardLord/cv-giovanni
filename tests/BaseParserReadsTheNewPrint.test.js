@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { AtsTextParser } from '../core/AtsTextParser.js';
 import { RecoveryDiff } from '../core/RecoveryDiff.js';
@@ -12,12 +12,17 @@ import {
   lossLine,
   lostFields,
   outcome,
+  PAGE_SCRIPT,
+  PARSER,
+  PRINT_PIPELINE,
   productReviewPaths,
   pullRequestLabels,
   readingLosses,
+  renderingModules,
   report,
   TRADE_LABEL
 } from '../scripts/lib/base-parser.mjs';
+import { importClosure } from '../scripts/lib/import-closure.mjs';
 import { catalogueTranslator } from '../scripts/lib/printed-letter.mjs';
 
 // A change to both the CV and the ATS parser is graded by the parser it changed (#181). Pull request #179 first added
@@ -54,11 +59,18 @@ describe('what renders the CV, as the product review names it', () => {
       'renderers/',
       'domain/EntryLines.js',
       'adapters/SwiftSourceLayout.js',
+      'script.js',
+      'core/I18nService.js',
+      'core/DocumentLocalizer.js',
       'index.html',
       'style.css',
       'layouts.css',
       'design-glacier.css',
       'print.css',
+      'scripts/generate-pdfs.mjs',
+      'scripts/lib/printed-cv.mjs',
+      'scripts/lib/print-page.mjs',
+      'scripts/lib/page-ready.mjs',
       'vendor/fonts/',
       'core/CvFiles.js',
       'letter.html',
@@ -86,6 +98,168 @@ describe('what renders the CV, as the product review names it', () => {
     ].join('\n');
 
     expect(productReviewPaths(markdown)).toEqual(['profiles/', 'print.css', 'renderers/']);
+  });
+});
+
+describe('what renders the CV, read from the imports', () => {
+  const files = {
+    'script.js': [
+      "import { I18nService } from './core/I18nService.js';",
+      "import { HeaderRenderer } from './renderers/HeaderRenderer.js';"
+    ].join('\n'),
+    'core/I18nService.js': "import i18next from '../vendor/i18next/i18next.js';",
+    'vendor/i18next/i18next.js': 'export default {};',
+    'renderers/HeaderRenderer.js': "import { DateRange } from '../domain/DateRange.js';",
+    'renderers/LetterRenderer.js': "import { CoverLetter } from '../domain/CoverLetter.js';",
+    'domain/DateRange.js': "import { fold } from './fold.js';",
+    'domain/fold.js': 'export const fold = (x) => x;',
+    'domain/CoverLetter.js': 'export class CoverLetter {}',
+    'scripts/generate-pdfs.mjs': "import { printLayouts } from './lib/printed-cv.mjs';",
+    'scripts/lib/printed-cv.mjs': [
+      "import { printPage } from './print-page.mjs';",
+      "import { LetterContent } from '../../core/LetterContent.js';"
+    ].join('\n'),
+    'scripts/lib/print-page.mjs': 'export const printPage = () => {};',
+    'core/LetterContent.js': [
+      "import { DateRange } from '../domain/DateRange.js';",
+      "import { PlaceLexicon } from '../domain/PlaceLexicon.js';"
+    ].join('\n'),
+    'domain/PlaceLexicon.js': "import { fold } from './fold.js';",
+    'core/AtsTextParser.js': [
+      "import { DateRange } from '../domain/DateRange.js';",
+      "import { PlaceLexicon } from '../domain/PlaceLexicon.js';"
+    ].join('\n')
+  };
+  const read = (path) => files[path] ?? null;
+  const renderers = ['renderers/HeaderRenderer.js', 'renderers/LetterRenderer.js'];
+  const parser = importClosure([PARSER], read);
+
+  test("the page's entry script and every module it imports: it decides what the page renders, in which labels", () => {
+    expect(PAGE_SCRIPT).toBe('script.js');
+    expect(renderingModules(renderers, read, parser)).toEqual(
+      expect.arrayContaining([
+        'script.js',
+        'core/I18nService.js',
+        'vendor/i18next/i18next.js',
+        'renderers/HeaderRenderer.js',
+        'domain/DateRange.js',
+        'domain/fold.js'
+      ])
+    );
+  });
+
+  test('every renderer too, one the entry script never imports included: it renders a page of its own', () => {
+    expect(renderingModules(renderers, read, parser)).toEqual(
+      expect.arrayContaining(['renderers/LetterRenderer.js', 'domain/CoverLetter.js'])
+    );
+  });
+
+  test('the print pipeline and every module it imports: the PDF is the page Chrome prints through it', () => {
+    expect(PRINT_PIPELINE).toBe('scripts/generate-pdfs.mjs');
+    expect(renderingModules(renderers, read, parser)).toEqual(
+      expect.arrayContaining([
+        'scripts/generate-pdfs.mjs',
+        'scripts/lib/printed-cv.mjs',
+        'scripts/lib/print-page.mjs',
+        'core/LetterContent.js'
+      ])
+    );
+  });
+
+  test("a parser module the pipeline reaches and the page does not is the parser's alone", () => {
+    const modules = renderingModules(renderers, read, parser);
+
+    expect(parser).toContain('domain/PlaceLexicon.js');
+    expect(modules).not.toContain('domain/PlaceLexicon.js');
+    // The page writes its dates through these, so a change to one changes the print and the grader at once.
+    expect(modules).toEqual(expect.arrayContaining(['domain/DateRange.js', 'domain/fold.js']));
+    expect(applicability(['domain/PlaceLexicon.js'], { parser, rendering: modules }).applies).toBe(
+      false
+    );
+    // Read without the parser, the pipeline counts the lexicon as rendering, and a change to it alone would apply.
+    expect(renderingModules(renderers, read, [])).toContain('domain/PlaceLexicon.js');
+  });
+
+  test('a pipeline that imported the parser itself would not make a change to the parser alone apply', () => {
+    const grading = {
+      ...files,
+      'scripts/lib/printed-cv.mjs': [
+        files['scripts/lib/printed-cv.mjs'],
+        "import { AtsTextParser } from '../../core/AtsTextParser.js';"
+      ].join('\n')
+    };
+    const readGrading = (path) => grading[path] ?? null;
+    const modules = renderingModules(renderers, readGrading, parser);
+
+    expect(importClosure([PRINT_PIPELINE], readGrading)).toContain(PARSER);
+    expect(modules).not.toContain(PARSER);
+    expect(applicability([PARSER], { parser, rendering: modules }).applies).toBe(false);
+  });
+});
+
+describe('what renders the CV in this repository', () => {
+  const fromDisk = (path) =>
+    existsSync(`${root}${path}`) ? readFileSync(`${root}${path}`, 'utf8') : null;
+  const renderers = readdirSync(`${root}renderers`)
+    .filter((name) => /\.m?js$/.test(name))
+    .map((name) => `renderers/${name}`);
+  const parser = importClosure([PARSER], fromDisk);
+  const modules = renderingModules(renderers, fromDisk, parser);
+  const sets = {
+    parser,
+    rendering: [...new Set([...productReviewPaths(agents), ...modules])].sort()
+  };
+
+  // The page's entry script registers the renderers, and the two services beside it supply every label the page
+  // prints: a change to one of them and to the parser went unread by the base's parser (#202).
+  test.each(['script.js', 'core/I18nService.js', 'core/DocumentLocalizer.js'])(
+    "%s renders the CV, read from the entry script's imports",
+    (path) => {
+      expect(modules).toContain(path);
+      expect(applicability([path, PARSER], sets)).toEqual(
+        expect.objectContaining({ applies: true, parser: [PARSER], rendering: [path] })
+      );
+      expect(applicability([path], sets).applies).toBe(false);
+    }
+  );
+
+  // The PDF is the page, printed by Chrome through these (#144, #149): when it is ready, and with which fonts.
+  test.each([
+    'scripts/generate-pdfs.mjs',
+    'scripts/lib/printed-cv.mjs',
+    'scripts/lib/print-page.mjs',
+    'scripts/lib/page-ready.mjs'
+  ])("%s renders the CV, read from the print pipeline's imports", (path) => {
+    expect(modules).toContain(path);
+    expect(applicability([path, PARSER], sets).applies).toBe(true);
+    expect(applicability([path], sets).applies).toBe(false);
+  });
+
+  test("a change to print-page.mjs and the parser is read by the base branch's parser; print-page.mjs alone is not", () => {
+    const both = applicability(['scripts/lib/print-page.mjs', 'core/AtsTextParser.js'], sets);
+
+    expect(both).toEqual(
+      expect.objectContaining({
+        applies: true,
+        parser: ['core/AtsTextParser.js'],
+        rendering: ['scripts/lib/print-page.mjs']
+      })
+    );
+    expect(applicability(['scripts/lib/print-page.mjs'], sets)).toEqual(
+      expect.objectContaining({ applies: false, rendering: ['scripts/lib/print-page.mjs'] })
+    );
+    expect(applicability(['scripts/lib/print-page.mjs'], sets).reason).toMatch(/not the parser/);
+  });
+
+  test('the only parser modules that render the CV are the ones the page writes its dates through', () => {
+    // The pipeline reaches the parser's place lexicon through the cover letter: counted, every change to it would read
+    // as one to the parser and to the print, and the step would run on a change to the parser alone.
+    expect(importClosure([PRINT_PIPELINE], fromDisk)).toContain('domain/PlaceLexicon.js');
+    expect(parser.filter((path) => applicability([path], sets).applies)).toEqual([
+      'domain/DateRange.js',
+      'domain/fold.js'
+    ]);
+    expect(applicability([PARSER], sets).reason).toMatch(/nothing that renders the CV/);
   });
 });
 

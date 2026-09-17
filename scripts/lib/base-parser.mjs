@@ -1,3 +1,5 @@
+import { importClosure } from './import-closure.mjs';
+
 /**
  * The rules of `npm run audit:ats:base` (#181), with no git, no browser and no file in them, so each can be shown to
  * fail.
@@ -36,6 +38,37 @@ export function productReviewPaths(markdown) {
         .filter((code) => code.includes('/') || /\.\w+$/.test(code))
     )
   ];
+}
+
+/** The page's entry script: it registers the renderers, and decides what the page renders in which labels (#202). */
+export const PAGE_SCRIPT = 'script.js';
+
+/**
+ * The print pipeline's entry: it serves the page and has Chrome print it, through `scripts/lib/printed-cv.mjs` and
+ * `scripts/lib/print-page.mjs`, and the PDF it writes is the one `audit:ats` reads (#144, #149, #202).
+ */
+export const PRINT_PIPELINE = 'scripts/generate-pdfs.mjs';
+
+/**
+ * The modules that render the CV, read from their imports rather than listed by hand (#181, #202): the page's entry
+ * script and every renderer, with every module they import, and the print pipeline, with every module it imports. A
+ * renderer the entry script never imports still renders a page of its own, the cover letter's, so the renderers are
+ * read beside it.
+ *
+ * The pipeline does not render the parser, though it reaches it: it prints the cover letter too, whose place line reads
+ * the parser's `PlaceLexicon`. Counted, every change to that lexicon would touch the parser and what renders the CV at
+ * once, and the step would run on a change to the parser alone. So a parser module the pipeline reaches counts only
+ * when the page imports it as well, as it does the `DateRange` it writes its dates through.
+ * @param {string[]} renderers - The renderer modules, relative to the repository root
+ * @param {(path: string) => (string|null)} read - A module's source, or null when there is none
+ * @param {string[]} parser - The parser's modules, some of which the pipeline's imports reach and leave out here
+ * @returns {string[]} The paths, sorted
+ */
+export function renderingModules(renderers, read, parser) {
+  const page = importClosure([PAGE_SCRIPT, ...renderers], read);
+  // A parser module the page imports is in `page` already, so the pipeline's own copy of it can go.
+  const pipeline = importClosure([PRINT_PIPELINE], read).filter((path) => !parser.includes(path));
+  return [...new Set([...page, ...pipeline])].sort();
 }
 
 /**
