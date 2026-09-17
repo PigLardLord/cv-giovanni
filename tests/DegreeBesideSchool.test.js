@@ -64,6 +64,20 @@ describe('a degree beside its school', () => {
     ).toBe(false);
   });
 
+  // A profile may leave a degree's period out, and the page then prints the school alone (#169). The check asked for the
+  // period whatever the profile held, and failed a sparse profile on the word "undefined" it never printed (#178).
+  test('a degree with no period takes its school next, and nothing is asked after it', () => {
+    const undated = { degree: catania.degree, school: catania.school };
+    const flat = 'B.Sc. Computer Engineering Università degli Studi di Catania Languages Italian';
+
+    expect(beside(undated, flat)).toBe(true);
+    expect(beside({ ...undated, period: null }, flat)).toBe(true);
+    expect(beside({ ...undated, period: '  ' }, flat)).toBe(true);
+    expect(
+      beside(undated, 'B.Sc. Computer Engineering Languages Università degli Studi di Catania')
+    ).toBe(false);
+  });
+
   test('the count is written as the CV’s language writes numbers', () => {
     const big = { ...pisa, credits: 1500 };
     const flat = (count) =>

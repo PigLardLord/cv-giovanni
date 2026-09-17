@@ -11,7 +11,7 @@
 const escapeForRegExp = (text) => String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /**
- * @param {{ degree: string, school: string, period: string, credits?: number }} item - One degree of the profile
+ * @param {{ degree: string, school: string, period?: string, credits?: number }} item - One degree of the profile
  * @param {{ credits: string, locale: string }} words - The catalogue's `education.credits`, and the CV's language
  * @returns {RegExp} What the degree, its scope, its school and its period read as, in text flattened to single spaces
  */
@@ -20,7 +20,10 @@ export function degreeBesideSchool(item, { credits, locale }) {
     item.credits === undefined || item.credits === null
       ? ''
       : `\\s+${escapeForRegExp(`(${credits.replace('{{count}}', new Intl.NumberFormat(locale).format(item.credits))})`)}`;
+  // A degree with no period prints its school alone (#169), so nothing is asked after the school (#178).
+  const period = typeof item.period === 'string' ? item.period.trim() : '';
+  const when = period ? `\\s*[·(]\\s*${escapeForRegExp(period)}` : '';
   return new RegExp(
-    `${escapeForRegExp(item.degree)}${scope}\\s+${escapeForRegExp(item.school)}\\s*[·(]\\s*${escapeForRegExp(item.period)}`
+    `${escapeForRegExp(item.degree)}${scope}\\s+${escapeForRegExp(item.school)}${when}`
   );
 }
