@@ -235,7 +235,10 @@ tells the reader the range goes on: it may break there and nowhere else. A failu
 the text either side of the break. The page holds each end of a role's period, and each separator with its spaces,
 in a `.no-break` span, as it holds a hyphenated compound; a degree's period and a period in Nerd Mode's editor are
 held whole; and a certificate's link ends in an empty box that never wraps, because Chrome breaks a line where the
-link and the name inside it close, even before a held separator.
+link and the name inside it close, even before a held separator. Held text cannot wrap however narrow its line, so
+since #198 the audit also fails a glyph drawn more than half a pixel past the viewport or past the narrowest content
+box around its line (a first line may hang its indent as far as its block's own edge), or a page more than a pixel
+wider than its viewport, and names the run past the edge, its line, how far, and whose edge it passed.
 
 ### Linked pages are part of the CV
 
