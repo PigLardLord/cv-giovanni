@@ -29,9 +29,16 @@ const MEASURE_TOLERANCE = 0.5;
  * holds inside the viewport. Text the page hides, with `visibility` or clipped to a pixel the way text for a screen
  * reader is, is left out. A space in a drawn element is kept even with no box: Chrome gives none to a space a line
  * broke at when it is a text node of its own.
+ *
+ * Beside the glyphs, the syntax the stylesheet draws: an empty element whose `data-code` its `::before` draws, as Nerd
+ * Mode's quotes, commas and brackets are (#160). It has no text, so no glyph, and a range cannot reach inside a
+ * pseudo-element; but the element's own boxes are the drawn text's, one a line (#207). A piece of syntax is what one
+ * of those boxes draws, found by measuring the code in the font `::before` draws it in, and without the spaces at
+ * either end: Chrome hangs a space a `pre-wrap` line ends on past the edge, inside the box, and a space is never
+ * judged. Each piece carries how many glyphs come before it, so a finding can name the line it follows.
  * @param {string} start - Selector of the CV's first element, as the audit's bounds name it
  * @param {string} end - Selector of its last
- * @returns {string} An expression for the page, resolving to the glyphs, or null when a bound is missing
+ * @returns {string} An expression for the page, resolving to `{ glyphs, syntax }`, or null when a bound is missing
  */
 export const renderedGlyphs = (start, end) => `(() => {
   const first = document.querySelector(${JSON.stringify(start)});
@@ -68,16 +75,59 @@ export const renderedGlyphs = (start, end) => `(() => {
     }
     return places.get(holder);
   };
+  const pens = new Map();
+  const widthIn = (style) => {
+    const font = [style.fontStyle, style.fontWeight, style.fontSize, style.fontFamily].join(' ');
+    const spacing = [style.letterSpacing, style.wordSpacing].map((value) => (value === 'normal' ? '0px' : value));
+    const key = [font, ...spacing].join('|');
+    if (!pens.has(key)) {
+      const pen = document.createElement('canvas').getContext('2d');
+      pen.font = font;
+      [pen.letterSpacing, pen.wordSpacing] = spacing;
+      pens.set(key, (text) => pen.measureText(text).width);
+    }
+    return pens.get(key);
+  };
   const glyphs = [];
+  const syntax = [];
   const piece = document.createRange();
-  const walker = document.createTreeWalker(bounds.commonAncestorContainer, NodeFilter.SHOW_TEXT);
+  const walker = document.createTreeWalker(bounds.commonAncestorContainer, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
   for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    const code = node.nodeType === Node.ELEMENT_NODE ? node.getAttribute('data-code') : null;
+    if (node.nodeType === Node.ELEMENT_NODE && code === null) continue;
     if (!bounds.intersectsNode(node)) continue;
-    const parent = node.parentElement;
+    const parent = code === null ? node.parentElement : node;
     if (getComputedStyle(parent).visibility !== 'visible') continue;
     const drawn = parent.getBoundingClientRect();
     if (drawn.width <= 1 && drawn.height <= 1) continue;
     const { room, column } = placeOf(parent);
+    if (code !== null) {
+      const width = widthIn(getComputedStyle(node, '::before'));
+      const lines = [...node.getClientRects()].filter((rect) => rect.width > 0);
+      let at = 0;
+      lines.forEach((rect, index) => {
+        let until = code.length;
+        if (index < lines.length - 1) {
+          until = at;
+          while (until < code.length && width(code.slice(at, until + 1)) <= rect.width + 0.5) until++;
+        }
+        const text = code.slice(at, until);
+        at = until;
+        const ink = text.trim();
+        if (!ink) return;
+        const without = (kept) => (kept === text ? 0 : width(text) - width(kept));
+        syntax.push({
+          text: ink,
+          top: rect.top + scrollY,
+          bottom: rect.bottom + scrollY,
+          left: rect.left + scrollX + without(text.trimStart()),
+          right: rect.right + scrollX - without(text.trimEnd()),
+          column,
+          after: glyphs.length
+        });
+      });
+      continue;
+    }
     const shown = parent.getClientRects().length > 0;
     const text = node.data;
     for (let index = 0; index < text.length; ) {
@@ -102,7 +152,7 @@ export const renderedGlyphs = (start, end) => `(() => {
       index += size;
     }
   }
-  return glyphs;
+  return { glyphs, syntax };
 })()`;
 
 const blank = (glyph) => /^\s+$/u.test(glyph.text);
@@ -119,7 +169,10 @@ const sideBySide = (before, after) =>
 const parted = (previous, glyph, spaced) =>
   spaced || glyph.left - previous.right > (previous.bottom - previous.top) / 5;
 
-/** The lines, and every glyph in order with the index of the line it sits on; a space takes the line before it. */
+/**
+ * The lines, and every glyph in order with its index and the index of the line it sits on; a space takes the line
+ * before it.
+ */
 function layOut(glyphs) {
   const lines = [];
   const laid = [];
@@ -138,7 +191,7 @@ function layOut(glyphs) {
       }
       spaced = false;
     }
-    laid.push({ glyph, line: lines.length - 1 });
+    laid.push({ glyph, line: lines.length - 1, index: laid.length });
   }
   return { lines, laid: laid.filter((entry) => entry.line >= 0) };
 }
@@ -241,18 +294,26 @@ const pastColumn = (glyph, viewport) => {
  * design, and one a break took has no box. A run of glyphs past an edge is named line by line, by its text and the line
  * it sits on, since a run can be a single letter, by the furthest any of its glyphs is, and by whether the edge is its
  * column's or the viewport's.
- * @param {object[]} glyphs - Every glyph of the CV, as `renderedGlyphs` collects them, each with its column's edges
+ *
+ * The syntax the stylesheet draws is held to the same columns (#207). Nerd Mode's editor moves a period's closing `",`
+ * to a line of its own rather than past its edge, only because its lines may break anywhere: with `overflow-wrap:
+ * normal` they may not break before a quote, and at 320px a period two letters longer ran its `",` 12.8px past the
+ * editor's content box, with every glyph inside it and the page no wider. Pieces of syntax side by side past an edge,
+ * with nothing between them but a space the page writes, are one run, named by the line it follows, or the line it
+ * comes before when no text comes before it. Runs are named in the order the page writes them.
+ * @param {{ glyphs: object[], syntax: object[] }} drawn - As `renderedGlyphs` collects them: every glyph of the CV and
+ *   every piece of syntax the stylesheet draws, each with its column's edges
  * @param {{ scrollWidth: number, clientWidth: number }} page - The page's widths, as `pageWidth` reads them: the
  *   viewport's is every glyph's outermost column
  * @returns {{ checks: { staysInColumn: boolean }, findings: { overflowing: string[], sideways: string[] } }} The check,
  *   each run past its column, and the page's width when it scrolls sideways
  */
-export function columnOverflow(glyphs, page) {
+export function columnOverflow({ glyphs, syntax }, page) {
   const { lines, laid } = layOut(glyphs);
   const runs = [];
   let open = null;
   let spaced = false;
-  for (const { glyph, line } of laid) {
+  for (const { glyph, line, index } of laid) {
     if (blank(glyph)) {
       spaced = true;
       continue;
@@ -265,16 +326,42 @@ export function columnOverflow(glyphs, page) {
       open.last = glyph;
       if (past.by > open.by) Object.assign(open, past);
     } else {
-      open = { line, text: glyph.text, last: glyph, ...past };
+      open = { line, at: index, text: glyph.text, last: glyph, ...past };
       runs.push(open);
     }
     spaced = false;
   }
 
-  const overflowing = runs.map(({ line, text, by, edge, of }) => {
-    const named = text === lines[line].text ? `“${text}”` : `“${text}” in “${lines[line].text}”`;
-    return `${named}: ${by.toFixed(1)}px past the ${edge} edge of ${of}`;
-  });
+  open = null;
+  for (const piece of syntax) {
+    const past = pastColumn(piece, page.clientWidth);
+    const between = open ? glyphs.slice(open.last.after, piece.after) : [];
+    if (past.by <= COLUMN_TOLERANCE) {
+      open = null;
+    } else if (open && between.every(blank) && sideBySide(open.last, piece)) {
+      open.text += (parted(open.last, piece, between.length > 0) ? ' ' : '') + piece.text;
+      open.last = piece;
+      if (past.by > open.by) Object.assign(open, past);
+    } else {
+      // A piece drawn after the nth glyph comes before it in the page.
+      open = { after: piece.after, at: piece.after - 0.5, text: piece.text, last: piece, ...past };
+      runs.push(open);
+    }
+  }
+
+  const named = (run) => {
+    if (Object.hasOwn(run, 'line')) {
+      const { text } = lines[run.line];
+      return run.text === text ? `“${run.text}”` : `“${run.text}” in “${text}”`;
+    }
+    const before = laid.findLast((entry) => entry.index < run.after);
+    const next = laid.find((entry) => entry.index >= run.after);
+    const [word, entry] = before ? ['after', before] : ['before', next];
+    return entry ? `“${run.text}” ${word} “${lines[entry.line].text}”` : `“${run.text}”`;
+  };
+  const overflowing = runs
+    .sort((one, other) => one.at - other.at)
+    .map((run) => `${named(run)}: ${run.by.toFixed(1)}px past the ${run.edge} edge of ${run.of}`);
   const sideways =
     page.scrollWidth > page.clientWidth + PAGE_TOLERANCE
       ? [

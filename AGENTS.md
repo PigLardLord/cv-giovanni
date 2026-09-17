@@ -238,7 +238,10 @@ held whole; and a certificate's link ends in an empty box that never wraps, beca
 link and the name inside it close, even before a held separator. Held text cannot wrap however narrow its line, so
 since #198 the audit also fails a glyph drawn more than half a pixel past the viewport or past the narrowest content
 box around its line (a first line may hang its indent as far as its block's own edge), or a page more than a pixel
-wider than its viewport, and names the run past the edge, its line, how far, and whose edge it passed.
+wider than its viewport, and names the run past the edge, its line, how far, and whose edge it passed. Since #207 it
+holds the syntax Nerd Mode's stylesheet draws to the same columns, by the box each line of it is drawn in, less a
+space the line hangs past the edge, and names the line the syntax follows. The editor moves a period's closing `",`
+to a line of its own today rather than past its edge, but only because its lines may break anywhere.
 
 ### Linked pages are part of the CV
 
