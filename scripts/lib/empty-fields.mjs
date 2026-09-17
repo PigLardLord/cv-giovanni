@@ -10,7 +10,8 @@ import { SEPARATOR_GLYPHS } from '../../renderers/inlineSeparator.js';
  * audit never met one. This reads the text layer for what an empty field leaves behind, whichever profile printed it:
  *
  * - empty brackets, `()`;
- * - `undefined` or `null` printed as a word, unless the profile writes that word itself ("Kotlin null safety");
+ * - `undefined` or `null` printed as a word, except where the text carries the profile's own words around it ("Kotlin
+ *   null safety");
  * - a separator doubled on its line, `· ·`, where whatever stood between the two printed nothing;
  * - an entry that ends on the separator of a part it does not have: a role header ending in a comma, a certification's
  *   name followed by a dash that introduces no issuer.
@@ -28,6 +29,39 @@ const EMPTY_BRACKETS = /\(\s*\)/g;
 const NOTHING_WORDS = ['undefined', 'null'];
 const DOUBLED = new RegExp(`${SEPARATOR}[ \\t\\u00a0]*${SEPARATOR}`, 'g');
 
+/**
+ * Where the text carries what the profile writes around each match of `pattern` in it: the match with the word before
+ * and the word after it, in any whitespace, a line break included, and with a compound's hyphen kept, left at a line's
+ * end or welded shut. A match inside one of those is the profile's own; the same mark anywhere else is not (the code
+ * review of #205). A string holding nothing but the mark has no words to place it by, and covers every occurrence.
+ * @param {string} text - The text layer
+ * @param {string[]} written - Every string the profile writes
+ * @param {RegExp} pattern - The mark, with the global flag
+ * @returns {[number, number][]} The ranges of the text that are the profile's own words
+ */
+function ownWords(text, written, pattern) {
+  const ranges = [];
+  for (const piece of written) {
+    const words = [...String(piece).matchAll(/\S+/g)].map((word) => ({
+      start: word.index,
+      end: word.index + word[0].length,
+      text: word[0]
+    }));
+    for (const match of String(piece).matchAll(pattern)) {
+      const first = words.findIndex((word) => word.end > match.index);
+      const last = words.findLastIndex((word) => word.start < match.index + match[0].length);
+      const around = words
+        .slice(Math.max(0, first - 1), last + 2)
+        .map((word) => word.text.split('-').map(escapeForRegExp).join('(?:-\\s*)?'))
+        .join('\\s+');
+      for (const own of text.matchAll(new RegExp(around, 'g'))) {
+        ranges.push([own.index, own.index + own[0].length]);
+      }
+    }
+  }
+  return ranges;
+}
+
 /** The lines a match printed on, from the start of its first to the end of its last, on one line. */
 function linesAround(text, index, length) {
   const start = text.lastIndexOf('\n', index - 1) + 1;
@@ -37,21 +71,26 @@ function linesAround(text, index, length) {
 
 /**
  * @param {string} text - The text layer, as `pdftotext` reads it
- * @param {{ ends?: string[], written?: string }} [profile] - What the profile says: `ends`, each entry as it prints up
- *   to a part it does not have, from `openEnds`; and `written`, every string it writes, whose words are its own
+ * @param {{ ends?: string[], written?: string|string[] }} [profile] - What the profile says: `ends`, each entry as it
+ *   prints up to a part it does not have, from `openEnds`; and `written`, every string it writes, whose words are its own
  * @returns {{ mark: string, line: string }[]} Every trace, in the order the text carries them: what printed, and the
  *   line it printed on; none for a text that carries none
  */
-export function emptyFieldMarks(text, { ends = [], written = '' } = {}) {
+export function emptyFieldMarks(text, { ends = [], written = [] } = {}) {
   const found = [];
+  const strings = [written].flat();
   const note = (index, mark) =>
     found.push({ index, mark: collapse(mark), line: linesAround(text, index, mark.length) });
 
   for (const match of text.matchAll(EMPTY_BRACKETS)) note(match.index, match[0]);
   for (const word of NOTHING_WORDS) {
     const pattern = new RegExp(`\\b${word}\\b`, 'g');
-    if (new RegExp(pattern.source).test(written)) continue;
-    for (const match of text.matchAll(pattern)) note(match.index, match[0]);
+    const own = ownWords(text, strings, pattern);
+    for (const match of text.matchAll(pattern)) {
+      if (!own.some(([start, end]) => match.index >= start && match.index < end)) {
+        note(match.index, match[0]);
+      }
+    }
   }
   for (const match of text.matchAll(DOUBLED)) note(match.index, match[0]);
   // An entry's header opens its line in every layout; prose that names the entry mid-line and goes on is not one.

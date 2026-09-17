@@ -121,7 +121,7 @@ const brokenForms = [
 // would print, and every word the profile writes, which is its own and not a trace: for the traces an empty field leaves
 // in the text layer (#178).
 const openEntries = openEnds(profile, { at: catalogue.experience.at });
-const written = strings(profile).join('\n');
+const written = strings(profile);
 
 // A degree and its school must stay adjacent, with only the degree's scope between them when it states one (#48).
 const educationPairs = profile.education.map((item) =>

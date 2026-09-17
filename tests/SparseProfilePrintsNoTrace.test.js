@@ -145,7 +145,7 @@ const strings = (node) =>
       ? Object.values(node).flatMap(strings)
       : [];
 const traces = (text, profile) =>
-  emptyFieldMarks(text, { ends: openEnds(profile, { at }), written: strings(profile).join('\n') });
+  emptyFieldMarks(text, { ends: openEnds(profile, { at }), written: strings(profile) });
 
 describe('a sparse CV, printed', () => {
   test('each entry that leaves a part out opens a line of its own, where the check reads it', async () => {

@@ -50,6 +50,35 @@ describe('the traces of an empty field in printed text', () => {
     ).toEqual(['undefined']);
   });
 
+  // The code review of #205: the exemption was the word's, not the occurrence's. A profile that wrote "undefined
+  // behavior" once let every stray "undefined" through, a role header's included.
+  test('only the occurrences the profile writes are its own: a stray one elsewhere is still named', () => {
+    const written = 'Diagnosed undefined behavior in a legacy Objective-C bridge';
+
+    expect(
+      emptyFieldMarks(`${written}\nMobile Developer at Apparound, undefined`, { written })
+    ).toEqual([{ mark: 'undefined', line: 'Mobile Developer at Apparound, undefined' }]);
+    expect(
+      marks('Adopted Kotlin null safety\nAndroid Enterprise – null (2026)', {
+        written: ['Android Enterprise', 'Adopted Kotlin null safety']
+      })
+    ).toEqual(['null']);
+  });
+
+  test('an occurrence the profile writes is its own wherever the line breaks it', () => {
+    expect(
+      marks('Fixed null-\npointer crashes\nand undefined\nbehavior', {
+        written: ['Fixed null-pointer crashes', 'and undefined behavior']
+      })
+    ).toEqual([]);
+    // A compound broken at its hyphen extracts with the hyphen at the line's end, or welded shut.
+    expect(
+      marks('Hunted undefined use-after-\nfree bugs\nHunted undefined useafterfree bugs', {
+        written: ['Hunted undefined use-after-free bugs']
+      })
+    ).toEqual([]);
+  });
+
   test('names a separator doubled on its line, where the field between them printed nothing', () => {
     expect(
       marks('Germany · · +39 329\nAugust 2018 – – Present\nBerlin, , Germany\nSwift ·, SwiftUI')
