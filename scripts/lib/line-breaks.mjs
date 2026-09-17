@@ -25,9 +25,10 @@ const MEASURE_TOLERANCE = 0.5;
  * column. The column is the narrowest content box around the line: its own block's, where a first line's hanging
  * indent belongs to it, and each block's it sits in, since a box sized to what it holds grows past its column with
  * text that cannot wrap and keeps that text inside itself (#198). A box placed with absolute or fixed positioning is
- * put there on purpose, and is a column of its own. Text the page hides, with `visibility` or clipped to a pixel the
- * way text for a screen reader is, is left out. A space in a drawn element is kept even with no box: Chrome gives none
- * to a space a line broke at when it is a text node of its own.
+ * put there on purpose, and is a column of its own, which `columnOverflow` still holds inside the viewport. Text the
+ * page hides, with `visibility` or clipped to a pixel the way text for a screen reader is, is left out. A space in a
+ * drawn element is kept even with no box: Chrome gives none to a space a line broke at when it is a text node of its
+ * own.
  * @param {string} start - Selector of the CV's first element, as the audit's bounds name it
  * @param {string} end - Selector of its last
  * @returns {string} An expression for the page, resolving to the glyphs, or null when a bound is missing
@@ -212,21 +213,36 @@ export const pageWidth = `({
   clientWidth: document.documentElement.clientWidth
 })`;
 
-/** How far a glyph is drawn past its column, and past which edge; zero or less is inside. */
-const pastColumn = (glyph) => {
-  const right = glyph.right - glyph.column.right;
-  const left = glyph.column.left - glyph.left;
-  return right >= left ? { by: right, edge: 'right' } : { by: left, edge: 'left' };
+/**
+ * How far a glyph is drawn past its column, and past which edge of what; zero or less is inside. The viewport, as the
+ * audit lays the page out, unscrolled, is every glyph's outermost column: a box placed with fixed positioning is a
+ * column of its own and adds nothing to how wide the page scrolls, so text it draws off the screen would otherwise
+ * pass (code review of #211).
+ */
+const pastColumn = (glyph, viewport) => {
+  const right = Math.min(glyph.column.right, viewport);
+  const left = Math.max(glyph.column.left, 0);
+  const pastRight = glyph.right - right;
+  const pastLeft = left - glyph.left;
+  return pastRight >= pastLeft
+    ? {
+        by: pastRight,
+        edge: 'right',
+        of: right < glyph.column.right ? 'the viewport' : 'its column'
+      }
+    : { by: pastLeft, edge: 'left', of: left > glyph.column.left ? 'the viewport' : 'its column' };
 };
 
 /**
- * No text of the CV is drawn past its column, and the page does not scroll sideways (#198). A run the page holds
- * together, a period or a separator with the words either side, cannot wrap however narrow its line is, and a run too
- * wide for its line runs past it. A space is never judged: one a line ends at hangs past the edge by design, and one a
- * break took has no box. A run of glyphs past the edge is named line by line, by its text and the line it sits on,
- * since a run can be a single letter, and by the furthest any of its glyphs is.
+ * No text of the CV is drawn past its column or out of the viewport, and the page does not scroll sideways (#198). A
+ * run the page holds together, a period or a separator with the words either side, cannot wrap however narrow its line
+ * is, and a run too wide for its line runs past it. A space is never judged: one a line ends at hangs past the edge by
+ * design, and one a break took has no box. A run of glyphs past an edge is named line by line, by its text and the line
+ * it sits on, since a run can be a single letter, by the furthest any of its glyphs is, and by whether the edge is its
+ * column's or the viewport's.
  * @param {object[]} glyphs - Every glyph of the CV, as `renderedGlyphs` collects them, each with its column's edges
- * @param {{ scrollWidth: number, clientWidth: number }} page - The page's widths, as `pageWidth` reads them
+ * @param {{ scrollWidth: number, clientWidth: number }} page - The page's widths, as `pageWidth` reads them: the
+ *   viewport's is every glyph's outermost column
  * @returns {{ checks: { staysInColumn: boolean }, findings: { overflowing: string[], sideways: string[] } }} The check,
  *   each run past its column, and the page's width when it scrolls sideways
  */
@@ -240,7 +256,7 @@ export function columnOverflow(glyphs, page) {
       spaced = true;
       continue;
     }
-    const past = pastColumn(glyph);
+    const past = pastColumn(glyph, page.clientWidth);
     if (past.by <= COLUMN_TOLERANCE) {
       open = null;
     } else if (open?.line === line) {
@@ -254,9 +270,9 @@ export function columnOverflow(glyphs, page) {
     spaced = false;
   }
 
-  const overflowing = runs.map(({ line, text, by, edge }) => {
+  const overflowing = runs.map(({ line, text, by, edge, of }) => {
     const named = text === lines[line].text ? `“${text}”` : `“${text}” in “${lines[line].text}”`;
-    return `${named}: ${by.toFixed(1)}px past the ${edge} edge of its column`;
+    return `${named}: ${by.toFixed(1)}px past the ${edge} edge of ${of}`;
   });
   const sideways =
     page.scrollWidth > page.clientWidth + PAGE_TOLERANCE

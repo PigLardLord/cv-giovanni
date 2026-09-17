@@ -255,6 +255,25 @@ describe('text that runs past its column, or a page that scrolls sideways', () =
     ]);
   });
 
+  // A box placed with fixed positioning is a column of its own and adds nothing to how wide the page scrolls: one at
+  // 400px on a 320px viewport drew its text wholly off the screen and failed neither half of the check (code review
+  // of #211). The viewport is every glyph's outermost column.
+  test('a glyph past the right of the viewport fails, however wide its own column, and says the viewport', () => {
+    const glyphs = run('Held', { left: 400, column: { left: 400, right: 600 } });
+
+    expect(columnOverflow(glyphs, page).findings.overflowing).toEqual([
+      '“Held”: 112.0px past the right edge of the viewport'
+    ]);
+  });
+
+  test('a glyph before the left of the viewport fails', () => {
+    const glyphs = run('Held text', { left: -16, column: { left: -16, right: 300 } });
+
+    expect(columnOverflow(glyphs, page).findings.overflowing).toEqual([
+      '“He” in “Held text”: 16.0px past the left edge of the viewport'
+    ]);
+  });
+
   // Every glyph of both lines is past an edge of a column 8px wide, the last of one line and the first of the next too.
   test('a run keeps the spaces between the glyphs past the edge, names each line apart, and a whole line once', () => {
     const glyphs = block(['ab cd', 'ef gh'], { column: { left: 4, right: 12 } });
