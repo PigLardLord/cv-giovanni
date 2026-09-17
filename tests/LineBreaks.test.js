@@ -235,31 +235,33 @@ describe('text that runs past its column, or a page that scrolls sideways', () =
   });
 
   // "(Septembre 2015 – Décembre" is 196px at 8px a letter and 4px a space; the space after it ends at 200px.
-  test('a glyph past the right edge of its column fails, naming the run past it and by how much', () => {
+  test('a glyph past the right edge of its column fails, naming the run past it, its line and how far', () => {
     const { checks, findings } = columnOverflow(
       run('(Septembre 2015 – Décembre 2018)', { room: 200 }),
       page
     );
 
     expect(checks.staysInColumn).toBe(false);
-    expect(findings.overflowing).toEqual(['2018): 40.0px past the right edge of its column']);
+    expect(findings.overflowing).toEqual([
+      '“2018)” in “(Septembre 2015 – Décembre 2018)”: 40.0px past the right edge of its column'
+    ]);
   });
 
   test('a glyph before the left edge of its column fails', () => {
     const glyphs = run('Pisa', { column: { left: 16, right: 400 } });
 
     expect(columnOverflow(glyphs, page).findings.overflowing).toEqual([
-      'Pi: 16.0px past the left edge of its column'
+      '“Pi” in “Pisa”: 16.0px past the left edge of its column'
     ]);
   });
 
   // Every glyph of both lines is past an edge of a column 8px wide, the last of one line and the first of the next too.
-  test('a run keeps the spaces between the glyphs past the edge, and names each line apart', () => {
+  test('a run keeps the spaces between the glyphs past the edge, names each line apart, and a whole line once', () => {
     const glyphs = block(['ab cd', 'ef gh'], { column: { left: 4, right: 12 } });
 
     expect(columnOverflow(glyphs, page).findings.overflowing).toEqual([
-      'ab cd: 24.0px past the right edge of its column',
-      'ef gh: 24.0px past the right edge of its column'
+      '“ab cd”: 24.0px past the right edge of its column',
+      '“ef gh”: 24.0px past the right edge of its column'
     ]);
   });
 
@@ -268,19 +270,30 @@ describe('text that runs past its column, or a page that scrolls sideways', () =
     glyphs.at(-1).column = { left: 0, right: 400 };
 
     expect(columnOverflow(glyphs, page).findings.overflowing).toEqual([
-      '(3 ans): 56.0px past the right edge of its column'
+      '“(3 ans)” in “x (3 ans) y”: 56.0px past the right edge of its column'
+    ]);
+  });
+
+  test('a run parts two glyphs where a gap parts them, as its line does', () => {
+    const glyphs = [...run('iOS'), ...run('Swift', { left: 60 })].map((glyph) => ({
+      ...glyph,
+      column: { left: 0, right: 0 }
+    }));
+
+    expect(columnOverflow(glyphs, page).findings.overflowing).toEqual([
+      '“iOS Swift”: 100.0px past the right edge of its column'
     ]);
   });
 
   // Chrome lays text out in sixty-fourths of a pixel, and a box's padding comes back as a decimal: a line that fills
-  // its column measured 0.0125px past it, in every layout on main.
+  // its column measured at most 0.0125px past it, over all twelve renders on main.
   test('a glyph up to half a pixel past its edge passes, and one further fails', () => {
     const within = run('a', { column: { left: 0, right: 7.5 } });
     const past = run('a', { column: { left: 0, right: 7.4 } });
 
     expect(columnOverflow(within, page).checks.staysInColumn).toBe(true);
     expect(columnOverflow(past, page).findings.overflowing).toEqual([
-      'a: 0.6px past the right edge of its column'
+      '“a”: 0.6px past the right edge of its column'
     ]);
   });
 

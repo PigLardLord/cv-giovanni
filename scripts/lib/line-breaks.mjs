@@ -108,6 +108,13 @@ const sideBySide = (before, after) =>
   Math.min(before.bottom, after.bottom) - Math.max(before.top, after.top) >
   Math.min(before.bottom - before.top, after.bottom - after.top) / 2;
 
+/**
+ * Whether a space parts two glyphs side by side: one the page writes between them, or a gap wider than a fifth of the
+ * text's height.
+ */
+const parted = (previous, glyph, spaced) =>
+  spaced || glyph.left - previous.right > (previous.bottom - previous.top) / 5;
+
 /** The lines, and every glyph in order with the index of the line it sits on; a space takes the line before it. */
 function layOut(glyphs) {
   const lines = [];
@@ -122,8 +129,7 @@ function layOut(glyphs) {
       if (!previous || !sideBySide(previous, glyph) || glyph.left + 1 < previous.left) {
         lines.push({ text: glyph.text, glyphs: [glyph] });
       } else {
-        const gap = glyph.left - previous.right > (previous.bottom - previous.top) / 5;
-        line.text += (spaced || gap ? ' ' : '') + glyph.text;
+        line.text += (parted(previous, glyph, spaced) ? ' ' : '') + glyph.text;
         line.glyphs.push(glyph);
       }
       spaced = false;
@@ -215,18 +221,19 @@ const pastColumn = (glyph) => {
  * No text of the CV is drawn past its column, and the page does not scroll sideways (#198). A run the page holds
  * together, a period or a separator with the words either side, cannot wrap however narrow its line is, and a run too
  * wide for its line runs past it. A space is never judged: one a line ends at hangs past the edge by design, and one a
- * break took has no box. A run of glyphs past the edge is named by its text, line by line, and by the furthest any of
- * them is.
+ * break took has no box. A run of glyphs past the edge is named line by line, by its text and the line it sits on, since
+ * a run can be a single letter, and by the furthest any of its glyphs is.
  * @param {object[]} glyphs - Every glyph of the CV, as `renderedGlyphs` collects them, each with its column's edges
  * @param {{ scrollWidth: number, clientWidth: number }} page - The page's widths, as `pageWidth` reads them
  * @returns {{ checks: { staysInColumn: boolean }, findings: { overflowing: string[], sideways: string[] } }} The check,
  *   each run past its column, and the page's width when it scrolls sideways
  */
 export function columnOverflow(glyphs, page) {
+  const { lines, laid } = layOut(glyphs);
   const runs = [];
   let open = null;
   let spaced = false;
-  for (const { glyph, line } of layOut(glyphs).laid) {
+  for (const { glyph, line } of laid) {
     if (blank(glyph)) {
       spaced = true;
       continue;
@@ -235,18 +242,20 @@ export function columnOverflow(glyphs, page) {
     if (past.by <= COLUMN_TOLERANCE) {
       open = null;
     } else if (open?.line === line) {
-      open.text += (spaced ? ' ' : '') + glyph.text;
+      open.text += (parted(open.last, glyph, spaced) ? ' ' : '') + glyph.text;
+      open.last = glyph;
       if (past.by > open.by) Object.assign(open, past);
     } else {
-      open = { line, text: glyph.text, ...past };
+      open = { line, text: glyph.text, last: glyph, ...past };
       runs.push(open);
     }
     spaced = false;
   }
 
-  const overflowing = runs.map(
-    ({ text, by, edge }) => `${text}: ${by.toFixed(1)}px past the ${edge} edge of its column`
-  );
+  const overflowing = runs.map(({ line, text, by, edge }) => {
+    const named = text === lines[line].text ? `“${text}”` : `“${text}” in “${lines[line].text}”`;
+    return `${named}: ${by.toFixed(1)}px past the ${edge} edge of its column`;
+  });
   const sideways =
     page.scrollWidth > page.clientWidth + PAGE_TOLERANCE
       ? [
