@@ -221,7 +221,8 @@ export function fieldVerdicts(diff) {
  * grader does not grade, is not compared.
  * @param {ReturnType<typeof fieldVerdicts>} before - The base's parser on the base's print, graded by the base
  * @param {ReturnType<typeof fieldVerdicts>} after - The base's parser on the new print, graded by this branch
- * @returns {{ key: string, label: string, from: string, to: string, was: *, now: *, written: * }[]} The losses
+ * @returns {{ key: string, label: string, from: string, to: string, was: *, now: *, written: *, before: * }[]} The
+ *   losses: what the base's parser recovered from each print, what the new print writes, and what the base's wrote
  */
 export function lostFields(before, after) {
   const later = new Map(after.map((field) => [field.key, field]));
@@ -237,7 +238,8 @@ export function lostFields(before, after) {
         to: now.verdict,
         was: field.recovered,
         now: now.recovered,
-        written: now.written
+        written: now.written,
+        before: field.written
       };
     });
 }
@@ -254,12 +256,20 @@ const quote = (value) =>
 /**
  * One loss as a line: what the base's parser recovered from the base's print, what it recovers from the new one, and
  * the two verdicts. A structure has nothing to quote and is named by its verdicts.
+ *
+ * Each print is graded against its own branch's words (#201), so the same text can come back from both and grade lower
+ * on the new print: when the new print writes the field otherwise than the base's did, the line says what it writes.
  * @param {ReturnType<typeof lostFields>[number]} loss - One loss
  * @returns {string} The line
  */
-export function lossLine({ label, from, to, was = null, now = null, written = null }) {
-  if (was !== null || now !== null)
-    return `${label}: ${quote(was)} → ${quote(now)} (${from} → ${to})`;
+export function lossLine({ label, from, to, was = null, now = null, written = null, before }) {
+  if (was !== null || now !== null) {
+    const rewritten =
+      before !== undefined && written !== null && quote(written) !== quote(before)
+        ? ` — this print writes ${quote(written)}`
+        : '';
+    return `${label}: ${quote(was)} → ${quote(now)} (${from} → ${to})${rewritten}`;
+  }
   return `${label}: ${from} → ${to}${written === null ? '' : ` — written ${quote(written)}`}`;
 }
 

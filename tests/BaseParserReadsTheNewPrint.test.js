@@ -459,6 +459,32 @@ describe("a field the base branch's parser loses from the new print", () => {
       })
     ).toBe('experience 2, highlights: exact → partial — written "Led the migration."');
   });
+
+  // Each print is graded against its own branch's lines (#201), so what was lost can be the same text read back
+  // against other words: the line says which, when the two branches wrote the field differently.
+  test('a loss graded against words this print writes differently says what this print writes', () => {
+    const [loss] = lostFields(
+      [field('education.0.period', 'exact', { written: '2014 – 2016', recovered: '2014 – 2016' })],
+      [
+        field('education.0.period', 'partial', {
+          written: '· 2014 – 2016',
+          recovered: '2014 – 2016'
+        })
+      ]
+    );
+
+    expect(lossLine(loss)).toBe(
+      'education.0.period: "2014 – 2016" → "2014 – 2016" (exact → partial) — this print writes "· 2014 – 2016"'
+    );
+    expect(
+      lossLine(
+        lostFields(
+          [field('f', 'exact', { written: 'Pisa', recovered: 'Pisa' })],
+          [field('f', 'wrong', { written: 'Pisa', recovered: 'Development' })]
+        )[0]
+      )
+    ).toBe('f: "Pisa" → "Development" (exact → wrong)');
+  });
 });
 
 // The step graded both prints with this branch's diff, which builds every expected line with this branch's
@@ -558,7 +584,7 @@ describe("each print, graded against its own branch's lines", () => {
 
     expect(scopeApart).not.toBe(print);
     expect(lostFields(readings.baseOnBase, readings.baseOnHead).map(lossLine)).toEqual([
-      'education 1, degree: "First Level Professional Master\'s Programme in Mobile Applications Development (60 ECTS)" → "First Level Professional Master\'s Programme in Mobile Applications Development 60 ECTS" (exact → partial)'
+      'education 1, degree: "First Level Professional Master\'s Programme in Mobile Applications Development (60 ECTS)" → "First Level Professional Master\'s Programme in Mobile Applications Development 60 ECTS" (exact → partial) — this print writes "First Level Professional Master\'s Programme in Mobile Applications Development"'
     ]);
   });
 
