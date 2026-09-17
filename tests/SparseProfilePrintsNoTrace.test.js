@@ -4,6 +4,7 @@
 import { readFileSync } from 'node:fs';
 import { JSDOM } from 'jsdom';
 import i18next from '../vendor/i18next/i18next.js';
+import { DocumentLocalizer } from '../core/DocumentLocalizer.js';
 import { I18nService } from '../core/I18nService.js';
 import { CvDocument } from '../domain/CvDocument.js';
 import { CareerHighlightsRenderer } from '../renderers/CareerHighlightsRenderer.js';
@@ -17,7 +18,7 @@ import { ProfileRenderer } from '../renderers/ProfileRenderer.js';
 import { SkillsRenderer } from '../renderers/SkillsRenderer.js';
 import { SocialLinksRenderer } from '../renderers/SocialLinksRenderer.js';
 import { SourceRenderer } from '../renderers/SourceRenderer.js';
-import { emptyFieldMarks, printedEntries } from '../scripts/lib/empty-fields.mjs';
+import { emptyFieldMarks, entrySections, printedEntries } from '../scripts/lib/empty-fields.mjs';
 
 // The published profile fills every field, so the print audit only ever reads a CV with nothing left out, and the path
 // a tailored profile takes when it leaves a field out was unit-tested and never printed (#178). This is the sparse CV
@@ -39,12 +40,19 @@ delete sparse.education[1].period;
 delete sparse.certifications[0].year;
 delete sparse.certifications[1].issuer;
 
-/** The CV's labels, from the catalogue the page loads, through i18next as the page reads them. */
+/** The page's labels and the CV's, from the catalogues the page loads, through i18next as the page reads them. */
 const i18nIn = async (locale) => {
   const instance = i18next.createInstance();
   await instance.init({
     lng: locale,
-    resources: { [locale]: { cv: JSON.parse(read(`locales/${locale}/cv.json`)) } },
+    ns: ['ui', 'cv'],
+    defaultNS: 'ui',
+    resources: {
+      [locale]: {
+        ui: JSON.parse(read(`locales/${locale}/ui.json`)),
+        cv: JSON.parse(read(`locales/${locale}/cv.json`))
+      }
+    },
     interpolation: { escapeValue: false }
   });
   return new I18nService(instance);
@@ -87,6 +95,15 @@ class CertificationsBefore169 extends CertificationsRenderer {
   }
 }
 
+// The renderers as they are, with a comma left after the header of a role that names no place: the trace #213 lost.
+class ExperienceWithDanglingComma extends ExperienceRenderer {
+  createJobEntry(root, job, tenure) {
+    const entry = super.createJobEntry(root, job, tenure);
+    if (!job.location) entry.querySelector('.job-header').append(',');
+    return entry;
+  }
+}
+
 /** What script.js registers, in its order; the entries' renderers replaceable. */
 const renderers = (
   i18n,
@@ -124,12 +141,14 @@ function textOf(node) {
   return BLOCKS.test(node.tagName) ? `\n${inner}\n` : inner;
 }
 
-/** The profile rendered into index.html by the page's renderers, as lines of text. */
+/** The profile rendered into index.html by the page's renderers, headings in the catalogue's words, as lines. */
 async function printed(profile, replaced) {
   const { document } = new JSDOM(page, { url: 'http://localhost/index.html?layout=spotlight' })
     .window;
   const cv = new CvDocument(profile);
-  for (const renderer of renderers(await i18nIn('en'), replaced)) renderer.render(document, cv);
+  const i18n = await i18nIn('en');
+  new DocumentLocalizer(i18n).apply(document, cv);
+  for (const renderer of renderers(i18n, replaced)) renderer.render(document, cv);
   return textOf(document.body)
     .split('\n')
     .map((line) => line.replace(/\s+/g, ' ').trim())
@@ -144,8 +163,14 @@ const strings = (node) =>
     : node && typeof node === 'object'
       ? Object.values(node).flatMap(strings)
       : [];
+// Each kind is looked for under its heading, as the print audit looks for it (#213).
+const headings = entrySections(catalogue.sections);
 const traces = (text, profile) =>
-  emptyFieldMarks(text, { entries: printedEntries(profile, { at }), written: strings(profile) });
+  emptyFieldMarks(text, {
+    entries: printedEntries(profile, { at }),
+    written: strings(profile),
+    ...headings
+  });
 
 describe('a sparse CV, printed', () => {
   test('every entry opens a line of its own and prints its whole line, and each left-out part is open', async () => {
@@ -161,6 +186,8 @@ describe('a sparse CV, printed', () => {
         sparse.certifications[1].name
       ])
     );
+    // Each kind is looked for under its section's heading, which the page prints as a line of its own (#213).
+    for (const heading of Object.values(headings.sections)) expect(lines).toContain(heading);
     for (const { start, line: written, open } of entries) {
       expect(lines.some((line) => line.startsWith(start))).toBe(true);
       // What may follow a part the entry leaves out is read from this line (#212), so the page has to print it whole.
@@ -198,5 +225,20 @@ describe('a sparse CV, printed', () => {
         { mark: '()', line: `${sparse.education[1].school} ()` }
       ])
     );
+  });
+
+  // #213: a line of prose that opened with a later role's whole header took that role's line from it, so the role's own
+  // trace went unchecked and the prose's comma was blamed. The check places the prose by the words the profile writes,
+  // so the page has to print a highlight as it is written.
+  test("a highlight that opens with a later role's header takes nothing from that role", async () => {
+    const named = structuredClone(sparse);
+    const [first, role] = named.relevant_experience;
+    const header = `${role.title} ${at} ${role.company}`;
+    first.highlights[0] = `${header}, and later here: ${first.highlights[0]}`;
+
+    expect(traces(await printed(named), named)).toEqual([]);
+    expect(
+      traces(await printed(named, { Experience: ExperienceWithDanglingComma }), named)
+    ).toEqual([{ mark: `${header},`, line: `${header},` }]);
   });
 });
