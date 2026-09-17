@@ -24,7 +24,8 @@ import { SEPARATOR_GLYPHS } from '../../renderers/inlineSeparator.js';
  * comma, wrapped or not, is never blamed on the first (the code review of #205, and its re-check). A line that opens
  * with an entry's start inside a string the profile writes that runs past it, a summary or a highlight naming a
  * later role, "Mobile Developer at Apparound alumni now lead two teams", is that string's line and never the entry's,
- * wherever it wraps: it neither takes the entry's line from it nor is blamed for a separator of its own (#213).
+ * wherever it wraps, where the string prints more than the entry's own line: it neither takes the entry's line from it
+ * nor is blamed for a separator of its own. A string the entry's line prints whole is not prose there (#213).
  *
  * It reads `pdftotext` output and nothing else, so each rule can be shown to fail on text that breaks it.
  */
@@ -100,9 +101,8 @@ function matchAt(text, pattern, index) {
 
 /**
  * Where each string the profile writes that runs past `start` prints: a summary or a highlight that names the entry,
- * "Mobile Developer at Apparound alumni now lead two teams". Its own words are the entry's start and more, so it is
- * never the entry's header, which the profile writes as no single string: a role's is its title and employer, and a
- * school's or a certification's name is the start itself, and runs past nothing (#213).
+ * "Mobile Developer at Apparound alumni now lead two teams". A school's or a certification's name is the start itself,
+ * and runs past nothing. Whether a range is prose where a line opens is the line's to say, in `lineOpening` (#213).
  * @param {string} text - The text layer
  * @param {string[]} written - Every string the profile writes
  * @param {string} start - Where the entry's line opens
@@ -121,12 +121,21 @@ function proseNaming(text, written, start) {
 }
 
 /**
- * Where the first line at or after `from` opens with `start`, as a whole name: "Engineer at Apparound" does not open
- * "Engineer at Apparounds GmbH". Leading spaces are not the line's, and neither is a start printed inside one of the
- * `prose` ranges: that line is the prose's, wherever it wraps (#213).
+ * Where the first line at or after `from` opens with the entry's `start`, as a whole name: "Engineer at Apparound" does
+ * not open "Engineer at Apparounds GmbH". Leading spaces are not the line's.
+ *
+ * Nor is a start inside one of the `prose` ranges, where that range prints more than the entry's own `line` would from
+ * there: words before the start, carried from the line above, or words past the end of the entry's line as it prints
+ * there, or past the start where it does not. That line is the prose's, wherever it wraps (#213). A string the entry's
+ * line prints, "Mobile Developer at Apparound, Pisa, Italy", prints nothing more on that line, which stays the entry's
+ * with its trace (the code review of #213); printed on a line of its own, it is prose.
+ * @param {string} text - The text layer
+ * @param {{ start: string, line?: string }} entry - Where the entry's line opens, and the whole line
+ * @param {number} from - Where to look from
+ * @param {[number, number][]} [prose] - Where the strings that run past the start print, from `proseNaming`
  * @returns {number} The index the start begins at, or -1 when no line opens with it
  */
-function lineOpening(text, start, from, prose = []) {
+function lineOpening(text, { start, line = '' }, from, prose = []) {
   const words = spaced(start);
   if (!words) return -1;
   const pattern = new RegExp(`^([ \\t]*)${words}(?![\\p{L}\\p{N}])`, 'gmu');
@@ -134,7 +143,9 @@ function lineOpening(text, start, from, prose = []) {
   for (let match = pattern.exec(text); match; match = pattern.exec(text)) {
     const at = match.index + match[1].length;
     const end = match.index + match[0].length;
-    if (!prose.some(([first, last]) => first <= at && end <= last)) return at;
+    const own = at + (matchAt(text, spaced(line), at)?.[0].length ?? 0);
+    const inProse = ([first, last]) => first <= at && end <= last && (first < at || last > own);
+    if (!prose.some(inProse)) return at;
   }
   return -1;
 }
@@ -169,7 +180,8 @@ export function emptyFieldMarks(text, { entries = [], written = [] } = {}) {
   // from where the entry opens (#212).
   const foundAt = new Map();
   for (const { kind, start, line = '', open } of entries) {
-    const at = lineOpening(text, start, foundAt.get(kind) ?? 0, proseNaming(text, strings, start));
+    const prose = proseNaming(text, strings, start);
+    const at = lineOpening(text, { start, line }, foundAt.get(kind) ?? 0, prose);
     if (at < 0) continue;
     foundAt.set(kind, at + 1);
     const own = matchAt(text, spaced(line), at)?.[0].length ?? 0;

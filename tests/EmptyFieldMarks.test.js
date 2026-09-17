@@ -397,6 +397,51 @@ describe('the traces of an empty field in printed text', () => {
           })
         ).toEqual(['Università di Pisa,']);
       });
+
+      // The code review of #213: a string the profile writes that runs past the start was prose wherever it printed,
+      // the entry's own line included, so a string the header line prints whole hid that line and its trace.
+      test("a string the entry's own line prints is prose only where it prints more than that line", () => {
+        const entries = [
+          {
+            kind: 'role',
+            start: 'Mobile Developer at Apparound',
+            line: 'Mobile Developer at Apparound, Pisa, Italy',
+            open: ['Mobile Developer at Apparound, Pisa, Italy']
+          }
+        ];
+
+        expect(
+          emptyFieldMarks(
+            [
+              'Professional Experience',
+              'Mobile Developer at Apparound, Pisa, Italy,',
+              'September 2015 - July 2018'
+            ].join('\n'),
+            { entries, written: ['Mobile Developer at Apparound, Pisa, Italy'] }
+          )
+        ).toEqual([
+          {
+            mark: 'Mobile Developer at Apparound, Pisa, Italy,',
+            line: 'Mobile Developer at Apparound, Pisa, Italy,'
+          }
+        ]);
+        // A string the line opens with, printed on a line of its own, is not that line.
+        expect(
+          emptyFieldMarks(
+            [
+              'Mobile Developer at Apparound, Pisa',
+              'Mobile Developer at Apparound, Pisa, Italy,',
+              'September 2015 - July 2018'
+            ].join('\n'),
+            { entries, written: ['Mobile Developer at Apparound, Pisa'] }
+          )
+        ).toEqual([
+          {
+            mark: 'Mobile Developer at Apparound, Pisa, Italy,',
+            line: 'Mobile Developer at Apparound, Pisa, Italy,'
+          }
+        ]);
+      });
     });
   });
 });
