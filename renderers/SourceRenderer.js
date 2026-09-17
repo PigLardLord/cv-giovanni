@@ -10,6 +10,13 @@ import { holdSeparators } from './inlineSeparator.js';
 const LANDING_SLACK = 16;
 
 /**
+ * A value's last word: what follows its last space, slash or hyphen, where a line of the editor would otherwise break
+ * before it. An address breaks after a slash, so "linkedin.com/in/" / "piglardlord" keeps its `),` on a row of 210px
+ * at 320px, where the whole address with it would not fit (#219).
+ */
+const LAST_WORD = /[^\s/-]*[/-]*$/u;
+
+/**
  * Writes the CV into Nerd Mode's editor as a Swift file, and its contact card into the phone.
  *
  * Every decision — which lines, which tokens, what is syntax and what is content, what the card
@@ -19,6 +26,9 @@ const LANDING_SLACK = 16;
  * - Syntax is an empty, `aria-hidden` element whose `data-code` the stylesheet draws, and content
  *   is real text. The line numbers and the file's name are drawn the same way, and so is an escape
  *   inside a value, beside the text it escapes (#160).
+ * - Syntax the layout marks as closing a value is held to the value's last word in one `no-break`
+ *   element, since the editor's lines break anywhere and a narrow one left a lone `",` on a row of
+ *   its own (#219).
  * - The card repeats what the file already says, so its words are drawn from `data-text` and kept
  *   from assistive technology. What looks like a button is one: each action is a link with a name
  *   of its own — or, for "call", a button that opens the alert — and nothing focusable sits inside
@@ -254,8 +264,59 @@ export class SourceRenderer extends BaseRenderer {
     number.setAttribute('aria-hidden', 'true');
     element.appendChild(number);
 
-    line.tokens.forEach((token) => element.appendChild(this.createToken(root, token)));
+    line.tokens.forEach((token, index) => {
+      if (token.closes) return;
+      const closing = [];
+      for (let next = index + 1; line.tokens[next]?.closes; next += 1) {
+        closing.push(this.createToken(root, line.tokens[next]));
+      }
+      const value = this.createToken(root, token);
+      element.appendChild(closing.length > 0 ? this.holdClosing(root, value, closing) : value);
+    });
     return element;
+  }
+
+  /**
+   * A value with the syntax that closes it, which no row of the editor opens with (#219). The two share a `no-break`
+   * element with the value's last word, so a line too narrow for them breaks before that word.
+   *
+   * The syntax goes inside the value, beside its last word, or beside the element that ends it. A link underlines
+   * everything inside it, so a link keeps to its own text: the link and the syntax share a `no-break` span, and the
+   * words of the link before its last one go into a `source-wrap` span, where they wrap again.
+   * @param {Document} root - DOM root
+   * @param {Element} value - The value, as `createToken` writes it
+   * @param {Element[]} closing - The syntax that closes it, in order
+   * @returns {Element} What the line holds in the value's place
+   */
+  holdClosing(root, value, closing) {
+    const word = this.lastWordOf(value);
+    if (value.tagName === 'A') {
+      const before = [...value.childNodes].slice(0, [...value.childNodes].indexOf(word));
+      if (before.length > 0) {
+        const wraps = this.createElement(root, 'span', 'source-wrap');
+        wraps.append(...before);
+        value.prepend(wraps);
+      }
+      const held = this.createElement(root, 'span', 'no-break');
+      held.append(value, ...closing);
+      return held;
+    }
+    const held = this.createElement(root, 'span', 'no-break');
+    word.replaceWith(held);
+    held.append(word, ...closing);
+    return value;
+  }
+
+  /**
+   * The node that ends a value, which is never empty: its last text split at its last word first.
+   * @param {Element} value - The value
+   * @returns {Node} The text of the value's last word, or the element that ends it
+   */
+  lastWordOf(value) {
+    const last = value.lastChild;
+    if (last.nodeType !== last.TEXT_NODE) return last;
+    const word = last.data.match(LAST_WORD)[0] || last.data.slice(-1);
+    return word.length < last.data.length ? last.splitText(last.data.length - word.length) : last;
   }
 
   createToken(root, token) {

@@ -91,9 +91,11 @@ describe('SourceRenderer', () => {
 
     const name = code().querySelector('h1');
     expect(name.textContent).toBe('Ada "The Countess" Lovelace');
+    // The closing quote is held inside the heading too, with its last word (#219).
     expect([...name.querySelectorAll('[data-code]')].map((span) => span.dataset.code)).toEqual([
       '\\',
-      '\\'
+      '\\',
+      '"'
     ]);
     expect(
       [...name.querySelectorAll('[data-code]')].every(
@@ -118,6 +120,118 @@ describe('SourceRenderer', () => {
     );
   });
 
+  /** What the stylesheet draws inside or after an element, in order. */
+  const drawnIn = (element) =>
+    [...element.querySelectorAll('[data-code]')].map((syntax) => syntax.dataset.code);
+
+  // A row of the editor opened with a lone `",` at 320px, and the published LinkedIn address left its `),` a row of
+  // its own (#219). A value's last word and the syntax that closes it share one `no-break` element.
+  describe('the syntax that closes a value', () => {
+    const lineOf = (text) =>
+      [...code().querySelectorAll('.source-line')].find((line) => line.textContent === text);
+
+    test('is held inside the value, with its last word', () => {
+      render();
+
+      const value = lineOf('Cut CI time by 75%.').querySelector('.tok-string:not([data-code])');
+      const held = value.lastElementChild;
+      expect(value.textContent).toBe('Cut CI time by 75%.');
+      expect([held.className, held.textContent, drawnIn(held)]).toEqual([
+        'no-break',
+        '75%.',
+        ['"']
+      ]);
+    });
+
+    test('is held inside a heading, whose text stays the profile’s', () => {
+      render();
+
+      const title = code().querySelector('h3');
+      expect(title.textContent).toBe('Mobile Engineer');
+      expect(title.lastElementChild.className).toBe('no-break');
+      expect([title.lastElementChild.textContent, drawnIn(title.lastElementChild)]).toEqual([
+        'Engineer',
+        ['"', ',']
+      ]);
+    });
+
+    test('is held with the element that ends a value', () => {
+      fedTheModel(new SourceRenderer(i18n)).render(document, { ...profile, title: 'iOS ·' });
+
+      const separator = [...code().querySelectorAll('.tok-string .no-break')].find(
+        (held) => held.textContent === ' ·' && held.querySelector('[data-code]') === null
+      );
+      expect(separator.parentElement.className).toBe('no-break');
+      expect(drawnIn(separator.parentElement)).toEqual(['"']);
+    });
+
+    test('is held with a whole period, inside it', () => {
+      render();
+
+      expect(drawnIn(code().querySelector('.tok.no-break'))).toEqual(['"']);
+    });
+
+    // A link underlines everything inside it, so the syntax stays outside the link: the words before its last one
+    // keep wrapping inside it, and the link, its last word and the syntax share a `no-break` span.
+    test('is held beside a link, which keeps its text and nothing drawn', () => {
+      render();
+
+      const link = code().querySelector('a[href^="https://github.com"]');
+      const held = link.parentElement;
+      expect([link.textContent, drawnIn(link)]).toEqual(['github.com/ada', []]);
+      expect([...link.childNodes].map((node) => [node.nodeName, node.textContent])).toEqual([
+        ['SPAN', 'github.com/'],
+        ['#text', 'ada']
+      ]);
+      expect(link.firstChild.className).toBe('source-wrap');
+      expect([held.tagName, held.className, drawnIn(held)]).toEqual([
+        'SPAN',
+        'no-break',
+        ['"', ')', ',']
+      ]);
+    });
+
+    test('is held beside a link with nothing to wrap before its last word', () => {
+      render();
+
+      const mail = code().querySelector('a[href^="mailto:"]');
+      expect([...mail.childNodes].map((node) => node.nodeName)).toEqual(['#text']);
+      expect([mail.parentElement.className, drawnIn(mail.parentElement)]).toEqual([
+        'no-break',
+        ['"', ',']
+      ]);
+    });
+
+    // What a reader sees on a line: its text and the syntax drawn beside it, in the order the page lays them out.
+    const shownOn = (line) => {
+      const walker = document.createTreeWalker(line, 5);
+      let shown = '';
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        if (node.nodeType === 3) shown += node.data;
+        else if (node.dataset.code !== undefined) shown += node.dataset.code;
+      }
+      return shown;
+    };
+
+    test('leaves each line reading and copying as it did', () => {
+      render();
+
+      const lines = [...code().querySelectorAll('.source-line')];
+      expect(lines.map(shownOn)).toEqual(
+        expect.arrayContaining([
+          'let name = "Ada Lovelace"',
+          'title: "Mobile Engineer",',
+          'period: "2018 – Present"',
+          '"Cut CI time by 75%."',
+          'Link("GitHub", destination: "github.com/ada"),'
+        ])
+      );
+      expect(lines.map((line) => line.textContent)).toEqual(
+        expect.arrayContaining(['Mobile Engineer', 'GitHub, github.com/ada', 'Cut CI time by 75%.'])
+      );
+    });
+  });
+
   // Nerd Mode's editor wrapped "EU citizen ·" / "unrestricted German work authorisation" at 390px (#180).
   test('holds each separator in a value to the words either side of it', () => {
     fedTheModel(new SourceRenderer(i18n)).render(document, {
@@ -126,8 +240,11 @@ describe('SourceRenderer', () => {
       languages: [{ name: 'English', level: 'C1 — professional' }]
     });
 
+    // A value's last word is held too, with the syntax that closes it (#219).
     expect(
-      [...code().querySelectorAll('.tok:not(.no-break) .no-break')].map((span) => span.textContent)
+      [...code().querySelectorAll('.tok:not(.no-break) .no-break')]
+        .filter((span) => !span.querySelector('[data-code]'))
+        .map((span) => span.textContent)
     ).toEqual([' · ', ' — ']);
     expect(code().textContent).toContain('Swift · SwiftUI');
   });
