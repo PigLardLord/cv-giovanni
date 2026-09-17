@@ -99,8 +99,8 @@ CI builds, audits and publishes its own.
   what a reader copies: the CV whole, no two words welded together, every skill under its own category, every
   language with its level, and nothing the data did not write. It reads the lines the CV is laid on, too: none starts
   or ends with a separator, and no period is split across two, but for a period wider than its line, which may break
-  after its dash. No text runs more than half a pixel past its column, and the page does not scroll sideways, since
-  text held together cannot wrap. It checks that the first screen holds still while it
+  after its dash. No text runs more than half a pixel past its column or out of the viewport, and the page does not
+  scroll sideways, since text held together cannot wrap. It checks that the first screen holds still while it
   loads, and that the Download PDF link, the page's one download control, does its job: hidden when there is no
   PDF, on the first screen, shown once, tall enough to tap on a phone, its label on one line, and a focus ring a
   keyboard user can see. Like the build it needs Chrome, and it exits 2 when it finds none, or when

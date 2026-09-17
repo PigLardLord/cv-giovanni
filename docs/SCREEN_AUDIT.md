@@ -31,9 +31,11 @@ line may break after its dash, and only there. A failure names the text either s
 
 Since #198 the same glyphs are held to their columns, because text the page holds together cannot
 wrap however narrow its line: no glyph is drawn more than half a pixel past the narrowest content box
-around its line, its own block's or any block's it sits in, and the page is no more than a pixel wider
-than its viewport, so it does not scroll sideways. A failure names the run past the edge, the line it
-sits on, and how far past it is.
+around its line, its own block's or any block's it sits in, nor past the viewport, which holds even a
+box placed with fixed positioning; a first line's hanging indent may reach its block's own edge. The
+page is no more than a pixel wider than its viewport, so it does not scroll sideways. A failure names
+the run past the edge, the line it sits on, how far past it is, and whether the edge is its column's
+or the viewport's.
 
 ## The Download PDF link
 
