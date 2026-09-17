@@ -165,7 +165,7 @@ describe('the pathological shapes, each failing the check it was written for', (
   });
 });
 
-// The page's own print (#147), extracted from Chrome's PDF of each layout at c974dbc. Technical Profile
+// The page's own print (#147), extracted from Chrome's PDF of each layout at 548ffc0. Technical Profile
 // extracts to the same bytes as Impact Spotlight in both reading orders, so one fixture stands for both.
 // The roles, degrees and skills are asserted as recovered strings rather than diffed against the profile,
 // so a copy edit in the profile does not silently change what these fixtures prove.

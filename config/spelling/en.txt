@@ -5,7 +5,6 @@ agentic # agentic development, newer than the dictionary
 Agentic # Agentic Development, the headline's subtitle
 APIs
 Apparound # employer
-backend # the team, as engineers write it; the dictionary knows only "back end"
 Catania # Università degli Studi di Catania
 Cortado # employer
 Cortado's # employer, possessive
@@ -31,7 +30,6 @@ Robolectric # tool
 rollout # staged rollout, as app stores write it
 RxSwift # framework
 SBOM # software bill of materials
-Siri # product
 SPM # Swift Package Manager
 Studi # Università degli Studi
 SwiftUI # framework
