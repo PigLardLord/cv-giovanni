@@ -171,6 +171,78 @@ const widthOnOneLine = (glyphs) => {
 };
 
 /**
+ * How far past its column's edge a glyph may be drawn and still count as inside. Chrome lays text out in sixty-fourths
+ * of a pixel and reads a box's padding back as a decimal, so a line that fills its column measures a hair past it:
+ * 0.0125px at most, over all twelve renders on main (#198). A glyph's box is its advance, not its ink, so an italic's
+ * overhang never reaches it.
+ */
+const COLUMN_TOLERANCE = 0.5;
+
+/** How much wider than its viewport a page may measure before it scrolls sideways: its widths are whole pixels. */
+const PAGE_TOLERANCE = 1;
+
+/** How wide the page scrolls, and how wide its viewport shows it: the root element's two widths. */
+export const pageWidth = `({
+  scrollWidth: document.documentElement.scrollWidth,
+  clientWidth: document.documentElement.clientWidth
+})`;
+
+/** How far a glyph is drawn past its column, and past which edge; zero or less is inside. */
+const pastColumn = (glyph) => {
+  const right = glyph.right - glyph.column.right;
+  const left = glyph.column.left - glyph.left;
+  return right >= left ? { by: right, edge: 'right' } : { by: left, edge: 'left' };
+};
+
+/**
+ * No text of the CV is drawn past its column, and the page does not scroll sideways (#198). A run the page holds
+ * together, a period or a separator with the words either side, cannot wrap however narrow its line is, and a run too
+ * wide for its line runs past it. A space is never judged: one a line ends at hangs past the edge by design, and one a
+ * break took has no box. A run of glyphs past the edge is named by its text, line by line, and by the furthest any of
+ * them is.
+ * @param {object[]} glyphs - Every glyph of the CV, as `renderedGlyphs` collects them, each with its column's edges
+ * @param {{ scrollWidth: number, clientWidth: number }} page - The page's widths, as `pageWidth` reads them
+ * @returns {{ checks: { staysInColumn: boolean }, findings: { overflowing: string[], sideways: string[] } }} The check,
+ *   each run past its column, and the page's width when it scrolls sideways
+ */
+export function columnOverflow(glyphs, page) {
+  const runs = [];
+  let open = null;
+  let spaced = false;
+  for (const { glyph, line } of layOut(glyphs).laid) {
+    if (blank(glyph)) {
+      spaced = true;
+      continue;
+    }
+    const past = pastColumn(glyph);
+    if (past.by <= COLUMN_TOLERANCE) {
+      open = null;
+    } else if (open?.line === line) {
+      open.text += (spaced ? ' ' : '') + glyph.text;
+      if (past.by > open.by) Object.assign(open, past);
+    } else {
+      open = { line, text: glyph.text, ...past };
+      runs.push(open);
+    }
+    spaced = false;
+  }
+
+  const overflowing = runs.map(
+    ({ text, by, edge }) => `${text}: ${by.toFixed(1)}px past the ${edge} edge of its column`
+  );
+  const sideways =
+    page.scrollWidth > page.clientWidth + PAGE_TOLERANCE
+      ? [
+          `the page scrolls sideways: ${page.scrollWidth}px wide in a ${page.clientWidth}px viewport`
+        ]
+      : [];
+  return {
+    checks: { staysInColumn: overflowing.length === 0 && sideways.length === 0 },
+    findings: { overflowing, sideways }
+  };
+}
+
+/**
  * No line of the CV starts or ends with a separator, and no period the profile writes is split across two lines. A
  * period wider than its line cannot keep to one, and the least bad place for it to break is after its dash, where
  * the line that ends says the range goes on: there, and only there, it may break, and its dash may end the line.
