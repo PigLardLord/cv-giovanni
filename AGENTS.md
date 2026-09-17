@@ -8,7 +8,8 @@ reviewed as German rather than translated.
 
 Ownership is strict, because every blurred line here has already produced a bug:
 
-- **i18next** owns UI strings, shared CV labels and print strings, in `locales/<lang>/`.
+- **i18next** owns UI strings and shared CV labels, in `locales/<lang>/`. The print has no strings
+  of its own, since it is the page printed (#144), and a catalogue holds only what the code reads (#190).
 - **`Intl`** owns dates, numbers, lists and durations. Never hand-format a date.
 - **The profile JSON** owns editorial content and achievements, and nothing else.
 - **URL state wins** over a saved preference, which wins over the browser's, which wins over

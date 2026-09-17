@@ -48,7 +48,7 @@ describe('the published CV is spelled right', () => {
         )
       ];
 
-      expect(catalogues).toEqual(expect.arrayContaining(['cv.json', 'print.json', 'ui.json']));
+      expect(catalogues).toEqual(expect.arrayContaining(['cv.json', 'ui.json']));
       expect(misspelt(words, spellerFor(locale))).toEqual([]);
     }
   );
