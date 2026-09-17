@@ -82,7 +82,7 @@ The PDF has no design system of its own: it is the page, printed through `print.
 the cover letter is `letter.html` printed through `letter.css` (#151). A print colour or size goes
 in those stylesheets, never into a renderer.
 
-Localisation is i18next with the namespaces `ui`, `cv` and `print`, in `en` and `de`. Markup
+Localisation is i18next with the namespaces `ui` and `cv`, in `en` and `de`. Markup
 carries `data-i18n` keys and `DocumentLocalizer` applies them. No user-visible string belongs in
 JS or HTML: add the key to **both** catalogs or `LocaleCatalogs.test.js` fails. `I18nService`
 appends a `?v=` cache-buster to `backend.loadPath` — bump it when the catalogs change shape.

@@ -8,7 +8,8 @@ reviewed as German rather than translated.
 
 Ownership is strict, because every blurred line here has already produced a bug:
 
-- **i18next** owns UI strings, shared CV labels and print strings, in `locales/<lang>/`.
+- **i18next** owns UI strings and shared CV labels, in `locales/<lang>/`. The print has no strings
+  of its own, since it is the page printed (#144), and a catalogue holds only what the code reads (#190).
 - **`Intl`** owns dates, numbers, lists and durations. Never hand-format a date.
 - **The profile JSON** owns editorial content and achievements, and nothing else.
 - **URL state wins** over a saved preference, which wins over the browser's, which wins over
@@ -370,7 +371,7 @@ copies off the screen, and the page's controls. `npm run verify:pdf` builds, the
 ATS audits: run it before claiming the document is sound.
 
 **The CV is spelled in its locale, offline.** `tests/CvIsSpelledRight.test.js` reads every published
-profile and every catalogue of its locale (the labels, the page's words, the print's) against a
+profile and every catalogue of its locale (the labels and the page's words) against a
 pinned dictionary, British English for `en`, and names each unknown word with its JSON path.
 Spelling errors are the best-measured penalty in CV screening: five cut the probability of an
 interview invitation by 18.5 percentage points, two by 7.3 (Sterkens et al., PLOS ONE 2023, 445
