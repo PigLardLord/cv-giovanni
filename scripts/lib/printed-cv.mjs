@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { CvFiles } from '../../core/CvFiles.js';
 import { LetterContent } from '../../core/LetterContent.js';
+import { ProfileCompleteness } from '../../core/ProfileCompleteness.js';
 import { CoverLetter } from '../../domain/CoverLetter.js';
 import { createStaticServer, previewKey } from '../serve.mjs';
 import { openBrowser } from './chrome.mjs';
@@ -70,6 +71,21 @@ export function letterWarnings(dataPath, data) {
   if (!LetterContent.has(data)) return [];
   return new CoverLetter(data.letter).problems.map(
     (problem) => `warning: the cover letter in ${dataPath} — ${problem}`
+  );
+}
+
+/**
+ * What the build warns about a profile before it prints it: each field it leaves out that a reader looks for, a degree's
+ * period, a certification's issuer or year, a role's location beside roles that name theirs (#178). The shape leaves
+ * them optional, so the CV is printed anyway; the warning says first which profile to complete, and what its print
+ * loses without them.
+ * @param {string} dataPath - The profile's path, as the build was given it
+ * @param {object} data - The profile
+ * @returns {string[]} One warning per omission, none for a profile that leaves nothing out
+ */
+export function profileWarnings(dataPath, data) {
+  return ProfileCompleteness.omissions(data).map(
+    ({ path, reason }) => `warning: ${dataPath} — ${path} ${reason}`
   );
 }
 

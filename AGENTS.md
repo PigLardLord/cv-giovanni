@@ -11,7 +11,16 @@ Ownership is strict, because every blurred line here has already produced a bug:
 - **i18next** owns UI strings and shared CV labels, in `locales/<lang>/`. The print has no strings
   of its own, since it is the page printed (#144), and a catalogue holds only what the code reads (#190).
 - **`Intl`** owns dates, numbers, lists and durations. Never hand-format a date.
-- **The profile JSON** owns editorial content and achievements, and nothing else.
+- **The profile JSON** owns editorial content and achievements, and nothing else. A profile that
+  ships dates every degree, gives every certification its issuer and the year of its current
+  validity, and gives every role a location or none. The shape leaves those fields optional, so
+  the editor saves a profile without them and the page prints it without stray punctuation; but
+  an undated degree is lost to a parser reading in drawing order, a certificate without a year
+  cannot be told current from lapsed, one without an issuer names nobody who awarded it, and one
+  role without a place reads unlike neighbours that name theirs. So `npm run build:pdf` warns about
+  each one left out and still writes the PDFs (`core/ProfileCompleteness.js`), and
+  `npm run audit:print` fails a page that prints what an empty field leaves behind: `()`,
+  `undefined`, a header ending on its separator (#178).
 - **URL state wins** over a saved preference, which wins over the browser's, which wins over
   English.
 - **An unsupported combination fails visibly, when someone asked for it.** A `?lang=` or `?profile=` the
@@ -146,16 +155,19 @@ A ticket can pass `codex-cli` on the diff and still ship a CV that dies in a tex
 
 Extend step 7 with a product review whenever the ticket's diff touches what the CV says or how
 it renders: `profiles/`, `locales/`, `renderers/`, `domain/EntryLines.js` (the lines they write),
-`adapters/SwiftSourceLayout.js` (Nerd Mode's source view), `index.html`, `style.css`, `layouts.css`,
-`design-glacier.css`, `print.css` (the PDF is the page printed through it), `vendor/fonts/`,
+`adapters/SwiftSourceLayout.js` (Nerd Mode's source view), `script.js` (what the page renders),
+`core/I18nService.js` and `core/DocumentLocalizer.js` (every label it prints), `index.html`,
+`style.css`, `layouts.css`, `design-glacier.css`, `print.css` (the PDF is the page printed through
+it), `scripts/generate-pdfs.mjs`, `scripts/lib/printed-cv.mjs`, `scripts/lib/print-page.mjs` and
+`scripts/lib/page-ready.mjs` (the pipeline Chrome prints it through, #144, #149), `vendor/fonts/`,
 `core/CvFiles.js` (the name the recruiter's inbox receives), and the cover letter's `letter.html`,
 `letter.css`, `core/LetterContent.js` and `renderers/LetterRenderer.js` (#151).
 
 `npm run audit:ats:base` reads that list, so a path added to it is one the base branch's parser is
 asked about too (#181): keep it one paragraph, directly under this heading.
 
-A ticket touching only build tooling, scripts or tests does not need it — say that it was
-skipped and why, rather than skipping it silently.
+A ticket touching only build tooling, the other scripts or tests does not need it — say that it
+was skipped and why, rather than skipping it silently.
 
 The review runs on the **rendered artefact**, not the diff. Run `npm run build:pdf` first;
 `cv-reviewer` needs a PDF to extract text from, and a review of the source that never looked at
@@ -408,14 +420,17 @@ the school as "Development", gave it no period, and in content-stream order merg
 one (#181). CI holds every pull request to it with `npm run audit:ats:base`. The step applies when
 the change touches the parser — `core/AtsTextParser.js` and every module it imports, read from the
 imports — and what renders the CV — the paths the product review runs on, read from that paragraph
-above, and every module the renderers import. It builds the base's print in a temporary worktree,
-reads that print and the new one with the base's parser in the three orders `audit:ats` reads, each
-graded against its own profile, and fails on a field the base's parser recovered from the base's
-print and recovers less of from the new one. **The label `ats-trade-accepted` records a trade the
-owner accepted:** the losses are still reported, in the job summary, and the step passes. A change
-to one side only exits 0 and says why; a base that could not be built or read exits 2. Locally it
-compares the working tree with its merge base with `origin/main` (`--base=<ref>` names another),
-after `npm run build:pdf`.
+above, and every module the page's entry script, the renderers and the print pipeline import
+(#202). A parser module only the pipeline reaches does not count: the pipeline prints the cover
+letter, whose place line reads the parser's `PlaceLexicon`, and counted, a change to the parser
+alone would apply. It builds the base's print in a temporary worktree, reads that print and the
+new one with the base's parser in the three orders `audit:ats` reads, each graded against its own
+profile, and fails on a field the base's parser recovered from the base's print and recovers less
+of from the new one. **The label `ats-trade-accepted` records a trade the owner accepted:** the
+losses are still reported, in the job summary, and the step passes. A change to one side only
+exits 0 and says why; a base that could not be built or read exits 2. Locally it compares the
+working tree with its merge base with `origin/main` (`--base=<ref>` names another), after
+`npm run build:pdf`.
 
 `build:pdf` and `audit:screen` need a Chrome or Chromium binary. They look for one on PATH, in the
 usual install locations and in the Playwright cache; `CHROME_PATH` overrides. When they find none
