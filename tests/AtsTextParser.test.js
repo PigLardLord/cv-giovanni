@@ -210,7 +210,7 @@ describe('the printed page, in the order poppler reads it', () => {
     (fixture) => {
       const [first, second] = parse(fixture).experience;
 
-      expect(first.bodyText).toContain('Earlier products (2018–2023)');
+      expect(first.bodyText).toContain('Earlier products (2018 – 2023)');
       expect(first.bodyText).toContain('mentoring two developers in agentic workflows.');
       expect(first.bodyText).not.toContain('Mobile Developer at Apparound');
       expect(first.bodyText).not.toContain('September 2015');
@@ -390,7 +390,7 @@ describe('the same artefacts, in content-stream order', () => {
     const [first] = parse('page-print-spotlight.raw').experience;
 
     expect(first.bodyLines).toContain('to 5.2 minutes.');
-    expect(first.bodyLines.some((line) => line.startsWith('Earlier products (2018–2023)'))).toBe(
+    expect(first.bodyLines.some((line) => line.startsWith('Earlier products (2018 – 2023)'))).toBe(
       true
     );
   });

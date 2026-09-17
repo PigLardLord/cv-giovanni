@@ -8,15 +8,15 @@ width and two phone widths, its CV selected, and the selection read. Regenerate 
 | nerd | 1280px | 0.000 | 19/19 |
 | nerd | 820px | 0.000 | 19/19 |
 | nerd | 390px | 0.000 | 19/19 |
-| nerd | 320px | 0.000 | 18/19 |
+| nerd | 320px | 0.000 | 19/19 |
 | spotlight | 1280px | 0.000 | 19/19 |
 | spotlight | 820px | 0.000 | 19/19 |
-| spotlight | 390px | 0.000 | 18/19 |
+| spotlight | 390px | 0.000 | 19/19 |
 | spotlight | 320px | 0.000 | 19/19 |
 | technical | 1280px | 0.000 | 19/19 |
 | technical | 820px | 0.000 | 19/19 |
 | technical | 390px | 0.000 | 19/19 |
-| technical | 320px | 0.000 | 18/19 |
+| technical | 320px | 0.000 | 19/19 |
 
 Checks: the CV captured whole — name, role, email and current employer; no two words the profile
 writes in sequence welded into one, and no contact detail run into the word beside it; every skill

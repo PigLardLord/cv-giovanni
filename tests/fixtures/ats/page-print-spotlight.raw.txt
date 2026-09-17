@@ -33,12 +33,13 @@ SwiftUI from its first commit, with a layered Clean Architecture and TDD
 business logic — managed configuration, server commands, Swift 6
 concurrency; decides its architecture and internal releases; led Dynamic
 Island and Live Activities; co-developed App Intents.
-ezeep Blue for iOS (2020–2023): rewrote it from scratch in SwiftUI with one
-other developer. 300k downloads since release, 15k still installed in 2026.
+ezeep Blue for iOS (2020 – 2023): rewrote it from scratch in SwiftUI with
+one other developer. 300k downloads since release, 15k still installed in
+2026.
 Cortado MDM for Android (since 2025): migrated nearly every screen to
 Jetpack Compose; in 2026 grew the suite from 1,040 to 5,308 tests and
 branch coverage from 14% to 83%, and cut summed test runtime from 37.7
-to 5.2 minutes.Earlier products (2018–2023): Workplace and Teamplace iOS clients, incl.
+to 5.2 minutes.Earlier products (2018 – 2023): Workplace and Teamplace iOS clients, incl.
 Objective-C to Swift and RxSwift to Combine migrations; an unreleased
 UIKit app with offline sync; NFCReader, sole author.
 Across products: CI/CD, signing and releases for iOS and Android (GitLab
