@@ -8,7 +8,8 @@ reviewed as German rather than translated.
 
 Ownership is strict, because every blurred line here has already produced a bug:
 
-- **i18next** owns UI strings, shared CV labels and print strings, in `locales/<lang>/`.
+- **i18next** owns UI strings and shared CV labels, in `locales/<lang>/`. The print has no strings
+  of its own, since it is the page printed (#144), and a catalogue holds only what the code reads (#190).
 - **`Intl`** owns dates, numbers, lists and durations. Never hand-format a date.
 - **The profile JSON** owns editorial content and achievements, and nothing else. A profile that
   ships dates every degree, gives every certification its issuer and the year of its current
@@ -158,6 +159,9 @@ it renders: `profiles/`, `locales/`, `renderers/`, `domain/EntryLines.js` (the l
 `design-glacier.css`, `print.css` (the PDF is the page printed through it), `vendor/fonts/`,
 `core/CvFiles.js` (the name the recruiter's inbox receives), and the cover letter's `letter.html`,
 `letter.css`, `core/LetterContent.js` and `renderers/LetterRenderer.js` (#151).
+
+`npm run audit:ats:base` reads that list, so a path added to it is one the base branch's parser is
+asked about too (#181): keep it one paragraph, directly under this heading.
 
 A ticket touching only build tooling, scripts or tests does not need it — say that it was
 skipped and why, rather than skipping it silently.
@@ -376,7 +380,7 @@ copies off the screen, and the page's controls. `npm run verify:pdf` builds, the
 ATS audits: run it before claiming the document is sound.
 
 **The CV is spelled in its locale, offline.** `tests/CvIsSpelledRight.test.js` reads every published
-profile and every catalogue of its locale (the labels, the page's words, the print's) against a
+profile and every catalogue of its locale (the labels and the page's words) against a
 pinned dictionary, British English for `en`, and names each unknown word with its JSON path.
 Spelling errors are the best-measured penalty in CV screening: five cut the probability of an
 interview invitation by 18.5 percentage points, two by 7.3 (Sterkens et al., PLOS ONE 2023, 445
@@ -401,6 +405,23 @@ floors are checked in two reading orders: poppler's, which the score is computed
 stream's (`pdftotext -raw`), which PDFBox and Tika read by default. They fail differently: on the
 two-column browser print, poppler's order kept the contacts above the career, while the content
 stream drew the skills first and the name after the first role, and lost the email (#147).
+
+**A parser change and a layout change are reviewed apart,** or the pull request shows what the base
+branch's parser recovers from the new print. `audit:ats` grades the print with the branch's own
+parser, so a change to both can pass because the grader moved: #179 first added " · 60 ECTS" after
+the Pisa school line and widened the parser to read it, and 80/80 held while `main`'s parser read
+the school as "Development", gave it no period, and in content-stream order merged both degrees into
+one (#181). CI holds every pull request to it with `npm run audit:ats:base`. The step applies when
+the change touches the parser — `core/AtsTextParser.js` and every module it imports, read from the
+imports — and what renders the CV — the paths the product review runs on, read from that paragraph
+above, and every module the renderers import. It builds the base's print in a temporary worktree,
+reads that print and the new one with the base's parser in the three orders `audit:ats` reads, each
+graded against its own profile, and fails on a field the base's parser recovered from the base's
+print and recovers less of from the new one. **The label `ats-trade-accepted` records a trade the
+owner accepted:** the losses are still reported, in the job summary, and the step passes. A change
+to one side only exits 0 and says why; a base that could not be built or read exits 2. Locally it
+compares the working tree with its merge base with `origin/main` (`--base=<ref>` names another),
+after `npm run build:pdf`.
 
 `build:pdf` and `audit:screen` need a Chrome or Chromium binary. They look for one on PATH, in the
 usual install locations and in the Playwright cache; `CHROME_PATH` overrides. When they find none
