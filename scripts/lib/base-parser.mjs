@@ -1,5 +1,3 @@
-import { RecoveryDiff } from '../../core/RecoveryDiff.js';
-
 /**
  * The rules of `npm run audit:ats:base` (#181), with no git, no browser and no file in them, so each can be shown to
  * fail.
@@ -89,18 +87,16 @@ const SECTION_NAMES = { spokenLanguages: 'languages' };
 const structure = (kept) => (kept ? 'held' : 'broken');
 
 /**
- * Every field a recovered CV was graded on, as one list in reading order: the verdicts the audit's diff gives, the
- * degree's period, which the diff does not grade, and the structure the floors and the score read, down to a role or a
- * skill category nobody wrote.
+ * Every field a recovered CV was graded on, as one list in reading order: the verdicts the audit's diff gives, and the
+ * structure the floors and the score read, down to a role or a skill category nobody wrote.
  *
- * The degree's period is graded here with the diff's own ladder because the loss #181 exists for is one: the base's
- * parser gave the Pisa programme no period on #179's first print. A degree that writes no period has none to lose.
+ * A degree's period is among the diff's verdicts: the loss #181 exists for is one, the base's parser giving the Pisa
+ * programme no period on #179's first print. This step graded it itself while the diff did not; the diff grades it
+ * since #200, and a degree that prints no period carries no verdict, so it has none to lose.
  * @param {Object} diff - A RecoveryDiff result
- * @param {Object} document - The CvDocument it was graded against
- * @param {Object} recovered - The RecoveredCv it graded
  * @returns {{ key: string, label: string, verdict: string, written: *, recovered: * }[]} One entry a field
  */
-export function fieldVerdicts(diff, document, recovered) {
+export function fieldVerdicts(diff) {
   const fields = [];
   const evidence = (path) => diff.evidence?.[path] ?? { written: null, recovered: null };
   const add = (key, label, verdict, values = evidence(key)) =>
@@ -145,14 +141,7 @@ export function fieldVerdicts(diff, document, recovered) {
   add('chronology', 'chronology', structure(diff.roleOrderMonotonic), {});
 
   entries('education', (degree, index, at) => {
-    graded(degree, 'degree', at);
-    graded(degree, 'school', at);
-    const written = document.education?.[index]?.period;
-    if (written !== null && written !== undefined && String(written).trim()) {
-      const got = recovered.education?.[index]?.period ?? null;
-      const { key, label } = at('period');
-      add(key, label, RecoveryDiff.verdict(String(written), got), { written, recovered: got });
-    }
+    for (const name of ['degree', 'school', 'period']) graded(degree, name, at);
     const { key } = at('together');
     add(key, `education ${index + 1}, degree beside its school`, structure(degree.adjacent), {});
   });
