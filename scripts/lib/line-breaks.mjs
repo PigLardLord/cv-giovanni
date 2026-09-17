@@ -21,9 +21,13 @@ const MEASURE_TOLERANCE = 0.5;
 
 /**
  * Every visible character of the CV, from the first bound to the last, in the page's order: the box Chrome drew it
- * in, and the room of the line it sits on — the content width of the block its line boxes fill. Text the page hides,
- * with `visibility` or clipped to a pixel the way text for a screen reader is, is left out. A space in a drawn element
- * is kept even with no box: Chrome gives none to a space a line broke at when it is a text node of its own.
+ * in, the room of the line it sits on — the content width of the block its line boxes fill — and the edges of its
+ * column. The column is the narrowest content box around the line: its own block's, where a first line's hanging
+ * indent belongs to it, and each block's it sits in, since a box sized to what it holds grows past its column with
+ * text that cannot wrap and keeps that text inside itself (#198). A box placed with absolute or fixed positioning is
+ * put there on purpose, and is a column of its own. Text the page hides, with `visibility` or clipped to a pixel the
+ * way text for a screen reader is, is left out. A space in a drawn element is kept even with no box: Chrome gives none
+ * to a space a line broke at when it is a text node of its own.
  * @param {string} start - Selector of the CV's first element, as the audit's bounds name it
  * @param {string} end - Selector of its last
  * @returns {string} An expression for the page, resolving to the glyphs, or null when a bound is missing
@@ -35,19 +39,31 @@ export const renderedGlyphs = (start, end) => `(() => {
   const bounds = document.createRange();
   bounds.setStartBefore(first);
   bounds.setEndAfter(last);
-  const rooms = new Map();
-  const roomOf = (element) => {
+  const flowing = (element) => ['inline', 'contents'].includes(getComputedStyle(element).display);
+  const content = (element) => {
+    const style = getComputedStyle(element);
+    const inset = (side) => (parseFloat(style['padding' + side]) || 0) + (parseFloat(style['border' + side + 'Width']) || 0);
+    const drawn = element.getBoundingClientRect();
+    return { style, left: drawn.left + scrollX + inset('Left'), right: drawn.right + scrollX - inset('Right') };
+  };
+  const places = new Map();
+  const placeOf = (element) => {
     let holder = element;
-    while (holder.parentElement && ['inline', 'contents'].includes(getComputedStyle(holder).display)) {
-      holder = holder.parentElement;
+    while (holder.parentElement && flowing(holder)) holder = holder.parentElement;
+    if (!places.has(holder)) {
+      const own = content(holder);
+      const indent = own.style.textIndent.endsWith('px') ? Math.min(0, parseFloat(own.style.textIndent)) : 0;
+      const column = { left: own.left + indent, right: own.right };
+      for (let box = holder; box.parentElement && !['absolute', 'fixed'].includes(getComputedStyle(box).position); ) {
+        box = box.parentElement;
+        if (flowing(box)) continue;
+        const around = content(box);
+        column.left = Math.max(column.left, around.left);
+        column.right = Math.min(column.right, around.right);
+      }
+      places.set(holder, { room: own.right - own.left, column });
     }
-    if (!rooms.has(holder)) {
-      const style = getComputedStyle(holder);
-      const inset = ['paddingLeft', 'paddingRight', 'borderLeftWidth', 'borderRightWidth']
-        .reduce((sum, side) => sum + (parseFloat(style[side]) || 0), 0);
-      rooms.set(holder, holder.getBoundingClientRect().width - inset);
-    }
-    return rooms.get(holder);
+    return places.get(holder);
   };
   const glyphs = [];
   const piece = document.createRange();
@@ -58,7 +74,7 @@ export const renderedGlyphs = (start, end) => `(() => {
     if (getComputedStyle(parent).visibility !== 'visible') continue;
     const drawn = parent.getBoundingClientRect();
     if (drawn.width <= 1 && drawn.height <= 1) continue;
-    const room = roomOf(parent);
+    const { room, column } = placeOf(parent);
     const shown = parent.getClientRects().length > 0;
     const text = node.data;
     for (let index = 0; index < text.length; ) {
@@ -73,10 +89,11 @@ export const renderedGlyphs = (start, end) => `(() => {
           bottom: box.bottom + scrollY,
           left: box.left + scrollX,
           right: box.right + scrollX,
-          room
+          room,
+          column
         });
       } else if (shown && /^\\s+$/.test(text.slice(index, index + size))) {
-        glyphs.push({ text: text.slice(index, index + size), top: null, bottom: null, left: null, right: null, room });
+        glyphs.push({ text: text.slice(index, index + size), top: null, bottom: null, left: null, right: null, room, column });
       }
       index += size;
     }

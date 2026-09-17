@@ -361,7 +361,7 @@ describe('the glyphs the audit collects from the page', () => {
     restore(Element.prototype, 'getBoundingClientRect', originals.box);
   });
 
-  test('are every visible character from the first bound to the last, each with the room of its line', () => {
+  test('are every visible character from the first bound to the last, each with the room and column of its line', () => {
     const glyphs = window.eval(renderedGlyphs('#start', '#end'));
 
     expect(
@@ -370,8 +370,53 @@ describe('the glyphs the audit collects from the page', () => {
         .join('')
         .replace(/\s+/g, ' ')
     ).toBe('Giovanni Pisa');
-    expect(glyphs[0]).toEqual({ text: 'G', top: 0, bottom: 16, left: 0, right: 8, room: 300 });
-    expect(glyphs.at(-1).room).toBe(280);
+    expect(glyphs[0]).toEqual({
+      text: 'G',
+      top: 0,
+      bottom: 16,
+      left: 0,
+      right: 8,
+      room: 300,
+      column: { left: 0, right: 300 }
+    });
+    expect(glyphs.at(-1)).toMatchObject({ room: 280, column: { left: 10, right: 290 } });
+  });
+
+  // Every box here is 300px wide, so the inner block is drawn across its parent's padding: a box sized to what it holds
+  // — an inline-block, a flex item — grows past its column with a period that cannot wrap, and the period stays inside
+  // the box. Technical's role dates are one, at 320px (#198).
+  test('take as a column the narrowest content box around the line: its own block and each block it sits in', () => {
+    document.getElementById('room').innerHTML = '<div style="padding-right: 20px">Pisa</div>';
+    const [glyph] = window.eval(renderedGlyphs('#room', '#room'));
+
+    expect(glyph).toMatchObject({ room: 280, column: { left: 10, right: 280 } });
+  });
+
+  // A link around a block draws a box per line of what it holds, not a column. JSDOM computes no display for a span, so
+  // the span says it.
+  test('take no column from an inline box the block sits in', () => {
+    document.getElementById('room').innerHTML =
+      '<span style="display: inline; padding: 0 40px"><div>Pisa</div></span>';
+    const [glyph] = window.eval(renderedGlyphs('#room', '#room'));
+
+    expect(glyph.column).toEqual({ left: 10, right: 290 });
+  });
+
+  // Nerd Mode's editor hangs the first row of each line an indent to the left of the rows it wraps onto.
+  test("take a first line's hanging indent into its column", () => {
+    document.getElementById('room').innerHTML =
+      '<div style="padding-left: 30px; text-indent: -12px">Pisa</div>';
+    const [glyph] = window.eval(renderedGlyphs('#room', '#room'));
+
+    expect(glyph.column).toEqual({ left: 18, right: 290 });
+  });
+
+  test('take a box placed with absolute or fixed positioning as a column of its own', () => {
+    document.getElementById('room').innerHTML =
+      '<div style="position: absolute">Pisa</div><div style="position: fixed">Pisa</div>';
+    const glyphs = window.eval(renderedGlyphs('#room', '#room'));
+
+    expect(glyphs.map((glyph) => glyph.column)).toEqual(Array(8).fill({ left: 0, right: 300 }));
   });
 
   test('keep a space with no box, where its element is drawn, and leave out one whose element is not', () => {
@@ -386,7 +431,8 @@ describe('the glyphs the audit collects from the page', () => {
       bottom: null,
       left: null,
       right: null,
-      room: 280
+      room: 280,
+      column: { left: 10, right: 290 }
     });
   });
 
