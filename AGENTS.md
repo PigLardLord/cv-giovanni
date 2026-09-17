@@ -10,7 +10,16 @@ Ownership is strict, because every blurred line here has already produced a bug:
 
 - **i18next** owns UI strings, shared CV labels and print strings, in `locales/<lang>/`.
 - **`Intl`** owns dates, numbers, lists and durations. Never hand-format a date.
-- **The profile JSON** owns editorial content and achievements, and nothing else.
+- **The profile JSON** owns editorial content and achievements, and nothing else. A profile that
+  ships dates every degree, gives every certification its issuer and the year of its current
+  validity, and gives every role a location or none. The shape leaves those fields optional, so
+  the editor saves a profile without them and the page prints it without stray punctuation; but
+  an undated degree is lost to a parser reading in drawing order, a certificate without a year
+  cannot be told current from lapsed, one without an issuer names nobody who awarded it, and one
+  role without a place reads unlike neighbours that name theirs. So `npm run build:pdf` warns about
+  each one left out and still writes the PDFs (`core/ProfileCompleteness.js`), and
+  `npm run audit:print` fails a page that prints what an empty field leaves behind: `()`,
+  `undefined`, a header ending on its separator (#178).
 - **URL state wins** over a saved preference, which wins over the browser's, which wins over
   English.
 - **An unsupported combination fails visibly, when someone asked for it.** A `?lang=` or `?profile=` the
