@@ -481,4 +481,80 @@ describe('an entry is matched to the one written by what it says, not by where i
       expect(diff.unexpected.roles).toBe(0);
     });
   });
+
+  describe('a certification, by the line it prints', () => {
+    const scrum = { name: 'Professional Scrum Master I', issuer: 'Scrum.org', year: 2020 };
+    const android = 'Android Enterprise Expert (incl. Associate, Professional) – Google (2026)';
+    const ios = 'iOS Lead Essentials (TDD, Clean Architecture) – Essential Developer (2024)';
+
+    test('a parse that drops the first of three loses that one, and the other two come back whole', () => {
+      const three = { ...profile, certifications: [scrum, ...profile.certifications] };
+      const diff = diffOfText(nerd, three);
+
+      expect(diff.certifications).toEqual([{ name: 'lost' }, { name: 'exact' }, { name: 'exact' }]);
+      expect(RecoveryDiff.losses(diff)).toEqual([
+        {
+          path: ['certifications', 0, 'name'],
+          verdict: 'lost',
+          written: 'Professional Scrum Master I – Scrum.org (2020)',
+          recovered: null
+        }
+      ]);
+    });
+
+    test('certifications printed in another order come back whole', () => {
+      const reordered = nerd.replace(`${android}\n${ios}`, `${ios}\n${android}`);
+
+      expect(reordered).not.toBe(nerd);
+      expect(diffOfText(reordered, profile).certifications).toEqual([
+        { name: 'exact' },
+        { name: 'exact' }
+      ]);
+    });
+  });
+
+  describe('a spoken language, by its name', () => {
+    const whole = { name: 'exact', level: 'exact' };
+
+    test('a parse that drops the first of three loses that one, and the other two come back whole', () => {
+      const diff = diffOfText(nerd.replace('Italian: Native\n', ''), profile);
+
+      expect(diff.spokenLanguages).toEqual([{ name: 'lost', level: 'lost' }, whole, whole]);
+      expect(diff.evidence['spokenLanguages.0.name']).toEqual({
+        written: 'Italian',
+        recovered: null
+      });
+    });
+
+    test('languages printed in another order come back whole', () => {
+      const italian = 'Italian: Native\n';
+      const english = 'English: C1 — professional working proficiency\n';
+      const reordered = nerd.replace(`${italian}${english}`, `${english}${italian}`);
+
+      expect(reordered).not.toBe(nerd);
+      expect(diffOfText(reordered, profile).spokenLanguages).toEqual([whole, whole, whole]);
+    });
+  });
+
+  // Categories were already found by their label. Each recovered category now answers for one written category only,
+  // and is not also a piece of another that came back torn.
+  describe('a skill category, by its label', () => {
+    test('a category written twice and printed once is recovered once, and the other is lost', () => {
+      const twice = {
+        ...profile,
+        skills: [...profile.skills, { category: 'iOS', items: [{ name: 'Objective-C' }] }]
+      };
+      const diff = diffOfText(nerd, twice);
+
+      expect(diff.skills.map((group) => group.category)).toEqual([
+        'exact',
+        'exact',
+        'exact',
+        'exact',
+        'lost'
+      ]);
+      expect(diff.skills[0].attached).toBe(true);
+      expect(diff.skills[4]).toEqual({ category: 'lost', attached: false, lost: ['Objective-C'] });
+    });
+  });
 });

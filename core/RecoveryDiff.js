@@ -365,19 +365,29 @@ export class RecoveryDiff {
     });
   }
 
-  /** Per category: the label, whether its own items came back, and whether they stayed with it. */
+  /**
+   * Per category: the label, whether its own items came back, and whether they stayed with it.
+   *
+   * A category is matched by its label, whole: a label recovered in part is a category torn in two, and its pieces are
+   * graded as such. Each recovered category answers for one written category (#217), and is not also a piece of
+   * another.
+   */
   static skills(document, recovered, { grade, keep }) {
+    const { matched, unmatched } = RecoveryDiff.match(
+      document.skills,
+      recovered.skills,
+      (group, candidate) => {
+        const verdict = RecoveryDiff.verdict(group.category, candidate.category, 'skill');
+        return [verdict === 'exact' || verdict === 'normalised' ? LIKENESS[verdict] : 0];
+      }
+    );
     return document.skills.map((group, index) => {
       const at = ['skills', index, 'category'];
-      const match = recovered.skills.find(
-        (candidate) =>
-          candidate.category &&
-          NORMALISE.skill(candidate.category) === NORMALISE.skill(group.category)
-      );
+      const match = matched[index];
       const items = (group.items || []).map((item) => item.name);
       const recoveredItems = (match?.items || []).map((item) => NORMALISE.skill(item));
       // A category that came back torn: half of it is a category, and the label is `partial`.
-      const torn = match ? [] : RecoveryDiff.tornPieces(group.category, recovered);
+      const torn = match ? [] : RecoveryDiff.tornPieces(group.category, unmatched);
       return {
         category: match
           ? grade(at, group.category, match.category, 'skill')
@@ -393,12 +403,13 @@ export class RecoveryDiff {
   /**
    * The recovered categories a written one was torn into: each a whole-word run of it, or it of them.
    * @param {string} category - The category as written
-   * @param {Object} recovered - A RecoveredCv
+   * @param {Object[]} candidates - The recovered categories no written one was matched to: one that was is that one's
+   *   category, not a piece of another
    * @returns {string[]} The pieces, as they came back; none when nothing of it did
    */
-  static tornPieces(category, recovered) {
+  static tornPieces(category, candidates) {
     const normalised = NORMALISE.skill(category);
-    return recovered.skills
+    return candidates
       .filter(
         (candidate) =>
           candidate.category && overlaps(normalised, NORMALISE.skill(candidate.category))
@@ -406,10 +417,19 @@ export class RecoveryDiff {
       .map((candidate) => candidate.category);
   }
 
-  /** Per language: the name, and the level as written. A level is never inferred. */
+  /**
+   * Per language: the name, and the level as written. A level is never inferred.
+   *
+   * A language is matched by its name (#217): the level a parser recovered beside it is the one graded.
+   */
   static spokenLanguages(document, recovered, { grade }) {
+    const { matched } = RecoveryDiff.match(
+      document.languages,
+      recovered.spokenLanguages,
+      (language, entry) => [like(language.name, entry.name || null)]
+    );
     return document.languages.map((language, index) => {
-      const entry = recovered.spokenLanguages[index];
+      const entry = matched[index];
       return {
         name: grade(['spokenLanguages', index, 'name'], language.name, entry?.name || null),
         level: grade(['spokenLanguages', index, 'level'], language.level, entry?.level || null)
@@ -419,17 +439,24 @@ export class RecoveryDiff {
 
   /**
    * Per certification: its line, compared as the page prints it — the name, then " – issuer" and " (year)" when it has
-   * them, from `certificationLine` (#169) — against the line recovered in the same place.
+   * them, from `certificationLine` (#169) — against the recovered line that says the most of it (#217).
    *
    * Graded so a loss is named, and weighed nowhere: the fidelity band's parts were set before certifications were
    * compared, and giving them weight is a decision of its own (#186).
    */
   static certifications(document, recovered, { grade }) {
+    const printed = (certification) =>
+      `${String(certification.name ?? '')}${certificationLine(certification).join('')}`;
+    const { matched } = RecoveryDiff.match(
+      document.certifications,
+      recovered.certifications,
+      (certification, entry) => [like(printed(certification), entry.text || null)]
+    );
     return document.certifications.map((certification, index) => ({
       name: grade(
         ['certifications', index, 'name'],
-        `${String(certification.name ?? '')}${certificationLine(certification).join('')}`,
-        recovered.certifications[index]?.text || null
+        printed(certification),
+        matched[index]?.text || null
       )
     }));
   }
