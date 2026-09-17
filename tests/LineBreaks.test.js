@@ -1,13 +1,16 @@
 import {
+  CLOSING_SYNTAX,
   DASHES,
   SEPARATORS,
+  closingSyntax,
   columnOverflow,
   lineBoxes,
   lineBreaks,
   pageWidth,
   renderedGlyphs
 } from '../scripts/lib/line-breaks.mjs';
-import { DASH_GLYPHS, SEPARATOR_GLYPHS } from '../renderers/inlineSeparator.js';
+import { DASH_GLYPHS, SEPARATOR_GLYPHS } from '../domain/Separators.js';
+import { CLOSING_MARKS } from '../adapters/SwiftSourceLayout.js';
 
 /**
  * A run of text as Chrome lays it out on one line box: a rectangle per character, spaces narrower than letters, from
@@ -185,6 +188,59 @@ describe('a line break that strands a separator or splits a period', () => {
       expect(lineBreaks(glyphs, { period: 'May 2015 – August 2015' }).checks.periodsWhole).toBe(
         false
       );
+    });
+
+    // Nerd Mode's editor holds a literal's quotes and comma to its value (#219): "September 2015 – August 2018" is 208px
+    // here, 224px with the `",` after it, and 232px with the `"` before it too, which a row of 228px cannot hold.
+    describe('with the syntax drawn against it', () => {
+      const planted = { period: 'September 2015 – August 2018' };
+      const glyphs = [
+        ...run('September 2015 –', { left: 8, room: 228 }),
+        { text: ' ', top: null, bottom: null, left: null, right: null, room: 228 },
+        ...run('August 2018', { top: 20, room: 228 })
+      ];
+      const piece = (text, after, top, left) => ({
+        text,
+        top,
+        bottom: top + 16,
+        left,
+        right: left + [...text].length * 8,
+        after
+      });
+
+      test('counts the syntax flush against either end as part of its width', () => {
+        const syntax = [piece('"', 0, 0, 0), piece('"', 28, 20, 84), piece(',', 28, 20, 92)];
+
+        expect(lineBreaks(glyphs, planted).checks.periodsWhole).toBe(false);
+        expect(lineBreaks(glyphs, planted, syntax).checks).toEqual({
+          separatorsHeld: true,
+          periodsWhole: true
+        });
+      });
+
+      test('leaves out syntax a space parts from either end', () => {
+        const syntax = [
+          piece('period:', 0, 0, -64),
+          piece('"', 0, 0, 0),
+          piece('"', 28, 20, 88),
+          piece(',', 28, 20, 96)
+        ];
+
+        expect(lineBreaks(glyphs, planted, syntax).checks.periodsWhole).toBe(false);
+      });
+
+      test('leaves out syntax on another row than either end', () => {
+        const closed = [piece('"', 28, 20, 84), piece(',', 28, 20, 92)];
+        const opened = [piece('"', 0, 0, 0)];
+
+        expect(
+          lineBreaks(glyphs, planted, [piece('"', 0, -20, 0), ...closed]).checks.periodsWhole
+        ).toBe(false);
+        expect(
+          lineBreaks(glyphs, planted, [...opened, piece('"', 28, 40, 84), piece(',', 28, 40, 92)])
+            .checks.periodsWhole
+        ).toBe(false);
+      });
     });
 
     test('never breaks before its dash', () => {
@@ -453,6 +509,235 @@ describe('text that runs past its column, or a page that scrolls sideways', () =
   });
 });
 
+// Nerd Mode's editor lets a line break anywhere, the drawn syntax included, so a row could open with a lone `",`: at
+// 320px the period "September 2015 – August 2018" left its `",` a row of its own, and the published CV's LinkedIn
+// address its `),`. No check saw either, since the syntax has no glyphs (#219).
+describe('closing syntax that opens a row the editor wrapped onto', () => {
+  /** Text on a row of a block, 8px a letter and 4px a space, from `left`. */
+  const text = (value, { row = 0, left = 0, block = 0 } = {}) =>
+    run(value, { top: row * 20, left }).map((glyph) => ({ ...glyph, block }));
+  /** A piece of syntax on a row of a block, drawn after the `after`th glyph, 8px a character. */
+  const drawn = (value, after, { row = 0, left = 0, block = 0 } = {}) => ({
+    text: value,
+    top: row * 20,
+    bottom: row * 20 + 16,
+    left,
+    right: left + [...value].length * 8,
+    column: { left: 0, right: 400 },
+    block,
+    after
+  });
+  // "September 2015 – July 2018" is 192px from 8px, and "September 2015 – August 2018" 208px.
+  const period = (value, closing) => ({
+    glyphs: text(value, { left: 8 }),
+    syntax: [drawn('"', 0), ...closing([...value].length, 8 + (value.includes('July') ? 192 : 208))]
+  });
+
+  test('syntax that closes a value on the value’s row passes', () => {
+    const { checks, findings } = closingSyntax(
+      period('September 2015 – July 2018', (after, left) => [
+        drawn('"', after, { left }),
+        drawn(',', after, { left: left + 8 })
+      ])
+    );
+
+    expect(checks).toEqual({ closingSyntaxHeld: true });
+    expect(findings).toEqual({ strandedSyntax: [] });
+  });
+
+  test('closing syntax that opens the next row fails, named as one run by the line it closes', () => {
+    const { checks, findings } = closingSyntax(
+      period('September 2015 – August 2018', (after) => [
+        drawn('"', after, { row: 1 }),
+        drawn(',', after, { row: 1, left: 8 })
+      ])
+    );
+
+    expect(checks.closingSyntaxHeld).toBe(false);
+    expect(findings.strandedSyntax).toEqual([
+      '“",” opens a row after “September 2015 – August 2018”'
+    ]);
+  });
+
+  // The published CV at 320px, before #219.
+  test.each([
+    [[')', ','], '“),” opens a row after “linkedin.com/in/piglardlord”'],
+    [[','], '“,” opens a row after “linkedin.com/in/piglardlord”'],
+    [[']'], '“]” opens a row after “linkedin.com/in/piglardlord”']
+  ])('%j after a closing quote opens a row and fails', (marks, finding) => {
+    const glyphs = text('linkedin.com/in/piglardlord', { left: 8 });
+    const syntax = [
+      drawn('"', 0),
+      drawn('"', 27, { left: 216 }),
+      ...marks.map((mark, index) => drawn(mark, 27, { row: 1, left: index * 8 }))
+    ];
+
+    expect(closingSyntax({ glyphs, syntax }).findings.strandedSyntax).toEqual([finding]);
+  });
+
+  test('closing syntax that follows the last word of its value onto the next row passes', () => {
+    const glyphs = [...text('linkedin.com/in/', { left: 8 }), ...text('piglardlord', { row: 1 })];
+    const syntax = [
+      drawn('"', 0),
+      drawn('"', 27, { row: 1, left: 88 }),
+      drawn(')', 27, { row: 1, left: 96 }),
+      drawn(',', 27, { row: 1, left: 104 })
+    ];
+
+    expect(closingSyntax({ glyphs, syntax }).checks.closingSyntaxHeld).toBe(true);
+  });
+
+  // `period:` / `"August 2018 – Present",`: the value moved down whole, with the quote that opens it.
+  test('a quote that opens a value may open a row', () => {
+    const glyphs = text('August 2018 – Present', { row: 1, left: 8 });
+    const syntax = [drawn('period:', 0), drawn('"', 0, { row: 1 }), drawn('"', 21, { row: 1 })];
+    syntax[2].left = 176;
+    syntax[2].right = 184;
+
+    expect(closingSyntax({ glyphs, syntax }).checks.closingSyntaxHeld).toBe(true);
+  });
+
+  // Swift draws every quote that delimits a literal, and writes one inside a literal as text after a drawn backslash.
+  test('a quote closes when an odd number of quotes come before it on its line', () => {
+    const skills = (separator, rows) => ({
+      glyphs: [...text('Swift', { left: 16 }), ...text(', ', separator)],
+      syntax: [drawn('[', 0), drawn('"', 0, { left: 8 }), ...rows]
+    });
+    // `["Swift", ` / `"SwiftUI"`, and `["Swift` / `", `.
+    const opening = skills({ left: 64 }, [drawn('"', 5, { left: 56 }), drawn('"', 7, { row: 1 })]);
+    const closing = skills({ row: 1, left: 8 }, [drawn('"', 5, { row: 1 })]);
+
+    expect(closingSyntax(opening).checks.closingSyntaxHeld).toBe(true);
+    expect(closingSyntax(closing).findings.strandedSyntax).toEqual([
+      '“"” opens a row after “Swift”'
+    ]);
+  });
+
+  // `ContactCard` / `())`, as two pieces: the parenthesis that closes follows the one that opens, on its own row.
+  test('closing syntax after other syntax on its row passes, whatever row the text before it is on', () => {
+    const glyphs = text('ContactCard');
+    const syntax = [drawn('(', 11, { row: 1 }), drawn(')', 11, { row: 1, left: 8 })];
+
+    expect(closingSyntax({ glyphs, syntax }).checks.closingSyntaxHeld).toBe(true);
+  });
+
+  test('closing syntax that opens a line of its own passes', () => {
+    const glyphs = text('Hilt', { left: 8 });
+    const syntax = [
+      drawn('"', 0),
+      drawn('"', 4, { left: 40 }),
+      drawn(']', 4, { row: 1, block: 1 })
+    ];
+
+    expect(closingSyntax({ glyphs, syntax }).checks.closingSyntaxHeld).toBe(true);
+  });
+
+  // `let impact: [String` / `]`: nothing of the line is text, and the text before it belongs to another line.
+  test('closing syntax with no text of its line before it is named by itself', () => {
+    const glyphs = text('Profile');
+    const syntax = [
+      drawn('[', 7, { row: 1, block: 1 }),
+      drawn('String', 7, { row: 1, left: 8, block: 1 }),
+      drawn(']', 7, { row: 2, block: 1 })
+    ];
+
+    expect(closingSyntax({ glyphs, syntax }).findings.strandedSyntax).toEqual(['“]” opens a row']);
+  });
+
+  test('every run is named in the order the page writes it, and text on its row ends it', () => {
+    const glyphs = [...text('Swift', { left: 8 }), ...text(', x', { row: 1, left: 16 })];
+    const syntax = [
+      drawn('"', 0),
+      drawn('"', 5, { row: 1 }),
+      drawn(')', 5, { row: 1, left: 8 }),
+      drawn(']', 8, { row: 1, left: 40 }),
+      drawn(',', 8, { row: 2 })
+    ];
+
+    expect(closingSyntax({ glyphs, syntax }).findings.strandedSyntax).toEqual([
+      '“")” opens a row after “Swift”',
+      '“,” opens a row after “, x”'
+    ]);
+  });
+
+  // The code review of #223, at 320px: a highlight ending in a quote of its own, `…calls \"NightingaleMigrationToolX\"`,
+  // left `\""` a row of its own. The row opened with a drawn escape and the quote it escapes, which is text, so no
+  // piece of syntax opened it.
+  describe('with the escaped character a value ends in', () => {
+    // `"calls \"NightingaleMigrationToolX` on one row, from 8px: the escape at 56px and the quote it escapes at 64px.
+    const escaped = (row) => ({
+      glyphs: [
+        ...text('calls ', { left: 8 }),
+        ...text('"NightingaleMigrationToolX', { left: 64 }),
+        ...text('"', { row: 1, left: 8 })
+      ],
+      syntax: [drawn('"', 0), drawn('\\', 6, { left: 56 }), ...row]
+    });
+
+    test('a row it opens with the syntax that closes the value fails, named as one run', () => {
+      const { checks, findings } = closingSyntax(
+        escaped([drawn('\\', 32, { row: 1 }), drawn('"', 33, { row: 1, left: 16 })])
+      );
+
+      expect(checks.closingSyntaxHeld).toBe(false);
+      expect(findings.strandedSyntax).toEqual([
+        '“\\""” opens a row after “calls "NightingaleMigrationToolX”'
+      ]);
+    });
+
+    test('a row it opens without its escape fails too, and so does a bracket a value ends in', () => {
+      const { glyphs } = escaped([]);
+      const quote = { glyphs, syntax: [drawn('"', 0), drawn('"', 33, { row: 1, left: 16 })] };
+      const bracket = {
+        glyphs: [...text('Owned CI (all', { left: 8 }), ...text(')', { row: 1 })],
+        syntax: [
+          drawn('"', 0),
+          drawn('"', 14, { row: 1, left: 8 }),
+          drawn(',', 14, { row: 1, left: 16 })
+        ]
+      };
+
+      expect(closingSyntax(quote).findings.strandedSyntax).toEqual([
+        '“""” opens a row after “calls "NightingaleMigrationToolX”'
+      ]);
+      expect(closingSyntax(bracket).findings.strandedSyntax).toEqual([
+        '“)",” opens a row after “Owned CI (all”'
+      ]);
+    });
+
+    test('a row where a letter or a digit comes before it passes', () => {
+      const glyphs = [
+        ...text('calls ', { left: 8 }),
+        ...text('"Nightingale', { left: 64 }),
+        ...text('ToolX"', { row: 1 })
+      ];
+      const syntax = [
+        drawn('"', 0),
+        drawn('\\', 6, { left: 56 }),
+        drawn('\\', 23, { row: 1, left: 40 }),
+        drawn('"', 24, { row: 1, left: 56 })
+      ];
+      glyphs.at(-1).left = 48;
+      glyphs.at(-1).right = 56;
+
+      expect(closingSyntax({ glyphs, syntax }).checks.closingSyntaxHeld).toBe(true);
+    });
+
+    // `let languages:` / `KeyValuePairs<String, String> = [` at 320px: the comma follows other syntax, not an escape.
+    test('a row where syntax other than an escape comes before it passes', () => {
+      const glyphs = text('languages');
+      const syntax = [
+        drawn('KeyValuePairs', 9, { row: 1 }),
+        drawn('<', 9, { row: 1, left: 104 }),
+        drawn('String', 9, { row: 1, left: 112 }),
+        drawn(',', 9, { row: 1, left: 160 })
+      ];
+
+      expect(closingSyntax({ glyphs, syntax }).checks.closingSyntaxHeld).toBe(true);
+    });
+  });
+});
+
 // The collector runs in the page, where no unit test reaches it, so here it runs in JSDOM, which lays nothing out:
 // each range and element reports the box a stand-in gives it. Compiled and never run, a collector reading the wrong
 // region would pass.
@@ -514,7 +799,8 @@ describe('the glyphs the audit collects from the page', () => {
       left: 0,
       right: 8,
       room: 300,
-      column: { left: 0, right: 300 }
+      column: { left: 0, right: 300 },
+      block: 0
     });
     expect(glyphs.at(-1)).toMatchObject({ room: 280, column: { left: 10, right: 290 } });
   });
@@ -595,12 +881,31 @@ describe('the glyphs the audit collects from the page', () => {
       left: null,
       right: null,
       room: 280,
-      column: { left: 10, right: 290 }
+      column: { left: 10, right: 290 },
+      block: 0
     });
   });
 
   test('are null when a bound is missing', () => {
     expect(window.eval(renderedGlyphs('#start', '#nowhere'))).toBeNull();
+  });
+
+  // Nerd Mode's editor writes a line of the file as one block, and a row that block wraps onto is not a line of its
+  // own: a `]` that opens a line closes nothing on the line above it (#219).
+  test('number the block each is laid in, the same for every box inside it and apart from the next', () => {
+    document.getElementById('room').innerHTML =
+      '<div>Pi<span style="display: inline">sa</span></div><div>Livorno</div>';
+    const { glyphs } = window.eval(renderedGlyphs('#start', '#end'));
+
+    const letters = glyphs.filter((glyph) => glyph.text.trim());
+    const [name, pisa, livorno] = [0, 8, 12].map((index) => letters[index].block);
+
+    expect(new Set([name, pisa, livorno]).size).toBe(3);
+    expect(letters.map((glyph) => [glyph.text, glyph.block])).toEqual([
+      ...[...'Giovanni'].map((letter) => [letter, name]),
+      ...[...'Pisa'].map((letter) => [letter, pisa]),
+      ...[...'Livorno'].map((letter) => [letter, livorno])
+    ]);
   });
 
   // Nerd Mode's quotes, commas and brackets are empty elements whose `data-code` the stylesheet draws with `::before`
@@ -645,8 +950,10 @@ describe('the glyphs the audit collects from the page', () => {
     });
 
     test('are each piece of it, with its box, its column and how many glyphs come before it', () => {
+      // JSDOM computes no display for a span, so each says it is inline, as Chrome lays it out.
       document.getElementById('room').innerHTML =
-        'Pisa<span data-code="&quot;"></span><span data-code=","></span>';
+        'Pisa<span style="display: inline" data-code="&quot;"></span>' +
+        '<span style="display: inline" data-code=","></span>';
       const [quote, comma] = document.querySelectorAll('[data-code]');
       drawnIn(quote, [32, 40]);
       drawnIn(comma, [40, 48]);
@@ -661,6 +968,7 @@ describe('the glyphs the audit collects from the page', () => {
           left: 32,
           right: 40,
           column: { left: 10, right: 290 },
+          block: 0,
           after: 4
         },
         {
@@ -670,6 +978,7 @@ describe('the glyphs the audit collects from the page', () => {
           left: 40,
           right: 48,
           column: { left: 10, right: 290 },
+          block: 0,
           after: 4
         }
       ]);
@@ -745,5 +1054,10 @@ describe('the glyphs the check knows', () => {
   test('are the separators and dashes the renderers hold', () => {
     expect(SEPARATORS).toBe(SEPARATOR_GLYPHS);
     expect(DASHES).toBe(DASH_GLYPHS);
+  });
+
+  // The same for the syntax Nerd Mode's file holds to the literal it closes (#219).
+  test('are the closing marks the Swift file holds to its literals', () => {
+    expect(CLOSING_SYNTAX).toBe(CLOSING_MARKS);
   });
 });

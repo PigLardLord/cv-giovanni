@@ -17,7 +17,11 @@
  *   break — also carries `parts`: the text as the data wrote it, with each escape as syntax
  *   before the character it escapes. A line break or a tab is `unseen`: kept in the text, so a
  *   copy does not weld the words around it, and out of sight, where its `\n` is drawn (#160).
- *   A period is `whole`: one piece, which the editor never wraps inside (#180).
+ *   A period is `whole`: the editor never wraps inside either of its ends, and parts them after
+ *   the dash only where no row holds the period with its quotes and its comma (#180, #219).
+ * - `{ code, closes }` is syntax that closes the literal before it — its quote, and the comma,
+ *   parenthesis or bracket after that — which the editor never parts from the literal's last word
+ *   (#219).
  *
  * So the page can look like source code without a word of Swift reaching anything that reads the
  * document, which is the rule `AGENTS.md` sets for every visual device here: removing the
@@ -36,6 +40,7 @@
 import { readableAddress } from '../domain/ReadableUrl.js';
 import { tenureText } from '../domain/Tenure.js';
 import { scopeText } from '../domain/EntryLines.js';
+import { SEPARATOR_GLYPHS, periodEnds } from '../domain/Separators.js';
 
 /**
  * Who the candidate is comes first, then the evidence — experience before skills — and last how
@@ -61,6 +66,113 @@ const LABELS = {
 
 /** A phone screen has room for four buttons across; a fifth would wrap into a second row. */
 const CARD_ACTIONS = 4;
+
+/**
+ * The marks syntax that closes a literal begins with: its closing quote, and the comma, parenthesis or bracket written
+ * after it. The screen audit fails a row of the editor that opens with one, and reads this list rather than one of its
+ * own (#219).
+ */
+export const CLOSING_MARKS = Object.freeze(['"', ',', ')', ']']);
+
+/** A literal a line of the file writes: a string's or a number's content, not the punctuation between two words. */
+const LITERALS = ['string', 'number'];
+
+/**
+ * Where a line of the editor may break inside a value: after a space, a slash or a hyphen, or after a separator with
+ * the spaces around it. A space beside a separator is no such place, since the page holds a separator to the words
+ * either side of it (#180).
+ */
+const BREAKS = new RegExp(`\\s*[${SEPARATOR_GLYPHS.join('')}]\\s*|\\s+|[/-]+`, 'gu');
+
+/**
+ * Where the parts a value's closing syntax holds begin (#219).
+ *
+ * A line breaks before a word a space precedes wherever the word fits a row, so there the syntax holds only the word's
+ * last letter or digit and what follows it: a row never opens without one, and a word too long for any row breaks
+ * inside rather than run past the editor. Held whole, the code review of #223's `\"NightingaleMigrationToolX\""`
+ * ran 5.6px past its 210px row at 320px. After a slash, a hyphen or a separator, or at the start of a value, nothing
+ * but the hold keeps a line from breaking inside the word, and the syntax holds all of it: held from its last letter,
+ * "linkedin.com/in/piglardlord" would break as "…piglardlor" / `d"),`.
+ * @param {string} text - The value as the data wrote it
+ * @returns {number} How many of its characters come before the held ones
+ */
+const heldFrom = (text) => {
+  let word = 0;
+  let spaced = false;
+  for (const match of text.matchAll(BREAKS)) {
+    const end = match.index + match[0].length;
+    if (end < text.length) [word, spaced] = [end, /^\s+$/u.test(match[0])];
+  }
+  const last = text.slice(word).search(/[\p{L}\p{N}][^\p{L}\p{N}]*$/u);
+  return spaced && last >= 0 ? word + last : word;
+};
+
+/**
+ * A period with its ends as parts, each whole: the editor breaks a period after its dash and nowhere else (#180). The
+ * space after the dash goes with the second end, where it is no place a line prefers to break, so a period moves down
+ * a row whole where one holds it with its quotes and its comma (#219).
+ * @param {object} token - A literal
+ * @returns {object} The literal, a period's ends as its parts
+ */
+const withEnds = (token) => {
+  if (!token.whole || token.parts) return token;
+  const ends = periodEnds(token.text);
+  const texts = ends ? [ends.first, ends.space + ends.second] : [token.text];
+  return { ...token, parts: texts.map((text) => ({ text, whole: true })) };
+};
+
+/**
+ * A literal with the parts its closing syntax holds marked `held`, split where they begin, with every escape among
+ * them. The value is read whole, before its escapes part it: a highlight ending in a quote of its own ends in three
+ * parts, the escape, the quote and the word before them, and holding the last part alone left the word a row above
+ * its `\""` (code review of #223). A period's last end is held whole.
+ * @param {object} token - A literal some syntax closes
+ * @returns {object} The literal, its last word's parts marked
+ */
+const withLastWordHeld = (token) => {
+  const parts = token.parts ?? [{ text: token.text }];
+  if (parts.at(-1).whole)
+    return { ...token, parts: [...parts.slice(0, -1), { ...parts.at(-1), held: true }] };
+  const start = heldFrom(token.text);
+  let at = 0;
+  return {
+    ...token,
+    parts: parts.flatMap((part) => {
+      if ('code' in part) return [at >= start ? { ...part, held: true } : part];
+      const from = at;
+      at += part.text.length;
+      if (at <= start) return [part];
+      if (from >= start) return [{ ...part, held: true }];
+      return [
+        { ...part, text: part.text.slice(0, start - from) },
+        { ...part, text: part.text.slice(start - from), held: true }
+      ];
+    })
+  };
+};
+
+/**
+ * A line's tokens, with the syntax that closes a literal marked `closes`: each piece written straight after a literal,
+ * or after syntax that closes one, that begins with a closing mark. At 320px the editor parted a period from its
+ * `",` and a profile's address from its `),`, and a row that opens with either reads as broken code (#219). The
+ * literal it closes marks the parts of its last word `held`, and a period's ends are parts of it.
+ * @param {object[]} tokens - A line's tokens, in order
+ * @returns {object[]} The same tokens, the closing syntax and what it holds marked
+ */
+const markClosing = (tokens) => {
+  let closable = false;
+  const marked = tokens.map((token) => {
+    if (!('code' in token)) {
+      closable = LITERALS.includes(token.kind);
+      return closable ? withEnds(token) : token;
+    }
+    closable = closable && CLOSING_MARKS.includes(token.code[0]);
+    return closable ? { ...token, closes: true } : token;
+  });
+  return marked.map((token, index) =>
+    'text' in token && marked[index + 1]?.closes ? withLastWordHeld(token) : token
+  );
+};
 
 const code = (value, kind = 'plain') => ({ code: value, kind });
 const content = (value, kind, extra = {}) => ({ text: value, kind, ...extra });
@@ -187,7 +299,7 @@ export class SwiftSourceLayout {
     const lines = [];
     const outline = [];
     const push = (depth, tokens = [], extra = {}) =>
-      lines.push({ depth: tokens.length === 0 ? 0 : depth, tokens, ...extra });
+      lines.push({ depth: tokens.length === 0 ? 0 : depth, tokens: markClosing(tokens), ...extra });
 
     push(0, [code(`//  ${typeName}.swift`, 'comment')]);
     push(0);
@@ -500,7 +612,8 @@ export class SwiftSourceLayout {
         ];
       }
 
-      // A period is one piece: a narrow editor wrapped a role's dates as "August 2018 –" / "Present" (#180).
+      // A period is whole: a narrow editor wrapped a role's dates as "August 2018 –" / "Present" (#180), where a row
+      // could hold them. It breaks there only where none can (#219).
       const piece = label === 'period' ? { ...extra, whole: true } : extra;
       const literal =
         typeof value === 'number'

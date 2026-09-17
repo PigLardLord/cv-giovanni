@@ -19,6 +19,9 @@ const LANDING_SLACK = 16;
  * - Syntax is an empty, `aria-hidden` element whose `data-code` the stylesheet draws, and content
  *   is real text. The line numbers and the file's name are drawn the same way, and so is an escape
  *   inside a value, beside the text it escapes (#160).
+ * - Syntax the layout marks as closing a value is held in one `no-break` element with the parts of
+ *   the value the layout marks `held`, its last word, since the editor's lines break anywhere and a
+ *   narrow one left a lone `",` on a row of its own (#219).
  * - The card repeats what the file already says, so its words are drawn from `data-text` and kept
  *   from assistive technology. What looks like a button is one: each action is a link with a name
  *   of its own — or, for "call", a button that opens the alert — and nothing focusable sits inside
@@ -254,11 +257,30 @@ export class SourceRenderer extends BaseRenderer {
     number.setAttribute('aria-hidden', 'true');
     element.appendChild(number);
 
-    line.tokens.forEach((token) => element.appendChild(this.createToken(root, token)));
+    line.tokens.forEach((token, index) => {
+      if (token.closes) return;
+      const closing = [];
+      for (let next = index + 1; line.tokens[next]?.closes; next += 1) {
+        closing.push(this.createToken(root, line.tokens[next]));
+      }
+      element.appendChild(this.createToken(root, token, closing));
+    });
     return element;
   }
 
-  createToken(root, token) {
+  /**
+   * A token as the page writes it: syntax as an empty element the stylesheet draws, and a value as its text.
+   *
+   * The parts of a value the layout marks `held` share a `no-break` span with the syntax that closes the value, which
+   * no row of the editor opens with (#219), and a part it marks `whole` never wraps inside (#180). A link underlines
+   * everything inside it, so a link keeps to its own text: the link and its closing syntax share a `no-break` span,
+   * its held parts stay in it bare, and its other parts go into a `source-wrap` span, where they wrap again.
+   * @param {Document} root - DOM root
+   * @param {object} token - A token, as the layout composes it
+   * @param {Element[]} [closing] - The syntax that closes a value, as this writes it
+   * @returns {Element} What the line holds in the token's place
+   */
+  createToken(root, token, closing = []) {
     if ('code' in token) {
       const syntax = this.createElement(root, 'span', ['tok', `tok-${token.kind}`]);
       syntax.dataset.code = token.code;
@@ -271,24 +293,37 @@ export class SourceRenderer extends BaseRenderer {
         ? this.createAddress(root, token.href, token.text)
         : this.createElement(root, token.element || 'span');
     element.classList.add('tok', `tok-${token.kind}`);
-    // A value the layout marks whole, a period, never wraps inside, however narrow the editor (#180).
-    if (token.whole) element.classList.add('no-break');
     element.textContent = '';
     // A separator in a value stays with the words either side of it: the editor wrapped "EU citizen ·" (#180).
-    if (!token.parts) {
-      return this.appendPieces(
-        root,
-        element,
-        token.whole ? [token.text] : holdSeparators(root, token.text)
-      );
+    if (!token.parts) return this.appendPieces(root, element, holdSeparators(root, token.text));
+
+    const link = element.tagName === 'A';
+    const held = this.createElement(root, 'span', 'no-break');
+    const wraps = this.createElement(root, 'span', 'source-wrap');
+    token.parts.forEach((part) => {
+      const piece = this.createPart(root, part, token.kind);
+      if (part.held) (link ? element : held).appendChild(piece);
+      else (link && closing.length > 0 ? wraps : element).appendChild(piece);
+    });
+    if (!link) {
+      held.append(...closing);
+      if (held.hasChildNodes()) element.appendChild(held);
+      return element;
     }
-    token.parts.forEach((part) => element.appendChild(this.createPart(root, part, token.kind)));
-    return element;
+    if (wraps.hasChildNodes()) element.prepend(wraps);
+    if (closing.length === 0) return element;
+    held.append(element, ...closing);
+    return held;
   }
 
-  /** A piece of a value: an escape drawn like any syntax, a character kept in the text out of sight, or the text. */
+  /**
+   * A piece of a value: an escape drawn like any syntax, a period's end held whole, a character kept in the text out
+   * of sight, or the text.
+   */
   createPart(root, part, kind) {
     if ('code' in part) return this.createToken(root, { code: part.code, kind });
+    // A part the layout marks whole, a period's end, never wraps inside, however narrow the editor (#180).
+    if (part.whole) return this.createElement(root, 'span', 'no-break', part.text);
     if (!part.unseen) {
       return this.appendPieces(
         root,
