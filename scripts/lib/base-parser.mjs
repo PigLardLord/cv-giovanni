@@ -129,7 +129,10 @@ const structure = (kept) => (kept ? 'held' : 'broken');
 /** A verdict short of a field recovered in full. */
 const short = (verdict) => verdict in LADDER && LADDER[verdict] < LADDER.exact;
 
-/** The sections a diff grades entry by entry, each entry matched to the document's by its position. */
+/**
+ * The sections a diff grades entry by entry. The diff matches what came back to what the document wrote by what it says
+ * (#217), and keys each verdict by the written entry's position in its own branch's profile.
+ */
 const REPEATED = ['experience', 'education', 'skills', 'spokenLanguages', 'certifications'];
 const ENTRY = new RegExp(`^(${REPEATED.join('|')})\\.(\\d+)\\.`);
 
@@ -238,8 +241,9 @@ export function fieldVerdicts(diff) {
  *
  * Each print is graded against its own branch's profile and lines (#201), so a field the change rewrote is not a loss
  * when the new words came back. A field only one print has, such as one the base's grader does not grade, is not
- * compared. Nor is a section the two prints hold a different number of entries in: an entry is matched by its position,
- * and there one position names two entries, so `unmatchedSections` answers for it.
+ * compared. Nor is a section the two prints hold a different number of entries in: a field is compared with the one at
+ * the same key, a key names an entry by its position in its own branch's profile, and there one position names two
+ * entries, so `unmatchedSections` answers for it.
  * @param {ReturnType<typeof fieldVerdicts>} before - The base's parser on the base's print, graded by the base
  * @param {ReturnType<typeof fieldVerdicts>} after - The base's parser on the new print, graded by this branch
  * @returns {{ key: string, label: string, from: string, to: string, was: *, now: *, written: *, before: * }[]} The
@@ -390,10 +394,12 @@ export function gradedReadings(texts, { base, head }) {
  * The repeated sections the two prints hold a different number of entries in, with every field of the section the
  * base's parser reads short from the new print.
  *
- * A diff matches an entry to the document's by its position. A degree added in front moves the others down, and the
- * base's parser failing the last of them reads as a position the base's print never had (the code review of #216); a
- * degree removed puts the next one where it was, and a loss there can read "partial → partial". So such a section is
- * not compared entry by entry. What can be said of it holds whatever the positions name: a section the base's parser
+ * A field is compared with the one at the same key on the other print, and a key names an entry by its position in its
+ * own branch's profile. Each print's diff matches what came back to its profile's entries by what they say (#217), but
+ * that does not make the two profiles' positions name the same entries: a degree added in front moves the others down,
+ * and the base's parser failing the last of them reads as a position the base's print never had (the code review of
+ * #216); a degree removed puts the next one where it was, and a loss there can read "partial → partial". So such a
+ * section is not compared entry by entry. What can be said of it holds whatever the positions name: a section the base's parser
  * reads in full from the new print lost nothing, and one it reads any of short cannot be told from a moved entry.
  * @param {ReturnType<typeof fieldVerdicts>} before - The base's parser on the base's print, graded by the base
  * @param {ReturnType<typeof fieldVerdicts>} after - The base's parser on the new print, graded by this branch

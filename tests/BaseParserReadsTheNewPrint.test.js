@@ -407,6 +407,25 @@ describe("a field the base branch's parser loses from the new print", () => {
     expect(lostFields(read(print), read(print))).toEqual([]);
   });
 
+  // The diff matched an entry to the document's by its position, so a degree the base's parser drops from the new print
+  // compared the next degree with it, and the losses named both, quoting the Catania degree as the Pisa one's reading
+  // (#217). Matched by what it says, the degree lost is the one named.
+  test("a degree the base's parser drops from the new print is the one named, and the degree after it is not", () => {
+    const dropped = print.replace(
+      "First Level Professional Master's Programme in Mobile Applications\nDevelopment (60 ECTS)\nUniversità degli Studi di Pisa (2014 – 2016)\n\n",
+      ''
+    );
+    const lines = lostFields(read(print), read(dropped)).map(lossLine);
+
+    expect(dropped).not.toBe(print);
+    expect(lines).toEqual([
+      'education 1, degree: "First Level Professional Master\'s Programme in Mobile Applications Development (60 ECTS)" → nothing (exact → lost)',
+      'education 1, school: "Università degli Studi di Pisa" → nothing (exact → lost)',
+      'education 1, period: "2014 – 2016" → nothing (exact → lost)',
+      'education 1, degree beside its school: held → broken'
+    ]);
+  });
+
   test('a role or a skill category the document never wrote is a loss too: the score charges for both', () => {
     const torn = print.replace(
       'Core Technologies\n',
@@ -675,12 +694,14 @@ describe("each print, graded against its own branch's lines", () => {
   });
 });
 
-// A diff matches an entry to the document's by its position (the code review of #216). When the two profiles hold a
-// different number of entries in a section, the same position names two different entries: a degree added in front
-// moved the others down, and the base's parser failing the last one read as an entry the base never had, not graded,
-// "none is a loss". A section numbered differently is not compared by position. The base's parser reading all of it in
-// full from the new print is still proof that nothing in it was lost; reading any of it short, it cannot tell a lost
-// entry from a moved one, and the step exits 2.
+// The step compares a field with the one at the same key on the base's print, and a key names an entry by its position
+// in its own branch's profile (the code review of #216). When the two profiles hold a different number of entries in a
+// section, the same position names two different entries: a degree added in front moved the others down, and the
+// base's parser failing the last one read as an entry the base never had, not graded, "none is a loss". Each print's
+// diff matches what came back to what its profile wrote by what it says (#217), which does not change what a position
+// names across the two profiles. So a section numbered differently is still not compared by position. The base's parser
+// reading all of it in full from the new print is still proof that nothing in it was lost; reading any of it short, it
+// cannot tell a lost entry from a moved one, and the step exits 2.
 describe('a section the two prints number differently', () => {
   const field = (key, label, verdict) => ({ key, label, verdict, written: null, recovered: null });
   /** One degree's fields, every one read in full unless named. */
@@ -780,6 +801,18 @@ describe('a section the two prints number differently', () => {
       })
     ]);
     expect(outcome([], [], readingsUnmatched(readings)).exitCode).toBe(2);
+
+    // Each print's diff matched every degree that came back to its own (#217); the keys still count each profile's
+    // degrees, so the first key names the Pisa degree on the base's print and the PhD on this one.
+    const written = (fields, key) => fields.find((each) => each.key === key)?.written;
+    const [reading] = readings;
+    expect(written(reading.baseOnBase, 'education.0.school')).toBe(
+      'Università degli Studi di Pisa'
+    );
+    expect(written(reading.baseOnHead, 'education.0.school')).toBe(phd.school);
+    expect(written(reading.baseOnHead, 'education.1.school')).toBe(
+      'Università degli Studi di Pisa'
+    );
   });
 
   test('removing a degree: a loss that read partial → partial at a position both prints have exits 2', () => {
@@ -830,7 +863,8 @@ describe('a section the two prints number differently', () => {
   });
 
   // Reordering keeps the number of entries, so the section is compared by position, and a position whose base entry
-  // came back whole still fails when this print's does not. Matching an entry by what it says is a ticket of its own.
+  // came back whole still fails when this print's does not. Each print's diff matches its entries by what they say
+  // (#217); the step still pairs the base's profile's entry with this branch's by position.
   test('reordering degrees keeps their number, and is compared by position', () => {
     const before = [...whole, ...degree(0), ...degree(1)];
     const after = [...whole, ...degree(0), ...degree(1, { school: 'wrong' })];
