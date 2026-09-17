@@ -39,7 +39,12 @@ export const BANDS = {
   }
 };
 
-/** Each part of the fidelity band: the diff's section it reads, and the fields of each entry it scores. */
+/**
+ * Each part of the fidelity band: the diff's section it reads, and the fields of each entry it scores.
+ *
+ * A degree's period is graded and not scored: the parts were set before it was graded, and weighing it changes what
+ * Recoverability is made of, which is a decision of its own (#200). Its loss is still listed.
+ */
 const FIDELITY_FIELDS = {
   roles: ['experience', ['title', 'employer', 'period', 'highlights']],
   education: ['education', ['degree', 'school']],
@@ -136,8 +141,8 @@ export class AtsScore {
   }
 
   /**
-   * Whether a graded field carries weight in the number. A loss in one that does not — the identity's title, a
-   * certification — is still listed, and said to cost nothing.
+   * Whether a graded field carries weight in the number. A loss in one that does not — the identity's title, a degree's
+   * period, a certification — is still listed, and said to cost nothing.
    * @param {(string|number)[]} path - Where the verdict sits in a RecoveryDiff result, e.g. `['education', 0, 'degree']`
    * @returns {boolean} True when a loss there costs points
    */

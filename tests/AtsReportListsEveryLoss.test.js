@@ -87,14 +87,21 @@ describe('What did not come back names every field graded short of recovered', (
     expect(unlisted(diff)).toEqual([]);
   });
 
-  test('the check finds a graded field the section leaves out', () => {
-    const diff = downgrade(diffOf(fixture('clean-english')), 'partial');
-    const listed = section(diff).replace(/^- education 1, degree: partial.*$/m, '');
+  // A degree's period is graded since #200, and nothing names it here: the walker finds it because it is in the diff.
+  test.each(['degree', 'period'])(
+    'the check finds a graded field the section leaves out: education 1, %s',
+    (field) => {
+      const diff = downgrade(diffOf(fixture('clean-english')), 'partial');
+      const listed = section(diff).replace(
+        new RegExp(`^- education 1, ${field}: partial.*$`, 'm'),
+        ''
+      );
 
-    expect(
-      losses(diff).filter(({ path, verdict }) => !listed.includes(`- ${label(path)}: ${verdict}`))
-    ).toEqual([{ path: ['education', 0, 'degree'], verdict: 'partial' }]);
-  });
+      expect(
+        losses(diff).filter(({ path, verdict }) => !listed.includes(`- ${label(path)}: ${verdict}`))
+      ).toEqual([{ path: ['education', 0, field], verdict: 'partial' }]);
+    }
+  );
 });
 
 describe('a field short of recovered is quoted as written and as recovered', () => {
@@ -108,6 +115,28 @@ describe('a field short of recovered is quoted as written and as recovered', () 
     expect(diff.education[0].degree).toBe('partial');
     expect(section(diff)).toContain(
       `- education 1, degree: partial — written "${pisa.degree}"; recovered "First Level Professional Master's Programme"`
+    );
+  });
+
+  // A degree's period is graded as its school line prints it and weighs nothing (#200): a print that lost it is
+  // named with what was written, and the points do not move.
+  test("a degree's lost period is named, and said to cost nothing", () => {
+    const text = fixture('clean-english');
+    const diff = diffOf(text.replace(`${pisa.school} · ${pisa.period}`, pisa.school));
+
+    expect(diff.education[0].period).toBe('lost');
+    expect(section(diff)).toContain(
+      `- education 1, period: lost, not scored — written "${pisa.period}"; nothing recovered`
+    );
+    expect(AtsScore.compose(diff).points).toBe(AtsScore.compose(diffOf(text)).points);
+  });
+
+  test("a degree's period recovered as other dates is named with both", () => {
+    const diff = diffOf(fixture('clean-english').replace(pisa.period, '2015 – 2017'));
+
+    expect(diff.education[0].period).toBe('wrong');
+    expect(section(diff)).toContain(
+      `- education 1, period: wrong, not scored — written "${pisa.period}"; recovered "2015 – 2017"`
     );
   });
 
@@ -161,6 +190,7 @@ describe('a field short of recovered is quoted as written and as recovered', () 
     expect(misread).toEqual([]);
     expect(listed).toContain('- title: partial, not scored — ');
     expect(listed).toContain('- education 1, degree: partial — ');
+    expect(listed).toContain('- education 1, period: partial, not scored — ');
   });
 
   test('a clean document still says so', () => {
