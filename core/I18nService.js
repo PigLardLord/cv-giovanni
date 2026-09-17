@@ -14,9 +14,9 @@ export class I18nService {
       fallbackLng: DEFAULT_LOCALE,
       supportedLngs: SUPPORTED_LOCALES,
       load: 'languageOnly',
-      ns: ['ui', 'cv', 'print'],
+      ns: ['ui', 'cv'],
       defaultNS: 'ui',
-      backend: { loadPath: 'locales/{{lng}}/{{ns}}.json?v=20260917-address3' },
+      backend: { loadPath: 'locales/{{lng}}/{{ns}}.json?v=20260917-catalogues1' },
       interpolation: { escapeValue: false }
     });
     return this;

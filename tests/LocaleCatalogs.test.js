@@ -3,7 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const namespaces = ['ui', 'cv', 'print'];
+const namespaces = ['ui', 'cv'];
 const read = (locale, namespace) =>
   JSON.parse(fs.readFileSync(path.join(root, 'locales', locale, `${namespace}.json`), 'utf8'));
 const leafKeys = (object, prefix = '') =>
