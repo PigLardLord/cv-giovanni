@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { SwiftSourceLayout } from '../adapters/SwiftSourceLayout.js';
+import { CLOSING_MARKS, SwiftSourceLayout } from '../adapters/SwiftSourceLayout.js';
 import { composingTheModel } from './support/model.js';
 
 const labels = {
@@ -626,4 +626,48 @@ test('marks every period whole, and nothing else', () => {
     '2015',
     '2009'
   ]);
+});
+
+// A row of the editor opened with a lone `",` at 320px (#219). The syntax that closes a literal is marked, and the
+// renderer holds it to the literal's last word; a quote that opens a literal, and a bracket that closes a type, are
+// not marked.
+test('marks the syntax that closes a literal, and nothing else', () => {
+  const { lines } = composingTheModel(new SwiftSourceLayout()).compose(
+    { ...profile, asOf: '2026-09' },
+    { t }
+  );
+  const held = lines.flatMap(({ tokens }) =>
+    tokens.flatMap((token, index) => {
+      if (!('text' in token) || !tokens[index + 1]?.closes) return [];
+      let next = index + 1;
+      const closing = [];
+      while (tokens[next]?.closes) closing.push(tokens[next++].code);
+      return [
+        { kind: token.kind, shown: `${token.text}${closing.join('')}`, count: closing.length }
+      ];
+    })
+  );
+  const marked = lines.flatMap(({ tokens }) => tokens.filter((token) => token.closes));
+
+  expect(held.map((literal) => literal.shown)).toEqual(
+    expect.arrayContaining([
+      'Ada Lovelace"',
+      'Owned the iOS client for 6 years",',
+      'Mobile Engineer",',
+      'August 2018 – Present",',
+      'Cut CI time by 75%."',
+      'iOS") {',
+      'Swift"',
+      'SwiftUI"]',
+      'Italian"',
+      'Native",',
+      '2024,',
+      'github.com/ada"),'
+    ])
+  );
+  expect(new Set(held.map((literal) => literal.kind))).toEqual(new Set(['string', 'number']));
+  expect(marked.every((token) => 'code' in token && CLOSING_MARKS.includes(token.code[0]))).toBe(
+    true
+  );
+  expect(marked).toHaveLength(held.reduce((sum, literal) => sum + literal.count, 0));
 });

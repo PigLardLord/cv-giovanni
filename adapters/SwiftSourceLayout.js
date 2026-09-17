@@ -18,6 +18,9 @@
  *   before the character it escapes. A line break or a tab is `unseen`: kept in the text, so a
  *   copy does not weld the words around it, and out of sight, where its `\n` is drawn (#160).
  *   A period is `whole`: one piece, which the editor never wraps inside (#180).
+ * - `{ code, closes }` is syntax that closes the literal before it — its quote, and the comma,
+ *   parenthesis or bracket after that — which the editor never parts from the literal's last word
+ *   (#219).
  *
  * So the page can look like source code without a word of Swift reaching anything that reads the
  * document, which is the rule `AGENTS.md` sets for every visual device here: removing the
@@ -68,6 +71,28 @@ const CARD_ACTIONS = 4;
  * own (#219).
  */
 export const CLOSING_MARKS = Object.freeze(['"', ',', ')', ']']);
+
+/** A literal a line of the file writes: a string's or a number's content, not the punctuation between two words. */
+const LITERALS = ['string', 'number'];
+
+/**
+ * A line's tokens, with the syntax that closes a literal marked `closes`: each piece written straight after a literal,
+ * or after syntax that closes one, that begins with a closing mark. At 320px the editor parted a period from its
+ * `",` and a profile's address from its `),`, and a row that opens with either reads as broken code (#219).
+ * @param {object[]} tokens - A line's tokens, in order
+ * @returns {object[]} The same tokens, the closing syntax marked
+ */
+const markClosing = (tokens) => {
+  let closable = false;
+  return tokens.map((token) => {
+    if (!('code' in token)) {
+      closable = LITERALS.includes(token.kind);
+      return token;
+    }
+    closable = closable && CLOSING_MARKS.includes(token.code[0]);
+    return closable ? { ...token, closes: true } : token;
+  });
+};
 
 const code = (value, kind = 'plain') => ({ code: value, kind });
 const content = (value, kind, extra = {}) => ({ text: value, kind, ...extra });
@@ -194,7 +219,7 @@ export class SwiftSourceLayout {
     const lines = [];
     const outline = [];
     const push = (depth, tokens = [], extra = {}) =>
-      lines.push({ depth: tokens.length === 0 ? 0 : depth, tokens, ...extra });
+      lines.push({ depth: tokens.length === 0 ? 0 : depth, tokens: markClosing(tokens), ...extra });
 
     push(0, [code(`//  ${typeName}.swift`, 'comment')]);
     push(0);
