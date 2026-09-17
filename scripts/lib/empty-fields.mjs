@@ -149,24 +149,33 @@ const textOf = (pieces) =>
 const prints = (pieces, field) => pieces.some((piece) => piece.field === field);
 
 /**
- * Every entry a profile prints, as the page writes its line: where the line opens, and each part the entry does not
- * have, written up to that part, where a separator left in front of it would print. The lines come from
- * `domain/EntryLines.js`, as the renderers take them.
+ * Every entry a profile prints, as the page writes its line: where the line opens, the whole line, and each part the
+ * entry does not have, written up to that part, where a separator left in front of it would print. The lines come from
+ * `domain/EntryLines.js`, as the renderers take them, so what may follow a part an entry leaves out is the rest of its
+ * own line, "iOS Lead Essentials" then " (2024)", and never a rule written beside them (#212).
  * @param {object} profile - The profile
  * @param {{ at: string }} words - The catalogue's word between a role's title and its employer
- * @returns {{ kind: 'role'|'school'|'certification', start: string, open: string[] }[]} Roles, then schools, then
- *   certifications, each kind in the profile's order: a role opens with its title and employer and is open there
- *   without its location; a school opens with its name and is open there without its period; a certification opens
- *   with its name, and is open there without its issuer, and after its issuer without its year
+ * @returns {{ kind: 'role'|'school'|'certification', start: string, line: string, open: string[] }[]} Roles, then
+ *   schools, then certifications, each kind in the profile's order: a role opens with its title and employer and is
+ *   open there without its location; a school opens with its name and is open there without its period; a
+ *   certification opens with its name, and is open there without its issuer, and after its issuer without its year
  */
 export function printedEntries(profile, { at }) {
   const roles = entries(profile?.relevant_experience).map((role) => {
     const start = textOf(roleHeader({ ...role, location: '' }, at)).trim();
-    return { kind: 'role', start, open: prints(roleHeader(role, at), 'location') ? [] : [start] };
+    const header = roleHeader(role, at);
+    const open = prints(header, 'location') ? [] : [start];
+    return { kind: 'role', start, line: textOf(header).trim(), open };
   });
   const schools = entries(profile?.education).map((degree) => {
     const start = textOf(schoolLine({ ...degree, period: '' })).trim();
-    return { kind: 'school', start, open: prints(schoolLine(degree), 'period') ? [] : [start] };
+    const line = schoolLine(degree);
+    return {
+      kind: 'school',
+      start,
+      line: textOf(line).trim(),
+      open: prints(line, 'period') ? [] : [start]
+    };
   });
   const certifications = entries(profile?.certifications).map((certification) => {
     const start = String(certification.name ?? '').trim();
@@ -176,7 +185,8 @@ export function printedEntries(profile, { at }) {
       ...(issuer.length ? [] : [start]),
       ...(year.length ? [] : [`${start}${issuer.join('')}`])
     ];
-    return { kind: 'certification', start, open: [...new Set(open)] };
+    const line = `${start}${certificationLine(certification).join('')}`;
+    return { kind: 'certification', start, line, open: [...new Set(open)] };
   });
   return [...roles, ...schools, ...certifications];
 }

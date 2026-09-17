@@ -255,13 +255,33 @@ describe('the entries a profile prints, and the parts each leaves out', () => {
     ]
   };
 
-  test('every entry, by kind and in the order the profile writes it, as its line opens', () => {
+  test('every entry, by kind and in the order the profile writes it, as its line opens and runs', () => {
     expect(printedEntries(profile, words)).toEqual([
-      { kind: 'role', start: 'Mobile Developer at Apparound', open: [] },
-      { kind: 'role', start: 'Mobile Developer Intern at Marte 5', open: [] },
-      { kind: 'school', start: 'Catania', open: [] },
-      { kind: 'certification', start: 'Android Enterprise Expert', open: [] },
-      { kind: 'certification', start: 'iOS Lead Essentials', open: [] }
+      {
+        kind: 'role',
+        start: 'Mobile Developer at Apparound',
+        line: 'Mobile Developer at Apparound, Pisa, Italy',
+        open: []
+      },
+      {
+        kind: 'role',
+        start: 'Mobile Developer Intern at Marte 5',
+        line: 'Mobile Developer Intern at Marte 5, Livorno, Italy',
+        open: []
+      },
+      { kind: 'school', start: 'Catania', line: 'Catania (2009)', open: [] },
+      {
+        kind: 'certification',
+        start: 'Android Enterprise Expert',
+        line: 'Android Enterprise Expert – Google (2026)',
+        open: []
+      },
+      {
+        kind: 'certification',
+        start: 'iOS Lead Essentials',
+        line: 'iOS Lead Essentials – Essential Developer (2024)',
+        open: []
+      }
     ]);
   });
 
@@ -282,8 +302,26 @@ describe('the entries a profile prints, and the parts each leaves out', () => {
     expect(printedEntries(sparse, { at: 'bei' })[0]).toEqual({
       kind: 'role',
       start: 'Mobile Developer bei Apparound',
+      line: 'Mobile Developer bei Apparound',
       open: ['Mobile Developer bei Apparound']
     });
+  });
+
+  // #212: what may follow a part an entry leaves out is the rest of its own line, and nothing a hand-written rule guesses.
+  test('each entry runs as the page writes its line without the parts it leaves out', () => {
+    const sparse = JSON.parse(JSON.stringify(profile));
+    delete sparse.relevant_experience[0].location;
+    delete sparse.education[0].period;
+    delete sparse.certifications[0].year;
+    delete sparse.certifications[1].issuer;
+
+    expect(printedEntries(sparse, words).map(({ line }) => line)).toEqual([
+      'Mobile Developer at Apparound',
+      'Mobile Developer Intern at Marte 5, Livorno, Italy',
+      'Catania',
+      'Android Enterprise Expert – Google',
+      'iOS Lead Essentials (2024)'
+    ]);
   });
 
   test('a certification with neither issuer nor year ends on its name once', () => {
@@ -293,6 +331,7 @@ describe('the entries a profile prints, and the parts each leaves out', () => {
       {
         kind: 'certification',
         start: 'Android Enterprise Expert',
+        line: 'Android Enterprise Expert',
         open: ['Android Enterprise Expert']
       }
     ]);
