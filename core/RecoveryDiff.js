@@ -1,6 +1,6 @@
 import { readableAddress } from '../domain/ReadableUrl.js';
 import { fold } from '../domain/fold.js';
-import { certificationLine, degreeLine } from '../domain/EntryLines.js';
+import { certificationLine, degreeLine, schoolLine } from '../domain/EntryLines.js';
 
 /** Collapse the differences that do not change what a string says. */
 const NORMALISE = {
@@ -44,6 +44,17 @@ const nothing = (value) =>
 /** A line's pieces, as `domain/EntryLines.js` builds them, as the text they print. */
 const lineText = (pieces) =>
   pieces.map((piece) => (typeof piece === 'string' ? piece : piece.text)).join('');
+
+/**
+ * A degree's period as its school line prints it, "(2014 – 2016)", without the brackets `schoolLine` sets it in: a
+ * parser reads them as the line's punctuation, as it reads " · ", and returns the period alone (#200).
+ * @param {{ school?: string, period?: string }} degree - One degree of the education
+ * @returns {string|null} The period; none when the line prints none
+ */
+const printedPeriod = (degree) => {
+  const piece = schoolLine(degree).find((part) => part.field === 'period');
+  return piece ? piece.text.replace(/^\((.*)\)$/, '$1') : null;
+};
 
 /** True when the shorter string is a whole-word run inside the longer. */
 function overlaps(a, b) {
@@ -242,17 +253,22 @@ export class RecoveryDiff {
   }
 
   /**
-   * Per degree: the degree, the school, and whether they stayed adjacent.
+   * Per degree: the degree, the school, the period when it prints one, and whether the degree and school stayed
+   * adjacent.
    *
    * A degree is compared as the document prints it, not as the profile's `degree` field holds it: its name and the
    * scope it states after the name, "… Development (60 ECTS)", built by `degreeLine`, the function the page prints it
    * with (#48). A parser that returns the printed line lost nothing the document said, so a stated scope costs
    * nothing; one that returns the name without the printed scope, or cuts it short, lost part of it (#186).
+   *
+   * The period is compared as the school line prints it, without its brackets, the way a role's period is graded. A
+   * degree that prints no period has none to lose, and carries no period verdict (#200).
    */
   static education(document, recovered, { grade, words }) {
     const value = (field) => (field && field.value !== undefined ? field.value : null);
     return document.education.map((item, index) => {
       const entry = recovered.education[index];
+      const period = printedPeriod(item);
       return {
         degree: grade(
           ['education', index, 'degree'],
@@ -260,6 +276,9 @@ export class RecoveryDiff {
           value(entry?.degree)
         ),
         school: grade(['education', index, 'school'], item.school, value(entry?.school)),
+        ...(period === null
+          ? {}
+          : { period: grade(['education', index, 'period'], period, entry?.period || null) }),
         adjacent: Boolean(entry?.degree && entry?.school)
       };
     });

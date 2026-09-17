@@ -1,4 +1,4 @@
-import { RecoveryDiff } from '../../core/RecoveryDiff.js';
+import { importClosure } from './import-closure.mjs';
 
 /**
  * The rules of `npm run audit:ats:base` (#181), with no git, no browser and no file in them, so each can be shown to
@@ -38,6 +38,37 @@ export function productReviewPaths(markdown) {
         .filter((code) => code.includes('/') || /\.\w+$/.test(code))
     )
   ];
+}
+
+/** The page's entry script: it registers the renderers, and decides what the page renders in which labels (#202). */
+export const PAGE_SCRIPT = 'script.js';
+
+/**
+ * The print pipeline's entry: it serves the page and has Chrome print it, through `scripts/lib/printed-cv.mjs` and
+ * `scripts/lib/print-page.mjs`, and the PDF it writes is the one `audit:ats` reads (#144, #149, #202).
+ */
+export const PRINT_PIPELINE = 'scripts/generate-pdfs.mjs';
+
+/**
+ * The modules that render the CV, read from their imports rather than listed by hand (#181, #202): the page's entry
+ * script and every renderer, with every module they import, and the print pipeline, with every module it imports. A
+ * renderer the entry script never imports still renders a page of its own, the cover letter's, so the renderers are
+ * read beside it.
+ *
+ * The pipeline does not render the parser, though it reaches it: it prints the cover letter too, whose place line reads
+ * the parser's `PlaceLexicon`. Counted, every change to that lexicon would touch the parser and what renders the CV at
+ * once, and the step would run on a change to the parser alone. So a parser module the pipeline reaches counts only
+ * when the page imports it as well, as it does the `DateRange` it writes its dates through.
+ * @param {string[]} renderers - The renderer modules, relative to the repository root
+ * @param {(path: string) => (string|null)} read - A module's source, or null when there is none
+ * @param {string[]} parser - The parser's modules, some of which the pipeline's imports reach and leave out here
+ * @returns {string[]} The paths, sorted
+ */
+export function renderingModules(renderers, read, parser) {
+  const page = importClosure([PAGE_SCRIPT, ...renderers], read);
+  // A parser module the page imports is in `page` already, so the pipeline's own copy of it can go.
+  const pipeline = importClosure([PRINT_PIPELINE], read).filter((path) => !parser.includes(path));
+  return [...new Set([...page, ...pipeline])].sort();
 }
 
 /**
@@ -89,18 +120,16 @@ const SECTION_NAMES = { spokenLanguages: 'languages' };
 const structure = (kept) => (kept ? 'held' : 'broken');
 
 /**
- * Every field a recovered CV was graded on, as one list in reading order: the verdicts the audit's diff gives, the
- * degree's period, which the diff does not grade, and the structure the floors and the score read, down to a role or a
- * skill category nobody wrote.
+ * Every field a recovered CV was graded on, as one list in reading order: the verdicts the audit's diff gives, and the
+ * structure the floors and the score read, down to a role or a skill category nobody wrote.
  *
- * The degree's period is graded here with the diff's own ladder because the loss #181 exists for is one: the base's
- * parser gave the Pisa programme no period on #179's first print. A degree that writes no period has none to lose.
+ * A degree's period is among the diff's verdicts: the loss #181 exists for is one, the base's parser giving the Pisa
+ * programme no period on #179's first print. This step graded it itself while the diff did not; the diff grades it
+ * since #200, and a degree that prints no period carries no verdict, so it has none to lose.
  * @param {Object} diff - A RecoveryDiff result
- * @param {Object} document - The CvDocument it was graded against
- * @param {Object} recovered - The RecoveredCv it graded
  * @returns {{ key: string, label: string, verdict: string, written: *, recovered: * }[]} One entry a field
  */
-export function fieldVerdicts(diff, document, recovered) {
+export function fieldVerdicts(diff) {
   const fields = [];
   const evidence = (path) => diff.evidence?.[path] ?? { written: null, recovered: null };
   const add = (key, label, verdict, values = evidence(key)) =>
@@ -145,14 +174,7 @@ export function fieldVerdicts(diff, document, recovered) {
   add('chronology', 'chronology', structure(diff.roleOrderMonotonic), {});
 
   entries('education', (degree, index, at) => {
-    graded(degree, 'degree', at);
-    graded(degree, 'school', at);
-    const written = document.education?.[index]?.period;
-    if (written !== null && written !== undefined && String(written).trim()) {
-      const got = recovered.education?.[index]?.period ?? null;
-      const { key, label } = at('period');
-      add(key, label, RecoveryDiff.verdict(String(written), got), { written, recovered: got });
-    }
+    for (const name of ['degree', 'school', 'period']) graded(degree, name, at);
     const { key } = at('together');
     add(key, `education ${index + 1}, degree beside its school`, structure(degree.adjacent), {});
   });
