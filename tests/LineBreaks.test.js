@@ -443,6 +443,24 @@ describe('the glyphs the audit collects from the page', () => {
     expect(glyph.column).toEqual({ left: 18, right: 290 });
   });
 
+  // `margin-left: 40px; padding-left: 10px; text-indent: -30px` hangs the first line 20px outside the block itself, into
+  // its margin, and the column took it (code review of #211).
+  test('take a hanging indent no further than the edge of its own block', () => {
+    document.getElementById('room').innerHTML =
+      '<div style="padding-left: 10px; text-indent: -30px">Pisa</div>';
+    document.querySelector('#room > div').getBoundingClientRect = () => ({
+      top: 0,
+      bottom: 16,
+      left: 40,
+      right: 300,
+      width: 260,
+      height: 16
+    });
+    const [glyph] = window.eval(renderedGlyphs('#room', '#room'));
+
+    expect(glyph.column).toEqual({ left: 40, right: 290 });
+  });
+
   test('take a box placed with absolute or fixed positioning as a column of its own', () => {
     document.getElementById('room').innerHTML =
       '<div style="position: absolute">Pisa</div><div style="position: fixed">Pisa</div>';

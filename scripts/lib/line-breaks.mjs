@@ -23,12 +23,12 @@ const MEASURE_TOLERANCE = 0.5;
  * Every visible character of the CV, from the first bound to the last, in the page's order: the box Chrome drew it
  * in, the room of the line it sits on — the content width of the block its line boxes fill — and the edges of its
  * column. The column is the narrowest content box around the line: its own block's, where a first line's hanging
- * indent belongs to it, and each block's it sits in, since a box sized to what it holds grows past its column with
- * text that cannot wrap and keeps that text inside itself (#198). A box placed with absolute or fixed positioning is
- * put there on purpose, and is a column of its own, which `columnOverflow` still holds inside the viewport. Text the
- * page hides, with `visibility` or clipped to a pixel the way text for a screen reader is, is left out. A space in a
- * drawn element is kept even with no box: Chrome gives none to a space a line broke at when it is a text node of its
- * own.
+ * indent belongs to it as far as the block's own edge, and each block's it sits in, since a box sized to what it holds
+ * grows past its column with text that cannot wrap and keeps that text inside itself (#198). A box placed with
+ * absolute or fixed positioning is put there on purpose, and is a column of its own, which `columnOverflow` still
+ * holds inside the viewport. Text the page hides, with `visibility` or clipped to a pixel the way text for a screen
+ * reader is, is left out. A space in a drawn element is kept even with no box: Chrome gives none to a space a line
+ * broke at when it is a text node of its own.
  * @param {string} start - Selector of the CV's first element, as the audit's bounds name it
  * @param {string} end - Selector of its last
  * @returns {string} An expression for the page, resolving to the glyphs, or null when a bound is missing
@@ -46,7 +46,8 @@ export const renderedGlyphs = (start, end) => `(() => {
     const inset = (side) =>
       (parseFloat(style['padding' + side]) || 0) + (parseFloat(style['border' + side + 'Width']) || 0);
     const drawn = element.getBoundingClientRect();
-    return { style, left: drawn.left + scrollX + inset('Left'), right: drawn.right + scrollX - inset('Right') };
+    const outer = drawn.left + scrollX;
+    return { style, outer, left: outer + inset('Left'), right: drawn.right + scrollX - inset('Right') };
   };
   const places = new Map();
   const placeOf = (element) => {
@@ -55,7 +56,7 @@ export const renderedGlyphs = (start, end) => `(() => {
     if (!places.has(holder)) {
       const own = content(holder);
       const indent = own.style.textIndent.endsWith('px') ? Math.min(0, parseFloat(own.style.textIndent)) : 0;
-      const column = { left: own.left + indent, right: own.right };
+      const column = { left: Math.max(own.outer, own.left + indent), right: own.right };
       for (let box = holder; box.parentElement && !['absolute', 'fixed'].includes(getComputedStyle(box).position); ) {
         box = box.parentElement;
         if (flowing(box)) continue;
