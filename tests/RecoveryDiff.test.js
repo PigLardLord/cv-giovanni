@@ -120,12 +120,17 @@ describe('each defect shows up as its own kind of damage', () => {
   });
 
   // The three roles are all present and every string is intact. Only their order is wrong,
-  // which is precisely what no `includes()` check can see.
+  // which is precisely what no `includes()` check can see. Each role is matched to its own by what it says (#217),
+  // so the order costs the chronology, and no role reads as its neighbour.
   test('serialised columns keep every role and break the chronology', () => {
     const diff = diffOf('two-column-serialised');
 
     expect(diff.roleOrderMonotonic).toBe(false);
-    expect(diff.experience.map((role) => role.title)).not.toEqual(['exact', 'exact', 'exact']);
+    expect(diff.experience.map(({ employer, period }) => [employer, period])).toEqual([
+      ['exact', 'exact'],
+      ['exact', 'exact'],
+      ['exact', 'exact']
+    ]);
   });
 
   test('a flattened table loses the title and the employer together', () => {
@@ -336,4 +341,271 @@ describe("a degree's period is compared as the school line prints it", () => {
       expect(diff.evidence).not.toHaveProperty(['education.0.period']);
     }
   );
+});
+
+// An entry was matched to the document's by its position alone: a parser that dropped the first of three degrees
+// compared the second with the first and the third with the second, so one loss read as three and none named the degree
+// it was (#217). A recovered entry is matched to a written one by what it says.
+describe('an entry is matched to the one written by what it says, not by where it stands', () => {
+  const profile = JSON.parse(readFileSync(`${root}profiles/general/en.json`, 'utf8'));
+  const nerd = readFileSync(`${root}tests/fixtures/ats/page-print-nerd.txt`, 'utf8');
+  const diffOfText = (text, from) =>
+    RecoveryDiff.diff(new CvDocument(from), AtsTextParser.parse(text), { words });
+
+  describe('a degree, by its name and its school', () => {
+    const phd = {
+      degree: 'PhD in Computer Science',
+      school: 'Università di Bologna',
+      period: '2017 – 2020'
+    };
+    const three = { ...profile, education: [phd, ...profile.education] };
+    const whole = { degree: 'exact', school: 'exact', period: 'exact', adjacent: true };
+    const printed = nerd.replace(
+      'Education\n',
+      `Education\n${phd.degree}\n${phd.school} (${phd.period})\n\n`
+    );
+
+    test('three degrees printed come back whole', () => {
+      expect(printed).not.toBe(nerd);
+      expect(diffOfText(printed, three).education).toEqual([whole, whole, whole]);
+    });
+
+    test('a parse that drops the first of three loses that one, and the other two come back whole', () => {
+      const diff = diffOfText(nerd, three);
+
+      expect(diff.education).toEqual([
+        { degree: 'lost', school: 'lost', period: 'lost', adjacent: false },
+        whole,
+        whole
+      ]);
+      expect(RecoveryDiff.losses(diff)).toEqual([
+        { path: ['education', 0, 'degree'], verdict: 'lost', written: phd.degree, recovered: null },
+        { path: ['education', 0, 'school'], verdict: 'lost', written: phd.school, recovered: null },
+        { path: ['education', 0, 'period'], verdict: 'lost', written: phd.period, recovered: null }
+      ]);
+    });
+
+    // Dates only break a tie between degrees their name or school already match: a degree whose name and school match
+    // none written is one nobody wrote, whatever year it prints, and the degree that year belongs to is lost (the code
+    // review of #222).
+    test('a degree that shares only its period with a written one matches none, and that one is lost', () => {
+      const culinary = nerd.replace(
+        'B.Sc. Computer Engineering\nUniversità degli Studi di Catania (2009)',
+        'Diploma in Culinary Arts\nScuola Alberghiera di Roma (2009)'
+      );
+      const diff = diffOfText(culinary, profile);
+
+      expect(culinary).not.toBe(nerd);
+      expect(diff.education).toEqual([
+        whole,
+        { degree: 'lost', school: 'lost', period: 'lost', adjacent: false }
+      ]);
+      expect(diff.unmatched.education).toEqual([
+        ['Diploma in Culinary Arts', 'Scuola Alberghiera di Roma', '2009']
+      ]);
+    });
+
+    test('degrees printed in another order come back whole', () => {
+      const pisa =
+        "First Level Professional Master's Programme in Mobile Applications\nDevelopment (60 ECTS)\nUniversità degli Studi di Pisa (2014 – 2016)";
+      const catania = 'B.Sc. Computer Engineering\nUniversità degli Studi di Catania (2009)';
+      const reordered = nerd.replace(`${pisa}\n\n${catania}`, `${catania}\n\n${pisa}`);
+
+      expect(reordered).not.toBe(nerd);
+      expect(diffOfText(reordered, profile).education).toEqual([whole, whole]);
+    });
+  });
+
+  describe('a role, by its title and its employer', () => {
+    const whole = {
+      title: 'exact',
+      employer: 'exact',
+      period: 'exact',
+      tripleAdjacent: true,
+      highlights: 'exact'
+    };
+    // The first role's block as the print writes it: its period, its header and its achievements.
+    const cortado = nerd.slice(
+      nerd.indexOf('August 2018 – Present'),
+      nerd.indexOf('September 2015 – July 2018')
+    );
+
+    test('a parse that drops the first of three loses that one, and the other two come back whole', () => {
+      const diff = diffOfText(nerd.replace(cortado, ''), profile);
+      const [first] = profile.relevant_experience;
+
+      expect(diff.experience).toEqual([
+        {
+          title: 'lost',
+          employer: 'lost',
+          period: 'lost',
+          tripleAdjacent: false,
+          highlights: 'lost'
+        },
+        whole,
+        whole
+      ]);
+      expect(
+        RecoveryDiff.losses(diff)
+          .filter(({ path }) => path[0] === 'experience')
+          .map(({ path }) => path.join('.'))
+      ).toEqual([
+        'experience.0.title',
+        'experience.0.employer',
+        'experience.0.period',
+        'experience.0.highlights'
+      ]);
+      expect(diff.evidence['experience.0.title']).toEqual({
+        written: first.title,
+        recovered: null
+      });
+      expect(diff.unexpected.roles).toBe(0);
+    });
+
+    // The order is judged where it was lost, in the order the roles came back, and costs the chronology alone.
+    test('roles printed in another order come back whole, and break the chronology', () => {
+      const reordered = nerd.replace(cortado, '').replace('Wikitude.\n', `Wikitude.\n\n${cortado}`);
+      const diff = diffOfText(reordered, profile);
+
+      expect(reordered).not.toBe(nerd);
+      expect(diff.experience).toEqual([whole, whole, whole]);
+      expect(diff.roleOrderMonotonic).toBe(false);
+    });
+
+    // A role whose title, employer and dates match nothing written is not the first role graded wrong: it is a role
+    // nobody wrote, and the one it displaced is lost, though the document holds no more roles than came back.
+    test('a role that says nothing of any written one is a role nobody wrote, and the one it displaced is lost', () => {
+      const invented = nerd
+        .replace('August 2018 – Present', 'January 2019 – March 2020')
+        .replace(
+          'Mobile Software Engineer / Technical Owner, iOS & Android at\nCortado Mobile Solutions, Berlin (remote)',
+          'Head Chef at Trattoria Da Mario, Rome, Italy'
+        );
+      const diff = diffOfText(invented, profile);
+
+      expect(invented).not.toBe(nerd);
+      expect(diff.experience[0]).toEqual(
+        expect.objectContaining({ title: 'lost', employer: 'lost', period: 'lost' })
+      );
+      expect(diff.experience.slice(1)).toEqual([whole, whole]);
+      expect(diff.unexpected.roles).toBe(1);
+    });
+
+    // Dates only break a tie between roles their title or employer already match (the code review of #222). A role
+    // that came back with another title and employer and a written role's dates is not that role with two wrong
+    // fields: matched on its dates, it read the written role's period and achievements as recovered, and was not
+    // counted as a role nobody wrote.
+    test('a role that shares only its period with a written one matches none, and that one is lost', () => {
+      const chef = nerd.replace(
+        'Mobile Software Engineer / Technical Owner, iOS & Android at\nCortado Mobile Solutions, Berlin (remote)',
+        'Head Chef at Trattoria Da Mario, Rome, Italy'
+      );
+      const diff = diffOfText(chef, profile);
+
+      expect(chef).not.toBe(nerd);
+      expect(diff.experience).toEqual([
+        {
+          title: 'lost',
+          employer: 'lost',
+          period: 'lost',
+          tripleAdjacent: false,
+          highlights: 'lost'
+        },
+        whole,
+        whole
+      ]);
+      expect(diff.unmatched.experience).toEqual([
+        ['Head Chef', 'Trattoria Da Mario', 'August 2018 – Present']
+      ]);
+      expect(diff.unexpected.roles).toBe(1);
+    });
+
+    // A flattened table keeps a role's dates and loses its title and employer. Nothing that identifies a role came
+    // back, so it matches none written: the role is lost, and what came back is a role nobody wrote.
+    test('a role whose title and employer came back as nothing matches none', () => {
+      const diff = diffOf('table-flattened');
+
+      expect(diff.experience[0]).toEqual(
+        expect.objectContaining({ title: 'lost', employer: 'lost', period: 'lost' })
+      );
+      expect(diff.unmatched.experience).toEqual([['August 2018 – Present']]);
+      expect(diff.unexpected.roles).toBe(1);
+    });
+  });
+
+  describe('a certification, by the line it prints', () => {
+    const scrum = { name: 'Professional Scrum Master I', issuer: 'Scrum.org', year: 2020 };
+    const android = 'Android Enterprise Expert (incl. Associate, Professional) – Google (2026)';
+    const ios = 'iOS Lead Essentials (TDD, Clean Architecture) – Essential Developer (2024)';
+
+    test('a parse that drops the first of three loses that one, and the other two come back whole', () => {
+      const three = { ...profile, certifications: [scrum, ...profile.certifications] };
+      const diff = diffOfText(nerd, three);
+
+      expect(diff.certifications).toEqual([{ name: 'lost' }, { name: 'exact' }, { name: 'exact' }]);
+      expect(RecoveryDiff.losses(diff)).toEqual([
+        {
+          path: ['certifications', 0, 'name'],
+          verdict: 'lost',
+          written: 'Professional Scrum Master I – Scrum.org (2020)',
+          recovered: null
+        }
+      ]);
+    });
+
+    test('certifications printed in another order come back whole', () => {
+      const reordered = nerd.replace(`${android}\n${ios}`, `${ios}\n${android}`);
+
+      expect(reordered).not.toBe(nerd);
+      expect(diffOfText(reordered, profile).certifications).toEqual([
+        { name: 'exact' },
+        { name: 'exact' }
+      ]);
+    });
+  });
+
+  describe('a spoken language, by its name', () => {
+    const whole = { name: 'exact', level: 'exact' };
+
+    test('a parse that drops the first of three loses that one, and the other two come back whole', () => {
+      const diff = diffOfText(nerd.replace('Italian: Native\n', ''), profile);
+
+      expect(diff.spokenLanguages).toEqual([{ name: 'lost', level: 'lost' }, whole, whole]);
+      expect(diff.evidence['spokenLanguages.0.name']).toEqual({
+        written: 'Italian',
+        recovered: null
+      });
+    });
+
+    test('languages printed in another order come back whole', () => {
+      const italian = 'Italian: Native\n';
+      const english = 'English: C1 — professional working proficiency\n';
+      const reordered = nerd.replace(`${italian}${english}`, `${english}${italian}`);
+
+      expect(reordered).not.toBe(nerd);
+      expect(diffOfText(reordered, profile).spokenLanguages).toEqual([whole, whole, whole]);
+    });
+  });
+
+  // Categories were already found by their label. Each recovered category now answers for one written category only,
+  // and is not also a piece of another that came back torn.
+  describe('a skill category, by its label', () => {
+    test('a category written twice and printed once is recovered once, and the other is lost', () => {
+      const twice = {
+        ...profile,
+        skills: [...profile.skills, { category: 'iOS', items: [{ name: 'Objective-C' }] }]
+      };
+      const diff = diffOfText(nerd, twice);
+
+      expect(diff.skills.map((group) => group.category)).toEqual([
+        'exact',
+        'exact',
+        'exact',
+        'exact',
+        'lost'
+      ]);
+      expect(diff.skills[0].attached).toBe(true);
+      expect(diff.skills[4]).toEqual({ category: 'lost', attached: false, lost: ['Objective-C'] });
+    });
+  });
 });
