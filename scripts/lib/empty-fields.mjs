@@ -13,7 +13,10 @@ import { SEPARATOR_GLYPHS } from '../../renderers/inlineSeparator.js';
  *   words around them ("the legacy init() call", "Kotlin null safety");
  * - a separator doubled on its line, `· ·`, where whatever stood between the two printed nothing;
  * - an entry that ends on the separator of a part it does not have: a role header ending in a comma, a certification's
- *   name followed by a dash that introduces no issuer.
+ *   name followed by a dash that introduces no issuer. A separator introduces nothing when its line ends after it, or
+ *   when what follows it is the next part's bracket, a year or nothing: "Name – (2024)", "Name – ()". One followed by
+ *   a value belongs to an entry that has the part, which may share the header: "Engineer at Acme, Berlin" beside
+ *   "Engineer at Acme" is not the second role's comma (the code review of #205).
  *
  * It reads `pdftotext` output and nothing else, so each rule can be shown to fail on text that breaks it.
  */
@@ -27,6 +30,8 @@ const SEPARATOR = `[,${escapeInClass(SEPARATOR_GLYPHS.join(''))}]`;
 /** What a field left empty prints instead of itself: its brackets with nothing inside, or the word for nothing. */
 const EMPTY = [/\(\s*\)/g, /\bundefined\b/g, /\bnull\b/g];
 const DOUBLED = new RegExp(`${SEPARATOR}[ \\t\\u00a0]*${SEPARATOR}`, 'g');
+/** After a separator, nothing it could introduce: the line's end, or the next part's bracket, holding a year or empty. */
+const INTRODUCES_NOTHING = '(?=[ \\t]*(?:$|\\(\\s*(?:\\d|\\))))';
 
 /**
  * Where the text carries what the profile writes around each match of `pattern` in it: the match with the word before
@@ -90,12 +95,13 @@ export function emptyFieldMarks(text, { ends = [], written = [] } = {}) {
     }
   }
   for (const match of text.matchAll(DOUBLED)) note(match.index, match[0]);
-  // An entry's header opens its line in every layout; prose that names the entry mid-line and goes on is not one.
+  // An entry's header opens its line in every layout; prose that names the entry mid-line and goes on is not one. Its
+  // separator is a trace only where it introduces nothing: the line ends, or the next part's bracket follows.
   for (const end of ends) {
     const words = String(end).split(/\s+/).filter(Boolean);
     if (!words.length) continue;
     const pattern = new RegExp(
-      `^([ \\t]*)(${words.map(escapeForRegExp).join('\\s+')}\\s*${SEPARATOR})`,
+      `^([ \\t]*)(${words.map(escapeForRegExp).join('\\s+')}\\s*${SEPARATOR})${INTRODUCES_NOTHING}`,
       'gm'
     );
     for (const match of text.matchAll(pattern)) note(match.index + match[1].length, match[2]);

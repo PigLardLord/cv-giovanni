@@ -116,7 +116,7 @@ describe('the traces of an empty field in printed text', () => {
           line: 'Mobile Developer at Apparound,'
         }
       ]);
-      expect(marks('Mobile Developer at\nApparound, September 2015', { ends })).toEqual([
+      expect(marks('Mobile Developer at\nApparound,\nSeptember 2015', { ends })).toEqual([
         'Mobile Developer at Apparound,'
       ]);
       expect(marks('Mobile Developer at Apparound\nSeptember 2015 – July 2018', { ends })).toEqual(
@@ -135,6 +135,30 @@ describe('the traces of an empty field in printed text', () => {
         '()'
       ]);
       expect(marks('iOS Lead Essentials (TDD, Clean Architecture) (2024)', { ends })).toEqual([]);
+    });
+
+    // The code review of #205: two roles can share a header, one with a location and one without. The complete one's
+    // comma introduces its location, and was blamed on the entry that has none.
+    test('a separator that introduces a value is not blamed, whichever entry shares the header', () => {
+      const roles = [
+        { title: 'Engineer', company: 'Acme' },
+        { title: 'Engineer', company: 'Acme', location: 'Berlin' }
+      ];
+      const ends = openEnds({ relevant_experience: roles }, { at: 'at' });
+
+      expect(ends).toEqual(['Engineer at Acme']);
+      expect(emptyFieldMarks('Engineer at Acme\nEngineer at Acme, Berlin', { ends })).toEqual([]);
+      expect(marks('Engineer at Acme, (remote)', { ends })).toEqual([]);
+      expect(marks('Engineer at Acme,\nEngineer at Acme, Berlin', { ends })).toEqual([
+        'Engineer at Acme,'
+      ]);
+    });
+
+    test('a certification sharing its name with one that has an issuer is blamed only for its own dash', () => {
+      const ends = ['CISSP'];
+
+      expect(marks('CISSP – (ISC)² (2024)\nCISSP (2021)', { ends })).toEqual([]);
+      expect(marks('CISSP – (ISC)² (2024)\nCISSP – (2021)', { ends })).toEqual(['CISSP –']);
     });
 
     test('an entry is a header only where it opens its line: prose that names it goes on', () => {
