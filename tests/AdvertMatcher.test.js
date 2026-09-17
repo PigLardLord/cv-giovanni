@@ -5,6 +5,8 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { AtsTextParser } from '../core/AtsTextParser.js';
 import { AdvertMatcher } from '../core/AdvertMatcher.js';
+import { CvDocument } from '../domain/CvDocument.js';
+import { RecoveredCv } from '../domain/RecoveredCv.js';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const recovered = AtsTextParser.parse(
@@ -101,6 +103,59 @@ describe('where the CV answers', () => {
     expect(evidenceFor('Swift', matched).where).toBe('Cortado Mobile Solutions');
     expect(evidenceFor('SwiftUI', matched).where).toBe('the skills list');
     expect(evidenceFor('CoreML', matched).where).toBeNull();
+  });
+});
+
+// The skills list claimed TDD and Clean Architecture while no role said where either was practised, so an advert asking
+// for them found a listed word and no claim behind it (#54). The candidate practised both on the Cortado MDM iOS client,
+// and the Cortado role says so; this holds the published profile to it.
+describe('a practice the skills list claims is evidenced in the prose of a role', () => {
+  const PRACTICES = ['TDD', 'Clean Architecture'];
+  const published = () => JSON.parse(readFileSync(`${root}profiles/general/en.json`, 'utf8'));
+
+  // The profile as a parser that lost nothing would recover it: what the CV says, with no layout in between. Whether
+  // the print keeps what it says is the recovery tests' question, not this one.
+  const placed = (json) => {
+    const document = new CvDocument(json);
+    const field = (value) => RecoveredCv.field(value, -1);
+    const recovered = new RecoveredCv({
+      identity: { name: field(document.identity.name), title: field(document.identity.title) },
+      profile: document.profile,
+      experience: document.experience.map((job) => ({
+        title: field(job.title),
+        employer: field(job.company),
+        bodyText: [job.summary, ...job.highlights].filter(Boolean).join(' ')
+      })),
+      skills: document.skills.map((group) => ({
+        category: group.category,
+        items: group.items.map((item) => item.name)
+      })),
+      certifications: document.certifications.map((entry) => ({ text: entry.name }))
+    });
+    const terms = PRACTICES.map((term) => ({ term, required: true }));
+    return AdvertMatcher.match(terms, recovered, document).terms;
+  };
+
+  test.each(PRACTICES)(
+    '%s is in the prose of the Cortado role, not only in the skills list',
+    (term) => {
+      expect(evidenceFor(term, placed(published()))).toEqual(
+        expect.objectContaining({ evidence: 'inProse', where: 'Cortado Mobile Solutions' })
+      );
+    }
+  );
+
+  test('a role that stops naming them leaves them claimed in the skills list only', () => {
+    const json = published();
+    for (const job of json.relevant_experience) {
+      job.highlights = job.highlights.map((line) =>
+        line.replace(/\bTDD\b|Clean Architecture/g, '')
+      );
+    }
+
+    for (const term of PRACTICES) {
+      expect(evidenceFor(term, placed(json)).evidence).toBe('inSkillsOnly');
+    }
   });
 });
 
