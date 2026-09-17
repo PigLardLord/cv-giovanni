@@ -2,11 +2,10 @@ Giovanni Trovato
 Senior iOS Engineer
 Swift · SwiftUI · Enterprise Mobility · CI/CD · Agentic Development
 Senior iOS engineer with 11+ years in native mobile. Built Cortado's
-MDM iOS client in SwiftUI from its first commit and co-rewrote ezeep
-Blue (300k downloads since release). Android again since 2025, on the
-MDM client: in 2026 grew branch coverage from 14% to 83%. Runs
-CI/CD and releases on both platforms; agentic development since
-2025.
+MDM iOS client and co-rewrote ezeep Blue (300k downloads since
+release). Android again since 2025, migrating Cortado MDM for
+Android to Jetpack Compose. Runs CI/CD and releases on both
+platforms; agentic development since 2025.
 EU citizen · unrestricted German work authorisation
 Bad Liebenstein, Thuringia, Germany · trovato.giovanni@gmail.com · +39 329 8484 046
 github.com/PigLardLord · linkedin.com/in/piglardlord · piglardlord.github.io/cv-giovanni
@@ -37,11 +36,11 @@ managed configuration, server commands, Swift 6 concurrency; led
 Dynamic Island and Live Activities; co-developed App Intents.
 ezeep Blue for iOS (2020 – 2023): rewrote it from scratch in SwiftUI
 with one other developer. 300k downloads since release, 15k still
-installed in 2026.Cortado MDM for Android (since 2025): migrated nearly every
+installed in 2026.
+Cortado MDM for Android (since 2025): migrated nearly every
 screen to Jetpack Compose; in 2026 grew the suite from 1,040 to
 5,308 tests and branch coverage from 14% to 83%, and cut summed
-test runtime from a July peak of 37.7 to 5.2 minutes.
-Earlier products (2018 – 2023): Workplace and Teamplace iOS
+test runtime from a July peak of 37.7 to 5.2 minutes.Earlier products (2018 – 2023): Workplace and Teamplace iOS
 clients, incl. Objective-C to Swift and RxSwift to Combine migrations;
 an unreleased UIKit app with offline sync; NFCReader, sole author.
 Across products: CI/CD, signing and releases for iOS and Android

@@ -6,7 +6,7 @@
   "email": "trovato.giovanni@gmail.com",
   "phone": "+39 329 8484 046",
   "availability": "EU citizen · unrestricted German work authorisation",
-  "profile": "Senior iOS engineer with 11+ years in native mobile. Built Cortado's MDM iOS client in SwiftUI from its first commit and co-rewrote ezeep Blue (300k downloads since release). Android again since 2025, on the MDM client: in 2026 grew branch coverage from 14% to 83%. Runs CI/CD and releases on both platforms; agentic development since 2025.",
+  "profile": "Senior iOS engineer with 11+ years in native mobile. Built Cortado's MDM iOS client and co-rewrote ezeep Blue (300k downloads since release). Android again since 2025, migrating Cortado MDM for Android to Jetpack Compose. Runs CI/CD and releases on both platforms; agentic development since 2025.",
   "career_highlights": [
     "Six years on Cortado's MDM iOS client, SwiftUI from its first commit",
     "MDM Android, 2026: 1,040 → 5,308 tests, branch coverage 14% → 83%"

@@ -95,7 +95,7 @@ border no thinner than the secondary's (#119).
 | nerd | 320px | 23 controls, worst 10.71:1 (Profile) |
 | spotlight | 1280px | 9 controls, worst 6.16:1 (piglardlord.github.io/cv-giovanni) |
 | spotlight | 820px | 9 controls, worst 6.51:1 (Nerd Mode) |
-| spotlight | 390px | 9 controls, worst 5.59:1 (piglardlord.github.io/cv-giovanni) |
+| spotlight | 390px | 9 controls, worst 5.62:1 (piglardlord.github.io/cv-giovanni) |
 | spotlight | 320px | 9 controls, worst 5.55:1 (piglardlord.github.io/cv-giovanni) |
 | technical | 1280px | 9 controls, worst 6.75:1 (Nerd Mode) |
 | technical | 820px | 9 controls, worst 6.75:1 (Nerd Mode) |
