@@ -29,7 +29,7 @@ describe('a clean document, as the artefact actually extracts', () => {
 
   test('the contacts come back', () => {
     expect(cv.identity.name.value).toBe('Giovanni Trovato');
-    expect(cv.identity.title.value).toBe('Senior iOS Engineer / Mobile Platform Owner');
+    expect(cv.identity.title.value).toBe('Senior iOS Engineer');
     expect(cv.identity.email.value).toBe('trovato.giovanni@gmail.com');
     expect(cv.identity.phone.value).toBe('+393298484046');
     expect(cv.identity.location.value).toBe('Bad Liebenstein, Thuringia, Germany');
@@ -41,7 +41,12 @@ describe('a clean document, as the artefact actually extracts', () => {
       'Expanded the test suite to ~4,800 tests',
       'from 15% to 82%',
       'cutting CI runtime by 75% (32 to 8 minutes)',
-      'a mobile team of 3–7 engineers'
+      'a mobile team of 3–7 engineers',
+      'MDM Android, 2026: 1,040 → 5,308 tests, branch coverage 14% → 83%',
+      'Cortado MDM for iOS (since 2020; ~30k downloads by 2026)',
+      '300k downloads since release, 15k still installed in 2026.',
+      'and cut summed test runtime from a July peak of 37.7 to 5.2 minutes.',
+      'in a mobile team of two since 2020.'
     ]) {
       expect(AtsTextParser.phone([line])).toBeNull();
     }
@@ -160,16 +165,14 @@ describe('the pathological shapes, each failing the check it was written for', (
   });
 });
 
-// The page's own print (#147), extracted from Chrome's PDF of each layout at c974dbc. Technical Profile
+// The page's own print (#147), extracted from Chrome's PDF of each layout at the commit that last changed them,
+// which `git log -1 -- tests/fixtures/ats/page-print-*` names: a SHA written here drifts on every content commit
+// (the code review of #229). Technical Profile
 // extracts to the same bytes as Impact Spotlight in both reading orders, so one fixture stands for both.
 // The roles, degrees and skills are asserted as recovered strings rather than diffed against the profile,
 // so a copy edit in the profile does not silently change what these fixtures prove.
 const ROLES = [
-  [
-    'Mobile Software Engineer / Technical Owner, iOS & Android',
-    'Cortado Mobile Solutions',
-    'Berlin (remote)'
-  ],
+  ['iOS Developer', 'Cortado Mobile Solutions', 'Berlin (remote)'],
   ['Mobile Developer', 'Apparound', 'Pisa, Italy'],
   ['Mobile Developer Intern', 'Marte 5', 'Livorno, Italy']
 ];
@@ -209,8 +212,8 @@ describe('the printed page, in the order poppler reads it', () => {
     (fixture) => {
       const [first, second] = parse(fixture).experience;
 
-      expect(first.bodyText).toContain('Led annual iOS compatibility');
-      expect(first.bodyText).toContain('Play Store staged rollout.');
+      expect(first.bodyText).toContain('Earlier products (2018 – 2023)');
+      expect(first.bodyText).toContain('mentoring two developers in agentic workflows.');
       expect(first.bodyText).not.toContain('Mobile Developer at Apparound');
       expect(first.bodyText).not.toContain('September 2015');
       expect(second.bodyText).toContain('B2B sales-automation platform');
@@ -384,12 +387,12 @@ describe('the same artefacts, in content-stream order', () => {
     expect(cv.roleOrderMonotonic).toBe(true);
   });
 
-  // In content-stream order a page break writes no newline: "mentoring mobile colleagues.\fLed annual …".
+  // In content-stream order a page break writes no newline: "37.7 to 5.2 minutes.\fEarlier products …".
   test('a page break is a line break', () => {
     const [first] = parse('page-print-spotlight.raw').experience;
 
-    expect(first.bodyLines).toContain('and backend while mentoring mobile colleagues.');
-    expect(first.bodyLines.some((line) => line.startsWith('Led annual iOS compatibility'))).toBe(
+    expect(first.bodyLines).toContain('July peak of 37.7 to 5.2 minutes.');
+    expect(first.bodyLines.some((line) => line.startsWith('Earlier products (2018 – 2023)'))).toBe(
       true
     );
   });

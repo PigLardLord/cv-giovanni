@@ -9,6 +9,7 @@ import { openBrowser } from './lib/chrome.mjs';
 import { rendered, revealed } from './lib/page-ready.mjs';
 import { screenCopy } from './lib/screen-copy.mjs';
 import {
+  SEPARATORS,
   closingSyntax,
   columnOverflow,
   lineBreaks,
@@ -504,6 +505,9 @@ try {
 if (process.exitCode === 2) process.exit(2);
 
 const failures = rows.filter((row) => Object.values(row.checks).some((value) => !value));
+/** The separators no line starts or ends with, named as the report reads them: "`·`, `–`, `—`, `|` or `→`". */
+const named = SEPARATORS.map((glyph) => `\`${glyph}\``);
+const separatorsNamed = `${named.slice(0, -1).join(', ')} or ${named.at(-1)}`;
 const report = [
   '# Screen copy matrix',
   '',
@@ -523,9 +527,9 @@ const report = [
   'while it loads — every layout shift from navigation to fonts ready, added up, below 0.1.',
   '',
   'Since #180 the lines the CV is laid on are read as well, from the box of every character the page',
-  'draws, because a copy has a space where a line broke. No line starts or ends with a separator, `·`,',
-  '`–`, `—` or `|`, and no period the profile writes is split across two lines; a period wider than its',
-  'line may break after its dash, and only there. A failure names the text either side of the break.',
+  'draws, because a copy has a space where a line broke. No line starts or ends with a separator,',
+  `${separatorsNamed}, and no period the profile writes is split across two lines; a period wider than`,
+  'its line may break after its dash, and only there. A failure names the text either side of the break.',
   '',
   'Since #198 the same glyphs are held to their columns, because text the page holds together cannot',
   'wrap however narrow its line: no glyph is drawn more than half a pixel past the narrowest content box',

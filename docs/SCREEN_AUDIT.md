@@ -25,9 +25,9 @@ line the data did not write — no pictograph, no line number; and the first scr
 while it loads — every layout shift from navigation to fonts ready, added up, below 0.1.
 
 Since #180 the lines the CV is laid on are read as well, from the box of every character the page
-draws, because a copy has a space where a line broke. No line starts or ends with a separator, `·`,
-`–`, `—` or `|`, and no period the profile writes is split across two lines; a period wider than its
-line may break after its dash, and only there. A failure names the text either side of the break.
+draws, because a copy has a space where a line broke. No line starts or ends with a separator,
+`·`, `–`, `—`, `|` or `→`, and no period the profile writes is split across two lines; a period wider than
+its line may break after its dash, and only there. A failure names the text either side of the break.
 
 Since #198 the same glyphs are held to their columns, because text the page holds together cannot
 wrap however narrow its line: no glyph is drawn more than half a pixel past the narrowest content box
