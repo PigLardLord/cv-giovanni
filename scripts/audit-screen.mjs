@@ -355,11 +355,11 @@ try {
       // period split across two.
       const drawn = await chrome.evaluate(renderedGlyphs(start, end));
       if (drawn === null) throw new Error(`${layout} has no ${start} or no ${end}`);
-      const { glyphs } = drawn;
-      const breaks = lineBreaks(glyphs, profile);
+      const breaks = lineBreaks(drawn.glyphs, profile);
       // The same glyphs against the edges of their columns, and the page against its viewport (#198): text held
-      // together cannot wrap, and runs past its line when it is too wide for it.
-      const overflow = columnOverflow(glyphs, await chrome.evaluate(pageWidth));
+      // together cannot wrap, and runs past its line when it is too wide for it. The syntax Nerd Mode's stylesheet
+      // draws beside that text is held to the same columns, since it has no glyphs to judge (#207).
+      const overflow = columnOverflow(drawn, await chrome.evaluate(pageWidth));
 
       // The Download link (#101): measured as the page loaded, reached with Tab the way a keyboard user reaches
       // it, scrolled past where a layout pins it, and loaded again with no PDF to offer.

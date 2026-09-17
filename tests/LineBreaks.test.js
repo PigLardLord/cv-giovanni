@@ -223,9 +223,11 @@ describe('a line break that strands a separator or splits a period', () => {
 // degree's never-wrapping period runs past a 320px column, and every other check still passes.
 describe('text that runs past its column, or a page that scrolls sideways', () => {
   const page = { scrollWidth: 320, clientWidth: 320 };
+  /** The CV's text with no syntax drawn beside it, as the layouts but Nerd Mode lay it. */
+  const glyphsAlone = (glyphs, widths) => columnOverflow({ glyphs, syntax: [] }, widths);
 
   test('text inside its column, on a page no wider than its viewport, passes', () => {
-    const { checks, findings } = columnOverflow(
+    const { checks, findings } = glyphsAlone(
       block(['September 2015 – July 2018', '(2014 – 2016)'], { room: 208 }),
       page
     );
@@ -236,7 +238,7 @@ describe('text that runs past its column, or a page that scrolls sideways', () =
 
   // "(Septembre 2015 – Décembre" is 196px at 8px a letter and 4px a space; the space after it ends at 200px.
   test('a glyph past the right edge of its column fails, naming the run past it, its line and how far', () => {
-    const { checks, findings } = columnOverflow(
+    const { checks, findings } = glyphsAlone(
       run('(Septembre 2015 – Décembre 2018)', { room: 200 }),
       page
     );
@@ -250,7 +252,7 @@ describe('text that runs past its column, or a page that scrolls sideways', () =
   test('a glyph before the left edge of its column fails', () => {
     const glyphs = run('Pisa', { column: { left: 16, right: 400 } });
 
-    expect(columnOverflow(glyphs, page).findings.overflowing).toEqual([
+    expect(glyphsAlone(glyphs, page).findings.overflowing).toEqual([
       '“Pi” in “Pisa”: 16.0px past the left edge of its column'
     ]);
   });
@@ -261,7 +263,7 @@ describe('text that runs past its column, or a page that scrolls sideways', () =
   test('a glyph past the right of the viewport fails, however wide its own column, and says the viewport', () => {
     const glyphs = run('Held', { left: 400, column: { left: 400, right: 600 } });
 
-    expect(columnOverflow(glyphs, page).findings.overflowing).toEqual([
+    expect(glyphsAlone(glyphs, page).findings.overflowing).toEqual([
       '“Held”: 112.0px past the right edge of the viewport'
     ]);
   });
@@ -269,7 +271,7 @@ describe('text that runs past its column, or a page that scrolls sideways', () =
   test('a glyph before the left of the viewport fails', () => {
     const glyphs = run('Held text', { left: -16, column: { left: -16, right: 300 } });
 
-    expect(columnOverflow(glyphs, page).findings.overflowing).toEqual([
+    expect(glyphsAlone(glyphs, page).findings.overflowing).toEqual([
       '“He” in “Held text”: 16.0px past the left edge of the viewport'
     ]);
   });
@@ -278,7 +280,7 @@ describe('text that runs past its column, or a page that scrolls sideways', () =
   test('a run keeps the spaces between the glyphs past the edge, names each line apart, and a whole line once', () => {
     const glyphs = block(['ab cd', 'ef gh'], { column: { left: 4, right: 12 } });
 
-    expect(columnOverflow(glyphs, page).findings.overflowing).toEqual([
+    expect(glyphsAlone(glyphs, page).findings.overflowing).toEqual([
       '“ab cd”: 24.0px past the right edge of its column',
       '“ef gh”: 24.0px past the right edge of its column'
     ]);
@@ -288,7 +290,7 @@ describe('text that runs past its column, or a page that scrolls sideways', () =
     const glyphs = run('x (3 ans) y', { column: { left: 0, right: 8 } });
     glyphs.at(-1).column = { left: 0, right: 400 };
 
-    expect(columnOverflow(glyphs, page).findings.overflowing).toEqual([
+    expect(glyphsAlone(glyphs, page).findings.overflowing).toEqual([
       '“(3 ans)” in “x (3 ans) y”: 56.0px past the right edge of its column'
     ]);
   });
@@ -299,7 +301,7 @@ describe('text that runs past its column, or a page that scrolls sideways', () =
       column: { left: 0, right: 0 }
     }));
 
-    expect(columnOverflow(glyphs, page).findings.overflowing).toEqual([
+    expect(glyphsAlone(glyphs, page).findings.overflowing).toEqual([
       '“iOS Swift”: 100.0px past the right edge of its column'
     ]);
   });
@@ -310,8 +312,8 @@ describe('text that runs past its column, or a page that scrolls sideways', () =
     const within = run('a', { column: { left: 0, right: 7.5 } });
     const past = run('a', { column: { left: 0, right: 7.4 } });
 
-    expect(columnOverflow(within, page).checks.staysInColumn).toBe(true);
-    expect(columnOverflow(past, page).findings.overflowing).toEqual([
+    expect(glyphsAlone(within, page).checks.staysInColumn).toBe(true);
+    expect(glyphsAlone(past, page).findings.overflowing).toEqual([
       '“a”: 0.6px past the right edge of its column'
     ]);
   });
@@ -323,13 +325,13 @@ describe('text that runs past its column, or a page that scrolls sideways', () =
       ...run('August 2015', { top: 20, room: 88 })
     ];
 
-    expect(columnOverflow(glyphs, page).checks.staysInColumn).toBe(true);
+    expect(glyphsAlone(glyphs, page).checks.staysInColumn).toBe(true);
   });
 
   // Nerd Mode's container lets its content out: a planted period too wide for the editor widened the page to 429px at
   // 320px.
   test('a page wider than its viewport by more than a pixel fails, with every glyph inside its column', () => {
-    const { checks, findings } = columnOverflow(block(['July 2018']), {
+    const { checks, findings } = glyphsAlone(block(['July 2018']), {
       scrollWidth: 429,
       clientWidth: 320
     });
@@ -342,9 +344,112 @@ describe('text that runs past its column, or a page that scrolls sideways', () =
 
   test('a page a pixel wider than its viewport passes', () => {
     expect(
-      columnOverflow(block(['July 2018']), { scrollWidth: 321, clientWidth: 320 }).checks
-        .staysInColumn
+      glyphsAlone(block(['July 2018']), { scrollWidth: 321, clientWidth: 320 }).checks.staysInColumn
     ).toBe(true);
+  });
+
+  // Nerd Mode's quotes, commas and brackets are drawn by the stylesheet and have no glyphs (#160). At 320px the closing
+  // `",` of "September 2015 – July 2018" took 14.4px of its 16px, and a longer period would have pushed it into the
+  // editor's padding with every check passing (#207).
+  describe('with the syntax the stylesheet draws beside the text', () => {
+    /** A piece of syntax from `left`, drawn after the `after`th glyph: a box, 8px a character, and no glyph. */
+    const piece = (text, after, { top = 0, left = 0, column = { left: 0, right: 400 } } = {}) => ({
+      text,
+      top,
+      bottom: top + 16,
+      left,
+      right: left + [...text].length * 8,
+      column,
+      after
+    });
+    // "September 2015 – July 2018" is 192px, its closing quote ends at 200px and its comma at 208px.
+    const closed = (right) => {
+      const column = { left: 0, right };
+      return {
+        glyphs: run('September 2015 – July 2018', { column }),
+        syntax: [piece('"', 26, { left: 192, column }), piece(',', 26, { left: 200, column })]
+      };
+    };
+
+    test('syntax inside its column passes', () => {
+      const { checks, findings } = columnOverflow(closed(208), page);
+
+      expect(checks).toEqual({ staysInColumn: true });
+      expect(findings).toEqual({ overflowing: [], sideways: [] });
+    });
+
+    test('syntax past the right edge of its column fails, naming the line it follows and how far', () => {
+      const { checks, findings } = columnOverflow(closed(206.8), page);
+
+      expect(checks.staysInColumn).toBe(false);
+      expect(findings.overflowing).toEqual([
+        '“,” after “September 2015 – July 2018”: 1.2px past the right edge of its column'
+      ]);
+    });
+
+    test('pieces of syntax side by side past an edge are one run, as far past as its furthest', () => {
+      expect(columnOverflow(closed(198.8), page).findings.overflowing).toEqual([
+        '“",” after “September 2015 – July 2018”: 9.2px past the right edge of its column'
+      ]);
+    });
+
+    test('syntax up to half a pixel past its edge passes, and syntax further fails', () => {
+      expect(columnOverflow(closed(207.5), page).checks.staysInColumn).toBe(true);
+      expect(columnOverflow(closed(207.4), page).findings.overflowing).toEqual([
+        '“,” after “September 2015 – July 2018”: 0.6px past the right edge of its column'
+      ]);
+    });
+
+    test('syntax before any glyph is named by the line it comes before, and past the viewport says so', () => {
+      const syntax = [piece('[', 0, { left: -16, column: { left: -16, right: 300 } })];
+
+      expect(columnOverflow({ glyphs: run('Swift'), syntax }, page).findings.overflowing).toEqual([
+        '“[” before “Swift”: 16.0px past the left edge of the viewport'
+      ]);
+    });
+
+    test('syntax with no glyph at all is named by itself', () => {
+      const syntax = [piece('}', 0, { left: 400 })];
+
+      expect(columnOverflow({ glyphs: [], syntax }, page).findings.overflowing).toEqual([
+        '“}”: 88.0px past the right edge of the viewport'
+      ]);
+    });
+
+    // `let skills = [` at a width where the editor's line ends at 20px: a space the page writes, narrower than a gap
+    // that would part them, parts "=" from "[", and the "]" that closes it sits on a line below.
+    test('a run keeps a space the page writes between its pieces, and names each line apart', () => {
+      const column = { left: 8, right: 20 };
+      const glyphs = [
+        ...run('let', { column: { left: 0, right: 400 } }),
+        ...run(' ', { left: 40, space: 2 })
+      ];
+      const syntax = [
+        piece('=', 3, { left: 32, column }),
+        piece('[', 4, { left: 42, column }),
+        piece(']', 4, { top: 20, left: 0, column })
+      ];
+
+      expect(columnOverflow({ glyphs, syntax }, page).findings.overflowing).toEqual([
+        '“= [” after “let”: 30.0px past the right edge of its column',
+        '“]” after “let”: 8.0px past the left edge of its column'
+      ]);
+    });
+
+    test('a glyph between two pieces of syntax parts them, and every run is named in the order the page writes it', () => {
+      const column = { left: 400, right: 600 };
+      const glyphs = run('Held', { left: 400, column });
+      const syntax = [
+        piece('"', 0, { left: 392, column: { left: 392, right: 600 } }),
+        piece('"', 4, { left: 432, column })
+      ];
+
+      expect(columnOverflow({ glyphs, syntax }, page).findings.overflowing).toEqual([
+        '“"” before “Held”: 80.0px past the right edge of the viewport',
+        '“Held”: 112.0px past the right edge of the viewport',
+        '“"” after “Held”: 120.0px past the right edge of the viewport'
+      ]);
+    });
   });
 });
 
