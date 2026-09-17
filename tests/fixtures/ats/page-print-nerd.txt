@@ -15,8 +15,8 @@ github.com/PigLardLord · linkedin.com/in/piglardlord · piglardlord.github.io/c
 
 Selected Impact
 Six years on Cortado's MDM iOS client, SwiftUI from its first commit
-MDM Android, 2026: 1,040 → 5,308 tests, branch coverage 14% →
-83%
+MDM Android, 2026: 1,040 → 5,308 tests, branch coverage
+14% → 83%
 
 Core Technologies
 iOS — Swift, SwiftUI, UIKit, Swift Concurrency, Combine, XCTest / XCUITest,

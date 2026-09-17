@@ -12,8 +12,8 @@ Bad Liebenstein, Thuringia, Germany · trovato.giovanni@gmail.com · +39 329 848
 github.com/PigLardLord · linkedin.com/in/piglardlord · piglardlord.github.io/cv-giovanni
 Selected Impact
 Six years on Cortado's MDM iOS client, SwiftUI from its first commit
-MDM Android, 2026: 1,040 → 5,308 tests, branch coverage 14% →
-83%
+MDM Android, 2026: 1,040 → 5,308 tests, branch coverage
+14% → 83%
 Core Technologies
 iOS — Swift, SwiftUI, UIKit, Swift Concurrency, Combine, XCTest / XCUITest,
 App Intents, Live Activities, Swift Package Manager (SPM)

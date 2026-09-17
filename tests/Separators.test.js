@@ -27,8 +27,13 @@ describe('the ends of a period', () => {
 
 describe('the glyphs a line holds', () => {
   test('are the separators, of which the dashes a period breaks after are two', () => {
-    expect(SEPARATOR_GLYPHS).toEqual(['·', '–', '—', '|']);
+    expect(SEPARATOR_GLYPHS).toEqual(['·', '–', '—', '|', '→']);
     expect(DASH_GLYPHS.every((dash) => SEPARATOR_GLYPHS.includes(dash))).toBe(true);
     expect(Object.isFrozen(SEPARATOR_GLYPHS) && Object.isFrozen(DASH_GLYPHS)).toBe(true);
+  });
+
+  // "branch coverage 14% →" ended a line in Nerd Mode and "83%" opened the next (product review of #229).
+  test('hold the arrow a figure points to what it became with', () => {
+    expect(SEPARATOR_GLYPHS).toContain('→');
   });
 });

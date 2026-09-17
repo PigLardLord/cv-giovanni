@@ -74,6 +74,19 @@ describe('CareerHighlightsRenderer', () => {
     ]);
   });
 
+  // "branch coverage 14% →" ended a line in Nerd Mode and "83%" opened the next (product review of #229).
+  test('holds an arrow to the figures either side of it, as every separator is held', () => {
+    renderer.render(document, {
+      career_highlights: ['1,040 → 5,308 tests, branch coverage 14% → 83%']
+    });
+
+    expect(items()).toEqual(['1,040 → 5,308 tests, branch coverage 14% → 83%']);
+    expect([...list().querySelectorAll('li .no-break')].map((held) => held.textContent)).toEqual([
+      ' → ',
+      ' → '
+    ]);
+  });
+
   test('rendering again replaces the list rather than adding to it', () => {
     renderer.render(document, { career_highlights: ['First'] });
     renderer.render(document, { career_highlights: ['Second'] });

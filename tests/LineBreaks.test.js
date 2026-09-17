@@ -108,7 +108,7 @@ describe('a line break that strands a separator or splits a period', () => {
     expect(findings.stranded).toEqual(['Swift · SwiftUI · / Enterprise Mobility · CI/CD']);
   });
 
-  test.each(['·', '–', '—', '|'])('%s is a separator', (glyph) => {
+  test.each(['·', '–', '—', '|', '→'])('%s is a separator', (glyph) => {
     expect(lineBreaks(block([`one ${glyph}`, 'two']), {}).checks.separatorsHeld).toBe(false);
   });
 

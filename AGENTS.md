@@ -229,7 +229,7 @@ A copy of the page has a space where a line broke, so no check on the copy can t
 review of #179 measured a degree's period broken as "Università degli Studi di Pisa (2014" / "– 2016)" at Impact
 Spotlight's 1280px while the selection read it whole. Since #180 `npm run audit:screen` also reads the lines the CV
 is laid on, from the box of every character the page draws, in the same stretch of the page the copy is selected
-from: no line starts or ends with a separator, `·`, `–`, `—` or `|`, and no period the profile writes is split across
+from: no line starts or ends with a separator, `·`, `–`, `—`, `|` or `→`, and no period the profile writes is split across
 two lines. A period wider than its line cannot keep to one, and there the least bad break is after its dash, which
 tells the reader the range goes on: it may break there and nowhere else. A failure names the layout, the width and
 the text either side of the break. The page holds each end of a role's period, and each separator with its spaces,

@@ -7,8 +7,12 @@
  * review of #195).
  */
 
-/** The glyphs that stand between two things and belong to neither, so a line never starts or ends with one. */
-export const SEPARATOR_GLYPHS = Object.freeze(['·', '–', '—', '|']);
+/**
+ * The glyphs that stand between two things and belong to neither, so a line never starts or ends with one. The arrow
+ * a figure points to what it became with is one: "branch coverage 14% →" ended a line in Nerd Mode and "83%" opened
+ * the next (product review of #229).
+ */
+export const SEPARATOR_GLYPHS = Object.freeze(['·', '–', '—', '|', '→']);
 
 /** The dashes a period writes between its two ends, the one place a period too wide for its line may break. */
 export const DASH_GLYPHS = Object.freeze(['–', '—']);
