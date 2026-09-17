@@ -446,14 +446,15 @@ period before #200, is listed as not graded on the base, and is not a loss. An e
 profile is compared with the one at the same position in the branch's: each print's diff matches
 what came back by what it says (#217), but that does not line up two profiles. So a section the two
 prints hold a different number of entries in is not compared entry by entry: a degree added in front
-moves the others down, and a loss of the last read as an entry the base never had. If the base's parser reads all of that section in full
-from the new print, nothing in it was lost; if it reads any of it short, a lost entry cannot be told
-from a moved one, and the step exits 2. **The label `ats-trade-accepted` records a trade the owner
-accepted:** the losses are still reported, in the job summary, and the step passes; it accepts
-nothing that was not compared, so entries are added or removed in one pull request and the parser
-changed in another. A change to one side only exits 0 and says why; a base that could not be built,
-read or graded exits 2. Locally it compares the working tree with its merge base with
-`origin/main` (`--base=<ref>` names another), after `npm run build:pdf`.
+moves the others down, and a loss of the last read as an entry the base never had. If the base's
+parser reads all of that section in full from the new print, nothing in it was lost; if it reads any
+of it short, a lost entry cannot be told from a moved one, and the step exits 2. **The label
+`ats-trade-accepted` records a trade the owner accepted:** the losses are still reported, in the job
+summary, and the step passes; it accepts nothing that was not compared, so entries are added or
+removed in one pull request and the parser changed in another. A change to one side only exits 0 and
+says why; a base that could not be built, read or graded exits 2. Locally it compares the working
+tree with its merge base with `origin/main` (`--base=<ref>` names another), after
+`npm run build:pdf`.
 
 `build:pdf` and `audit:screen` need a Chrome or Chromium binary. They look for one on PATH, in the
 usual install locations and in the Playwright cache; `CHROME_PATH` overrides. When they find none
