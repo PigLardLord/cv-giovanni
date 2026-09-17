@@ -405,12 +405,19 @@ the reason for each, the report prints them, and it says plainly that no vendor 
 number and no employer will ever see it. The number is printed as computed, a fraction cut to one
 decimal and never rounded, and every field graded partial, wrong or lost is listed with what was
 written beside what came back: rounded, a degree graded partial read 80/80, and the report named
-nothing (#186). The score gates nothing; four floors do — a document that did not segment, a lost
-email, a role severed from its title or period, and a chronology that does not run one way. The
-floors are checked in two reading orders: poppler's, which the score is computed on, and the content
-stream's (`pdftotext -raw`), which PDFBox and Tika read by default. They fail differently: on the
-two-column browser print, poppler's order kept the contacts above the career, while the content
-stream drew the skills first and the name after the first role, and lost the email (#147).
+nothing (#186). An entry that came back is matched to the one written by what it says, not by where
+it stands: a role by its title and employer, a degree by its name and school, each by its dates only
+where those say nothing, a category by its label, a language by its name, a certification by its
+line. Matched by position, a parser that dropped the first of three degrees graded the other two
+against their neighbours, and one loss read as three. The order the roles came back in is judged by
+the chronology alone, and an entry that matches none written is listed as one nobody wrote, which
+costs only when it is a role (#217). The score gates nothing; four floors do — a document that did
+not segment, a lost email, a role severed from its title or period, and a chronology that does not
+run one way. The floors are checked in two reading orders: poppler's, which the score is computed
+on, and the content stream's (`pdftotext -raw`), which PDFBox and Tika read by default. They fail
+differently: on the two-column browser print, poppler's order kept the contacts above the career,
+while the content stream drew the skills first and the name after the first role, and lost the email
+(#147).
 
 **A parser change and a layout change are reviewed apart,** or the pull request shows what the base
 branch's parser recovers from the new print. `audit:ats` grades the print with the branch's own
@@ -430,10 +437,11 @@ graded by the branch that printed it: against its own profile, by its own `Recov
 by its own `EntryLines` and catalogue, the base's imported apart from the branch's. Graded by the
 branch's alone, a change that rewords a line held the base's print to the new words, and a loss
 read "partial → partial" (#201). A field the base's grader does not grade, such as a degree's
-period before #200, is listed as not graded on the base, and is not a loss. An entry is compared
-with the one at the same position, so a section the two prints hold a different number of entries
-in is not compared entry by entry: a degree added in front moves the others down, and a loss of the
-last read as an entry the base never had. If the base's parser reads all of that section in full
+period before #200, is listed as not graded on the base, and is not a loss. An entry of the base's
+profile is compared with the one at the same position in the branch's: each print's diff matches
+what came back by what it says (#217), but that does not line up two profiles. So a section the two
+prints hold a different number of entries in is not compared entry by entry: a degree added in front
+moves the others down, and a loss of the last read as an entry the base never had. If the base's parser reads all of that section in full
 from the new print, nothing in it was lost; if it reads any of it short, a lost entry cannot be told
 from a moved one, and the step exits 2. **The label `ats-trade-accepted` records a trade the owner
 accepted:** the losses are still reported, in the job summary, and the step passes; it accepts
