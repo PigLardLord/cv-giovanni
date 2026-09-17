@@ -8,7 +8,13 @@ import { within } from './lib/devtools-session.mjs';
 import { openBrowser } from './lib/chrome.mjs';
 import { rendered, revealed } from './lib/page-ready.mjs';
 import { screenCopy } from './lib/screen-copy.mjs';
-import { columnOverflow, lineBreaks, pageWidth, renderedGlyphs } from './lib/line-breaks.mjs';
+import {
+  closingSyntax,
+  columnOverflow,
+  lineBreaks,
+  pageWidth,
+  renderedGlyphs
+} from './lib/line-breaks.mjs';
 import { RECORD_LAYOUT_SHIFTS, layoutShift } from './lib/layout-shift.mjs';
 import { downloadReach } from './lib/download-reach.mjs';
 import { currentLayoutMarked, forcedBoundaries } from './lib/forced-colours.mjs';
@@ -24,8 +30,9 @@ import { GenerationTarget } from '../core/GenerationTarget.js';
  * Each layout is opened in headless Chrome at a desktop width, a tablet width and two phone widths, its CV is selected, and the
  * selection is checked against the profile (#62). The lines the CV's text is laid on are read too, since a copy has a
  * space where a line broke and cannot tell where it did (#180), and whether that text stays inside its column and the
- * page inside its viewport, since text held together cannot wrap (#198). Every control a keyboard reaches is then
- * focused in turn, and its ring read from the screen's pixels (#111).
+ * page inside its viewport, since text held together cannot wrap (#198), and whether a row of Nerd Mode's editor opens
+ * with syntax parted from what it closes (#219). Every control a keyboard reaches is then focused in turn, and its ring
+ * read from the screen's pixels (#111).
  */
 const projectUrl = new URL('..', import.meta.url);
 const target = GenerationTarget.fromArguments(process.argv.slice(2));
@@ -360,6 +367,8 @@ try {
       // together cannot wrap, and runs past its line when it is too wide for it. The syntax Nerd Mode's stylesheet
       // draws beside that text is held to the same columns, since it has no glyphs to judge (#207).
       const overflow = columnOverflow(drawn, await chrome.evaluate(pageWidth));
+      // No row the editor wraps a line onto opens with syntax that closes the row above it, a lone `",` (#219).
+      const closing = closingSyntax(drawn);
 
       // The Download link (#101): measured as the page loaded, reached with Tab the way a keyboard user reaches
       // it, scrolled past where a layout pins it, and loaded again with no PDF to offer.
@@ -448,6 +457,7 @@ try {
         ...copy.checks,
         ...breaks.checks,
         ...overflow.checks,
+        ...closing.checks,
         holdsStill: shift.holdsStill,
         ...reach.checks,
         ...forced.checks,
@@ -458,6 +468,7 @@ try {
         ...copy.findings,
         ...breaks.findings,
         ...overflow.findings,
+        ...closing.findings,
         movedWhileLoading: shift.holdsStill ? [] : shift.moved,
         ...reach.findings,
         ...forced.findings,
@@ -527,6 +538,10 @@ const report = [
   "Since #207 the syntax Nerd Mode's stylesheet draws, its quotes, commas and brackets, which have no",
   'glyphs, is held to the same columns: each line of it by the box it is drawn in, less a space the line',
   'hangs past the edge. A failure names the syntax, the line it follows and how far past the edge it is.',
+  '',
+  "Since #219 no row Nerd Mode's editor wraps a line onto opens with syntax that closes what the row above",
+  'it wrote: a comma, a parenthesis, a bracket, or a quote that closes a literal. A line of the file may',
+  'open with one. A failure names the syntax and the line of text it closes.',
   '',
   '## The Download PDF link',
   '',
