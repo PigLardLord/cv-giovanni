@@ -37,7 +37,7 @@ const INTRODUCES_NOTHING = '(?=[ \\t]*(?:$|\\(\\s*(?:\\d|\\))))';
  * Where the text carries what the profile writes around each match of `pattern` in it: the match with the word before
  * and the word after it, in any whitespace, a line break included, and with a compound's hyphen kept, left at a line's
  * end or welded shut. A match inside one of those is the profile's own; the same mark anywhere else is not (the code
- * review of #205). A string holding nothing but the mark has no words to place it by, and covers every occurrence.
+ * review of #205). A string holding nothing but the mark has nothing to place it by, and exempts no occurrence at all.
  * @param {string} text - The text layer
  * @param {string[]} written - Every string the profile writes
  * @param {RegExp} pattern - The mark, with the global flag
@@ -45,17 +45,21 @@ const INTRODUCES_NOTHING = '(?=[ \\t]*(?:$|\\(\\s*(?:\\d|\\))))';
  */
 function ownWords(text, written, pattern) {
   const ranges = [];
-  for (const piece of written) {
-    const words = [...String(piece).matchAll(/\S+/g)].map((word) => ({
+  for (const piece of written.map(String)) {
+    const words = [...piece.matchAll(/\S+/g)].map((word) => ({
       start: word.index,
       end: word.index + word[0].length,
       text: word[0]
     }));
-    for (const match of String(piece).matchAll(pattern)) {
+    for (const match of piece.matchAll(pattern)) {
       const first = words.findIndex((word) => word.end > match.index);
       const last = words.findLastIndex((word) => word.start < match.index + match[0].length);
-      const around = words
-        .slice(Math.max(0, first - 1), last + 2)
+      const context = words.slice(Math.max(0, first - 1), last + 2);
+      const start = context[0].start;
+      const end = context[context.length - 1].end;
+      const beside = `${piece.slice(start, match.index)}${piece.slice(match.index + match[0].length, end)}`;
+      if (!/\S/.test(beside)) continue;
+      const around = context
         .map((word) => word.text.split('-').map(escapeForRegExp).join('(?:-\\s*)?'))
         .join('\\s+');
       for (const own of text.matchAll(new RegExp(around, 'g'))) {

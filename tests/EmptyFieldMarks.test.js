@@ -80,6 +80,17 @@ describe('the traces of an empty field in printed text', () => {
     ).toEqual(['null']);
   });
 
+  // The re-check of #205: a string that is only the mark exempted every occurrence of it.
+  test('a string that is only the mark has no words to place it by, and exempts nothing', () => {
+    expect(emptyFieldMarks('Mobile Developer at Apparound, null', { written: ['null'] })).toEqual([
+      { mark: 'null', line: 'Mobile Developer at Apparound, null' }
+    ]);
+    expect(
+      marks('Android Enterprise – Google ( )\nundefined', { written: ['( )', ' undefined '] })
+    ).toEqual(['( )', 'undefined']);
+    expect(marks('Called init()\nGoogle ()', { written: ['init()'] })).toEqual(['()']);
+  });
+
   test('an occurrence the profile writes is its own wherever the line breaks it', () => {
     expect(
       marks('Fixed null-\npointer crashes\nand undefined\nbehavior', {
