@@ -388,7 +388,7 @@ describe('the same artefacts, in content-stream order', () => {
   test('a page break is a line break', () => {
     const [first] = parse('page-print-spotlight.raw').experience;
 
-    expect(first.bodyLines).toContain('mobile colleagues.');
+    expect(first.bodyLines).toContain('and backend while mentoring mobile colleagues.');
     expect(first.bodyLines.some((line) => line.startsWith('Led annual iOS compatibility'))).toBe(
       true
     );

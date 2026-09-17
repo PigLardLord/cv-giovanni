@@ -188,6 +188,19 @@ describe('a degree scored as the document prints it', () => {
     expect(composed).toMatch(/A certification is compared the same way/);
     expect(composed).toMatch(/_not scored_/);
   });
+
+  // A recovered entry is matched to a written one by what it says (#217). The rule decides what a dropped or moved
+  // entry costs as much as a weight does, so it is printed beside them.
+  test('the report states how an entry is matched, and what one nobody wrote costs', () => {
+    const composed = scored(print).markdown.split('## How the number is composed')[1];
+
+    expect(composed).toMatch(
+      /\*\*An entry is matched by what it says, not by where it stands\.\*\*/
+    );
+    expect(composed).toMatch(/by its title and its employer/);
+    expect(composed).toMatch(/judged by the chronology alone/);
+    expect(composed).toMatch(/A role nobody wrote costs/);
+  });
 });
 
 // A degree's period is graded and listed, and weighs nothing (#200): the fidelity band's parts were set before it was

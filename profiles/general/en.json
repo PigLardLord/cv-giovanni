@@ -22,7 +22,7 @@
       "summary": "Enterprise mobility and device management (MDM, secure printing) in a mobile team of 3–7 engineers.",
       "highlights": [
         "Expanded the Android test suite to ~4,800 tests and raised UI-test coverage of the app's screens from 15% to 82%, while cutting CI test runtime by 75% (32 to 8 minutes) to give the team same-hour merge feedback.",
-        "Technical owner of the Cortado MDM iOS client for six years from its first commit — owned architecture, release decisions and code review, coordinating delivery with product, QA and backend while mentoring mobile colleagues.",
+        "Technical owner of the Cortado MDM iOS client for six years from its first commit — owned layered Clean Architecture and TDD business logic, release decisions and code review, coordinating delivery with product, QA and backend while mentoring mobile colleagues.",
         "Led annual iOS compatibility and platform beta validation, including Swift 6 concurrency and iOS 26 migrations; coordinated directly with Apple on App Review while adopting Dynamic Island, Live Activities, Siri and App Intents without dropping support for older devices.",
         "Migrated nearly every Android screen from XML to Jetpack Compose, including kiosk mode, adding unit tests throughout; also managed Android Enterprise Partner Program certifications and worked directly with Google on platform issues.",
         "Owned delivery and security across both platforms: code and vulnerability reviews, GitLab CI/CD and Fastlane, signing and provisioning, security scans and SBOM generation, TestFlight and Play Store staged rollout."

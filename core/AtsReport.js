@@ -6,6 +6,14 @@ const LADDER = ['exact', 'normalised', 'partial', 'wrong', 'lost'];
 /** A section as the report names it, where the diff's own key would read as code. */
 const SECTION_NAMES = { spokenLanguages: 'languages' };
 
+/** One entry of each section, as the report names an entry that came back and that nobody wrote. */
+const ENTRY_NAMES = {
+  experience: 'role',
+  education: 'degree',
+  spokenLanguages: 'language',
+  certifications: 'certification'
+};
+
 /**
  * The report, and the sentences that keep the number honest.
  *
@@ -110,8 +118,8 @@ export class AtsReport {
   }
 
   /**
-   * What a field is compared against, what a field no band weighs costs, and how the number is printed, each with its
-   * reason (#186, #200).
+   * How an entry is matched, what a field is compared against, what a field no band weighs costs, and how the number is
+   * printed, each with its reason (#186, #200, #217).
    *
    * Printed beside the weights, because each decides what a loss costs as much as a weight does, and a number that
    * forgives something without saying so reads as a pass.
@@ -119,6 +127,8 @@ export class AtsReport {
    */
   static rules() {
     return [
+      "**An entry is matched by what it says, not by where it stands.** A role recovered is matched to the one written by its title and its employer, a degree by its name and its school, their dates only breaking a tie between two those match equally, so an entry that prints a written one's dates and nothing else of it matches none; a skill category by its label, a language by its name, a certification by its line. Matched by position, a parser that dropped the first of three degrees graded the second against the first and the third against the second, and one loss read as three. The order the roles came back in is judged by the chronology alone. An entry that came back and matches none written is listed as one nobody wrote. A role nobody wrote costs, as anything recovered that was never written does; a degree, a language or a certification nobody wrote costs nothing, and weighing one is a decision of its own.",
+      '',
       '**A degree is compared as the document prints it.** Its name and the scope it states after the name, "… Development (60 ECTS)", are built by `degreeLine` in `domain/EntryLines.js`, the function the page prints the degree with, in the catalogue\'s words. A parser that returns that line lost nothing the document said, so a stated scope costs nothing. A degree recovered without the scope it printed, or cut short, lost part of what the document said, and is graded partial. A certification is compared the same way, as its line prints with its issuer and year.',
       '',
       "**A degree's period is graded, and not scored.** It is compared as its school line prints it, built by `schoolLine` in `domain/EntryLines.js`, without the brackets the line sets it in, which a parser reads as punctuation; a degree that prints no period has none to lose. A period lost, or recovered as other dates, is listed under _What did not come back_ and costs nothing: the fidelity band's parts were set before a degree's period was graded, and weighing it changes what Recoverability is made of, which is a decision of its own.",
@@ -264,6 +274,13 @@ export class AtsReport {
       }
       for (const name of diff.unexpected.skillCategories) {
         problems.push(`a category nobody wrote: "${name}"`);
+      }
+      // An entry matched to none written is not graded against the one in its place, so what came back is quoted here
+      // (#217).
+      for (const [part, entries] of Object.entries(diff.unmatched ?? {})) {
+        for (const values of entries) {
+          problems.push(`a ${ENTRY_NAMES[part] ?? part} nobody wrote: ${AtsReport.quote(values)}`);
+        }
       }
       if (diff.sections.missing.length)
         problems.push(`sections not recognised: ${diff.sections.missing.join(', ')}`);
