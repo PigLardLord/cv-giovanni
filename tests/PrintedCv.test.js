@@ -3,6 +3,7 @@ import {
   builtLetters,
   letterWarnings,
   printLayouts,
+  profileWarnings,
   printLetters
 } from '../scripts/lib/printed-cv.mjs';
 import { CvFiles } from '../core/CvFiles.js';
@@ -181,6 +182,42 @@ describe("the build's warnings about a letter", () => {
     expect(form).toBe('ms');
     expect(letterWarnings(path, { ...data, letter: { ...letter, recipient } })).toEqual([
       'warning: the cover letter in applications/acme/en.json — recipient.form: missing'
+    ]);
+  });
+});
+
+// A profile may leave out a role's location, a degree's period, or a certification's issuer or year, and it still builds:
+// the shape leaves them optional. But each carries credibility, so the build says which before the PDFs leave the
+// machine (#178), and writes them anyway.
+describe("the build's warnings about what a profile leaves out", () => {
+  const path = 'applications/acme/en.json';
+  const complete = {
+    ...data,
+    relevant_experience: [
+      { title: 'Analyst', company: 'Engines Ltd', location: 'London', period: '1842 – 1843' },
+      { title: 'Translator', company: 'Taylor', location: 'London', period: '1843' }
+    ],
+    education: [{ degree: 'Mathematics', school: 'Home tuition', period: '1830 – 1835' }],
+    certifications: [{ name: 'Notes on the Engine', issuer: 'Taylor', year: 1843 }]
+  };
+
+  test('a profile that leaves nothing out has nothing to warn about', () => {
+    expect(profileWarnings(path, complete)).toEqual([]);
+    expect(profileWarnings(path, data)).toEqual([]);
+  });
+
+  test('names the profile, and each field it leaves out with what the print loses', () => {
+    const sparse = JSON.parse(JSON.stringify(complete));
+    delete sparse.relevant_experience[1].location;
+    delete sparse.education[0].period;
+    delete sparse.certifications[0].issuer;
+    delete sparse.certifications[0].year;
+
+    expect(profileWarnings(path, sparse)).toEqual([
+      'warning: applications/acme/en.json — relevant_experience[1].location is missing: the role "Translator" at Taylor prints with no place, while 1 other role names one',
+      'warning: applications/acme/en.json — education[0].period is missing: the degree "Mathematics" prints with no date',
+      'warning: applications/acme/en.json — certifications[0].issuer is missing: "Notes on the Engine" prints with no issuer, so nobody can tell who awarded it',
+      'warning: applications/acme/en.json — certifications[0].year is missing: "Notes on the Engine" prints with no year, so nobody can tell it current from lapsed'
     ]);
   });
 });

@@ -10,6 +10,7 @@ import {
   letterWarnings,
   printLayouts,
   printLetters,
+  profileWarnings,
   withServedPage
 } from './lib/printed-cv.mjs';
 
@@ -51,9 +52,14 @@ const { files } = builtCv(target, data, layouts);
 // The letters travel with the CV and are printed by the same browser, but never offered by the page: a letter
 // names the employer it was written for, and leaves the machine only attached to an application.
 const letters = builtLetters(target, data, layouts).files;
-// A letter with a field missing or a recipient past the address zone is still printed, as written: the print audit
-// fails it. Whoever runs the build hears it first, with the profile to correct.
-for (const warning of letterWarnings(target.dataPath, data))
+// A profile that leaves out a degree's period, a certification's issuer or year, or a role's location among roles that
+// name theirs is still printed: the shape leaves them optional (#178). A letter with a field missing or a recipient past
+// the address zone is still printed, as written: the print audit fails it. Whoever runs the build hears both first, with
+// the profile to correct, and so does the local app, whose build route answers with what the run printed.
+for (const warning of [
+  ...profileWarnings(target.dataPath, data),
+  ...letterWarnings(target.dataPath, data)
+])
   console.error(`generate-pdfs: ${warning}`);
 const writer = new NodeDirectoryWriter(new URL(`${target.outDir}/`, projectRoot));
 const keep = (built) => async (layout, pdf) => {
