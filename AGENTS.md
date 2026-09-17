@@ -212,6 +212,18 @@ them went too: that the secondary button carried no shadow and an outline cleari
 that button at one height (#116); and, in forced colours, the primary's border no thinner than the
 secondary's (#119). The rules above that came from them stay, for the next pair of actions.
 
+A copy of the page has a space where a line broke, so no check on the copy can tell where one did: the product
+review of #179 measured a degree's period broken as "Università degli Studi di Pisa (2014" / "– 2016)" at Impact
+Spotlight's 1280px while the selection read it whole. Since #180 `npm run audit:screen` also reads the lines the CV
+is laid on, from the box of every character the page draws, in the same stretch of the page the copy is selected
+from: no line starts or ends with a separator, `·`, `–`, `—` or `|`, and no period the profile writes is split across
+two lines. A period wider than its line cannot keep to one, and there the least bad break is after its dash, which
+tells the reader the range goes on: it may break there and nowhere else. A failure names the layout, the width and
+the text either side of the break. The page holds each end of a role's period, and each separator with its spaces,
+in a `.no-break` span, as it holds a hyphenated compound; a degree's period and a period in Nerd Mode's editor are
+held whole; and a certificate's link ends in an empty box that never wraps, because Chrome breaks a line where the
+link and the name inside it close, even before a held separator.
+
 ### Linked pages are part of the CV
 
 `profiles/<profile>/<locale>.json` is the single source of truth. The web CV and the PDFs are built

@@ -1,5 +1,6 @@
 import { BaseRenderer } from './BaseRenderer.js';
 import { SwiftSourceLayout } from '../adapters/SwiftSourceLayout.js';
+import { holdSeparators } from './inlineSeparator.js';
 
 /**
  * How far below the pinned tab row a heading may sit and still count as reached. A jump from the
@@ -270,11 +271,17 @@ export class SourceRenderer extends BaseRenderer {
         ? this.createAddress(root, token.href, token.text)
         : this.createElement(root, token.element || 'span');
     element.classList.add('tok', `tok-${token.kind}`);
-    if (!token.parts) {
-      element.textContent = token.text;
-      return element;
-    }
+    // A value the layout marks whole, a period, never wraps inside, however narrow the editor (#180).
+    if (token.whole) element.classList.add('no-break');
     element.textContent = '';
+    // A separator in a value stays with the words either side of it: the editor wrapped "EU citizen ·" (#180).
+    if (!token.parts) {
+      return this.appendPieces(
+        root,
+        element,
+        token.whole ? [token.text] : holdSeparators(root, token.text)
+      );
+    }
     token.parts.forEach((part) => element.appendChild(this.createPart(root, part, token.kind)));
     return element;
   }
@@ -282,7 +289,13 @@ export class SourceRenderer extends BaseRenderer {
   /** A piece of a value: an escape drawn like any syntax, a character kept in the text out of sight, or the text. */
   createPart(root, part, kind) {
     if ('code' in part) return this.createToken(root, { code: part.code, kind });
-    if (!part.unseen) return root.createTextNode(part.text);
+    if (!part.unseen) {
+      return this.appendPieces(
+        root,
+        root.createDocumentFragment(),
+        holdSeparators(root, part.text)
+      );
+    }
     const unseen = this.createElement(root, 'span', 'tok-unseen');
     unseen.textContent = part.text;
     return unseen;

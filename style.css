@@ -505,6 +505,15 @@ section {
   text-decoration: underline;
 }
 
+/* A certificate's name is a <strong> inside its link, and Chrome breaks a line where those two elements close, even
+   before a separator held to it (#180): Impact Spotlight's 1280px still opened a line on "– Google (2026)". Measured in
+   headless Chrome, one element closing there gives no break, and neither does an empty box that never wraps at the end
+   of the link. The box writes nothing, so nothing reads it. */
+.certifications-list a::after {
+  content: '';
+  white-space: nowrap;
+}
+
 .cert-description {
   display: block;
   margin-top: var(--space-xs);
@@ -552,6 +561,13 @@ section {
    the canonical spelling can find it. No CSS property forbids a break at an explicit hyphen,
    which is why the span exists at all. */
 .no-break {
+  white-space: nowrap;
+}
+
+/* A degree's period is one unit, as a role's ends are (#180). Broken at its dash, Impact Spotlight's 1280px read
+   "Università degli Studi di Pisa (2014" / "– 2016)", two dates and a fragment. The period is already an element of
+   its own, and "(2014 – 2016)" measures 81px against the narrowest column's 206px, at 320px. */
+.edu-period {
   white-space: nowrap;
 }
 

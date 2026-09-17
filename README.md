@@ -97,7 +97,9 @@ CI builds, audits and publishes its own.
   request carries the label `ats-trade-accepted`. CI runs it on every pull request; it writes no report file.
 - `npm run audit:screen` selects the CV in headless Chrome, at a desktop, a tablet and two phone widths, and checks
   what a reader copies: the CV whole, no two words welded together, every skill under its own category, every
-  language with its level, and nothing the data did not write. It checks that the first screen holds still while it
+  language with its level, and nothing the data did not write. It reads the lines the CV is laid on, too: none starts
+  or ends with a separator, and no period is split across two, but for a period wider than its line, which may break
+  after its dash. It checks that the first screen holds still while it
   loads, and that the Download PDF link, the page's one download control, does its job: hidden when there is no
   PDF, on the first screen, shown once, tall enough to tap on a phone, its label on one line, and a focus ring a
   keyboard user can see. Like the build it needs Chrome, and it exits 2 when it finds none, or when

@@ -5,24 +5,29 @@ width and two phone widths, its CV selected, and the selection read. Regenerate 
 
 | Layout | Width | Layout shift | Score |
 |---|---:|---:|---:|
-| nerd | 1280px | 0.000 | 15/15 |
-| nerd | 820px | 0.000 | 15/15 |
-| nerd | 390px | 0.000 | 15/15 |
-| nerd | 320px | 0.000 | 15/15 |
-| spotlight | 1280px | 0.000 | 15/15 |
-| spotlight | 820px | 0.000 | 15/15 |
-| spotlight | 390px | 0.000 | 15/15 |
-| spotlight | 320px | 0.000 | 15/15 |
-| technical | 1280px | 0.000 | 15/15 |
-| technical | 820px | 0.000 | 15/15 |
-| technical | 390px | 0.000 | 15/15 |
-| technical | 320px | 0.000 | 15/15 |
+| nerd | 1280px | 0.000 | 17/17 |
+| nerd | 820px | 0.000 | 17/17 |
+| nerd | 390px | 0.000 | 17/17 |
+| nerd | 320px | 0.000 | 17/17 |
+| spotlight | 1280px | 0.000 | 17/17 |
+| spotlight | 820px | 0.000 | 17/17 |
+| spotlight | 390px | 0.000 | 17/17 |
+| spotlight | 320px | 0.000 | 17/17 |
+| technical | 1280px | 0.000 | 17/17 |
+| technical | 820px | 0.000 | 17/17 |
+| technical | 390px | 0.000 | 17/17 |
+| technical | 320px | 0.000 | 17/17 |
 
 Checks: the CV captured whole — name, role, email and current employer; no two words the profile
 writes in sequence welded into one, and no contact detail run into the word beside it; every skill
 category followed by its own first skill; every language on a line with its level; nothing on a
 line the data did not write — no pictograph, no line number; and the first screen holding still
 while it loads — every layout shift from navigation to fonts ready, added up, below 0.1.
+
+Since #180 the lines the CV is laid on are read as well, from the box of every character the page
+draws, because a copy has a space where a line broke. No line starts or ends with a separator, `·`,
+`–`, `—` or `|`, and no period the profile writes is split across two lines; a period wider than its
+line may break after its dash, and only there. A failure names the text either side of the break.
 
 ## The Download PDF link
 

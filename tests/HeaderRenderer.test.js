@@ -70,6 +70,23 @@ describe('HeaderRenderer', () => {
     expect(document.getElementById('availability').hidden).toBe(false);
   });
 
+  // A wrap beside a separator strands it: "Swift · SwiftUI · Enterprise Mobility ·" / "CI/CD" at 390px (#180).
+  test('holds each separator in the subtitle and the availability to the words either side of it', () => {
+    renderer.render(document, {
+      name: 'John Doe',
+      subtitle: 'iOS · Android · CI/CD',
+      availability: 'EU citizen · no visa needed'
+    });
+
+    const held = (id) =>
+      [...document.getElementById(id).querySelectorAll('.no-break')].map(
+        (span) => span.textContent
+      );
+    expect(held('subtitle')).toEqual([' · ', ' · ']);
+    expect(held('availability')).toEqual([' · ']);
+    expect(document.getElementById('subtitle').textContent).toBe('iOS · Android · CI/CD');
+  });
+
   test('localizes contact labels', () => {
     const localized = fedTheModel(
       new HeaderRenderer({
