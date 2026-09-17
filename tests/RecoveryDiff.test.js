@@ -679,6 +679,12 @@ describe('what identifies an entry, said once', () => {
     ).toEqual([1]);
   });
 
+  test('what says which entry it is can be named apart from what only breaks a tie', () => {
+    expect(RecoveryDiff.identifying('experience')).toEqual(['title', 'employer']);
+    expect(RecoveryDiff.identifying('education')).toEqual(['degree', 'school']);
+    expect(RecoveryDiff.identifying('certifications')).toEqual(['name']);
+  });
+
   test('a field one of the two does not write says nothing, whatever the other writes there', () => {
     expect(
       RecoveryDiff.likeness('education', { ...pisa, period: null }, { ...pisa, period: '.' })

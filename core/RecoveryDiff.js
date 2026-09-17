@@ -265,6 +265,16 @@ export class RecoveryDiff {
   }
 
   /**
+   * The fields that say which entry of a section an entry is, without those that only break a tie: what a report quotes
+   * to name an entry.
+   * @param {string} section - As `likeness` takes it
+   * @returns {string[]} The fields, as the diff grades them
+   */
+  static identifying(section) {
+    return [...IDENTIFIED_BY[section].by];
+  }
+
+  /**
    * Which recovered entry answers for each written one, matched by what the two say rather than where they stand (#217).
    *
    * By position, a parser that dropped the first of three degrees compared the second with the first and the third with
