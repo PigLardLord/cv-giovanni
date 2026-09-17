@@ -190,6 +190,37 @@ describe('a degree scored as the document prints it', () => {
   });
 });
 
+// A degree's period is graded and listed, and weighs nothing (#200): the fidelity band's parts were set before it was
+// graded, and weighing it changes what Recoverability is made of, which is a decision of its own. The report says so
+// where the weights are.
+describe("a degree's period is graded, and not scored", () => {
+  const clean = readFileSync(`${root}tests/fixtures/ats/clean-english.txt`, 'utf8');
+  const [pisa] = document.education;
+  const diff = RecoveryDiff.diff(
+    document,
+    AtsTextParser.parse(clean.replace(`${pisa.school} · ${pisa.period}`, pisa.school))
+  );
+  const score = AtsScore.compose(diff);
+  const composed = AtsReport.render(score, [{ artefact: 'x.pdf', diff }]).split(
+    '## How the number is composed'
+  )[1];
+
+  test('losing it moves no point', () => {
+    expect(diff.education[0].period).toBe('lost');
+    expect(AtsScore.weighs(['education', 0, 'period'])).toBe(false);
+    expect(score.points).toBe(scoreOf('clean-english').points);
+  });
+
+  test('the weights section says what it is compared against, what it costs, and why', () => {
+    expect(composed).toMatch(/\*\*A degree's period is graded, and not scored\.\*\*/);
+    expect(composed).toMatch(/`schoolLine`/);
+    expect(composed).toMatch(/without the brackets/);
+    expect(composed).toMatch(/prints no period has none to lose/);
+    expect(composed).toMatch(/costs nothing: the fidelity band's parts were set before/);
+    expect(composed).toMatch(/the title under the name, a degree's period, a certification/);
+  });
+});
+
 describe('the report says what the number is not', () => {
   const score = scoreOf('clean-english');
   const markdown = AtsReport.render(score, [
