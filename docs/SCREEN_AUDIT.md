@@ -37,6 +37,10 @@ page is no more than a pixel wider than its viewport, so it does not scroll side
 the run past the edge, the line it sits on, how far past it is, and whether the edge is its column's
 or the viewport's.
 
+Since #207 the syntax Nerd Mode's stylesheet draws, its quotes, commas and brackets, which have no
+glyphs, is held to the same columns: each line of it by the box it is drawn in, less a space the line
+hangs past the edge. A failure names the syntax, the line it follows and how far past the edge it is.
+
 ## The Download PDF link
 
 | Layout | Width | Controls | Top copy | Heights | Label lines | Focus ring | Forced colours |

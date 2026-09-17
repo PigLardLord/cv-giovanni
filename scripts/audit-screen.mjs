@@ -353,12 +353,13 @@ try {
       const copy = screenCopy(copied, profile, { skillsLabel: labels.skills });
       // Where the lines of the same stretch of the page broke (#180): no separator at either end of one, and no
       // period split across two.
-      const glyphs = await chrome.evaluate(renderedGlyphs(start, end));
-      if (glyphs === null) throw new Error(`${layout} has no ${start} or no ${end}`);
-      const breaks = lineBreaks(glyphs, profile);
+      const drawn = await chrome.evaluate(renderedGlyphs(start, end));
+      if (drawn === null) throw new Error(`${layout} has no ${start} or no ${end}`);
+      const breaks = lineBreaks(drawn.glyphs, profile);
       // The same glyphs against the edges of their columns, and the page against its viewport (#198): text held
-      // together cannot wrap, and runs past its line when it is too wide for it.
-      const overflow = columnOverflow(glyphs, await chrome.evaluate(pageWidth));
+      // together cannot wrap, and runs past its line when it is too wide for it. The syntax Nerd Mode's stylesheet
+      // draws beside that text is held to the same columns, since it has no glyphs to judge (#207).
+      const overflow = columnOverflow(drawn, await chrome.evaluate(pageWidth));
 
       // The Download link (#101): measured as the page loaded, reached with Tab the way a keyboard user reaches
       // it, scrolled past where a layout pins it, and loaded again with no PDF to offer.
@@ -522,6 +523,10 @@ const report = [
   'page is no more than a pixel wider than its viewport, so it does not scroll sideways. A failure names',
   "the run past the edge, the line it sits on, how far past it is, and whether the edge is its column's",
   "or the viewport's.",
+  '',
+  "Since #207 the syntax Nerd Mode's stylesheet draws, its quotes, commas and brackets, which have no",
+  'glyphs, is held to the same columns: each line of it by the box it is drawn in, less a space the line',
+  'hangs past the edge. A failure names the syntax, the line it follows and how far past the edge it is.',
   '',
   '## The Download PDF link',
   '',

@@ -223,9 +223,11 @@ describe('a line break that strands a separator or splits a period', () => {
 // degree's never-wrapping period runs past a 320px column, and every other check still passes.
 describe('text that runs past its column, or a page that scrolls sideways', () => {
   const page = { scrollWidth: 320, clientWidth: 320 };
+  /** The CV's text with no syntax drawn beside it, as the layouts but Nerd Mode lay it. */
+  const glyphsAlone = (glyphs, widths) => columnOverflow({ glyphs, syntax: [] }, widths);
 
   test('text inside its column, on a page no wider than its viewport, passes', () => {
-    const { checks, findings } = columnOverflow(
+    const { checks, findings } = glyphsAlone(
       block(['September 2015 – July 2018', '(2014 – 2016)'], { room: 208 }),
       page
     );
@@ -236,7 +238,7 @@ describe('text that runs past its column, or a page that scrolls sideways', () =
 
   // "(Septembre 2015 – Décembre" is 196px at 8px a letter and 4px a space; the space after it ends at 200px.
   test('a glyph past the right edge of its column fails, naming the run past it, its line and how far', () => {
-    const { checks, findings } = columnOverflow(
+    const { checks, findings } = glyphsAlone(
       run('(Septembre 2015 – Décembre 2018)', { room: 200 }),
       page
     );
@@ -250,7 +252,7 @@ describe('text that runs past its column, or a page that scrolls sideways', () =
   test('a glyph before the left edge of its column fails', () => {
     const glyphs = run('Pisa', { column: { left: 16, right: 400 } });
 
-    expect(columnOverflow(glyphs, page).findings.overflowing).toEqual([
+    expect(glyphsAlone(glyphs, page).findings.overflowing).toEqual([
       '“Pi” in “Pisa”: 16.0px past the left edge of its column'
     ]);
   });
@@ -261,7 +263,7 @@ describe('text that runs past its column, or a page that scrolls sideways', () =
   test('a glyph past the right of the viewport fails, however wide its own column, and says the viewport', () => {
     const glyphs = run('Held', { left: 400, column: { left: 400, right: 600 } });
 
-    expect(columnOverflow(glyphs, page).findings.overflowing).toEqual([
+    expect(glyphsAlone(glyphs, page).findings.overflowing).toEqual([
       '“Held”: 112.0px past the right edge of the viewport'
     ]);
   });
@@ -269,7 +271,7 @@ describe('text that runs past its column, or a page that scrolls sideways', () =
   test('a glyph before the left of the viewport fails', () => {
     const glyphs = run('Held text', { left: -16, column: { left: -16, right: 300 } });
 
-    expect(columnOverflow(glyphs, page).findings.overflowing).toEqual([
+    expect(glyphsAlone(glyphs, page).findings.overflowing).toEqual([
       '“He” in “Held text”: 16.0px past the left edge of the viewport'
     ]);
   });
@@ -278,7 +280,7 @@ describe('text that runs past its column, or a page that scrolls sideways', () =
   test('a run keeps the spaces between the glyphs past the edge, names each line apart, and a whole line once', () => {
     const glyphs = block(['ab cd', 'ef gh'], { column: { left: 4, right: 12 } });
 
-    expect(columnOverflow(glyphs, page).findings.overflowing).toEqual([
+    expect(glyphsAlone(glyphs, page).findings.overflowing).toEqual([
       '“ab cd”: 24.0px past the right edge of its column',
       '“ef gh”: 24.0px past the right edge of its column'
     ]);
@@ -288,7 +290,7 @@ describe('text that runs past its column, or a page that scrolls sideways', () =
     const glyphs = run('x (3 ans) y', { column: { left: 0, right: 8 } });
     glyphs.at(-1).column = { left: 0, right: 400 };
 
-    expect(columnOverflow(glyphs, page).findings.overflowing).toEqual([
+    expect(glyphsAlone(glyphs, page).findings.overflowing).toEqual([
       '“(3 ans)” in “x (3 ans) y”: 56.0px past the right edge of its column'
     ]);
   });
@@ -299,7 +301,7 @@ describe('text that runs past its column, or a page that scrolls sideways', () =
       column: { left: 0, right: 0 }
     }));
 
-    expect(columnOverflow(glyphs, page).findings.overflowing).toEqual([
+    expect(glyphsAlone(glyphs, page).findings.overflowing).toEqual([
       '“iOS Swift”: 100.0px past the right edge of its column'
     ]);
   });
@@ -310,8 +312,8 @@ describe('text that runs past its column, or a page that scrolls sideways', () =
     const within = run('a', { column: { left: 0, right: 7.5 } });
     const past = run('a', { column: { left: 0, right: 7.4 } });
 
-    expect(columnOverflow(within, page).checks.staysInColumn).toBe(true);
-    expect(columnOverflow(past, page).findings.overflowing).toEqual([
+    expect(glyphsAlone(within, page).checks.staysInColumn).toBe(true);
+    expect(glyphsAlone(past, page).findings.overflowing).toEqual([
       '“a”: 0.6px past the right edge of its column'
     ]);
   });
@@ -323,13 +325,13 @@ describe('text that runs past its column, or a page that scrolls sideways', () =
       ...run('August 2015', { top: 20, room: 88 })
     ];
 
-    expect(columnOverflow(glyphs, page).checks.staysInColumn).toBe(true);
+    expect(glyphsAlone(glyphs, page).checks.staysInColumn).toBe(true);
   });
 
   // Nerd Mode's container lets its content out: a planted period too wide for the editor widened the page to 429px at
   // 320px.
   test('a page wider than its viewport by more than a pixel fails, with every glyph inside its column', () => {
-    const { checks, findings } = columnOverflow(block(['July 2018']), {
+    const { checks, findings } = glyphsAlone(block(['July 2018']), {
       scrollWidth: 429,
       clientWidth: 320
     });
@@ -342,9 +344,112 @@ describe('text that runs past its column, or a page that scrolls sideways', () =
 
   test('a page a pixel wider than its viewport passes', () => {
     expect(
-      columnOverflow(block(['July 2018']), { scrollWidth: 321, clientWidth: 320 }).checks
-        .staysInColumn
+      glyphsAlone(block(['July 2018']), { scrollWidth: 321, clientWidth: 320 }).checks.staysInColumn
     ).toBe(true);
+  });
+
+  // Nerd Mode's quotes, commas and brackets are drawn by the stylesheet and have no glyphs (#160). At 320px the closing
+  // `",` of "September 2015 – July 2018" took 14.4px of its 16px, and a longer period would have pushed it into the
+  // editor's padding with every check passing (#207).
+  describe('with the syntax the stylesheet draws beside the text', () => {
+    /** A piece of syntax from `left`, drawn after the `after`th glyph: a box, 8px a character, and no glyph. */
+    const piece = (text, after, { top = 0, left = 0, column = { left: 0, right: 400 } } = {}) => ({
+      text,
+      top,
+      bottom: top + 16,
+      left,
+      right: left + [...text].length * 8,
+      column,
+      after
+    });
+    // "September 2015 – July 2018" is 192px, its closing quote ends at 200px and its comma at 208px.
+    const closed = (right) => {
+      const column = { left: 0, right };
+      return {
+        glyphs: run('September 2015 – July 2018', { column }),
+        syntax: [piece('"', 26, { left: 192, column }), piece(',', 26, { left: 200, column })]
+      };
+    };
+
+    test('syntax inside its column passes', () => {
+      const { checks, findings } = columnOverflow(closed(208), page);
+
+      expect(checks).toEqual({ staysInColumn: true });
+      expect(findings).toEqual({ overflowing: [], sideways: [] });
+    });
+
+    test('syntax past the right edge of its column fails, naming the line it follows and how far', () => {
+      const { checks, findings } = columnOverflow(closed(206.8), page);
+
+      expect(checks.staysInColumn).toBe(false);
+      expect(findings.overflowing).toEqual([
+        '“,” after “September 2015 – July 2018”: 1.2px past the right edge of its column'
+      ]);
+    });
+
+    test('pieces of syntax side by side past an edge are one run, as far past as its furthest', () => {
+      expect(columnOverflow(closed(198.8), page).findings.overflowing).toEqual([
+        '“",” after “September 2015 – July 2018”: 9.2px past the right edge of its column'
+      ]);
+    });
+
+    test('syntax up to half a pixel past its edge passes, and syntax further fails', () => {
+      expect(columnOverflow(closed(207.5), page).checks.staysInColumn).toBe(true);
+      expect(columnOverflow(closed(207.4), page).findings.overflowing).toEqual([
+        '“,” after “September 2015 – July 2018”: 0.6px past the right edge of its column'
+      ]);
+    });
+
+    test('syntax before any glyph is named by the line it comes before, and past the viewport says so', () => {
+      const syntax = [piece('[', 0, { left: -16, column: { left: -16, right: 300 } })];
+
+      expect(columnOverflow({ glyphs: run('Swift'), syntax }, page).findings.overflowing).toEqual([
+        '“[” before “Swift”: 16.0px past the left edge of the viewport'
+      ]);
+    });
+
+    test('syntax with no glyph at all is named by itself', () => {
+      const syntax = [piece('}', 0, { left: 400 })];
+
+      expect(columnOverflow({ glyphs: [], syntax }, page).findings.overflowing).toEqual([
+        '“}”: 88.0px past the right edge of the viewport'
+      ]);
+    });
+
+    // `let skills = [` at a width where the editor's line ends at 20px: a space the page writes, narrower than a gap
+    // that would part them, parts "=" from "[", and the "]" that closes it sits on a line below.
+    test('a run keeps a space the page writes between its pieces, and names each line apart', () => {
+      const column = { left: 8, right: 20 };
+      const glyphs = [
+        ...run('let', { column: { left: 0, right: 400 } }),
+        ...run(' ', { left: 40, space: 2 })
+      ];
+      const syntax = [
+        piece('=', 3, { left: 32, column }),
+        piece('[', 4, { left: 42, column }),
+        piece(']', 4, { top: 20, left: 0, column })
+      ];
+
+      expect(columnOverflow({ glyphs, syntax }, page).findings.overflowing).toEqual([
+        '“= [” after “let”: 30.0px past the right edge of its column',
+        '“]” after “let”: 8.0px past the left edge of its column'
+      ]);
+    });
+
+    test('a glyph between two pieces of syntax parts them, and every run is named in the order the page writes it', () => {
+      const column = { left: 400, right: 600 };
+      const glyphs = run('Held', { left: 400, column });
+      const syntax = [
+        piece('"', 0, { left: 392, column: { left: 392, right: 600 } }),
+        piece('"', 4, { left: 432, column })
+      ];
+
+      expect(columnOverflow({ glyphs, syntax }, page).findings.overflowing).toEqual([
+        '“"” before “Held”: 80.0px past the right edge of the viewport',
+        '“Held”: 112.0px past the right edge of the viewport',
+        '“"” after “Held”: 120.0px past the right edge of the viewport'
+      ]);
+    });
   });
 });
 
@@ -394,7 +499,7 @@ describe('the glyphs the audit collects from the page', () => {
   });
 
   test('are every visible character from the first bound to the last, with the room and column of its line', () => {
-    const glyphs = window.eval(renderedGlyphs('#start', '#end'));
+    const { glyphs } = window.eval(renderedGlyphs('#start', '#end'));
 
     expect(
       glyphs
@@ -419,7 +524,9 @@ describe('the glyphs the audit collects from the page', () => {
   // inside the box. Technical's role dates are one, at 320px (#198).
   test('take as a column the narrowest content box around the line: its own block and each block it sits in', () => {
     document.getElementById('room').innerHTML = '<div style="padding-right: 20px">Pisa</div>';
-    const [glyph] = window.eval(renderedGlyphs('#room', '#room'));
+    const {
+      glyphs: [glyph]
+    } = window.eval(renderedGlyphs('#room', '#room'));
 
     expect(glyph).toMatchObject({ room: 280, column: { left: 10, right: 280 } });
   });
@@ -429,7 +536,9 @@ describe('the glyphs the audit collects from the page', () => {
   test('take no column from an inline box the block sits in', () => {
     document.getElementById('room').innerHTML =
       '<span style="display: inline; padding: 0 40px"><div>Pisa</div></span>';
-    const [glyph] = window.eval(renderedGlyphs('#room', '#room'));
+    const {
+      glyphs: [glyph]
+    } = window.eval(renderedGlyphs('#room', '#room'));
 
     expect(glyph.column).toEqual({ left: 10, right: 290 });
   });
@@ -438,7 +547,9 @@ describe('the glyphs the audit collects from the page', () => {
   test("take a first line's hanging indent into its column", () => {
     document.getElementById('room').innerHTML =
       '<div style="padding-left: 30px; text-indent: -12px">Pisa</div>';
-    const [glyph] = window.eval(renderedGlyphs('#room', '#room'));
+    const {
+      glyphs: [glyph]
+    } = window.eval(renderedGlyphs('#room', '#room'));
 
     expect(glyph.column).toEqual({ left: 18, right: 290 });
   });
@@ -456,7 +567,9 @@ describe('the glyphs the audit collects from the page', () => {
       width: 260,
       height: 16
     });
-    const [glyph] = window.eval(renderedGlyphs('#room', '#room'));
+    const {
+      glyphs: [glyph]
+    } = window.eval(renderedGlyphs('#room', '#room'));
 
     expect(glyph.column).toEqual({ left: 40, right: 290 });
   });
@@ -464,7 +577,7 @@ describe('the glyphs the audit collects from the page', () => {
   test('take a box placed with absolute or fixed positioning as a column of its own', () => {
     document.getElementById('room').innerHTML =
       '<div style="position: absolute">Pisa</div><div style="position: fixed">Pisa</div>';
-    const glyphs = window.eval(renderedGlyphs('#room', '#room'));
+    const { glyphs } = window.eval(renderedGlyphs('#room', '#room'));
 
     expect(glyphs.map((glyph) => glyph.column)).toEqual(Array(8).fill({ left: 0, right: 300 }));
   });
@@ -472,7 +585,7 @@ describe('the glyphs the audit collects from the page', () => {
   test('keep a space with no box, where its element is drawn, and leave out one whose element is not', () => {
     document.getElementById('room').innerHTML =
       'May 2015 –<span> </span>August<span class="undrawn"> </span>';
-    const glyphs = window.eval(renderedGlyphs('#room', '#room'));
+    const { glyphs } = window.eval(renderedGlyphs('#room', '#room'));
 
     expect(glyphs.map((glyph) => glyph.text).join('')).toBe('May 2015 – August');
     expect(glyphs[3]).toEqual({
@@ -488,6 +601,121 @@ describe('the glyphs the audit collects from the page', () => {
 
   test('are null when a bound is missing', () => {
     expect(window.eval(renderedGlyphs('#start', '#nowhere'))).toBeNull();
+  });
+
+  // Nerd Mode's quotes, commas and brackets are empty elements whose `data-code` the stylesheet draws with `::before`
+  // (#160): no text, so no glyph, and the check never saw them (#207). The element's own boxes are the drawn text's,
+  // one a line; JSDOM measures no text, so a stand-in pen gives every character half the drawn font's size.
+  describe('with the syntax the stylesheet draws', () => {
+    const computed = window.getComputedStyle;
+    const pseudo = {
+      fontStyle: 'normal',
+      fontWeight: '400',
+      fontSize: '16px',
+      fontFamily: 'monospace',
+      letterSpacing: 'normal',
+      wordSpacing: '0px'
+    };
+    const drawnIn = (element, ...rects) => {
+      element.getClientRects = () =>
+        rects.map(([left, right, top = 0]) => ({
+          left,
+          right,
+          top,
+          bottom: top + 16,
+          width: right - left,
+          height: 16
+        }));
+    };
+
+    beforeEach(() => {
+      window.getComputedStyle = (element, pseudoElement) =>
+        pseudoElement === '::before' ? pseudo : computed.call(window, element);
+      HTMLCanvasElement.prototype.getContext = () => ({
+        font: '',
+        measureText(text) {
+          return { width: ([...text].length * parseFloat(this.font.match(/(\d+)px/)[1])) / 2 };
+        }
+      });
+    });
+
+    afterEach(() => {
+      window.getComputedStyle = computed;
+      delete HTMLCanvasElement.prototype.getContext;
+    });
+
+    test('are each piece of it, with its box, its column and how many glyphs come before it', () => {
+      document.getElementById('room').innerHTML =
+        'Pisa<span data-code="&quot;"></span><span data-code=","></span>';
+      const [quote, comma] = document.querySelectorAll('[data-code]');
+      drawnIn(quote, [32, 40]);
+      drawnIn(comma, [40, 48]);
+      const { glyphs, syntax } = window.eval(renderedGlyphs('#room', '#room'));
+
+      expect(glyphs).toHaveLength(4);
+      expect(syntax).toEqual([
+        {
+          text: '"',
+          top: 0,
+          bottom: 16,
+          left: 32,
+          right: 40,
+          column: { left: 10, right: 290 },
+          after: 4
+        },
+        {
+          text: ',',
+          top: 0,
+          bottom: 16,
+          left: 40,
+          right: 48,
+          column: { left: 10, right: 290 },
+          after: 4
+        }
+      ]);
+    });
+
+    test('leave out syntax outside the bounds, and syntax the page hides', () => {
+      document.getElementById('room').innerHTML =
+        '<span data-code="a"></span><span style="visibility: hidden" data-code="b"></span>' +
+        '<span class="clipped" data-code="c"></span>';
+      document.getElementById('after').innerHTML = '<span data-code="d"></span>';
+      document.querySelectorAll('[data-code]').forEach((element) => drawnIn(element, [0, 8]));
+      const { syntax } = window.eval(renderedGlyphs('#start', '#end'));
+
+      expect(syntax.map((piece) => piece.text)).toEqual(['a']);
+    });
+
+    // Chrome hangs a space a `pre-wrap` line ends on past the edge, inside the box: at 320px Nerd Mode's " = " put
+    // its first space 5.7px past the editor's content box, and the page scrolled no wider.
+    test('take the spaces at either end of a piece out of its text and its box, since a line may hang them', () => {
+      document.getElementById('room').innerHTML =
+        '<span data-code="period: "></span><span data-code=" = "></span>';
+      const [label, equals] = document.querySelectorAll('[data-code]');
+      drawnIn(label, [10, 74]);
+      drawnIn(equals, [74, 98]);
+      const { syntax } = window.eval(renderedGlyphs('#room', '#room'));
+
+      expect(syntax.map(({ text, left, right }) => ({ text, left, right }))).toEqual([
+        { text: 'period:', left: 10, right: 66 },
+        { text: '=', left: 82, right: 90 }
+      ]);
+    });
+
+    test('split syntax a line wraps into what each line draws, and leave out a piece that draws only a space', () => {
+      document.getElementById('room').innerHTML =
+        '<span data-code=" = "></span><span data-code="Certification"></span>';
+      const [equals, type] = document.querySelectorAll('[data-code]');
+      drawnIn(equals, [282, 290], [10, 26, 20]);
+      drawnIn(type, [26, 66, 20], [10, 74, 40]);
+      const { syntax } = window.eval(renderedGlyphs('#room', '#room'));
+
+      expect(syntax.map(({ text, top, left, right }) => ({ text, top, left, right }))).toEqual([
+        { text: '=', top: 20, left: 10, right: 18 },
+        { text: 'Certi', top: 20, left: 26, right: 66 },
+        { text: 'fication', top: 40, left: 10, right: 74 }
+      ]);
+    });
   });
 });
 
