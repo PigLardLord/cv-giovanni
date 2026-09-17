@@ -27,6 +27,7 @@ import {
   pullRequestLabels,
   READING_ORDERS,
   readingLosses,
+  readingsUnmatched,
   renderingModules,
   report
 } from './lib/base-parser.mjs';
@@ -49,7 +50,8 @@ import { catalogueTranslator } from './lib/printed-letter.mjs';
  * that printed it, the base's by the base's own diff and lines: graded by this branch's, a change that rewords a line
  * held the base's print to the new words, and a loss read "partial → partial" (#201).
  *
- * Exit codes: 0 compared and nothing lost, a trade accepted, or not applicable; 1 a loss; 2 nothing was compared.
+ * Exit codes: 0 compared and nothing lost, a trade accepted, or not applicable; 1 a loss; 2 nothing was compared, or a
+ * section whose entries the two prints number differently was read short, where a lost entry and a moved one read alike.
  */
 const projectRoot = fileURLToPath(new URL('../', import.meta.url));
 const target = GenerationTarget.fromArguments([]);
@@ -340,10 +342,21 @@ try {
   cannotCheck('the prints could not be graded', error.message);
 }
 const losses = readingLosses(readings);
+const unmatched = readingsUnmatched(readings);
 const labels = pullRequestLabels(process.env.PULL_REQUEST_LABELS);
-const { exitCode, accepted } = outcome(losses, labels);
+const { exitCode, accepted } = outcome(losses, labels, unmatched);
 
 publish(report({ base, decision, readings, losses, labels, seconds }));
+const uncompared = new Map(
+  unmatched
+    .filter((section) => section.short.length)
+    .map((section) => [`${section.section}\0${section.base}\0${section.head}`, section])
+);
+for (const { section, base: before, head: after } of uncompared.values()) {
+  console.error(
+    `audit-ats-base: ${section} holds ${before} entries on the base's print and ${after} on this one, and the base's parser reads some of them short from this print: not compared, check them by hand.`
+  );
+}
 if (losses.length) {
   console.error(
     `audit-ats-base: the base's parser loses ${losses.length} field readings from this print${accepted ? ', a trade the pull request declares accepted' : ''}.`

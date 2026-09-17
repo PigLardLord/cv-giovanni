@@ -23,9 +23,11 @@ import {
   productReviewPaths,
   pullRequestLabels,
   readingLosses,
+  readingsUnmatched,
   renderingModules,
   report,
-  TRADE_LABEL
+  TRADE_LABEL,
+  unmatchedSections
 } from '../scripts/lib/base-parser.mjs';
 import { importApart, importClosure } from '../scripts/lib/import-closure.mjs';
 import { catalogueTranslator } from '../scripts/lib/printed-letter.mjs';
@@ -670,6 +672,232 @@ describe("each print, graded against its own branch's lines", () => {
     ];
 
     expect(notGradedOnBase(readings)).toEqual([]);
+  });
+});
+
+// A diff matches an entry to the document's by its position (the code review of #216). When the two profiles hold a
+// different number of entries in a section, the same position names two different entries: a degree added in front
+// moved the others down, and the base's parser failing the last one read as an entry the base never had, not graded,
+// "none is a loss". A section numbered differently is not compared by position. The base's parser reading all of it in
+// full from the new print is still proof that nothing in it was lost; reading any of it short, it cannot tell a lost
+// entry from a moved one, and the step exits 2.
+describe('a section the two prints number differently', () => {
+  const field = (key, label, verdict) => ({ key, label, verdict, written: null, recovered: null });
+  /** One degree's fields, every one read in full unless named. */
+  const degree = (index, short = {}) =>
+    [
+      ['degree', 'exact'],
+      ['school', 'exact'],
+      ['period', 'exact'],
+      ['together', 'held']
+    ].map(([name, verdict]) =>
+      field(
+        `education.${index}.${name}`,
+        `education ${index + 1}, ${name === 'together' ? 'degree beside its school' : name}`,
+        short[name] ?? verdict
+      )
+    );
+  const whole = [field('segmentation', 'segmentation', 'held')];
+  const reading = (baseOnBase, baseOnHead) => ({
+    artefact: 'nerd',
+    order: 'default',
+    baseOnBase,
+    baseOnHead,
+    headOnHead: baseOnHead
+  });
+
+  test("adding a degree: one the base's parser reads short at a position the base's print lacks is not compared, and exits 2", () => {
+    // [Bachelor, Master] on the base; [PhD, Bachelor, Master] on this print, whose Master the base's parser fails.
+    const before = [...whole, ...degree(0), ...degree(1)];
+    const after = [...whole, ...degree(0), ...degree(1), ...degree(2, { degree: 'lost' })];
+    const readings = [reading(before, after)];
+
+    expect(lostFields(before, after)).toEqual([]);
+    expect(notGradedOnBase(readings)).toEqual([]);
+    expect(unmatchedSections(before, after)).toEqual([
+      {
+        section: 'education',
+        base: 2,
+        head: 3,
+        short: [{ key: 'education.2.degree', label: 'education 3, degree', verdict: 'lost' }]
+      }
+    ]);
+    expect(outcome(readingLosses(readings), [], readingsUnmatched(readings))).toEqual({
+      exitCode: 2,
+      accepted: false
+    });
+    // A label accepts a loss someone could read, not a comparison that did not happen.
+    expect(
+      outcome(readingLosses(readings), [TRADE_LABEL], readingsUnmatched(readings)).exitCode
+    ).toBe(2);
+  });
+
+  test("adding a degree in front, as a print does it, and the base's parser losing an existing one, exits 2", () => {
+    const phd = {
+      degree: 'PhD in Computer Science',
+      school: 'Università di Bologna',
+      period: '2017 – 2020'
+    };
+    const profile = JSON.parse(readFileSync(`${root}profiles/general/en.json`, 'utf8'));
+    const added = new CvDocument({ ...profile, education: [phd, ...profile.education] });
+    const addedPrint = print
+      .replace(
+        'Education\nFirst Level',
+        'Education\nPhD in Computer Science\nUniversità di Bologna (2017 – 2020)\n\nFirst Level'
+      )
+      .replace(
+        'Università degli Studi di Catania (2009)',
+        'Università degli Studi di Catania – 2009'
+      );
+    const side = (graded) => ({
+      parser: AtsTextParser,
+      grader: RecoveryDiff,
+      document: graded,
+      words
+    });
+    const readings = [
+      {
+        artefact: 'nerd',
+        order: 'default',
+        ...gradedReadings(
+          { base: print, head: addedPrint },
+          { base: side(document), head: side(added) }
+        )
+      }
+    ];
+
+    expect(readingLosses(readings)).toEqual([]);
+    expect(notGradedOnBase(readings)).toEqual([]);
+    expect(readingsUnmatched(readings)).toEqual([
+      expect.objectContaining({
+        section: 'education',
+        base: 2,
+        head: 3,
+        short: [
+          { key: 'education.2.school', label: 'education 3, school', verdict: 'partial' },
+          { key: 'education.2.period', label: 'education 3, period', verdict: 'lost' }
+        ]
+      })
+    ]);
+    expect(outcome([], [], readingsUnmatched(readings)).exitCode).toBe(2);
+  });
+
+  test('removing a degree: a loss that read partial → partial at a position both prints have exits 2', () => {
+    // [PhD, Bachelor, Master] on the base, whose PhD the base's parser always read partial; [Bachelor, Master] on this
+    // print, whose Bachelor it now reads partial, at the position the PhD had.
+    const before = [...whole, ...degree(0, { degree: 'partial' }), ...degree(1), ...degree(2)];
+    const after = [...whole, ...degree(0, { degree: 'partial' }), ...degree(1)];
+    const readings = [reading(before, after)];
+
+    expect(lostFields(before, after)).toEqual([]);
+    expect(readingsUnmatched(readings)).toEqual([
+      expect.objectContaining({ section: 'education', base: 3, head: 2 })
+    ]);
+    expect(outcome([], [], readingsUnmatched(readings)).exitCode).toBe(2);
+  });
+
+  test("adding or removing a degree the base's parser reads in full from this print loses nothing, and passes", () => {
+    const two = [...whole, ...degree(0), ...degree(1)];
+    const three = [...whole, ...degree(0), ...degree(1), ...degree(2)];
+
+    for (const [before, after] of [
+      [two, three],
+      [three, two]
+    ]) {
+      const readings = [reading(before, after)];
+      expect(lostFields(before, after)).toEqual([]);
+      expect(notGradedOnBase(readings)).toEqual([]);
+      expect(readingsUnmatched(readings)).toEqual([
+        expect.objectContaining({ section: 'education', short: [] })
+      ]);
+      expect(outcome([], [], readingsUnmatched(readings)).exitCode).toBe(0);
+    }
+  });
+
+  test('a section numbered differently names no loss by position, where the position holds another entry', () => {
+    // A PhD added in front, which the base's parser reads partial, sits where the base's Bachelor did.
+    const before = [...whole, ...degree(0), ...degree(1)];
+    const after = [...whole, ...degree(0, { degree: 'partial' }), ...degree(1), ...degree(2)];
+    const readings = [reading(before, after)];
+
+    expect(lostFields(before, after)).toEqual([]);
+    expect(readingsUnmatched(readings)).toEqual([
+      expect.objectContaining({
+        short: [{ key: 'education.0.degree', label: 'education 1, degree', verdict: 'partial' }]
+      })
+    ]);
+    expect(outcome(readingLosses(readings), [], readingsUnmatched(readings)).exitCode).toBe(2);
+  });
+
+  // Reordering keeps the number of entries, so the section is compared by position, and a position whose base entry
+  // came back whole still fails when this print's does not. Matching an entry by what it says is a ticket of its own.
+  test('reordering degrees keeps their number, and is compared by position', () => {
+    const before = [...whole, ...degree(0), ...degree(1)];
+    const after = [...whole, ...degree(0), ...degree(1, { school: 'wrong' })];
+    const readings = [reading(before, after)];
+
+    expect(unmatchedSections(before, after)).toEqual([]);
+    expect(lostFields(before, after).map((loss) => loss.label)).toEqual(['education 2, school']);
+    expect(outcome(readingLosses(readings), [], readingsUnmatched(readings)).exitCode).toBe(1);
+  });
+
+  test("a field the base's grader does not grade, at a position both prints have, is still not graded on the base", () => {
+    const undated = degree(0).filter((each) => !each.key.endsWith('.period'));
+    const readings = [reading([...whole, ...undated], [...whole, ...degree(0)])];
+
+    expect(readingsUnmatched(readings)).toEqual([]);
+    expect(notGradedOnBase(readings)).toEqual([
+      expect.objectContaining({ key: 'education.0.period', label: 'education 1, period' })
+    ]);
+  });
+
+  describe('in the report', () => {
+    const base = { ref: 'origin/main', commit: 'a16462e' };
+    const decision = applicability(['core/AtsTextParser.js', 'profiles/general/en.json'], {
+      parser: ['core/AtsTextParser.js'],
+      rendering: ['profiles/']
+    });
+    const two = [...whole, ...degree(0), ...degree(1)];
+
+    test('a section it could not compare fails the step, with both counts and each field read short', () => {
+      const readings = ['default', 'raw'].map((order) => ({
+        ...reading(two, [...two, ...degree(2, { degree: 'lost' })]),
+        order
+      }));
+      const text = report({
+        base,
+        decision,
+        readings,
+        losses: [],
+        labels: [TRADE_LABEL],
+        seconds: 1
+      });
+
+      expect(text).not.toMatch(/No field the base's parser recovered/);
+      expect(text).toContain('### Not compared by position');
+      expect(text).toContain(
+        "- **education:** 2 entries on the base's print, 3 on this one. The base's parser reads these short from this print, and the step cannot tell a lost entry from a moved one:"
+      );
+      expect(text).toContain(
+        "  - education 3, degree (lost) — nerd in poppler's order; nerd in content-stream order"
+      );
+      expect(text).toMatch(/\*\*The step fails: it could not compare every section\.\*\*/);
+      expect(text).not.toMatch(/its owner accepted this trade/);
+    });
+
+    test('a section read in full is named as not compared by position, and nothing in it as lost', () => {
+      const readings = [reading(two, [...two, ...degree(2)])];
+      const text = report({ base, decision, readings, losses: [], labels: [], seconds: 1 });
+
+      expect(text).toMatch(
+        /No field the base's parser recovered from the base's print is lost from this one/
+      );
+      expect(text).toContain(
+        "- **education:** 2 entries on the base's print, 3 on this one. The base's parser reads every field of it in full from this print, so nothing in it was lost."
+      );
+      expect(text).not.toContain('Not graded on the base');
+      expect(text).not.toMatch(/The step fails/);
+    });
   });
 });
 
