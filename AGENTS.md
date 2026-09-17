@@ -443,18 +443,22 @@ by its own `EntryLines` and catalogue, the base's imported apart from the branch
 branch's alone, a change that rewords a line held the base's print to the new words, and a loss
 read "partial → partial" (#201). A field the base's grader does not grade, such as a degree's
 period before #200, is listed as not graded on the base, and is not a loss. An entry of the base's
-profile is compared with the one at the same position in the branch's: each print's diff matches
-what came back by what it says (#217), but that does not line up two profiles. So a section the two
-prints hold a different number of entries in is not compared entry by entry: a degree added in front
-moves the others down, and a loss of the last read as an entry the base never had. If the base's
-parser reads all of that section in full from the new print, nothing in it was lost; if it reads any
-of it short, a lost entry cannot be told from a moved one, and the step exits 2. **The label
-`ats-trade-accepted` records a trade the owner accepted:** the losses are still reported, in the job
-summary, and the step passes; it accepts nothing that was not compared, so entries are added or
-removed in one pull request and the parser changed in another. A change to one side only exits 0 and
-says why; a base that could not be built, read or graded exits 2. Locally it compares the working
-tree with its merge base with `origin/main` (`--base=<ref>` names another), after
-`npm run build:pdf`.
+profile is compared with the entry of the branch's that says the same, by the rule the diff matches
+a recovered entry by (#217), on what each branch's grader says its print writes, and a loss is named
+by its place in the branch's profile. By position, a branch that reordered two degrees compared each
+with the other, and one going from exact to partial while the other went from partial to exact read
+as nothing lost (#221). A degree whose line a branch rewrites is still told by its school; an entry
+rewritten past anything the two say alike has no counterpart. So a section a branch adds to, removes
+from or reorders is compared entry by entry, which #216 did not do for one numbered differently. An
+entry of the base's with no counterpart is not on the new print, and has nothing on it to lose. One
+of the branch's the base's parser reads in full lost nothing; one it reads any of short cannot be
+told from an entry of the base's the branch rewrote and the parser now loses, and the step exits 2.
+**The label `ats-trade-accepted` records a trade the owner accepted:** the losses are still
+reported, in the job summary, and the step passes; it accepts nothing that was not compared, so
+entries are added or rewritten in one pull request and the parser changed in another. A change to
+one side only exits 0 and says why; a base that could not be built, read or graded exits 2. Locally
+it compares the working tree with its merge base with `origin/main` (`--base=<ref>` names another),
+after `npm run build:pdf`.
 
 `build:pdf` and `audit:screen` need a Chrome or Chromium binary. They look for one on PATH, in the
 usual install locations and in the Playwright cache; `CHROME_PATH` overrides. When they find none
