@@ -1159,6 +1159,9 @@ body[data-layout='technical'] {
     max-width: 320px;
   }
 
+  /* The masthead too (#206): left at 2.5rem while every other section narrowed, its contact card gave the email 168px
+     for 180px of address at 320px, and broke the phone number and the site's address mid-token. */
+  body[data-layout='technical'] .hero-section,
   body[data-layout='technical'] .career-highlights-section,
   body[data-layout='technical'] .skills-spotlight,
   body[data-layout='technical'] .secondary-column {
