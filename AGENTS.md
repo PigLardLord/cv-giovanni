@@ -409,18 +409,20 @@ number and no employer will ever see it. The number is printed as computed, a fr
 decimal and never rounded, and every field graded partial, wrong or lost is listed with what was
 written beside what came back: rounded, a degree graded partial read 80/80, and the report named
 nothing (#186). An entry that came back is matched to the one written by what it says, not by where
-it stands: a role by its title and employer, a degree by its name and school, each by its dates only
-where those say nothing, a category by its label, a language by its name, a certification by its
-line. Matched by position, a parser that dropped the first of three degrees graded the other two
-against their neighbours, and one loss read as three. The order the roles came back in is judged by
-the chronology alone, and an entry that matches none written is listed as one nobody wrote, which
-costs only when it is a role (#217). The score gates nothing; four floors do — a document that did
-not segment, a lost email, a role severed from its title or period, and a chronology that does not
-run one way. The floors are checked in two reading orders: poppler's, which the score is computed
-on, and the content stream's (`pdftotext -raw`), which PDFBox and Tika read by default. They fail
-differently: on the two-column browser print, poppler's order kept the contacts above the career,
-while the content stream drew the skills first and the name after the first role, and lost the email
-(#147).
+it stands: a role by its title and employer, a degree by its name and school, their dates only
+breaking a tie between two those match equally, a category by its label, a language by its name, a
+certification by its line. An entry that prints a written one's dates and nothing else of it matches
+none: taken for that entry, a role nobody wrote read its period and achievements as recovered and
+was never counted as invented. Matched by position, a parser that dropped the first of three degrees
+graded the other two against their neighbours, and one loss read as three. The order the roles came
+back in is judged by the chronology alone, and an entry that matches none written is listed as one
+nobody wrote, which costs only when it is a role (#217). The score gates nothing; four floors do — a
+document that did not segment, a lost email, a role severed from its title or period, and a
+chronology that does not run one way. The floors are checked in two reading orders: poppler's, which
+the score is computed on, and the content stream's (`pdftotext -raw`), which PDFBox and Tika read by
+default. They fail differently: on the two-column browser print, poppler's order kept the contacts
+above the career, while the content stream drew the skills first and the name after the first role,
+and lost the email (#147).
 
 **A parser change and a layout change are reviewed apart,** or the pull request shows what the base
 branch's parser recovers from the new print. `audit:ats` grades the print with the branch's own

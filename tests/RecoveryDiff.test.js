@@ -385,6 +385,26 @@ describe('an entry is matched to the one written by what it says, not by where i
       ]);
     });
 
+    // Dates only break a tie between degrees their name or school already match: a degree whose name and school match
+    // none written is one nobody wrote, whatever year it prints, and the degree that year belongs to is lost (the code
+    // review of #222).
+    test('a degree that shares only its period with a written one matches none, and that one is lost', () => {
+      const culinary = nerd.replace(
+        'B.Sc. Computer Engineering\nUniversità degli Studi di Catania (2009)',
+        'Diploma in Culinary Arts\nScuola Alberghiera di Roma (2009)'
+      );
+      const diff = diffOfText(culinary, profile);
+
+      expect(culinary).not.toBe(nerd);
+      expect(diff.education).toEqual([
+        whole,
+        { degree: 'lost', school: 'lost', period: 'lost', adjacent: false }
+      ]);
+      expect(diff.unmatched.education).toEqual([
+        ['Diploma in Culinary Arts', 'Scuola Alberghiera di Roma', '2009']
+      ]);
+    });
+
     test('degrees printed in another order come back whole', () => {
       const pisa =
         "First Level Professional Master's Programme in Mobile Applications\nDevelopment (60 ECTS)\nUniversità degli Studi di Pisa (2014 – 2016)";
@@ -471,14 +491,45 @@ describe('an entry is matched to the one written by what it says, not by where i
       expect(diff.unexpected.roles).toBe(1);
     });
 
-    // A flattened table keeps a role's dates and loses its title and employer: the dates still say which role it is.
-    test('a role whose title and employer came back as nothing is still told by its period', () => {
+    // Dates only break a tie between roles their title or employer already match (the code review of #222). A role
+    // that came back with another title and employer and a written role's dates is not that role with two wrong
+    // fields: matched on its dates, it read the written role's period and achievements as recovered, and was not
+    // counted as a role nobody wrote.
+    test('a role that shares only its period with a written one matches none, and that one is lost', () => {
+      const chef = nerd.replace(
+        'Mobile Software Engineer / Technical Owner, iOS & Android at\nCortado Mobile Solutions, Berlin (remote)',
+        'Head Chef at Trattoria Da Mario, Rome, Italy'
+      );
+      const diff = diffOfText(chef, profile);
+
+      expect(chef).not.toBe(nerd);
+      expect(diff.experience).toEqual([
+        {
+          title: 'lost',
+          employer: 'lost',
+          period: 'lost',
+          tripleAdjacent: false,
+          highlights: 'lost'
+        },
+        whole,
+        whole
+      ]);
+      expect(diff.unmatched.experience).toEqual([
+        ['Head Chef', 'Trattoria Da Mario', 'August 2018 – Present']
+      ]);
+      expect(diff.unexpected.roles).toBe(1);
+    });
+
+    // A flattened table keeps a role's dates and loses its title and employer. Nothing that identifies a role came
+    // back, so it matches none written: the role is lost, and what came back is a role nobody wrote.
+    test('a role whose title and employer came back as nothing matches none', () => {
       const diff = diffOf('table-flattened');
 
       expect(diff.experience[0]).toEqual(
-        expect.objectContaining({ title: 'lost', employer: 'lost', period: 'exact' })
+        expect.objectContaining({ title: 'lost', employer: 'lost', period: 'lost' })
       );
-      expect(diff.unexpected.roles).toBe(0);
+      expect(diff.unmatched.experience).toEqual([['August 2018 – Present']]);
+      expect(diff.unexpected.roles).toBe(1);
     });
   });
 

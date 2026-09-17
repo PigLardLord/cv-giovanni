@@ -235,14 +235,17 @@ export class RecoveryDiff {
    *
    * By position, a parser that dropped the first of three degrees compared the second with the first and the third with
    * the second: one loss read as three, and none of them named the degree it was. So every written entry is weighed
-   * against every recovered one on the fields that identify it, on the verdict ladder, the most telling field first. The
-   * best pairs are taken first, a tie going to the earlier written entry and then to the earlier recovered one, and
-   * each entry is taken once. A written entry that nothing recovered says anything of is matched to none, and is lost; a
-   * recovered entry no written one took is left over, and was never written.
+   * against every recovered one on the fields that identify it, on the verdict ladder, the most telling first. A pair is
+   * a candidate only when the first of them says something: the rest break a tie and never make a match on their own,
+   * or a role nobody wrote that happens to print a written role's dates is taken for that role, reads its period and
+   * achievements as recovered, and is never counted as invented (the code review of #222). The best pairs are taken
+   * first, a tie going to the earlier written entry and then to the earlier recovered one, and each entry is taken once.
+   * A written entry that nothing recovered identifies is matched to none, and is lost; a recovered entry no written one
+   * took is left over, and was never written.
    * @param {Object[]} written - The document's entries
    * @param {Object[]} recovered - The entries a parser recovered, in the order it recovered them
    * @param {(written: Object, recovered: Object) => number[]} likeness - How much a recovered entry says of a written
-   *   one, per identifying field, most telling first, each from `LIKENESS`
+   *   one, each from `LIKENESS`: first what identifies the entry, then what breaks a tie between two it identifies
    * @returns {{ matched: (Object|null)[], unmatched: Object[] }} Each written entry's match, in the document's order,
    *   and the recovered entries nothing was matched to, in the order they were recovered
    */
@@ -251,7 +254,7 @@ export class RecoveryDiff {
       .flatMap((entry, at) =>
         recovered.map((candidate, from) => ({ at, from, likeness: likeness(entry, candidate) }))
       )
-      .filter((pair) => pair.likeness.some((value) => value > 0))
+      .filter((pair) => pair.likeness[0] > 0)
       .sort((a, b) => better(a.likeness, b.likeness) || a.at - b.at || a.from - b.from);
     const matched = written.map(() => null);
     const taken = new Set();
@@ -286,9 +289,9 @@ export class RecoveryDiff {
   }
 
   /**
-   * Each written role's recovered match, and the recovered roles nothing was matched to. A role is told by its title
-   * and its employer; its dates tell two apart only where those say nothing, as a flattened table keeps a role's period
-   * and loses the rest (#217).
+   * Each written role's recovered match, and the recovered roles nothing was matched to. A role is identified by its
+   * title and its employer, and its dates only break a tie between two roles those match equally (#217): a role that
+   * came back with neither, as a flattened table leaves one, matches none written, whatever dates it prints.
    * @param {Object} document - A CvDocument
    * @param {Object} recovered - A RecoveredCv
    * @returns {{ matched: (Object|null)[], unmatched: Object[] }} As `match` returns them
@@ -334,8 +337,9 @@ export class RecoveryDiff {
   }
 
   /**
-   * Each written degree's recovered match, and the recovered degrees nothing was matched to. A degree is told by the
-   * line its name prints and by its school; the period it prints tells two apart only where those say nothing (#217).
+   * Each written degree's recovered match, and the recovered degrees nothing was matched to. A degree is identified by
+   * the line its name prints and by its school, and the period it prints only breaks a tie between two degrees those
+   * match equally (#217).
    * @param {Object} document - A CvDocument
    * @param {Object} recovered - A RecoveredCv
    * @param {Object} words - How the document wrote a count of credits, as `education` takes them
