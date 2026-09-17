@@ -5,18 +5,18 @@ width and two phone widths, its CV selected, and the selection read. Regenerate 
 
 | Layout | Width | Layout shift | Score |
 |---|---:|---:|---:|
-| nerd | 1280px | 0.000 | 17/17 |
-| nerd | 820px | 0.000 | 17/17 |
-| nerd | 390px | 0.000 | 17/17 |
-| nerd | 320px | 0.000 | 17/17 |
-| spotlight | 1280px | 0.000 | 17/17 |
-| spotlight | 820px | 0.000 | 17/17 |
-| spotlight | 390px | 0.000 | 17/17 |
-| spotlight | 320px | 0.000 | 17/17 |
-| technical | 1280px | 0.000 | 17/17 |
-| technical | 820px | 0.000 | 17/17 |
-| technical | 390px | 0.000 | 17/17 |
-| technical | 320px | 0.000 | 17/17 |
+| nerd | 1280px | 0.000 | 18/18 |
+| nerd | 820px | 0.000 | 18/18 |
+| nerd | 390px | 0.000 | 18/18 |
+| nerd | 320px | 0.000 | 18/18 |
+| spotlight | 1280px | 0.000 | 18/18 |
+| spotlight | 820px | 0.000 | 18/18 |
+| spotlight | 390px | 0.000 | 18/18 |
+| spotlight | 320px | 0.000 | 18/18 |
+| technical | 1280px | 0.000 | 18/18 |
+| technical | 820px | 0.000 | 18/18 |
+| technical | 390px | 0.000 | 18/18 |
+| technical | 320px | 0.000 | 17/18 |
 
 Checks: the CV captured whole — name, role, email and current employer; no two words the profile
 writes in sequence welded into one, and no contact detail run into the word beside it; every skill
@@ -28,6 +28,12 @@ Since #180 the lines the CV is laid on are read as well, from the box of every c
 draws, because a copy has a space where a line broke. No line starts or ends with a separator, `·`,
 `–`, `—` or `|`, and no period the profile writes is split across two lines; a period wider than its
 line may break after its dash, and only there. A failure names the text either side of the break.
+
+Since #198 the same glyphs are held to their columns, because text the page holds together cannot
+wrap however narrow its line: no glyph is drawn more than half a pixel past the narrowest content box
+around its line, its own block's or any block's it sits in, and the page is no more than a pixel wider
+than its viewport, so it does not scroll sideways. A failure names the run past the edge, the line it
+sits on, and how far past it is.
 
 ## The Download PDF link
 

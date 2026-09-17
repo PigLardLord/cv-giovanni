@@ -8,7 +8,7 @@ import { within } from './lib/devtools-session.mjs';
 import { openBrowser } from './lib/chrome.mjs';
 import { rendered, revealed } from './lib/page-ready.mjs';
 import { screenCopy } from './lib/screen-copy.mjs';
-import { lineBreaks, renderedGlyphs } from './lib/line-breaks.mjs';
+import { columnOverflow, lineBreaks, pageWidth, renderedGlyphs } from './lib/line-breaks.mjs';
 import { RECORD_LAYOUT_SHIFTS, layoutShift } from './lib/layout-shift.mjs';
 import { downloadReach } from './lib/download-reach.mjs';
 import { currentLayoutMarked, forcedBoundaries } from './lib/forced-colours.mjs';
@@ -23,8 +23,9 @@ import { GenerationTarget } from '../core/GenerationTarget.js';
  * see what a selection holds. `audit-print.mjs` reads the printed text layer; this reads the screen's.
  * Each layout is opened in headless Chrome at a desktop width, a tablet width and two phone widths, its CV is selected, and the
  * selection is checked against the profile (#62). The lines the CV's text is laid on are read too, since a copy has a
- * space where a line broke and cannot tell where it did (#180). Every control a keyboard reaches is then focused in
- * turn, and its ring read from the screen's pixels (#111).
+ * space where a line broke and cannot tell where it did (#180), and whether that text stays inside its column and the
+ * page inside its viewport, since text held together cannot wrap (#198). Every control a keyboard reaches is then
+ * focused in turn, and its ring read from the screen's pixels (#111).
  */
 const projectUrl = new URL('..', import.meta.url);
 const target = GenerationTarget.fromArguments(process.argv.slice(2));
@@ -355,6 +356,9 @@ try {
       const glyphs = await chrome.evaluate(renderedGlyphs(start, end));
       if (glyphs === null) throw new Error(`${layout} has no ${start} or no ${end}`);
       const breaks = lineBreaks(glyphs, profile);
+      // The same glyphs against the edges of their columns, and the page against its viewport (#198): text held
+      // together cannot wrap, and runs past its line when it is too wide for it.
+      const overflow = columnOverflow(glyphs, await chrome.evaluate(pageWidth));
 
       // The Download link (#101): measured as the page loaded, reached with Tab the way a keyboard user reaches
       // it, scrolled past where a layout pins it, and loaded again with no PDF to offer.
@@ -442,6 +446,7 @@ try {
       const checks = {
         ...copy.checks,
         ...breaks.checks,
+        ...overflow.checks,
         holdsStill: shift.holdsStill,
         ...reach.checks,
         ...forced.checks,
@@ -451,6 +456,7 @@ try {
       const findings = {
         ...copy.findings,
         ...breaks.findings,
+        ...overflow.findings,
         movedWhileLoading: shift.holdsStill ? [] : shift.moved,
         ...reach.findings,
         ...forced.findings,
@@ -508,6 +514,12 @@ const report = [
   'draws, because a copy has a space where a line broke. No line starts or ends with a separator, `·`,',
   '`–`, `—` or `|`, and no period the profile writes is split across two lines; a period wider than its',
   'line may break after its dash, and only there. A failure names the text either side of the break.',
+  '',
+  'Since #198 the same glyphs are held to their columns, because text the page holds together cannot',
+  'wrap however narrow its line: no glyph is drawn more than half a pixel past the narrowest content box',
+  "around its line, its own block's or any block's it sits in, and the page is no more than a pixel wider",
+  'than its viewport, so it does not scroll sideways. A failure names the run past the edge, the line it',
+  'sits on, and how far past it is.',
   '',
   '## The Download PDF link',
   '',
