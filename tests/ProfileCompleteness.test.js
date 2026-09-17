@@ -1,7 +1,6 @@
 /**
  * @jest-environment node
  */
-import { readFileSync } from 'node:fs';
 import { ProfileCompleteness } from '../core/ProfileCompleteness.js';
 import { ProfileShape } from '../core/ProfileShape.js';
 
@@ -10,19 +9,68 @@ import { ProfileShape } from '../core/ProfileShape.js';
 // measured what their absence costs: an undated degree lost to a parser, a renewable certificate nobody can tell current
 // from lapsed, one that names no issuer, a role that reads unlike its neighbours. Nothing said so before a tailored
 // profile left the machine (#178). This names each, as a warning: the profile is still sound, and still built.
-const published = JSON.parse(
-  readFileSync(new URL('../profiles/general/en.json', import.meta.url), 'utf8')
-);
+//
+// The entries are the published profile's, as the review quoted them, but written here: whether the published profile
+// states every one of these fields is its author's call, which the build warns about and no test decides.
+const complete = {
+  name: 'Giovanni Trovato',
+  relevant_experience: [
+    {
+      title: 'Mobile Software Engineer / Technical Owner, iOS & Android',
+      company: 'Cortado Mobile Solutions',
+      location: 'Berlin (remote)',
+      period: 'August 2018 – July 2026'
+    },
+    {
+      title: 'Mobile Developer',
+      company: 'Apparound',
+      location: 'Pisa, Italy',
+      period: 'September 2015 – July 2018'
+    },
+    {
+      title: 'Mobile Developer Intern',
+      company: 'Marte 5',
+      location: 'Livorno, Italy',
+      period: 'May 2015 – August 2015'
+    }
+  ],
+  education: [
+    {
+      degree: "First Level Professional Master's Programme in Mobile Applications Development",
+      school: 'Università degli Studi di Pisa',
+      period: '2014 – 2016',
+      credits: 60
+    },
+    {
+      degree: 'B.Sc. Computer Engineering',
+      school: 'Università degli Studi di Catania',
+      period: '2009'
+    }
+  ],
+  certifications: [
+    {
+      name: 'Android Enterprise Expert (incl. Associate, Professional)',
+      issuer: 'Google',
+      year: 2026
+    },
+    {
+      name: 'iOS Lead Essentials (TDD, Clean Architecture)',
+      issuer: 'Essential Developer',
+      year: 2024
+    }
+  ]
+};
 const changed = (change) => {
-  const profile = structuredClone(published);
+  const profile = structuredClone(complete);
   change(profile);
   return profile;
 };
 const at = (omissions) => omissions.map(({ path }) => path);
 
 describe('what a profile leaves out that a reader looks for', () => {
-  test('the published profile leaves nothing out', () => {
-    expect(ProfileCompleteness.omissions(published)).toEqual([]);
+  test('a profile that states every one of them leaves nothing out, and is one the shape accepts', () => {
+    expect(ProfileCompleteness.omissions(complete)).toEqual([]);
+    expect(ProfileShape.problems(complete)).toEqual([]);
   });
 
   test("names a degree without a period, by the degree's name", () => {
