@@ -353,8 +353,9 @@ try {
       const copy = screenCopy(copied, profile, { skillsLabel: labels.skills });
       // Where the lines of the same stretch of the page broke (#180): no separator at either end of one, and no
       // period split across two.
-      const glyphs = await chrome.evaluate(renderedGlyphs(start, end));
-      if (glyphs === null) throw new Error(`${layout} has no ${start} or no ${end}`);
+      const drawn = await chrome.evaluate(renderedGlyphs(start, end));
+      if (drawn === null) throw new Error(`${layout} has no ${start} or no ${end}`);
+      const { glyphs } = drawn;
       const breaks = lineBreaks(glyphs, profile);
       // The same glyphs against the edges of their columns, and the page against its viewport (#198): text held
       // together cannot wrap, and runs past its line when it is too wide for it.

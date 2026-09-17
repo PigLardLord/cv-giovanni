@@ -394,7 +394,7 @@ describe('the glyphs the audit collects from the page', () => {
   });
 
   test('are every visible character from the first bound to the last, with the room and column of its line', () => {
-    const glyphs = window.eval(renderedGlyphs('#start', '#end'));
+    const { glyphs } = window.eval(renderedGlyphs('#start', '#end'));
 
     expect(
       glyphs
@@ -419,7 +419,9 @@ describe('the glyphs the audit collects from the page', () => {
   // inside the box. Technical's role dates are one, at 320px (#198).
   test('take as a column the narrowest content box around the line: its own block and each block it sits in', () => {
     document.getElementById('room').innerHTML = '<div style="padding-right: 20px">Pisa</div>';
-    const [glyph] = window.eval(renderedGlyphs('#room', '#room'));
+    const {
+      glyphs: [glyph]
+    } = window.eval(renderedGlyphs('#room', '#room'));
 
     expect(glyph).toMatchObject({ room: 280, column: { left: 10, right: 280 } });
   });
@@ -429,7 +431,9 @@ describe('the glyphs the audit collects from the page', () => {
   test('take no column from an inline box the block sits in', () => {
     document.getElementById('room').innerHTML =
       '<span style="display: inline; padding: 0 40px"><div>Pisa</div></span>';
-    const [glyph] = window.eval(renderedGlyphs('#room', '#room'));
+    const {
+      glyphs: [glyph]
+    } = window.eval(renderedGlyphs('#room', '#room'));
 
     expect(glyph.column).toEqual({ left: 10, right: 290 });
   });
@@ -438,7 +442,9 @@ describe('the glyphs the audit collects from the page', () => {
   test("take a first line's hanging indent into its column", () => {
     document.getElementById('room').innerHTML =
       '<div style="padding-left: 30px; text-indent: -12px">Pisa</div>';
-    const [glyph] = window.eval(renderedGlyphs('#room', '#room'));
+    const {
+      glyphs: [glyph]
+    } = window.eval(renderedGlyphs('#room', '#room'));
 
     expect(glyph.column).toEqual({ left: 18, right: 290 });
   });
@@ -456,7 +462,9 @@ describe('the glyphs the audit collects from the page', () => {
       width: 260,
       height: 16
     });
-    const [glyph] = window.eval(renderedGlyphs('#room', '#room'));
+    const {
+      glyphs: [glyph]
+    } = window.eval(renderedGlyphs('#room', '#room'));
 
     expect(glyph.column).toEqual({ left: 40, right: 290 });
   });
@@ -464,7 +472,7 @@ describe('the glyphs the audit collects from the page', () => {
   test('take a box placed with absolute or fixed positioning as a column of its own', () => {
     document.getElementById('room').innerHTML =
       '<div style="position: absolute">Pisa</div><div style="position: fixed">Pisa</div>';
-    const glyphs = window.eval(renderedGlyphs('#room', '#room'));
+    const { glyphs } = window.eval(renderedGlyphs('#room', '#room'));
 
     expect(glyphs.map((glyph) => glyph.column)).toEqual(Array(8).fill({ left: 0, right: 300 }));
   });
@@ -472,7 +480,7 @@ describe('the glyphs the audit collects from the page', () => {
   test('keep a space with no box, where its element is drawn, and leave out one whose element is not', () => {
     document.getElementById('room').innerHTML =
       'May 2015 –<span> </span>August<span class="undrawn"> </span>';
-    const glyphs = window.eval(renderedGlyphs('#room', '#room'));
+    const { glyphs } = window.eval(renderedGlyphs('#room', '#room'));
 
     expect(glyphs.map((glyph) => glyph.text).join('')).toBe('May 2015 – August');
     expect(glyphs[3]).toEqual({
@@ -488,6 +496,121 @@ describe('the glyphs the audit collects from the page', () => {
 
   test('are null when a bound is missing', () => {
     expect(window.eval(renderedGlyphs('#start', '#nowhere'))).toBeNull();
+  });
+
+  // Nerd Mode's quotes, commas and brackets are empty elements whose `data-code` the stylesheet draws with `::before`
+  // (#160): no text, so no glyph, and the check never saw them (#207). The element's own boxes are the drawn text's,
+  // one a line; JSDOM measures no text, so a stand-in pen gives every character half the drawn font's size.
+  describe('with the syntax the stylesheet draws', () => {
+    const computed = window.getComputedStyle;
+    const pseudo = {
+      fontStyle: 'normal',
+      fontWeight: '400',
+      fontSize: '16px',
+      fontFamily: 'monospace',
+      letterSpacing: 'normal',
+      wordSpacing: '0px'
+    };
+    const drawnIn = (element, ...rects) => {
+      element.getClientRects = () =>
+        rects.map(([left, right, top = 0]) => ({
+          left,
+          right,
+          top,
+          bottom: top + 16,
+          width: right - left,
+          height: 16
+        }));
+    };
+
+    beforeEach(() => {
+      window.getComputedStyle = (element, pseudoElement) =>
+        pseudoElement === '::before' ? pseudo : computed.call(window, element);
+      HTMLCanvasElement.prototype.getContext = () => ({
+        font: '',
+        measureText(text) {
+          return { width: ([...text].length * parseFloat(this.font.match(/(\d+)px/)[1])) / 2 };
+        }
+      });
+    });
+
+    afterEach(() => {
+      window.getComputedStyle = computed;
+      delete HTMLCanvasElement.prototype.getContext;
+    });
+
+    test('are each piece of it, with its box, its column and how many glyphs come before it', () => {
+      document.getElementById('room').innerHTML =
+        'Pisa<span data-code="&quot;"></span><span data-code=","></span>';
+      const [quote, comma] = document.querySelectorAll('[data-code]');
+      drawnIn(quote, [32, 40]);
+      drawnIn(comma, [40, 48]);
+      const { glyphs, syntax } = window.eval(renderedGlyphs('#room', '#room'));
+
+      expect(glyphs).toHaveLength(4);
+      expect(syntax).toEqual([
+        {
+          text: '"',
+          top: 0,
+          bottom: 16,
+          left: 32,
+          right: 40,
+          column: { left: 10, right: 290 },
+          after: 4
+        },
+        {
+          text: ',',
+          top: 0,
+          bottom: 16,
+          left: 40,
+          right: 48,
+          column: { left: 10, right: 290 },
+          after: 4
+        }
+      ]);
+    });
+
+    test('leave out syntax outside the bounds, and syntax the page hides', () => {
+      document.getElementById('room').innerHTML =
+        '<span data-code="a"></span><span style="visibility: hidden" data-code="b"></span>' +
+        '<span class="clipped" data-code="c"></span>';
+      document.getElementById('after').innerHTML = '<span data-code="d"></span>';
+      document.querySelectorAll('[data-code]').forEach((element) => drawnIn(element, [0, 8]));
+      const { syntax } = window.eval(renderedGlyphs('#start', '#end'));
+
+      expect(syntax.map((piece) => piece.text)).toEqual(['a']);
+    });
+
+    // Chrome hangs a space a `pre-wrap` line ends on past the edge, inside the box: at 320px Nerd Mode's " = " put
+    // its first space 5.7px past the editor's content box, and the page scrolled no wider.
+    test('take the spaces at either end of a piece out of its text and its box, since a line may hang them', () => {
+      document.getElementById('room').innerHTML =
+        '<span data-code="period: "></span><span data-code=" = "></span>';
+      const [label, equals] = document.querySelectorAll('[data-code]');
+      drawnIn(label, [10, 74]);
+      drawnIn(equals, [74, 98]);
+      const { syntax } = window.eval(renderedGlyphs('#room', '#room'));
+
+      expect(syntax.map(({ text, left, right }) => ({ text, left, right }))).toEqual([
+        { text: 'period:', left: 10, right: 66 },
+        { text: '=', left: 82, right: 90 }
+      ]);
+    });
+
+    test('split syntax a line wraps into what each line draws, and leave out a piece that draws only a space', () => {
+      document.getElementById('room').innerHTML =
+        '<span data-code=" = "></span><span data-code="Certification"></span>';
+      const [equals, type] = document.querySelectorAll('[data-code]');
+      drawnIn(equals, [282, 290], [10, 26, 20]);
+      drawnIn(type, [26, 66, 20], [10, 74, 40]);
+      const { syntax } = window.eval(renderedGlyphs('#room', '#room'));
+
+      expect(syntax.map(({ text, top, left, right }) => ({ text, top, left, right }))).toEqual([
+        { text: '=', top: 20, left: 10, right: 18 },
+        { text: 'Certi', top: 20, left: 26, right: 66 },
+        { text: 'fication', top: 40, left: 10, right: 74 }
+      ]);
+    });
   });
 });
 

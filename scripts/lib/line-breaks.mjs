@@ -29,9 +29,16 @@ const MEASURE_TOLERANCE = 0.5;
  * holds inside the viewport. Text the page hides, with `visibility` or clipped to a pixel the way text for a screen
  * reader is, is left out. A space in a drawn element is kept even with no box: Chrome gives none to a space a line
  * broke at when it is a text node of its own.
+ *
+ * Beside the glyphs, the syntax the stylesheet draws: an empty element whose `data-code` its `::before` draws, as Nerd
+ * Mode's quotes, commas and brackets are (#160). It has no text, so no glyph, and a range cannot reach inside a
+ * pseudo-element; but the element's own boxes are the drawn text's, one a line (#207). A piece of syntax is what one
+ * of those boxes draws, found by measuring the code in the font `::before` draws it in, and without the spaces at
+ * either end: Chrome hangs a space a `pre-wrap` line ends on past the edge, inside the box, and a space is never
+ * judged. Each piece carries how many glyphs come before it, so a finding can name the line it follows.
  * @param {string} start - Selector of the CV's first element, as the audit's bounds name it
  * @param {string} end - Selector of its last
- * @returns {string} An expression for the page, resolving to the glyphs, or null when a bound is missing
+ * @returns {string} An expression for the page, resolving to `{ glyphs, syntax }`, or null when a bound is missing
  */
 export const renderedGlyphs = (start, end) => `(() => {
   const first = document.querySelector(${JSON.stringify(start)});
@@ -68,16 +75,59 @@ export const renderedGlyphs = (start, end) => `(() => {
     }
     return places.get(holder);
   };
+  const pens = new Map();
+  const widthIn = (style) => {
+    const font = [style.fontStyle, style.fontWeight, style.fontSize, style.fontFamily].join(' ');
+    const spacing = [style.letterSpacing, style.wordSpacing].map((value) => (value === 'normal' ? '0px' : value));
+    const key = [font, ...spacing].join('|');
+    if (!pens.has(key)) {
+      const pen = document.createElement('canvas').getContext('2d');
+      pen.font = font;
+      [pen.letterSpacing, pen.wordSpacing] = spacing;
+      pens.set(key, (text) => pen.measureText(text).width);
+    }
+    return pens.get(key);
+  };
   const glyphs = [];
+  const syntax = [];
   const piece = document.createRange();
-  const walker = document.createTreeWalker(bounds.commonAncestorContainer, NodeFilter.SHOW_TEXT);
+  const walker = document.createTreeWalker(bounds.commonAncestorContainer, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
   for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    const code = node.nodeType === Node.ELEMENT_NODE ? node.getAttribute('data-code') : null;
+    if (node.nodeType === Node.ELEMENT_NODE && code === null) continue;
     if (!bounds.intersectsNode(node)) continue;
-    const parent = node.parentElement;
+    const parent = code === null ? node.parentElement : node;
     if (getComputedStyle(parent).visibility !== 'visible') continue;
     const drawn = parent.getBoundingClientRect();
     if (drawn.width <= 1 && drawn.height <= 1) continue;
     const { room, column } = placeOf(parent);
+    if (code !== null) {
+      const width = widthIn(getComputedStyle(node, '::before'));
+      const lines = [...node.getClientRects()].filter((rect) => rect.width > 0);
+      let at = 0;
+      lines.forEach((rect, index) => {
+        let until = code.length;
+        if (index < lines.length - 1) {
+          until = at;
+          while (until < code.length && width(code.slice(at, until + 1)) <= rect.width + 0.5) until++;
+        }
+        const text = code.slice(at, until);
+        at = until;
+        const ink = text.trim();
+        if (!ink) return;
+        const without = (kept) => (kept === text ? 0 : width(text) - width(kept));
+        syntax.push({
+          text: ink,
+          top: rect.top + scrollY,
+          bottom: rect.bottom + scrollY,
+          left: rect.left + scrollX + without(text.trimStart()),
+          right: rect.right + scrollX - without(text.trimEnd()),
+          column,
+          after: glyphs.length
+        });
+      });
+      continue;
+    }
     const shown = parent.getClientRects().length > 0;
     const text = node.data;
     for (let index = 0; index < text.length; ) {
@@ -102,7 +152,7 @@ export const renderedGlyphs = (start, end) => `(() => {
       index += size;
     }
   }
-  return glyphs;
+  return { glyphs, syntax };
 })()`;
 
 const blank = (glyph) => /^\s+$/u.test(glyph.text);
