@@ -13,6 +13,13 @@ import { importClosure } from './import-closure.mjs';
 /** The parser `audit:ats` grades the print with, whose imports make up the rest of it. */
 export const PARSER = 'core/AtsTextParser.js';
 
+/**
+ * What a print is graded with, besides the parser: the diff, which builds each line it expects with
+ * `domain/EntryLines.js`, and the document model the profile is read through. Each print is graded by the branch that
+ * printed it, so the base's print by the base's (#201).
+ */
+export const GRADER = ['core/RecoveryDiff.js', 'domain/CvDocument.js'];
+
 /** The heading AGENTS.md lists what renders the CV under, for the product review. */
 const PRODUCT_REVIEW = /^###\s+When the product review runs\s*$/m;
 
@@ -209,10 +216,11 @@ export function fieldVerdicts(diff) {
 /**
  * The fields a parser recovered from one print and recovers less of from another: a lower rung on the ladder.
  *
- * Each print is graded against its own profile, so a field the change rewrote is not a loss when the new words came
- * back. A field only one print has, such as an entry the change removed, is not compared.
- * @param {ReturnType<typeof fieldVerdicts>} before - The base's parser on the base's print
- * @param {ReturnType<typeof fieldVerdicts>} after - The base's parser on the new print
+ * Each print is graded against its own branch's profile and lines (#201), so a field the change rewrote is not a loss
+ * when the new words came back. A field only one print has, such as an entry the change removed, or one the base's
+ * grader does not grade, is not compared.
+ * @param {ReturnType<typeof fieldVerdicts>} before - The base's parser on the base's print, graded by the base
+ * @param {ReturnType<typeof fieldVerdicts>} after - The base's parser on the new print, graded by this branch
  * @returns {{ key: string, label: string, from: string, to: string, was: *, now: *, written: * }[]} The losses
  */
 export function lostFields(before, after) {
@@ -319,6 +327,45 @@ export const READING_ORDERS = [
 const orderOf = (name) => READING_ORDERS.find((order) => order.name === name);
 
 /**
+ * One print pair, in one reading order, read and graded as the step compares them.
+ *
+ * The base's parser reads both prints. Each print is graded by the branch that printed it: the base's print against the
+ * base's profile, by the base's diff, whose `EntryLines` wrote its lines, in the base's catalogue's words; the new print
+ * against this branch's. Graded by this branch alone, a change that rewords a line held the base's print to the new
+ * words, graded it partial where it was exact, and a loss on the new print read "partial → partial" (#201).
+ * @param {{ base: string, head: string }} texts - The base's print and the new one, in the same order
+ * @param {Object} sides - Each branch's `parser`, `grader` (a `RecoveryDiff`), `document` and `words`
+ * @returns {{ baseOnBase: Object[], baseOnHead: Object[], headOnHead: Object[] }} The base's parser on each print, and
+ *   this branch's on its own, as `fieldVerdicts` lists them
+ */
+export function gradedReadings(texts, { base, head }) {
+  const grade = (parser, text, { grader, document, words }) =>
+    fieldVerdicts(grader.diff(document, parser.parse(text), { words }));
+  return {
+    baseOnBase: grade(base.parser, texts.base, base),
+    baseOnHead: grade(base.parser, texts.head, head),
+    headOnHead: grade(head.parser, texts.head, head)
+  };
+}
+
+/**
+ * The fields the new print was graded on that the base's print carries no verdict for: the base's grader does not
+ * grade them, as a base from before #200 grades no degree's period, or the base's profile does not write them. None can
+ * be compared, so none is a loss; each is named, so a field left uncompared is not mistaken for one that held.
+ * @param {{ artefact: string, order: string, baseOnBase: Object[], baseOnHead: Object[] }[]} readings - As
+ *   `readingLosses` takes them
+ * @returns {{ artefact: string, order: string, key: string, label: string }[]} The fields, with the print and the order
+ */
+export function notGradedOnBase(readings) {
+  return readings.flatMap(({ artefact, order, baseOnBase, baseOnHead }) => {
+    const graded = new Set(baseOnBase.map((field) => field.key));
+    return baseOnHead
+      .filter((field) => !graded.has(field.key))
+      .map(({ key, label }) => ({ artefact, order, key, label }));
+  });
+}
+
+/**
  * Every loss over every print and reading order.
  * @param {{ artefact: string, order: string, baseOnBase: Object[], baseOnHead: Object[] }[]} readings - One entry a
  *   print in one order: the base's parser on the base's print, and on the new one
@@ -420,6 +467,21 @@ export function report({ base, decision, readings = [], losses = [], labels = []
           : `**The step fails.** A parser change and a layout change are reviewed apart. If this trade is deliberate and the owner accepts it, the label \`${TRADE_LABEL}\` records that; a re-run reads the labels its run started with, so push again, or close and reopen the pull request, after adding it.`
       ];
   const lost = new Set(losses.map((loss) => `${loss.order}\0${loss.key}`));
+  const ungraded = new Map();
+  for (const field of notGradedOnBase(readings)) {
+    if (!ungraded.has(field.label)) ungraded.set(field.label, []);
+    ungraded.get(field.label).push(field);
+  }
+  const notGraded = ungraded.size
+    ? [
+        '### Not graded on the base',
+        '',
+        "The base's print carries no verdict for these fields: the base's grader does not grade them, or the base's profile does not write them. They are not compared, and none is a loss.",
+        '',
+        ...[...ungraded.entries()].map(([label, each]) => `- ${label} — ${where(each)}`),
+        ''
+      ]
+    : [];
 
   return [
     ...heading,
@@ -427,11 +489,13 @@ export function report({ base, decision, readings = [], losses = [], labels = []
     `- **Base:** ${against}.`,
     `- **Why it ran:** ${decision.reason}.`,
     `- **Read:** ${artefacts.join(', ')}, in ${orders.map((order) => order.short).join(', ')}; the base's print built in ${seconds.toFixed(1)} s.`,
+    "- **Graded:** the base's print against the base's own lines — its `RecoveryDiff`, `EntryLines` and catalogue — and this print against this branch's (#201).",
     '',
     '### Losses',
     '',
     ...verdict,
     '',
+    ...notGraded,
     ...orders.flatMap((order) => [
       ...table(
         order,
