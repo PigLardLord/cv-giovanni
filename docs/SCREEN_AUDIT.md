@@ -16,7 +16,7 @@ width and two phone widths, its CV selected, and the selection read. Regenerate 
 | technical | 1280px | 0.000 | 18/18 |
 | technical | 820px | 0.000 | 18/18 |
 | technical | 390px | 0.000 | 18/18 |
-| technical | 320px | 0.000 | 17/18 |
+| technical | 320px | 0.000 | 18/18 |
 
 Checks: the CV captured whole — name, role, email and current employer; no two words the profile
 writes in sequence welded into one, and no contact detail run into the word beside it; every skill
