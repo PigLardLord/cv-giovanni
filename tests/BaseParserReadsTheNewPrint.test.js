@@ -1300,6 +1300,48 @@ describe('the report', () => {
     );
   });
 
+  // The table's rows are this branch's entries, so the base's column shows the entry of the base's profile each lines up
+  // with, not the one at the same place (#221).
+  test("reports each field beside the base's reading of the same entry, and says whose places name the entries", () => {
+    const segmentation = nerd.filter((field) => field.key === 'segmentation');
+    const before = [
+      ...segmentation,
+      ...degreeFields(0, 'Master'),
+      ...degreeFields(1, 'Bachelor', { degree: 'partial' })
+    ];
+    const after = [
+      ...segmentation,
+      ...degreeFields(0, 'Bachelor'),
+      ...degreeFields(1, 'Master', { degree: 'partial' })
+    ];
+    const moved = [
+      {
+        artefact: 'nerd',
+        order: 'default',
+        baseOnBase: before,
+        baseOnHead: after,
+        headOnHead: after
+      }
+    ];
+    const text = report({
+      base,
+      decision: applies,
+      readings: moved,
+      losses: readingLosses(moved),
+      labels: [],
+      seconds: 1
+    });
+
+    expect(text).toContain(
+      "- **Lined up:** each entry of this branch's profile is compared with the entry of the base's that says the same, and named by its place in this branch's profile (#221)."
+    );
+    expect(text).toContain(
+      '- education 2, degree (education 1 in the base\'s profile): "First Level Professional Master\'s Programme in Mobile Applications Development (60 ECTS)" → "First Level" (exact → partial) — nerd in poppler\'s order'
+    );
+    expect(text).toContain('| education 1, degree | partial | exact | exact |');
+    expect(text).toContain('| **education 2, degree** | exact | partial | partial |');
+  });
+
   test('a trade the pull request declares accepted is reported as accepted', () => {
     const losses = readingLosses(readings);
     const text = report({

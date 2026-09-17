@@ -585,13 +585,20 @@ function where(losses) {
     .join('; ');
 }
 
-/** One reading order's fields, a row each, beside what each parser recovered from each print. */
+/**
+ * One reading order's fields, a row each, beside what each parser recovered from each print. A row is a field of this
+ * branch's profile, in its order, and the base's column reads the entry of the base's profile it lines up with (#221).
+ */
 function table(order, readings, lost) {
   const columns = ['baseOnBase', 'baseOnHead', 'headOnHead'];
   const rows = new Map();
   for (const reading of readings) {
-    for (const column of columns) {
-      for (const field of reading[column]) {
+    const fields = {
+      ...reading,
+      baseOnBase: inHeadPlaces(reading.baseOnBase, reading.baseOnHead)
+    };
+    for (const column of ['baseOnHead', 'headOnHead', 'baseOnBase']) {
+      for (const field of fields[column]) {
         if (!rows.has(field.key)) rows.set(field.key, { label: field.label, cells: {} });
         const cells = rows.get(field.key).cells;
         cells[column] ??= new Map();
@@ -738,6 +745,7 @@ export function report({ base, decision, readings = [], losses = [], labels = []
     `- **Why it ran:** ${decision.reason}.`,
     `- **Read:** ${artefacts.join(', ')}, in ${orders.map((order) => order.short).join(', ')}; the base's print built in ${seconds.toFixed(1)} s.`,
     "- **Graded:** the base's print against the base's own lines — its `RecoveryDiff`, `EntryLines` and catalogue — and this print against this branch's (#201).",
+    "- **Lined up:** each entry of this branch's profile is compared with the entry of the base's that says the same, and named by its place in this branch's profile (#221).",
     '',
     '### Losses',
     '',
