@@ -15,7 +15,7 @@ const read = (path) => readFileSync(`${root}${path}`, 'utf8');
 const flat = (text) => text.replace(/\s+/g, ' ');
 
 // What the licence must leave out: the CV itself, and every document made from it.
-const CONTENT = ['profiles/', 'profile.webp', 'generated/', 'docs/'];
+const CONTENT = ['profiles/', 'profile.webp', 'generated/', 'docs/', 'tests/fixtures/ats/'];
 
 describe('the licence', () => {
   test('is committed, and grants the ISC permissions', () => {
@@ -31,6 +31,14 @@ describe('the licence', () => {
 
     expect(licence).toMatch(/does not cover/);
     expect(scope).toContain(`\`${path}\``);
+  });
+
+  // The CV is quoted beyond those paths too: an email in a parser's comment, a phone number in a test. A list of paths
+  // cannot keep up with that, so the licence says it of the data wherever it is quoted (the code review of #225).
+  test("does not cover the candidate's details wherever else they are quoted", () => {
+    expect(flat(read('LICENSE'))).toMatch(
+      /Nor does it cover the candidate's name, contact details and career facts wherever else they are quoted/
+    );
   });
 
   test('leaves vendored code under its own licence', () => {

@@ -24,8 +24,12 @@ catalogues of interface labels.
 
 It does not cover the CV, which is personal and is not licensed for reuse:
 `profiles/`, the candidate's portrait `profile.webp`, the documents built
-from them in `generated/`, and the audit reports in `docs/`, which quote
-the CV. All rights in them are reserved.
+from them in `generated/`, the audit reports in `docs/`, and the text
+extracted from the printed CV in `tests/fixtures/ats/`, all of which quote
+it. Nor does it cover the candidate's name, contact details and career
+facts wherever else they are quoted, in code, comments or tests: they are
+there as data the code is checked against, not as part of the code. All
+rights in them are reserved.
 
 Code under `vendor/` is not the author's and keeps its own licence, stated
 beside it.
