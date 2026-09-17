@@ -208,10 +208,16 @@ describe.each(['page-print-spotlight', 'page-print-nerd'])(
     });
 
     // A degree that states its credits prints them after its name, "… Development (60 ECTS)" (#48). It is compared as
-    // the document prints it, so a parser that returns that line lost nothing the document said (#186).
-    test('every degree keeps its school, and one that states its credits reads exact', () => {
+    // the document prints it, so a parser that returns that line lost nothing the document said (#186). Its period
+    // prints in brackets after the school, and is graded as a role's is (#200).
+    test('every degree keeps its school and its period, and one that states its credits reads exact', () => {
       expect(diff.education).toEqual(
-        document.education.map(() => ({ degree: 'exact', school: 'exact', adjacent: true }))
+        document.education.map(() => ({
+          degree: 'exact',
+          school: 'exact',
+          period: 'exact',
+          adjacent: true
+        }))
       );
     });
 
@@ -273,4 +279,61 @@ describe('a degree is compared against the line the document prints', () => {
       'partial'
     );
   });
+});
+
+// A degree's period was never graded, so a print that lost it scored the same and the report named nothing (#200). It
+// is compared as the school line prints it, "School (2014 – 2016)", without the brackets `schoolLine` sets it in: the
+// parser reads them as the line's punctuation, as it reads " · ", and returns the period alone.
+describe("a degree's period is compared as the school line prints it", () => {
+  const nerd = readFileSync(`${root}tests/fixtures/ats/page-print-nerd.txt`, 'utf8');
+  const clean = readFileSync(`${root}tests/fixtures/ats/clean-english.txt`, 'utf8');
+  const [pisa] = document.education;
+  const diffOfText = (text, from = document) =>
+    RecoveryDiff.diff(from, AtsTextParser.parse(text), { words });
+
+  test('printed in brackets and recovered without them, it lost nothing', () => {
+    const diff = diffOfText(nerd);
+
+    expect(nerd).toContain(`${pisa.school} (${pisa.period})`);
+    expect(diff.education.map((degree) => degree.period)).toEqual(['exact', 'exact']);
+    expect(diff.evidence['education.0.period']).toEqual({
+      written: pisa.period,
+      recovered: pisa.period
+    });
+  });
+
+  test('printed after a separator, it lost nothing either', () => {
+    expect(diffOfText(clean).education[0].period).toBe('exact');
+  });
+
+  test('a school line that came back without its period lost it', () => {
+    const text = clean.replace(`${pisa.school} · ${pisa.period}`, pisa.school);
+    const diff = diffOfText(text);
+
+    expect(text).not.toBe(clean);
+    expect(diff.education[0]).toEqual(expect.objectContaining({ school: 'exact', period: 'lost' }));
+    expect(diff.evidence['education.0.period']).toEqual({ written: pisa.period, recovered: null });
+  });
+
+  test('a period recovered as other dates is wrong', () => {
+    const diff = diffOfText(nerd.replace(`(${pisa.period})`, '(2015 – 2017)'));
+
+    expect(diff.education[0].period).toBe('wrong');
+    expect(diff.evidence['education.0.period'].recovered).toBe('2015 – 2017');
+  });
+
+  // A degree that prints no period has none to lose, whether the profile leaves it out or holds only whitespace, which
+  // the school line prints as nothing.
+  test.each([[undefined], [''], ['   ']])(
+    'a degree whose period is %p is not graded on one',
+    (period) => {
+      const undated = new CvDocument({
+        education: [{ degree: 'B.Sc.', school: 'Somewhere', period }]
+      });
+      const diff = RecoveryDiff.diff(undated, AtsTextParser.parse('Education\nB.Sc.\nSomewhere'));
+
+      expect(diff.education[0]).not.toHaveProperty('period');
+      expect(diff.evidence).not.toHaveProperty(['education.0.period']);
+    }
+  );
 });

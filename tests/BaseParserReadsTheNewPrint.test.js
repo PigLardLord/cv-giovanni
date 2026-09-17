@@ -38,10 +38,8 @@ const t = catalogueTranslator({
   cv: JSON.parse(readFileSync(`${root}locales/en/cv.json`, 'utf8'))
 });
 const words = { locale: 'en', credits: (count) => t('cv:education.credits', { count }) };
-const read = (text) => {
-  const recovered = AtsTextParser.parse(text);
-  return fieldVerdicts(RecoveryDiff.diff(document, recovered, { words }), document, recovered);
-};
+const read = (text) =>
+  fieldVerdicts(RecoveryDiff.diff(document, AtsTextParser.parse(text), { words }));
 // The print as it is, and as #179 first drew it: the scope after the school's period, not after the degree's name.
 const print = readFileSync(`${root}tests/fixtures/ats/page-print-nerd.txt`, 'utf8');
 const firstPlacement = print.replace(
@@ -361,11 +359,25 @@ describe("what the base branch's parser recovered, field by field", () => {
   test('a degree that writes no period has no period to lose', () => {
     const undated = new CvDocument({ education: [{ degree: 'B.Sc.', school: 'Somewhere' }] });
     const recovered = AtsTextParser.parse('Education\nB.Sc.\nSomewhere');
-    const keys = fieldVerdicts(RecoveryDiff.diff(undated, recovered), undated, recovered).map(
-      (field) => field.key
-    );
+    const keys = fieldVerdicts(RecoveryDiff.diff(undated, recovered)).map((field) => field.key);
 
     expect(keys).not.toContain('education.0.period');
+  });
+
+  // The step graded the degree's period itself while the audit's diff did not (#181). The diff grades it now (#200),
+  // and the step reads its verdict and its evidence, so the two can never grade the same period differently.
+  test("reads the degree's period from the audit's diff, verdict and evidence", () => {
+    const diff = RecoveryDiff.diff(document, AtsTextParser.parse(print), { words });
+    diff.education[0].period = 'wrong';
+    diff.evidence['education.0.period'] = { written: '2014 – 2016', recovered: '2016' };
+
+    expect(fieldVerdicts(diff).find((field) => field.key === 'education.0.period')).toEqual({
+      key: 'education.0.period',
+      label: 'education 1, period',
+      verdict: 'wrong',
+      written: '2014 – 2016',
+      recovered: '2016'
+    });
   });
 });
 

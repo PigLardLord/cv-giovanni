@@ -301,10 +301,8 @@ const sides = {
     words: wordsOf(JSON.parse(readHead(`locales/${target.locale}/cv.json`)))
   }
 };
-const grade = (Parser, text, { document, words }) => {
-  const recovered = Parser.parse(text);
-  return fieldVerdicts(RecoveryDiff.diff(document, recovered, { words }), document, recovered);
-};
+const grade = (Parser, text, { document, words }) =>
+  fieldVerdicts(RecoveryDiff.diff(document, Parser.parse(text), { words }));
 
 const readings = printed.flatMap(({ layout, baseText, headText }) =>
   READING_ORDERS.map((order) => ({
