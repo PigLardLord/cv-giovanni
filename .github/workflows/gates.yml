@@ -66,6 +66,22 @@ jobs:
       - name: Audit what a stranger's parser recovers
         run: npm run audit:ats
 
+      # A change to both the CV and the parser that grades it is graded by the parser it changed (#181): #179 first
+      # widened the parser to read a school line it had redrawn, and audit:ats held 80/80 while main's parser read the
+      # school as "Development". When a pull request touches the parser and what renders the CV, this builds the base
+      # branch's print in a temporary worktree and reads it, and the print above, with the base branch's parser. A field
+      # it recovered from the first and loses from the second fails the step, unless the pull request carries the label
+      # ats-trade-accepted, the owner's record of a trade made on purpose; the losses go to the job summary either way.
+      # A pull request that touches one side only exits 0 saying so, and a base that could not be built exits 2. The
+      # labels are the event's: a label added after the run is read by the next push, or a close and reopen, never by a
+      # re-run, which replays the event it started with.
+      - name: Audit what the base branch's parser recovers from this print
+        if: github.event_name == 'pull_request'
+        run: npm run audit:ats:base
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+          PULL_REQUEST_LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+
       # audit-screen exits 2 and checks nothing when it finds no browser or no built manifest, and any exit
       # but 0 fails the step. JSDOM cannot see what a selection copies; this can (#62, #89).
       - name: Audit what a reader copies off the screen

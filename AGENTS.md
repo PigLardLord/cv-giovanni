@@ -151,6 +151,9 @@ it renders: `profiles/`, `locales/`, `renderers/`, `domain/EntryLines.js` (the l
 `core/CvFiles.js` (the name the recruiter's inbox receives), and the cover letter's `letter.html`,
 `letter.css`, `core/LetterContent.js` and `renderers/LetterRenderer.js` (#151).
 
+`npm run audit:ats:base` reads that list, so a path added to it is one the base branch's parser is
+asked about too (#181): keep it one paragraph, directly under this heading.
+
 A ticket touching only build tooling, scripts or tests does not need it — say that it was
 skipped and why, rather than skipping it silently.
 
@@ -393,6 +396,23 @@ floors are checked in two reading orders: poppler's, which the score is computed
 stream's (`pdftotext -raw`), which PDFBox and Tika read by default. They fail differently: on the
 two-column browser print, poppler's order kept the contacts above the career, while the content
 stream drew the skills first and the name after the first role, and lost the email (#147).
+
+**A parser change and a layout change are reviewed apart,** or the pull request shows what the base
+branch's parser recovers from the new print. `audit:ats` grades the print with the branch's own
+parser, so a change to both can pass because the grader moved: #179 first added " · 60 ECTS" after
+the Pisa school line and widened the parser to read it, and 80/80 held while `main`'s parser read
+the school as "Development", gave it no period, and in content-stream order merged both degrees into
+one (#181). CI holds every pull request to it with `npm run audit:ats:base`. The step applies when
+the change touches the parser — `core/AtsTextParser.js` and every module it imports, read from the
+imports — and what renders the CV — the paths the product review runs on, read from that paragraph
+above, and every module the renderers import. It builds the base's print in a temporary worktree,
+reads that print and the new one with the base's parser in the three orders `audit:ats` reads, each
+graded against its own profile, and fails on a field the base's parser recovered from the base's
+print and recovers less of from the new one. **The label `ats-trade-accepted` records a trade the
+owner accepted:** the losses are still reported, in the job summary, and the step passes. A change
+to one side only exits 0 and says why; a base that could not be built or read exits 2. Locally it
+compares the working tree with its merge base with `origin/main` (`--base=<ref>` names another),
+after `npm run build:pdf`.
 
 `build:pdf` and `audit:screen` need a Chrome or Chromium binary. They look for one on PATH, in the
 usual install locations and in the Playwright cache; `CHROME_PATH` overrides. When they find none
