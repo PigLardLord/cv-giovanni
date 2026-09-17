@@ -135,6 +135,23 @@ describe('modules imported apart from this checkout', () => {
     expect(RecoveryDiff.diff(document, recovered).education[1].degree).toBe('exact');
   });
 
+  // In the step, every read is a `git show`: the closure has read each module once already (the code review of #216).
+  test('reads each module once', async () => {
+    const reads = [];
+    const counted = (path) => {
+      reads.push(path);
+      return fromDisk(path);
+    };
+    await importApart(['core/RecoveryDiff.js'], counted, join(scratch, 'modules'));
+
+    expect(reads.sort()).toEqual([
+      'core/RecoveryDiff.js',
+      'domain/EntryLines.js',
+      'domain/ReadableUrl.js',
+      'domain/fold.js'
+    ]);
+  });
+
   test('writes the closure and nothing else, as ES modules', async () => {
     const directory = join(scratch, 'modules');
     await importApart(['core/RecoveryDiff.js'], fromDisk, directory);

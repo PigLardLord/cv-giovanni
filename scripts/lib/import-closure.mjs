@@ -62,7 +62,13 @@ export function importClosure(entries, read) {
  * @returns {Promise<Object[]>} Each entry's module namespace, in the order given
  */
 export async function importApart(entries, read, directory) {
-  const sources = importClosure(entries, read).map((path) => [path, read(path)]);
+  // The closure reads every module it follows; each is kept, so none is read twice.
+  const kept = new Map();
+  const keep = (path) => {
+    if (!kept.has(path)) kept.set(path, read(path));
+    return kept.get(path);
+  };
+  const sources = importClosure(entries, keep).map((path) => [path, keep(path)]);
   const missing = sources.filter(([, source]) => source === null || source === undefined);
   if (missing.length) throw new Error(`cannot read ${missing.map(([path]) => path).join(', ')}`);
   for (const [path, source] of sources) {
