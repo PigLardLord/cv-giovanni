@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-import { emptyFieldMarks, printedEntries } from '../scripts/lib/empty-fields.mjs';
+import { emptyFieldMarks, entrySections, printedEntries } from '../scripts/lib/empty-fields.mjs';
 
 // A field the profile leaves out used to reach the paper as its punctuation, or as the word JavaScript writes for
 // nothing: "Engineer at Acme,", "Lead Essentials – Essential Developer ()", and before #157 "undefined" (#169). The page
@@ -442,6 +442,133 @@ describe('the traces of an empty field in printed text', () => {
           }
         ]);
       });
+    });
+
+    // The re-check of #213: a string the profile writes that is the entry's whole line prints the same wherever it
+    // prints, so a copy of it outside the entry's section took the header's place. Each kind is looked for in its own
+    // section, from its heading to the next.
+    describe('where a section is given for its kind', () => {
+      test('an entry is found only under its own heading, whatever prints the same line before it', () => {
+        const entries = [
+          {
+            kind: 'role',
+            start: 'Mobile Developer at Apparound',
+            line: 'Mobile Developer at Apparound, Pisa, Italy',
+            open: ['Mobile Developer at Apparound, Pisa, Italy']
+          }
+        ];
+        const text = [
+          'Career highlights',
+          'Mobile Developer at Apparound, Pisa, Italy',
+          '',
+          'Professional Experience',
+          'Mobile Developer at Apparound, Pisa, Italy,',
+          'September 2015 - July 2018'
+        ].join('\n');
+
+        expect(
+          emptyFieldMarks(text, {
+            entries,
+            written: ['Mobile Developer at Apparound, Pisa, Italy'],
+            sections: { role: 'Professional Experience' },
+            headings: ['Career highlights', 'Professional Experience']
+          })
+        ).toEqual([
+          {
+            mark: 'Mobile Developer at Apparound, Pisa, Italy,',
+            line: 'Mobile Developer at Apparound, Pisa, Italy,'
+          }
+        ]);
+      });
+
+      test('a certification named in a highlight outside its section does not take its place', () => {
+        const options = {
+          entries: certifications({ name: 'Android Enterprise Expert', issuer: 'Google' }),
+          sections: { certification: 'Certifications' },
+          headings: ['Selected Impact', 'Professional Experience', 'Certifications', 'Education']
+        };
+        const printed = (certification) =>
+          [
+            'Selected Impact',
+            'Android Enterprise Expert – Google, renewed every year since 2019',
+            'Professional Experience',
+            'Engineer at Acme, Berlin',
+            'Certifications',
+            certification,
+            'Education',
+            'Università di Pisa (2016)'
+          ].join('\n');
+
+        expect(marks(printed('Android Enterprise Expert – Google'), options)).toEqual([]);
+        expect(emptyFieldMarks(printed('Android Enterprise Expert – Google –'), options)).toEqual([
+          {
+            mark: 'Android Enterprise Expert – Google –',
+            line: 'Android Enterprise Expert – Google –'
+          }
+        ]);
+      });
+
+      test('a section runs from its heading, alone on its line, to the next heading, or is the whole text', () => {
+        const entries = roles({ title: 'Engineer', company: 'Acme' });
+        const sections = { role: 'Professional Experience' };
+        const headings = ['Professional Experience', 'Education'];
+
+        // What prints under the next heading is not the section's.
+        expect(
+          marks('Professional Experience\nEngineer at Acme\nEducation\nEngineer at Acme, Berlin', {
+            entries,
+            sections,
+            headings
+          })
+        ).toEqual([]);
+        // A heading at the top of a page prints after the page break.
+        expect(
+          marks('Engineer at Acme,\n\fProfessional Experience\nEngineer at Acme', {
+            entries,
+            sections,
+            headings
+          })
+        ).toEqual([]);
+        // A heading's words inside a line of prose are not the heading.
+        expect(
+          marks(
+            'Engineer at Acme, Professional Experience\nEngineer at Acme,\nProfessional Experience\nEngineer at Acme',
+            { entries, sections, headings }
+          )
+        ).toEqual([]);
+        // A heading that does not print bounds nothing, and the whole text is searched, as with no section at all.
+        expect(marks('Experience\nEngineer at Acme,', { entries, sections, headings })).toEqual([
+          'Engineer at Acme,'
+        ]);
+        expect(marks('Engineer at Acme,', { entries })).toEqual(['Engineer at Acme,']);
+      });
+    });
+  });
+});
+
+describe('the sections each kind of entry prints in', () => {
+  test("each kind's heading, from the catalogue's section labels, and every heading that can end a section", () => {
+    const labels = {
+      skills: 'Core Technologies',
+      experience: 'Professional Experience',
+      education: 'Education',
+      certifications: 'Certifications',
+      languages: 'Languages'
+    };
+
+    expect(entrySections(labels)).toEqual({
+      sections: {
+        role: 'Professional Experience',
+        school: 'Education',
+        certification: 'Certifications'
+      },
+      headings: [
+        'Core Technologies',
+        'Professional Experience',
+        'Education',
+        'Certifications',
+        'Languages'
+      ]
     });
   });
 });
