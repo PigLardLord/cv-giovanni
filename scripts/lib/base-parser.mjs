@@ -61,14 +61,13 @@ export const PRINT_PIPELINE = 'scripts/generate-pdfs.mjs';
  * when the page imports it as well, as it does the `DateRange` it writes its dates through.
  * @param {string[]} renderers - The renderer modules, relative to the repository root
  * @param {(path: string) => (string|null)} read - A module's source, or null when there is none
- * @param {string[]} parser - The parser's modules, which the pipeline's imports do not bring in
+ * @param {string[]} parser - The parser's modules, some of which the pipeline's imports reach and leave out here
  * @returns {string[]} The paths, sorted
  */
 export function renderingModules(renderers, read, parser) {
   const page = importClosure([PAGE_SCRIPT, ...renderers], read);
-  const pipeline = importClosure([PRINT_PIPELINE], read).filter(
-    (path) => page.includes(path) || !parser.includes(path)
-  );
+  // A parser module the page imports is in `page` already, so the pipeline's own copy of it can go.
+  const pipeline = importClosure([PRINT_PIPELINE], read).filter((path) => !parser.includes(path));
   return [...new Set([...page, ...pipeline])].sort();
 }
 
