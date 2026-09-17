@@ -671,3 +671,86 @@ test('marks the syntax that closes a literal, and nothing else', () => {
   );
   expect(marked).toHaveLength(held.reduce((sum, literal) => sum + literal.count, 0));
 });
+
+// The code review of #223: a highlight ending in a quote of its own left its escape, that quote and the closing quote a
+// row of their own at 320px. The renderer held the text node the value ended in, and an escape had cut the value's last
+// word into three nodes. The layout reads the value whole, before its escapes part it, and marks `held` the parts from
+// where its last word begins, which the renderer holds with the syntax that closes the value.
+describe('the parts of a value its closing syntax holds', () => {
+  const tokensOf = (data = {}) =>
+    composingTheModel(new SwiftSourceLayout())
+      .compose({ ...profile, asOf: '2026-09', ...data }, { t })
+      .lines.flatMap((line) => line.tokens);
+  const partsOf = (tokens, text) => tokens.find((token) => token.text === text)?.parts;
+  const role = (changes) => ({
+    relevant_experience: [{ ...profile.relevant_experience[0], ...changes }]
+  });
+
+  test('are its last word, after its last space, slash or hyphen', () => {
+    const tokens = tokensOf();
+
+    expect(partsOf(tokens, 'Cut CI time by 75%.')).toEqual([
+      { text: 'Cut CI time by ' },
+      { text: '75%.', held: true }
+    ]);
+    expect(partsOf(tokens, 'github.com/ada')).toEqual([
+      { text: 'github.com/' },
+      { text: 'ada', held: true }
+    ]);
+    expect(partsOf(tokens, '2024')).toEqual([{ text: '2024', held: true }]);
+    expect(partsOf(tokensOf(role({ company: 'Marte-5' })), 'Marte-5')).toEqual([
+      { text: 'Marte-' },
+      { text: '5', held: true }
+    ]);
+  });
+
+  test('are its last word with every escape inside it, when the value ends in a character it escapes', () => {
+    const value = 'Shipped the tool the team still calls "NightingaleMigrationToolX"';
+
+    expect(partsOf(tokensOf(role({ highlights: [value] })), value)).toEqual([
+      { text: 'Shipped the tool the team still calls ' },
+      { code: '\\', held: true },
+      { text: '"', held: true },
+      { text: 'NightingaleMigrationToolX', held: true },
+      { code: '\\', held: true },
+      { text: '"', held: true }
+    ]);
+  });
+
+  test('start after a line break the value writes, and keep it out of sight', () => {
+    const tokens = tokensOf({ languages: [{ name: 'Italian', level: 'Native\nfluent' }] });
+
+    expect(partsOf(tokens, 'Native\nfluent')).toEqual([
+      { text: 'Native' },
+      { code: '\\n' },
+      { text: '\n', unseen: true },
+      { text: 'fluent', held: true }
+    ]);
+  });
+
+  // The page holds a separator to the words either side of it (#180): a last word never starts at its spaces.
+  test('start after a separator and its spaces, and never between them and the word before', () => {
+    const tokens = tokensOf({ subtitle: 'Swift · SwiftUI', title: 'iOS ·' });
+
+    expect(partsOf(tokens, 'Swift · SwiftUI')).toEqual([
+      { text: 'Swift · ' },
+      { text: 'SwiftUI', held: true }
+    ]);
+    expect(partsOf(tokens, 'iOS ·')).toEqual([{ text: 'iOS ·', held: true }]);
+  });
+
+  // A period breaks after its dash and nowhere else (#180), and only where no row holds it with its quotes (#219).
+  test('are the last end of a period, whose ends are each whole', () => {
+    const tokens = tokensOf();
+
+    expect(partsOf(tokens, 'August 2018 – Present')).toEqual([
+      { text: 'August 2018 –', whole: true },
+      { text: ' Present', whole: true, held: true }
+    ]);
+    expect(partsOf(tokens, '2015')).toEqual([{ text: '2015', whole: true, held: true }]);
+  });
+
+  test('are none in a value no syntax closes', () => {
+    expect(partsOf(tokensOf(), 'Engineer with eleven years in native mobile.')).toBeUndefined();
+  });
+});

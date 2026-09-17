@@ -157,6 +157,29 @@ describe('SourceRenderer', () => {
       ]);
     });
 
+    // The code review of #223: an escape cut the last word of a highlight ending in a quote of its own into three
+    // nodes, and the renderer held only the last, so `\\""` opened a row at 320px. It holds what the layout marks.
+    test('is held with the whole last word of a value ending in a character it escapes', () => {
+      const highlight = 'Shipped the tool the team still calls "NightingaleMigrationToolX"';
+      fedTheModel(new SourceRenderer(i18n)).render(document, {
+        ...profile,
+        relevant_experience: [{ ...profile.relevant_experience[0], highlights: [highlight] }]
+      });
+
+      const value = lineOf(highlight).querySelector('.tok-string:not([data-code])');
+      const held = value.lastElementChild;
+      expect(value.textContent).toBe(highlight);
+      expect([...value.childNodes].map((node) => node.textContent)).toEqual([
+        'Shipped the tool the team still calls ',
+        '"NightingaleMigrationToolX"'
+      ]);
+      expect([held.className, held.textContent, drawnIn(held)]).toEqual([
+        'no-break',
+        '"NightingaleMigrationToolX"',
+        ['\\', '\\', '"']
+      ]);
+    });
+
     test('is held inside a heading, whose text stays the profile’s', () => {
       render();
 

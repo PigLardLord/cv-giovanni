@@ -40,6 +40,7 @@
 import { readableAddress } from '../domain/ReadableUrl.js';
 import { tenureText } from '../domain/Tenure.js';
 import { scopeText } from '../domain/EntryLines.js';
+import { SEPARATOR_GLYPHS, periodEnds } from '../domain/Separators.js';
 
 /**
  * Who the candidate is comes first, then the evidence — experience before skills — and last how
@@ -77,22 +78,87 @@ export const CLOSING_MARKS = Object.freeze(['"', ',', ')', ']']);
 const LITERALS = ['string', 'number'];
 
 /**
+ * Where a line of the editor may break inside a value: after a space, a slash or a hyphen, or after a separator with
+ * the spaces around it. A space beside a separator is no such place, since the page holds a separator to the words
+ * either side of it (#180).
+ */
+const BREAKS = new RegExp(`\\s*[${SEPARATOR_GLYPHS.join('')}]\\s*|\\s+|[/-]+`, 'gu');
+
+/** Where a value's last word begins: after the last place a line may break with text still to come. */
+const lastWordAt = (text) => {
+  let at = 0;
+  for (const match of text.matchAll(BREAKS)) {
+    const end = match.index + match[0].length;
+    if (end < text.length) at = end;
+  }
+  return at;
+};
+
+/**
+ * A period with its ends as parts, each whole: the editor breaks a period after its dash and nowhere else (#180). The
+ * space after the dash goes with the second end, where it is no place a line prefers to break, so a period moves down
+ * a row whole where one holds it with its quotes and its comma (#219).
+ * @param {object} token - A literal
+ * @returns {object} The literal, a period's ends as its parts
+ */
+const withEnds = (token) => {
+  if (!token.whole || token.parts) return token;
+  const ends = periodEnds(token.text);
+  const texts = ends ? [ends.first, ends.space + ends.second] : [token.text];
+  return { ...token, parts: texts.map((text) => ({ text, whole: true })) };
+};
+
+/**
+ * A literal with its last word marked `held`: the parts from where that word begins, split there, with every escape
+ * inside it. The value is read whole, before its escapes part it: a highlight ending in a quote of its own ends in three
+ * parts, the escape, the quote and the word before them, and holding the last part alone left the word a row above
+ * its `\""` (code review of #223). A period's last end is its last word.
+ * @param {object} token - A literal some syntax closes
+ * @returns {object} The literal, its last word's parts marked
+ */
+const withLastWordHeld = (token) => {
+  const parts = token.parts ?? [{ text: token.text }];
+  if (parts.at(-1).whole)
+    return { ...token, parts: [...parts.slice(0, -1), { ...parts.at(-1), held: true }] };
+  const start = lastWordAt(token.text);
+  let at = 0;
+  return {
+    ...token,
+    parts: parts.flatMap((part) => {
+      if ('code' in part) return [at >= start ? { ...part, held: true } : part];
+      const from = at;
+      at += part.text.length;
+      if (at <= start) return [part];
+      if (from >= start) return [{ ...part, held: true }];
+      return [
+        { ...part, text: part.text.slice(0, start - from) },
+        { ...part, text: part.text.slice(start - from), held: true }
+      ];
+    })
+  };
+};
+
+/**
  * A line's tokens, with the syntax that closes a literal marked `closes`: each piece written straight after a literal,
  * or after syntax that closes one, that begins with a closing mark. At 320px the editor parted a period from its
- * `",` and a profile's address from its `),`, and a row that opens with either reads as broken code (#219).
+ * `",` and a profile's address from its `),`, and a row that opens with either reads as broken code (#219). The
+ * literal it closes marks the parts of its last word `held`, and a period's ends are parts of it.
  * @param {object[]} tokens - A line's tokens, in order
- * @returns {object[]} The same tokens, the closing syntax marked
+ * @returns {object[]} The same tokens, the closing syntax and what it holds marked
  */
 const markClosing = (tokens) => {
   let closable = false;
-  return tokens.map((token) => {
+  const marked = tokens.map((token) => {
     if (!('code' in token)) {
       closable = LITERALS.includes(token.kind);
-      return token;
+      return closable ? withEnds(token) : token;
     }
     closable = closable && CLOSING_MARKS.includes(token.code[0]);
     return closable ? { ...token, closes: true } : token;
   });
+  return marked.map((token, index) =>
+    'text' in token && marked[index + 1]?.closes ? withLastWordHeld(token) : token
+  );
 };
 
 const code = (value, kind = 'plain') => ({ code: value, kind });
