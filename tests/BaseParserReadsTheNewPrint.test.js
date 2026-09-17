@@ -48,18 +48,26 @@ describe('what renders the CV, as the product review names it', () => {
   test("reads the paths AGENTS.md's product review names", () => {
     const paths = productReviewPaths(agents);
 
-    expect(paths).toEqual(
-      expect.arrayContaining([
-        'profiles/',
-        'locales/',
-        'renderers/',
-        'domain/EntryLines.js',
-        'index.html',
-        'style.css',
-        'layouts.css',
-        'print.css'
-      ])
-    );
+    // The whole list, not a sample: a path the paragraph lost would shrink what the step watches without a word, and
+    // a change to it and the parser would read as one that touches the parser alone (the code review of #203).
+    expect(paths).toEqual([
+      'profiles/',
+      'locales/',
+      'renderers/',
+      'domain/EntryLines.js',
+      'adapters/SwiftSourceLayout.js',
+      'index.html',
+      'style.css',
+      'layouts.css',
+      'design-glacier.css',
+      'print.css',
+      'vendor/fonts/',
+      'core/CvFiles.js',
+      'letter.html',
+      'letter.css',
+      'core/LetterContent.js',
+      'renderers/LetterRenderer.js'
+    ]);
     expect(paths.filter((path) => !existsSync(`${root}${path}`))).toEqual([]);
   });
 

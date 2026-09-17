@@ -62,6 +62,10 @@ const cleanUp = () => {
   }
 };
 process.on('exit', cleanUp);
+// A signal ends the process without 'exit' unless it is handled, and it most often arrives while npm builds the base in
+// its worktree: exit through the handler, so the worktree and the directory are removed (the code review of #203).
+process.on('SIGINT', () => process.exit(130));
+process.on('SIGTERM', () => process.exit(143));
 
 /** Stop, having said what was not compared. A comparison that did not run must not read as a pass. */
 function cannotCheck(reason, hint) {
