@@ -1727,6 +1727,12 @@ body[data-layout='technical'] .hero-name {
     font-weight: 700;
   }
 
+  /* Syntax inside a name or a title is drawn at the editor's weight, not the heading's: the quote that closes one is
+     held inside it with its last word (#219). */
+  body[data-layout='nerd'] :is(h1, h3).tok-string .tok[data-code] {
+    font-weight: 400;
+  }
+
   /* A link sits in a string, so colour cannot be what marks it: it is underlined, in the dim grey
      at 5.0:1. In the rim's 1.7:1 the one mark of a link could not be seen. */
   body[data-layout='nerd'] .source-code a {

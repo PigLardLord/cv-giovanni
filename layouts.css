@@ -286,6 +286,12 @@
     content: attr(data-code);
   }
 
+  /* A value's last word never wraps away from the syntax that closes it (#219). A link underlines all it holds, so
+     it keeps that syntax outside itself in a `no-break` span, and the words before its last one wrap again here. */
+  body[data-layout='nerd'] .source-wrap {
+    white-space: pre-wrap;
+  }
+
   /* A line break or a tab inside a one-line value. The escape drawn before it shows it as Swift writes it, \n or \t,
      and the character itself stays in the text, taking no room: a copy keeps it, so two words never weld. Hidden the
      way text for a screen reader is, clipped out of the flow; at zero size, Chrome left it out of a selection (#160). */

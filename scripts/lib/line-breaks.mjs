@@ -1,4 +1,5 @@
-import { DASH_GLYPHS, SEPARATOR_GLYPHS } from '../../renderers/inlineSeparator.js';
+import { DASH_GLYPHS, SEPARATOR_GLYPHS } from '../../domain/Separators.js';
+import { CLOSING_MARKS } from '../../adapters/SwiftSourceLayout.js';
 
 /**
  * Where the screen breaks the CV's lines, checked against what a break must never do (#180).
@@ -26,16 +27,18 @@ const MEASURE_TOLERANCE = 0.5;
  * indent belongs to it as far as the block's own edge, and each block's it sits in, since a box sized to what it holds
  * grows past its column with text that cannot wrap and keeps that text inside itself (#198). A box placed with
  * absolute or fixed positioning is put there on purpose, and is a column of its own, which `columnOverflow` still
- * holds inside the viewport. Text the page hides, with `visibility` or clipped to a pixel the way text for a screen
- * reader is, is left out. A space in a drawn element is kept even with no box: Chrome gives none to a space a line
- * broke at when it is a text node of its own.
+ * holds inside the viewport. Each glyph carries the number of the block its line boxes fill, counted in the page's
+ * order, so a row a block wraps onto is told from the first row of the next (#219). Text the page hides, with
+ * `visibility` or clipped to a pixel the way text for a screen reader is, is left out. A space in a drawn element is
+ * kept even with no box: Chrome gives none to a space a line broke at when it is a text node of its own.
  *
  * Beside the glyphs, the syntax the stylesheet draws: an empty element whose `data-code` its `::before` draws, as Nerd
  * Mode's quotes, commas and brackets are (#160). It has no text, so no glyph, and a range cannot reach inside a
  * pseudo-element; but the element's own boxes are the drawn text's, one a line (#207). A piece of syntax is what one
  * of those boxes draws, found by measuring the code in the font `::before` draws it in, and without the spaces at
  * either end: Chrome hangs a space a `pre-wrap` line ends on past the edge, inside the box, and a space is never
- * judged. Each piece carries how many glyphs come before it, so a finding can name the line it follows.
+ * judged. Each piece carries how many glyphs come before it, so a finding can name the line it follows, and the
+ * number of its block, as a glyph does.
  * @param {string} start - Selector of the CV's first element, as the audit's bounds name it
  * @param {string} end - Selector of its last
  * @returns {string} An expression for the page, resolving to `{ glyphs, syntax }`, or null when a bound is missing
@@ -71,7 +74,7 @@ export const renderedGlyphs = (start, end) => `(() => {
         column.left = Math.max(column.left, around.left);
         column.right = Math.min(column.right, around.right);
       }
-      places.set(holder, { room: own.right - own.left, column });
+      places.set(holder, { room: own.right - own.left, column, block: places.size });
     }
     return places.get(holder);
   };
@@ -100,7 +103,7 @@ export const renderedGlyphs = (start, end) => `(() => {
     if (getComputedStyle(parent).visibility !== 'visible') continue;
     const drawn = parent.getBoundingClientRect();
     if (drawn.width <= 1 && drawn.height <= 1) continue;
-    const { room, column } = placeOf(parent);
+    const { room, column, block } = placeOf(parent);
     if (code !== null) {
       const width = widthIn(getComputedStyle(node, '::before'));
       const lines = [...node.getClientRects()].filter((rect) => rect.width > 0);
@@ -123,6 +126,7 @@ export const renderedGlyphs = (start, end) => `(() => {
           left: rect.left + scrollX + without(text.trimStart()),
           right: rect.right + scrollX - without(text.trimEnd()),
           column,
+          block,
           after: glyphs.length
         });
       });
@@ -143,11 +147,12 @@ export const renderedGlyphs = (start, end) => `(() => {
           left: box.left + scrollX,
           right: box.right + scrollX,
           room,
-          column
+          column,
+          block
         });
       } else if (shown && /^\\s+$/.test(text.slice(index, index + size))) {
         const unboxed = { top: null, bottom: null, left: null, right: null };
-        glyphs.push({ text: text.slice(index, index + size), ...unboxed, room, column });
+        glyphs.push({ text: text.slice(index, index + size), ...unboxed, room, column, block });
       }
       index += size;
     }
@@ -374,17 +379,142 @@ export function columnOverflow({ glyphs, syntax }, page) {
   };
 }
 
+/** The marks syntax that closes a literal begins with, as Nerd Mode's Swift file writes it. */
+export const CLOSING_SYNTAX = CLOSING_MARKS;
+
+/** How many quotes a piece of syntax draws. */
+const quotesIn = (piece) => [...piece.text].filter((mark) => mark === '"').length;
+
+/** Swift begins every escape it writes inside a literal with a backslash: `\"`, `\\`, `\n`. */
+const escapes = (piece) => piece.text.startsWith('\\');
+
+/** A glyph a word is made of: a letter or a digit. */
+const wordy = (glyph) => /[\p{L}\p{N}]/u.test(glyph.text);
+
+/**
+ * No row of Nerd Mode's editor opens with syntax that closes what the row above it wrote (#219). The editor's lines
+ * may break anywhere, the drawn syntax included, and at 320px a longer period left its `",` a row of its own: a row
+ * that opens with a lone `",` reads as broken code. A piece of syntax closes when it begins with a comma, a
+ * parenthesis, a bracket, or a quote after an odd number of quotes in its block: Swift draws every quote that delimits
+ * a literal, and writes one inside a literal as text. It opens a row when nothing comes before it on its row but
+ * escapes and glyphs that are neither letters nor digits, and the row is not the first of its block: the first row of
+ * a block is a line of the file, and a `]` may open that. So `\""`, the quote a value ends in with its escape and the
+ * quote that closes the value, opens a row as a lone `",` does (code review of #223). Pieces of syntax side by side
+ * after it, with no glyph between them but a space, belong to the same run, which is named by the line of text before
+ * it in its block, or by itself when there is none.
+ * @param {{ glyphs: object[], syntax: object[] }} drawn - As `renderedGlyphs` collects them, each with its block
+ * @returns {{ checks: { closingSyntaxHeld: boolean }, findings: { strandedSyntax: string[] } }} The check, and each run
+ *   of closing syntax that opens a row
+ */
+export function closingSyntax({ glyphs, syntax }) {
+  const { lines, laid } = layOut(glyphs);
+  const letters = laid.filter((entry) => !blank(entry.glyph));
+  // Everything drawn, in the page's order: each glyph, and each piece of syntax after the glyphs before it.
+  const drawn = [];
+  let next = 0;
+  const glyphsBefore = (after) => {
+    while (next < letters.length && letters[next].index < after) {
+      const entry = letters[next++];
+      drawn.push({ box: entry.glyph, text: entry.glyph.text, entry });
+    }
+  };
+  syntax.forEach((piece) => {
+    glyphsBefore(piece.after);
+    drawn.push({ box: piece, text: piece.text, piece });
+  });
+  glyphsBefore(Infinity);
+
+  const quotes = new Map();
+  const runs = [];
+  let open = null;
+  drawn.forEach(({ piece }, position) => {
+    if (!piece) return;
+    const quotesBefore = quotes.get(piece.block) ?? 0;
+    quotes.set(piece.block, quotesBefore + quotesIn(piece));
+    const between = open ? glyphs.slice(open.last.after, piece.after) : [];
+    if (open && between.every(blank) && sideBySide(open.last, piece)) {
+      open.text += (parted(open.last, piece, between.length > 0) ? ' ' : '') + piece.text;
+      open.last = piece;
+      return;
+    }
+    open = null;
+    const [mark] = piece.text;
+    if (!CLOSING_SYNTAX.includes(mark) || (mark === '"' && quotesBefore % 2 === 0)) return;
+
+    let first = position;
+    for (; first > 0; first -= 1) {
+      const { box, entry, piece: before } = drawn[first - 1];
+      if (box.block !== piece.block || !sideBySide(box, piece)) break;
+      if (before ? !escapes(before) : wordy(entry.glyph)) return;
+    }
+    if (drawn[first - 1]?.box.block !== piece.block) return;
+
+    const lead = drawn.slice(first, position);
+    open = {
+      text: [...lead, drawn[position]].reduce(
+        (text, item, index, items) =>
+          text +
+          (index > 0 && parted(items[index - 1].box, item.box, false) ? ' ' : '') +
+          item.text,
+        ''
+      ),
+      last: piece,
+      letter: drawn.slice(0, first).findLast((item) => item.entry)?.entry
+    };
+    runs.push(open);
+  });
+
+  const strandedSyntax = runs.map(({ text, last, letter }) =>
+    letter?.glyph.block === last.block
+      ? `“${text}” opens a row after “${lines[letter.line].text}”`
+      : `“${text}” opens a row`
+  );
+  return {
+    checks: { closingSyntaxHeld: strandedSyntax.length === 0 },
+    findings: { strandedSyntax }
+  };
+}
+
+/**
+ * How wide the syntax drawn flush against a run is: each piece side by side with the glyph or piece beside it, with no
+ * glyph between and no gap a space would leave, going out from the run's first glyph and from its last.
+ * @param {{ glyph: object, index: number }} first - The run's first glyph, as `layOut` lays it
+ * @param {{ glyph: object, index: number }} last - Its last
+ * @param {object[]} syntax - Every piece of syntax, in the page's order
+ * @returns {number} The width of the pieces flush against either end
+ */
+const flushWidth = (first, last, syntax) => {
+  let width = 0;
+  let edge = first.glyph;
+  for (const piece of syntax.filter((drawn) => drawn.after === first.index).reverse()) {
+    if (!sideBySide(piece, edge) || parted(piece, edge, false)) break;
+    width += piece.right - piece.left;
+    edge = piece;
+  }
+  edge = last.glyph;
+  for (const piece of syntax.filter((drawn) => drawn.after === last.index + 1)) {
+    if (!sideBySide(edge, piece) || parted(edge, piece, false)) break;
+    width += piece.right - piece.left;
+    edge = piece;
+  }
+  return width;
+};
+
 /**
  * No line of the CV starts or ends with a separator, and no period the profile writes is split across two lines. A
  * period wider than its line cannot keep to one, and the least bad place for it to break is after its dash, where
  * the line that ends says the range goes on: there, and only there, it may break, and its dash may end the line.
+ * Syntax drawn flush against either end of a period, with no space between, is part of the width it needs: Nerd Mode's
+ * editor holds a literal's quotes and comma to its value, and at 320px "September 2015 – August 2018" fits a row
+ * that `"September 2015 – August 2018",` does not (#219).
  * @param {object[]} glyphs - Every glyph of the CV, as `renderedGlyphs` collects them
  * @param {object} profile - The profile the page was rendered from
+ * @param {object[]} [syntax] - The syntax the stylesheet draws beside the glyphs, as `renderedGlyphs` collects it
  * @returns {{ checks: { separatorsHeld: boolean, periodsWhole: boolean },
  *   findings: { stranded: string[], split: string[] } }} Each check, and the text either side of each break that
  *   failed it
  */
-export function lineBreaks(glyphs, profile) {
+export function lineBreaks(glyphs, profile, syntax = []) {
   const { lines, laid } = layOut(glyphs);
   const letters = laid
     .map((entry, position) => ({ ...entry, position }))
@@ -403,8 +533,9 @@ export function lineBreaks(glyphs, profile) {
       const afterDash =
         final === first + 1 && DASHES.includes(beforeBreak[beforeBreak.length - 1].glyph.text);
       const run = laid.slice(own[0].position, own[own.length - 1].position + 1);
-      const wider =
-        widthOnOneLine(run.map((entry) => entry.glyph)) > own[0].glyph.room - MEASURE_TOLERANCE;
+      const needs =
+        widthOnOneLine(run.map((entry) => entry.glyph)) + flushWidth(own[0], own.at(-1), syntax);
+      const wider = needs > own[0].glyph.room - MEASURE_TOLERANCE;
       if (afterDash && wider) endsInDash.add(first);
       else split.push(acrossBreak(lines[first], lines[first + 1]));
     }

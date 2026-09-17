@@ -5,18 +5,18 @@ width and two phone widths, its CV selected, and the selection read. Regenerate 
 
 | Layout | Width | Layout shift | Score |
 |---|---:|---:|---:|
-| nerd | 1280px | 0.000 | 18/18 |
-| nerd | 820px | 0.000 | 18/18 |
-| nerd | 390px | 0.000 | 18/18 |
-| nerd | 320px | 0.000 | 18/18 |
-| spotlight | 1280px | 0.000 | 18/18 |
-| spotlight | 820px | 0.000 | 18/18 |
-| spotlight | 390px | 0.000 | 18/18 |
-| spotlight | 320px | 0.000 | 18/18 |
-| technical | 1280px | 0.000 | 18/18 |
-| technical | 820px | 0.000 | 18/18 |
-| technical | 390px | 0.000 | 18/18 |
-| technical | 320px | 0.000 | 18/18 |
+| nerd | 1280px | 0.000 | 19/19 |
+| nerd | 820px | 0.000 | 19/19 |
+| nerd | 390px | 0.000 | 19/19 |
+| nerd | 320px | 0.000 | 19/19 |
+| spotlight | 1280px | 0.000 | 19/19 |
+| spotlight | 820px | 0.000 | 19/19 |
+| spotlight | 390px | 0.000 | 19/19 |
+| spotlight | 320px | 0.000 | 19/19 |
+| technical | 1280px | 0.000 | 19/19 |
+| technical | 820px | 0.000 | 19/19 |
+| technical | 390px | 0.000 | 19/19 |
+| technical | 320px | 0.000 | 19/19 |
 
 Checks: the CV captured whole — name, role, email and current employer; no two words the profile
 writes in sequence welded into one, and no contact detail run into the word beside it; every skill
@@ -40,6 +40,13 @@ or the viewport's.
 Since #207 the syntax Nerd Mode's stylesheet draws, its quotes, commas and brackets, which have no
 glyphs, is held to the same columns: each line of it by the box it is drawn in, less a space the line
 hangs past the edge. A failure names the syntax, the line it follows and how far past the edge it is.
+
+Since #219 no row Nerd Mode's editor wraps a line onto opens with syntax that closes what the row above
+it wrote: a comma, a parenthesis, a bracket, or a quote that closes a literal, alone or after nothing but
+escapes and characters that are neither letters nor digits, as `\""` after a value ending in a quote of
+its own. A line of the file may open with one. A failure names the syntax, the characters before it on
+its row, and the line of text it closes. The quotes and the comma drawn flush against a period count
+toward how wide it is, since the editor holds them to it.
 
 ## The Download PDF link
 

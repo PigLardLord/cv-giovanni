@@ -1,5 +1,5 @@
 import { certificationLine, roleHeader, schoolLine } from '../../domain/EntryLines.js';
-import { SEPARATOR_GLYPHS } from '../../renderers/inlineSeparator.js';
+import { SEPARATOR_GLYPHS } from '../../domain/Separators.js';
 
 /**
  * The traces a field the profile leaves out can leave in the printed text (#178).

@@ -1,10 +1,7 @@
 import { BaseRenderer } from './BaseRenderer.js';
 import { tenureText } from '../domain/Tenure.js';
 import { roleHeader } from '../domain/EntryLines.js';
-import { DASH_GLYPHS } from './inlineSeparator.js';
-
-/** A period's first end, up to and with its dash; the space after it; and its second end. */
-const PERIOD_DASH = new RegExp(`^(.*?[${DASH_GLYPHS.join('')}])(\\s*)(.+)$`, 'su');
+import { periodEnds } from '../domain/Separators.js';
 
 export class ExperienceRenderer extends BaseRenderer {
   constructor(i18n = null) {
@@ -98,9 +95,9 @@ export class ExperienceRenderer extends BaseRenderer {
    */
   wholeEnds(root, period) {
     if (period.trim() === '') return [period];
-    const [, before, space, after] = PERIOD_DASH.exec(period) ?? [];
+    const ends = periodEnds(period);
     const held = (end) => this.createElement(root, 'span', 'no-break', end);
-    return before ? [held(before), space, held(after)] : [held(period)];
+    return ends ? [held(ends.first), ends.space, held(ends.second)] : [held(period)];
   }
 
   validate(data) {
