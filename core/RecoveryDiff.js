@@ -62,6 +62,12 @@ const printedPeriod = (degree) => {
  */
 const LIKENESS = { exact: 2, normalised: 2, partial: 1, wrong: 0, lost: 0 };
 
+/** How much a recovered value says of a written one, from `LIKENESS`. */
+const like = (written, got, kind) => LIKENESS[RecoveryDiff.verdict(written, got, kind)];
+
+/** A recovered field's value; none when nothing came back. */
+const fieldValue = (field) => (field && field.value !== undefined ? field.value : null);
+
 /** Two likenesses, the most telling field first: negative when the first is the better match. */
 const better = (a, b) => {
   for (let at = 0; at < Math.max(a.length, b.length); at += 1) {
@@ -274,12 +280,32 @@ export class RecoveryDiff {
     };
   }
 
-  /** Per role: the title, the employer, the period, and whether the three arrived together. */
+  /**
+   * Each written role's recovered match, and the recovered roles nothing was matched to. A role is told by its title
+   * and its employer; its dates tell two apart only where those say nothing, as a flattened table keeps a role's period
+   * and loses the rest (#217).
+   * @param {Object} document - A CvDocument
+   * @param {Object} recovered - A RecoveredCv
+   * @returns {{ matched: (Object|null)[], unmatched: Object[] }} As `match` returns them
+   */
+  static roles(document, recovered) {
+    return RecoveryDiff.match(document.experience, recovered.experience, (job, role) => [
+      like(job.title, fieldValue(role.title)) + like(job.company, fieldValue(role.employer)),
+      like(job.period, role.period?.span || null)
+    ]);
+  }
+
+  /**
+   * Per role: the title, the employer, the period, and whether the three arrived together.
+   *
+   * Each graded against the role recovered that says the most of it, not the one in the same place (#217): the order
+   * the roles came back in is the chronology's to judge, in the order they came back.
+   */
   static experience(document, recovered, { grade, keep }) {
-    const value = (field) => (field && field.value !== undefined ? field.value : null);
+    const { matched } = RecoveryDiff.roles(document, recovered);
     return document.experience.map((job, index) => {
       const at = (field) => ['experience', index, field];
-      const role = recovered.experience[index];
+      const role = matched[index];
       // Bodies come back as lines, not achievements, so the question is whether each
       // achievement's text survives inside the block — not whether the blocks match.
       const body = NORMALISE.text(role?.bodyText || '');
@@ -287,8 +313,8 @@ export class RecoveryDiff {
         (highlight) => !body.includes(NORMALISE.text(highlight))
       );
       return {
-        title: grade(at('title'), job.title, value(role?.title)),
-        employer: grade(at('employer'), job.company, value(role?.employer)),
+        title: grade(at('title'), job.title, fieldValue(role?.title)),
+        employer: grade(at('employer'), job.company, fieldValue(role?.employer)),
         // The dates, without the length a document writes after them (#55).
         period: grade(at('period'), job.period, role?.period?.span || null),
         tripleAdjacent: role ? role.tripleAdjacent : false,
@@ -315,12 +341,10 @@ export class RecoveryDiff {
    * degree that prints no period has none to lose, and carries no period verdict (#200).
    */
   static education(document, recovered, { grade, words }) {
-    const value = (field) => (field && field.value !== undefined ? field.value : null);
-    const like = (written, got, kind) => LIKENESS[RecoveryDiff.verdict(written, got, kind)];
     // A degree is identified by its name and its school; its period tells two apart only where those say nothing.
     const { matched } = RecoveryDiff.match(document.education, recovered.education, (item, got) => [
-      like(lineText(degreeLine(item, words)), value(got.degree)) +
-        like(item.school, value(got.school)),
+      like(lineText(degreeLine(item, words)), fieldValue(got.degree)) +
+        like(item.school, fieldValue(got.school)),
       printedPeriod(item) === null ? 0 : like(printedPeriod(item), got.period)
     ]);
     return document.education.map((item, index) => {
@@ -330,9 +354,9 @@ export class RecoveryDiff {
         degree: grade(
           ['education', index, 'degree'],
           lineText(degreeLine(item, words)),
-          value(entry?.degree)
+          fieldValue(entry?.degree)
         ),
-        school: grade(['education', index, 'school'], item.school, value(entry?.school)),
+        school: grade(['education', index, 'school'], item.school, fieldValue(entry?.school)),
         ...(period === null
           ? {}
           : { period: grade(['education', index, 'period'], period, entry?.period || null) }),
@@ -415,7 +439,9 @@ export class RecoveryDiff {
    *
    * Invisible to any round-trip check, and the signature of interleaving: a torn category
    * produces two categories where there was one, and a shredded column produces roles that
-   * exist in no source.
+   * exist in no source. A role nobody wrote is one no written role was matched to, not one
+   * past the document's count: a role that says nothing of any written one is invented though
+   * the document holds as many (#217).
    */
   static unexpected(document, recovered) {
     const authored = new Set(document.skills.map((group) => NORMALISE.skill(group.category)));
@@ -423,7 +449,7 @@ export class RecoveryDiff {
       skillCategories: recovered.skills
         .filter((group) => group.category && !authored.has(NORMALISE.skill(group.category)))
         .map((group) => group.category),
-      roles: Math.max(0, recovered.experience.length - document.experience.length)
+      roles: RecoveryDiff.roles(document, recovered).unmatched.length
     };
   }
 }

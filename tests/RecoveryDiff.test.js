@@ -120,12 +120,17 @@ describe('each defect shows up as its own kind of damage', () => {
   });
 
   // The three roles are all present and every string is intact. Only their order is wrong,
-  // which is precisely what no `includes()` check can see.
+  // which is precisely what no `includes()` check can see. Each role is matched to its own by what it says (#217),
+  // so the order costs the chronology, and no role reads as its neighbour.
   test('serialised columns keep every role and break the chronology', () => {
     const diff = diffOf('two-column-serialised');
 
     expect(diff.roleOrderMonotonic).toBe(false);
-    expect(diff.experience.map((role) => role.title)).not.toEqual(['exact', 'exact', 'exact']);
+    expect(diff.experience.map(({ employer, period }) => [employer, period])).toEqual([
+      ['exact', 'exact'],
+      ['exact', 'exact'],
+      ['exact', 'exact']
+    ]);
   });
 
   test('a flattened table loses the title and the employer together', () => {
@@ -388,6 +393,92 @@ describe('an entry is matched to the one written by what it says, not by where i
 
       expect(reordered).not.toBe(nerd);
       expect(diffOfText(reordered, profile).education).toEqual([whole, whole]);
+    });
+  });
+
+  describe('a role, by its title and its employer', () => {
+    const whole = {
+      title: 'exact',
+      employer: 'exact',
+      period: 'exact',
+      tripleAdjacent: true,
+      highlights: 'exact'
+    };
+    // The first role's block as the print writes it: its period, its header and its achievements.
+    const cortado = nerd.slice(
+      nerd.indexOf('August 2018 – Present'),
+      nerd.indexOf('September 2015 – July 2018')
+    );
+
+    test('a parse that drops the first of three loses that one, and the other two come back whole', () => {
+      const diff = diffOfText(nerd.replace(cortado, ''), profile);
+      const [first] = profile.relevant_experience;
+
+      expect(diff.experience).toEqual([
+        {
+          title: 'lost',
+          employer: 'lost',
+          period: 'lost',
+          tripleAdjacent: false,
+          highlights: 'lost'
+        },
+        whole,
+        whole
+      ]);
+      expect(
+        RecoveryDiff.losses(diff)
+          .filter(({ path }) => path[0] === 'experience')
+          .map(({ path }) => path.join('.'))
+      ).toEqual([
+        'experience.0.title',
+        'experience.0.employer',
+        'experience.0.period',
+        'experience.0.highlights'
+      ]);
+      expect(diff.evidence['experience.0.title']).toEqual({
+        written: first.title,
+        recovered: null
+      });
+      expect(diff.unexpected.roles).toBe(0);
+    });
+
+    // The order is judged where it was lost, in the order the roles came back, and costs the chronology alone.
+    test('roles printed in another order come back whole, and break the chronology', () => {
+      const reordered = nerd.replace(cortado, '').replace('Wikitude.\n', `Wikitude.\n\n${cortado}`);
+      const diff = diffOfText(reordered, profile);
+
+      expect(reordered).not.toBe(nerd);
+      expect(diff.experience).toEqual([whole, whole, whole]);
+      expect(diff.roleOrderMonotonic).toBe(false);
+    });
+
+    // A role whose title, employer and dates match nothing written is not the first role graded wrong: it is a role
+    // nobody wrote, and the one it displaced is lost, though the document holds no more roles than came back.
+    test('a role that says nothing of any written one is a role nobody wrote, and the one it displaced is lost', () => {
+      const invented = nerd
+        .replace('August 2018 – Present', 'January 2019 – March 2020')
+        .replace(
+          'Mobile Software Engineer / Technical Owner, iOS & Android at\nCortado Mobile Solutions, Berlin (remote)',
+          'Head Chef at Trattoria Da Mario, Rome, Italy'
+        );
+      const diff = diffOfText(invented, profile);
+
+      expect(invented).not.toBe(nerd);
+      expect(diff.experience[0]).toEqual(
+        expect.objectContaining({ title: 'lost', employer: 'lost', period: 'lost' })
+      );
+      expect(diff.experience.slice(1)).toEqual([whole, whole]);
+      expect(diff.unexpected.roles).toBe(1);
+    });
+
+    // A flattened table keeps a role's dates and loses its title and employer: the dates still say which role it is.
+    test('a role whose title and employer came back as nothing is still told by its period', () => {
+      const diff = diffOf('table-flattened');
+
+      expect(diff.experience[0]).toEqual(
+        expect.objectContaining({ title: 'lost', employer: 'lost', period: 'exact' })
+      );
+      expect(diff.unexpected.roles).toBe(0);
     });
   });
 });
