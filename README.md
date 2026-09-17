@@ -4,6 +4,8 @@ The source of Giovanni Trovato's CV: a static web page in three layouts, the PDF
 audits that check both. The CV itself is at **https://piglardlord.github.io/cv-giovanni/** — nothing about the
 candidate is restated here, so nothing here can go stale.
 
+The code is open under the ISC licence, and the CV is not: [LICENSE](LICENSE) says which is which.
+
 ## What is here
 
 A CV is `profile × locale × layout`.
