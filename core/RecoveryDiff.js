@@ -76,6 +76,10 @@ const better = (a, b) => {
   return 0;
 };
 
+/** A certification's line as the page prints it: the name, then " – issuer" and " (year)" when it has them (#169). */
+const printedCertification = (certification) =>
+  `${String(certification.name ?? '')}${certificationLine(certification).join('')}`;
+
 /** True when the shorter string is a whole-word run inside the longer. */
 function overlaps(a, b) {
   const [shorter, longer] = a.length <= b.length ? [a, b] : [b, a];
@@ -189,6 +193,7 @@ export class RecoveryDiff {
       spokenLanguages: RecoveryDiff.spokenLanguages(document, recovered, grading),
       certifications: RecoveryDiff.certifications(document, recovered, grading),
       unexpected: RecoveryDiff.unexpected(document, recovered),
+      unmatched: RecoveryDiff.unmatched(document, recovered, words),
       evidence
     };
   }
@@ -329,6 +334,22 @@ export class RecoveryDiff {
   }
 
   /**
+   * Each written degree's recovered match, and the recovered degrees nothing was matched to. A degree is told by the
+   * line its name prints and by its school; the period it prints tells two apart only where those say nothing (#217).
+   * @param {Object} document - A CvDocument
+   * @param {Object} recovered - A RecoveredCv
+   * @param {Object} words - How the document wrote a count of credits, as `education` takes them
+   * @returns {{ matched: (Object|null)[], unmatched: Object[] }} As `match` returns them
+   */
+  static degrees(document, recovered, words) {
+    return RecoveryDiff.match(document.education, recovered.education, (item, got) => [
+      like(lineText(degreeLine(item, words)), fieldValue(got.degree)) +
+        like(item.school, fieldValue(got.school)),
+      printedPeriod(item) === null ? 0 : like(printedPeriod(item), got.period)
+    ]);
+  }
+
+  /**
    * Per degree: the degree, the school, the period when it prints one, and whether the degree and school stayed
    * adjacent.
    *
@@ -341,12 +362,7 @@ export class RecoveryDiff {
    * degree that prints no period has none to lose, and carries no period verdict (#200).
    */
   static education(document, recovered, { grade, words }) {
-    // A degree is identified by its name and its school; its period tells two apart only where those say nothing.
-    const { matched } = RecoveryDiff.match(document.education, recovered.education, (item, got) => [
-      like(lineText(degreeLine(item, words)), fieldValue(got.degree)) +
-        like(item.school, fieldValue(got.school)),
-      printedPeriod(item) === null ? 0 : like(printedPeriod(item), got.period)
-    ]);
+    const { matched } = RecoveryDiff.degrees(document, recovered, words);
     return document.education.map((item, index) => {
       const entry = matched[index];
       const period = printedPeriod(item);
@@ -418,16 +434,24 @@ export class RecoveryDiff {
   }
 
   /**
+   * Each written language's recovered match, told by its name, and the recovered languages nothing was matched to.
+   * @param {Object} document - A CvDocument
+   * @param {Object} recovered - A RecoveredCv
+   * @returns {{ matched: (Object|null)[], unmatched: Object[] }} As `match` returns them
+   */
+  static languages(document, recovered) {
+    return RecoveryDiff.match(document.languages, recovered.spokenLanguages, (language, entry) => [
+      like(language.name, entry.name || null)
+    ]);
+  }
+
+  /**
    * Per language: the name, and the level as written. A level is never inferred.
    *
    * A language is matched by its name (#217): the level a parser recovered beside it is the one graded.
    */
   static spokenLanguages(document, recovered, { grade }) {
-    const { matched } = RecoveryDiff.match(
-      document.languages,
-      recovered.spokenLanguages,
-      (language, entry) => [like(language.name, entry.name || null)]
-    );
+    const { matched } = RecoveryDiff.languages(document, recovered);
     return document.languages.map((language, index) => {
       const entry = matched[index];
       return {
@@ -445,20 +469,61 @@ export class RecoveryDiff {
    * compared, and giving them weight is a decision of its own (#186).
    */
   static certifications(document, recovered, { grade }) {
-    const printed = (certification) =>
-      `${String(certification.name ?? '')}${certificationLine(certification).join('')}`;
-    const { matched } = RecoveryDiff.match(
-      document.certifications,
-      recovered.certifications,
-      (certification, entry) => [like(printed(certification), entry.text || null)]
-    );
+    const { matched } = RecoveryDiff.certificationLines(document, recovered);
     return document.certifications.map((certification, index) => ({
       name: grade(
         ['certifications', index, 'name'],
-        printed(certification),
+        printedCertification(certification),
         matched[index]?.text || null
       )
     }));
+  }
+
+  /**
+   * Each written certification's recovered line, told by the line it prints, and the recovered lines nothing was
+   * matched to.
+   * @param {Object} document - A CvDocument
+   * @param {Object} recovered - A RecoveredCv
+   * @returns {{ matched: (Object|null)[], unmatched: Object[] }} As `match` returns them
+   */
+  static certificationLines(document, recovered) {
+    return RecoveryDiff.match(
+      document.certifications,
+      recovered.certifications,
+      (certification, entry) => [like(printedCertification(certification), entry.text || null)]
+    );
+  }
+
+  /**
+   * The roles, degrees, languages and certifications that came back and that no written one was matched to, each as
+   * the values it came back with (#217).
+   *
+   * Listed so the report can quote what came back, since none of them is graded against the entry in its place. Each
+   * costs what it cost before: a role nobody wrote is charged, and `unexpected.roles` counts these; a degree, a
+   * language or a certification nobody wrote is charged nothing, and weighing one is a decision of its own. A
+   * category nobody wrote is `unexpected.skillCategories`.
+   * @param {Object} document - A CvDocument
+   * @param {Object} recovered - A RecoveredCv
+   * @param {Object} words - How the document wrote a count of credits, as `education` takes them
+   * @returns {{ experience: string[][], education: string[][], spokenLanguages: string[][], certifications: string[][] }}
+   *   Each section's entries nobody wrote, in the order they came back
+   */
+  static unmatched(document, recovered, words) {
+    const values = (...fields) => fields.filter((field) => !nothing(field));
+    return {
+      experience: RecoveryDiff.roles(document, recovered).unmatched.map((role) =>
+        values(fieldValue(role.title), fieldValue(role.employer), role.period?.span)
+      ),
+      education: RecoveryDiff.degrees(document, recovered, words).unmatched.map((entry) =>
+        values(fieldValue(entry.degree), fieldValue(entry.school), entry.period)
+      ),
+      spokenLanguages: RecoveryDiff.languages(document, recovered).unmatched.map((entry) =>
+        values(entry.name, entry.level)
+      ),
+      certifications: RecoveryDiff.certificationLines(document, recovered).unmatched.map((entry) =>
+        values(entry.text)
+      )
+    };
   }
 
   /**

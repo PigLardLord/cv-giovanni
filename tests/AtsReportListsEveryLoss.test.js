@@ -193,6 +193,30 @@ describe('a field short of recovered is quoted as written and as recovered', () 
     expect(listed).toContain('- education 1, period: partial, not scored — ');
   });
 
+  // An entry is matched to the one written by what it says (#217): one the parse dropped is named as itself, and the
+  // entries after it are not named for their neighbours' losses.
+  test('a degree the parse dropped is named as the one written, and no other degree is named', () => {
+    const phd = {
+      degree: 'PhD in Computer Science',
+      school: 'Università di Bologna',
+      period: '2017 – 2020'
+    };
+    const three = new CvDocument({
+      ...JSON.parse(profile),
+      education: [phd, ...document.education]
+    });
+    const diff = RecoveryDiff.diff(three, AtsTextParser.parse(fixture('page-print-nerd')));
+    const listed = section(diff);
+
+    expect(listed).toContain(
+      `- education 1, degree: lost — written "${phd.degree}"; nothing recovered`
+    );
+    expect(listed).toContain(
+      `- education 1, school: lost — written "${phd.school}"; nothing recovered`
+    );
+    expect(listed).not.toMatch(/^- education [23], (school|period)/m);
+  });
+
   test('a clean document still says so', () => {
     expect(section(diffOf(fixture('clean-english')))).toMatch(
       /Nothing\. Every field the document writes came back/
@@ -222,5 +246,71 @@ describe("the table's Fidelity column reads every field the fidelity band scores
     ['spokenLanguages', 2, 'level', 'lost']
   ])('%s %i %s graded %s reads as that', (part, index, field, verdict) => {
     expect(fidelity(set(part, index, field, verdict))).toBe(verdict);
+  });
+});
+
+// A recovered entry no written one was matched to is not graded against the entry in its place (#217). It is quoted as
+// one nobody wrote, so what came back stays in the report: a role nobody wrote costs, as it did; a degree, a language
+// or a certification costs nothing.
+describe('what came back that matches nothing written is quoted as nobody wrote it', () => {
+  const invented = fixture('page-print-nerd')
+    .replace('August 2018 – Present', 'January 2019 – March 2020')
+    .replace(
+      'Mobile Software Engineer / Technical Owner, iOS & Android at\nCortado Mobile Solutions, Berlin (remote)',
+      'Head Chef at Trattoria Da Mario, Rome, Italy'
+    )
+    .replace(
+      'B.Sc. Computer Engineering\nUniversità degli Studi di Catania (2009)',
+      'Diploma in Culinary Arts\nScuola Alberghiera di Roma (2008)'
+    )
+    .replace(
+      'iOS Lead Essentials (TDD, Clean Architecture) – Essential Developer (2024)',
+      'Food Safety Level 2 – Highfield (2012)'
+    )
+    .replace('German: A1 — currently studying', 'Spanish: B1');
+  const diff = diffOf(invented);
+  const listed = section(diff);
+
+  test('each is listed with what came back', () => {
+    expect(invented).not.toBe(fixture('page-print-nerd'));
+    expect(listed).toContain(
+      '- a role nobody wrote: "Head Chef", "Trattoria Da Mario", "January 2019 – March 2020"'
+    );
+    expect(listed).toContain(
+      '- a degree nobody wrote: "Diploma in Culinary Arts", "Scuola Alberghiera di Roma", "2008"'
+    );
+    expect(listed).toContain('- a language nobody wrote: "Spanish", "B1"');
+    expect(listed).toContain(
+      '- a certification nobody wrote: "Food Safety Level 2 – Highfield (2012)"'
+    );
+  });
+
+  test('the written entries they displaced are lost, not graded against them', () => {
+    expect(listed).toContain('- experience 1, title: lost — written ');
+    expect(listed).toContain(
+      '- education 2, degree: lost — written "B.Sc. Computer Engineering"; nothing recovered'
+    );
+    expect(listed).toContain('- languages 3, name: lost — written "German"; nothing recovered');
+    expect(listed).not.toMatch(/: wrong/);
+  });
+
+  test('a role nobody wrote costs, and a degree, a language or a certification nobody wrote does not', () => {
+    const without = (part) => ({ ...diff, unmatched: { ...diff.unmatched, [part]: [] } });
+
+    expect(diff.unexpected.roles).toBe(1);
+    for (const part of ['education', 'spokenLanguages', 'certifications']) {
+      expect(AtsScore.compose(without(part)).points).toBe(AtsScore.compose(diff).points);
+    }
+    expect(diff.unmatched.experience).toHaveLength(1);
+    expect(AtsScore.compose(diff).bands.fidelity.parts.unexpected).toBe(-1);
+  });
+
+  // Recovered in another language, a language matches none written: it is lost, and the words that came back are still
+  // quoted, where by position they were graded wrong against whatever was written in their place.
+  test('languages recovered in another language are quoted, not graded against the ones written', () => {
+    const german = section(diffOf(fixture('german-labels')));
+
+    expect(german).toContain('- a language nobody wrote: "Italienisch", "Muttersprache"');
+    expect(german).toContain('- languages 1, name: lost — written "Italian"; nothing recovered');
   });
 });

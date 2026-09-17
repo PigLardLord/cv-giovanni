@@ -6,6 +6,14 @@ const LADDER = ['exact', 'normalised', 'partial', 'wrong', 'lost'];
 /** A section as the report names it, where the diff's own key would read as code. */
 const SECTION_NAMES = { spokenLanguages: 'languages' };
 
+/** One entry of each section, as the report names an entry that came back and that nobody wrote. */
+const ENTRY_NAMES = {
+  experience: 'role',
+  education: 'degree',
+  spokenLanguages: 'language',
+  certifications: 'certification'
+};
+
 /**
  * The report, and the sentences that keep the number honest.
  *
@@ -264,6 +272,13 @@ export class AtsReport {
       }
       for (const name of diff.unexpected.skillCategories) {
         problems.push(`a category nobody wrote: "${name}"`);
+      }
+      // An entry matched to none written is not graded against the one in its place, so what came back is quoted here
+      // (#217).
+      for (const [part, entries] of Object.entries(diff.unmatched ?? {})) {
+        for (const values of entries) {
+          problems.push(`a ${ENTRY_NAMES[part] ?? part} nobody wrote: ${AtsReport.quote(values)}`);
+        }
       }
       if (diff.sections.missing.length)
         problems.push(`sections not recognised: ${diff.sections.missing.join(', ')}`);
