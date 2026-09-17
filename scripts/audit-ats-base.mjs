@@ -132,12 +132,13 @@ const renderers = {
   head: modules(readdirSync(join(projectRoot, 'renderers')).map((name) => `renderers/${name}`)),
   base: modules(git(['ls-tree', '--name-only', commit, 'renderers/']).split('\n').filter(Boolean))
 };
+const parser = union(parserModules.head, parserModules.base);
 const sets = {
-  parser: union(parserModules.head, parserModules.base),
+  parser,
   rendering: union(
     reviewed,
-    renderingModules(renderers.head, readHead),
-    renderingModules(renderers.base, readBase)
+    renderingModules(renderers.head, readHead, parser),
+    renderingModules(renderers.base, readBase, parser)
   )
 };
 // What the checkout changes since the merge base, committed or not: `base...HEAD` in CI, where the two are the same, and
