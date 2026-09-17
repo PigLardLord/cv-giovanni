@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { AtsTextParser } from '../core/AtsTextParser.js';
 import { RecoveryDiff } from '../core/RecoveryDiff.js';
@@ -12,12 +12,16 @@ import {
   lossLine,
   lostFields,
   outcome,
+  PAGE_SCRIPT,
+  PARSER,
   productReviewPaths,
   pullRequestLabels,
   readingLosses,
+  renderingModules,
   report,
   TRADE_LABEL
 } from '../scripts/lib/base-parser.mjs';
+import { importClosure } from '../scripts/lib/import-closure.mjs';
 import { catalogueTranslator } from '../scripts/lib/printed-letter.mjs';
 
 // A change to both the CV and the ATS parser is graded by the parser it changed (#181). Pull request #179 first added
@@ -89,6 +93,70 @@ describe('what renders the CV, as the product review names it', () => {
 
     expect(productReviewPaths(markdown)).toEqual(['profiles/', 'print.css', 'renderers/']);
   });
+});
+
+describe('what renders the CV, read from the imports', () => {
+  const files = {
+    'script.js': [
+      "import { I18nService } from './core/I18nService.js';",
+      "import { HeaderRenderer } from './renderers/HeaderRenderer.js';"
+    ].join('\n'),
+    'core/I18nService.js': "import i18next from '../vendor/i18next/i18next.js';",
+    'vendor/i18next/i18next.js': 'export default {};',
+    'renderers/HeaderRenderer.js': "import { DateRange } from '../domain/DateRange.js';",
+    'renderers/LetterRenderer.js': "import { CoverLetter } from '../domain/CoverLetter.js';",
+    'domain/DateRange.js': "import { fold } from './fold.js';",
+    'domain/fold.js': 'export const fold = (x) => x;',
+    'domain/CoverLetter.js': 'export class CoverLetter {}'
+  };
+  const read = (path) => files[path] ?? null;
+  const renderers = ['renderers/HeaderRenderer.js', 'renderers/LetterRenderer.js'];
+
+  test("the page's entry script and every module it imports: it decides what the page renders, in which labels", () => {
+    expect(PAGE_SCRIPT).toBe('script.js');
+    expect(renderingModules(renderers, read)).toEqual(
+      expect.arrayContaining([
+        'script.js',
+        'core/I18nService.js',
+        'vendor/i18next/i18next.js',
+        'renderers/HeaderRenderer.js',
+        'domain/DateRange.js',
+        'domain/fold.js'
+      ])
+    );
+  });
+
+  test('every renderer too, one the entry script never imports included: it renders a page of its own', () => {
+    expect(renderingModules(renderers, read)).toEqual(
+      expect.arrayContaining(['renderers/LetterRenderer.js', 'domain/CoverLetter.js'])
+    );
+  });
+});
+
+describe('what renders the CV in this repository', () => {
+  const fromDisk = (path) =>
+    existsSync(`${root}${path}`) ? readFileSync(`${root}${path}`, 'utf8') : null;
+  const renderers = readdirSync(`${root}renderers`)
+    .filter((name) => /\.m?js$/.test(name))
+    .map((name) => `renderers/${name}`);
+  const modules = renderingModules(renderers, fromDisk);
+  const sets = {
+    parser: importClosure([PARSER], fromDisk),
+    rendering: [...new Set([...productReviewPaths(agents), ...modules])].sort()
+  };
+
+  // The page's entry script registers the renderers, and the two services beside it supply every label the page
+  // prints: a change to one of them and to the parser went unread by the base's parser (#202).
+  test.each(['script.js', 'core/I18nService.js', 'core/DocumentLocalizer.js'])(
+    "%s renders the CV, read from the entry script's imports",
+    (path) => {
+      expect(modules).toContain(path);
+      expect(applicability([path, PARSER], sets)).toEqual(
+        expect.objectContaining({ applies: true, parser: [PARSER], rendering: [path] })
+      );
+      expect(applicability([path], sets).applies).toBe(false);
+    }
+  );
 });
 
 describe('whether the step applies', () => {

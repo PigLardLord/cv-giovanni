@@ -28,6 +28,7 @@ import {
   pullRequestLabels,
   READING_ORDERS,
   readingLosses,
+  renderingModules,
   report
 } from './lib/base-parser.mjs';
 import { importClosure } from './lib/import-closure.mjs';
@@ -135,8 +136,8 @@ const sets = {
   parser: union(parserModules.head, parserModules.base),
   rendering: union(
     reviewed,
-    importClosure(renderers.head, readHead),
-    importClosure(renderers.base, readBase)
+    renderingModules(renderers.head, readHead),
+    renderingModules(renderers.base, readBase)
   )
 };
 // What the checkout changes since the merge base, committed or not: `base...HEAD` in CI, where the two are the same, and

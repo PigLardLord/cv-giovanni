@@ -1,4 +1,5 @@
 import { RecoveryDiff } from '../../core/RecoveryDiff.js';
+import { importClosure } from './import-closure.mjs';
 
 /**
  * The rules of `npm run audit:ats:base` (#181), with no git, no browser and no file in them, so each can be shown to
@@ -38,6 +39,21 @@ export function productReviewPaths(markdown) {
         .filter((code) => code.includes('/') || /\.\w+$/.test(code))
     )
   ];
+}
+
+/** The page's entry script: it registers the renderers, and decides what the page renders and in which labels (#202). */
+export const PAGE_SCRIPT = 'script.js';
+
+/**
+ * The modules that render the CV, read from their imports rather than listed by hand (#181, #202): the page's entry
+ * script and every renderer, with every module they import. A renderer the entry script never imports still renders a
+ * page of its own, the cover letter's, so the renderers are read beside it.
+ * @param {string[]} renderers - The renderer modules, relative to the repository root
+ * @param {(path: string) => (string|null)} read - A module's source, or null when there is none
+ * @returns {string[]} The paths, sorted
+ */
+export function renderingModules(renderers, read) {
+  return importClosure([PAGE_SCRIPT, ...renderers], read);
 }
 
 /**
