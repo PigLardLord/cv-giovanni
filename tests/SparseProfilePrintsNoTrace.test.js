@@ -17,7 +17,7 @@ import { ProfileRenderer } from '../renderers/ProfileRenderer.js';
 import { SkillsRenderer } from '../renderers/SkillsRenderer.js';
 import { SocialLinksRenderer } from '../renderers/SocialLinksRenderer.js';
 import { SourceRenderer } from '../renderers/SourceRenderer.js';
-import { emptyFieldMarks, openEnds } from '../scripts/lib/empty-fields.mjs';
+import { emptyFieldMarks, printedEntries } from '../scripts/lib/empty-fields.mjs';
 
 // The published profile fills every field, so the print audit only ever reads a CV with nothing left out, and the path
 // a tailored profile takes when it leaves a field out was unit-tested and never printed (#178). This is the sparse CV
@@ -145,14 +145,15 @@ const strings = (node) =>
       ? Object.values(node).flatMap(strings)
       : [];
 const traces = (text, profile) =>
-  emptyFieldMarks(text, { ends: openEnds(profile, { at }), written: strings(profile) });
+  emptyFieldMarks(text, { entries: printedEntries(profile, { at }), written: strings(profile) });
 
 describe('a sparse CV, printed', () => {
-  test('each entry that leaves a part out opens a line of its own, where the check reads it', async () => {
+  test('every entry opens a line of its own, where the check reads it, and each left-out part is open', async () => {
     const text = await printed(sparse);
     const lines = text.split('\n');
+    const entries = printedEntries(sparse, { at });
 
-    expect(openEnds(sparse, { at })).toEqual(
+    expect(entries.flatMap(({ open }) => open)).toEqual(
       expect.arrayContaining([
         `${sparse.relevant_experience[1].title} ${at} ${sparse.relevant_experience[1].company}`,
         sparse.education[1].school,
@@ -160,8 +161,9 @@ describe('a sparse CV, printed', () => {
         sparse.certifications[1].name
       ])
     );
-    for (const end of openEnds(sparse, { at })) {
-      expect(lines.some((line) => line.startsWith(end))).toBe(true);
+    for (const { start, open } of entries) {
+      expect(lines.some((line) => line.startsWith(start))).toBe(true);
+      for (const end of open) expect(lines.some((line) => line.startsWith(end))).toBe(true);
     }
   });
 

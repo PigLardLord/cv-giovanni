@@ -14,9 +14,13 @@ import { SEPARATOR_GLYPHS } from '../../renderers/inlineSeparator.js';
  * - a separator doubled on its line, `· ·`, where whatever stood between the two printed nothing;
  * - an entry that ends on the separator of a part it does not have: a role header ending in a comma, a certification's
  *   name followed by a dash that introduces no issuer. A separator introduces nothing when its line ends after it, or
- *   when what follows it is the next part's bracket, a year or nothing: "Name – (2024)", "Name – ()". One followed by
- *   a value belongs to an entry that has the part, which may share the header: "Engineer at Acme, Berlin" beside
- *   "Engineer at Acme" is not the second role's comma (the code review of #205).
+ *   when what follows it is the next part's bracket, a year or nothing: "Name – (2024)", "Name – ()".
+ *
+ * Each entry answers only for its own line. Entries of a kind print in the profile's order, each opening a line, so
+ * each is found at the first line its start opens after the one the entry before it of that kind was found at. Two
+ * roles sharing a header, "Engineer at Acme" and "Engineer at Acme, Berlin", take their lines in turn, and the second's
+ * comma, wrapped or not, is never blamed on the first (the code review of #205, and its re-check). A line that opens
+ * with an entry's start before that entry's own line, a wrapped line of prose, would take its place in that order.
  *
  * It reads `pdftotext` output and nothing else, so each rule can be shown to fail on text that breaks it.
  */
@@ -77,14 +81,33 @@ function linesAround(text, index, length) {
   return collapse(text.slice(start, end < 0 ? text.length : end));
 }
 
+/** Words in any whitespace, a line break included, as a pattern. */
+const spaced = (text) =>
+  String(text).split(/\s+/).filter(Boolean).map(escapeForRegExp).join('\\s+');
+
+/**
+ * Where the first line at or after `from` opens with `start`, as a whole name: "Engineer at Apparound" does not open
+ * "Engineer at Apparounds GmbH". Leading spaces are not the line's.
+ * @returns {number} The index the start begins at, or -1 when no line opens with it
+ */
+function lineOpening(text, start, from) {
+  const words = spaced(start);
+  if (!words) return -1;
+  const pattern = new RegExp(`^([ \\t]*)${words}(?![\\p{L}\\p{N}])`, 'gmu');
+  pattern.lastIndex = from;
+  const match = pattern.exec(text);
+  return match ? match.index + match[1].length : -1;
+}
+
 /**
  * @param {string} text - The text layer, as `pdftotext` reads it
- * @param {{ ends?: string[], written?: string|string[] }} [profile] - What the profile says: `ends`, each entry as it
- *   prints up to a part it does not have, from `openEnds`; and `written`, every string it writes, whose words are its own
+ * @param {{ entries?: { kind: string, start: string, open: string[] }[], written?: string|string[] }} [profile] - What
+ *   the profile says: `entries`, every entry it prints, from `printedEntries`; and `written`, every string it writes,
+ *   whose words are its own
  * @returns {{ mark: string, line: string }[]} Every trace, in the order the text carries them: what printed, and the
  *   line it printed on; none for a text that carries none
  */
-export function emptyFieldMarks(text, { ends = [], written = [] } = {}) {
+export function emptyFieldMarks(text, { entries = [], written = [] } = {}) {
   const found = [];
   const strings = [written].flat();
   const note = (index, mark) =>
@@ -99,16 +122,20 @@ export function emptyFieldMarks(text, { ends = [], written = [] } = {}) {
     }
   }
   for (const match of text.matchAll(DOUBLED)) note(match.index, match[0]);
-  // An entry's header opens its line in every layout; prose that names the entry mid-line and goes on is not one. Its
-  // separator is a trace only where it introduces nothing: the line ends, or the next part's bracket follows.
-  for (const end of ends) {
-    const words = String(end).split(/\s+/).filter(Boolean);
-    if (!words.length) continue;
-    const pattern = new RegExp(
-      `^([ \\t]*)(${words.map(escapeForRegExp).join('\\s+')}\\s*${SEPARATOR})${INTRODUCES_NOTHING}`,
-      'gm'
-    );
-    for (const match of text.matchAll(pattern)) note(match.index + match[1].length, match[2]);
+  // An entry's header opens its line in every layout; prose that names the entry mid-line and goes on is not one. Each
+  // kind's entries take their lines in the profile's order, and each answers only for its own: its separator is a trace
+  // where it follows a part the entry does not have and introduces nothing.
+  const foundAt = new Map();
+  for (const { kind, start, open } of entries) {
+    const at = lineOpening(text, start, foundAt.get(kind) ?? 0);
+    if (at < 0) continue;
+    foundAt.set(kind, at + 1);
+    for (const end of open) {
+      const dangling = new RegExp(`${spaced(end)}\\s*${SEPARATOR}${INTRODUCES_NOTHING}`, 'ym');
+      dangling.lastIndex = at;
+      const match = dangling.exec(text);
+      if (match) note(at, match[0]);
+    }
   }
   return found
     .sort((first, second) => first.index - second.index)
@@ -122,28 +149,34 @@ const textOf = (pieces) =>
 const prints = (pieces, field) => pieces.some((piece) => piece.field === field);
 
 /**
- * Each entry of a profile as the page writes it, up to a part it does not have: where a separator left in front of that
- * part would print. The lines come from `domain/EntryLines.js`, as the renderers take them.
+ * Every entry a profile prints, as the page writes its line: where the line opens, and each part the entry does not
+ * have, written up to that part, where a separator left in front of it would print. The lines come from
+ * `domain/EntryLines.js`, as the renderers take them.
  * @param {object} profile - The profile
  * @param {{ at: string }} words - The catalogue's word between a role's title and its employer
- * @returns {string[]} A role's header without its location, a school without its period, a certification's name without
- *   its issuer, and its name and issuer without its year: roles, then schools, then certifications
+ * @returns {{ kind: 'role'|'school'|'certification', start: string, open: string[] }[]} Roles, then schools, then
+ *   certifications, each kind in the profile's order: a role opens with its title and employer and is open there
+ *   without its location; a school opens with its name and is open there without its period; a certification opens
+ *   with its name, and is open there without its issuer, and after its issuer without its year
  */
-export function openEnds(profile, { at }) {
-  const roles = entries(profile?.relevant_experience)
-    .map((role) => roleHeader(role, at))
-    .filter((pieces) => !prints(pieces, 'location'))
-    .map(textOf);
-  const schools = entries(profile?.education)
-    .map((degree) => schoolLine(degree))
-    .filter((pieces) => !prints(pieces, 'period'))
-    .map(textOf);
-  const certifications = entries(profile?.certifications).flatMap((certification) => {
-    const name = String(certification.name ?? '').trim();
+export function printedEntries(profile, { at }) {
+  const roles = entries(profile?.relevant_experience).map((role) => {
+    const start = textOf(roleHeader({ ...role, location: '' }, at)).trim();
+    return { kind: 'role', start, open: prints(roleHeader(role, at), 'location') ? [] : [start] };
+  });
+  const schools = entries(profile?.education).map((degree) => {
+    const start = textOf(schoolLine({ ...degree, period: '' })).trim();
+    return { kind: 'school', start, open: prints(schoolLine(degree), 'period') ? [] : [start] };
+  });
+  const certifications = entries(profile?.certifications).map((certification) => {
+    const start = String(certification.name ?? '').trim();
     const issuer = certificationLine({ issuer: certification.issuer });
     const year = certificationLine({ year: certification.year });
-    const withIssuer = `${name}${issuer.join('')}`;
-    return [...(issuer.length ? [] : [name]), ...(year.length ? [] : [withIssuer])];
+    const open = [
+      ...(issuer.length ? [] : [start]),
+      ...(year.length ? [] : [`${start}${issuer.join('')}`])
+    ];
+    return { kind: 'certification', start, open: [...new Set(open)] };
   });
-  return [...roles, ...schools, ...new Set(certifications)];
+  return [...roles, ...schools, ...certifications];
 }

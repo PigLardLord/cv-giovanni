@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-import { emptyFieldMarks, openEnds } from '../scripts/lib/empty-fields.mjs';
+import { emptyFieldMarks, printedEntries } from '../scripts/lib/empty-fields.mjs';
 
 // A field the profile leaves out used to reach the paper as its punctuation, or as the word JavaScript writes for
 // nothing: "Engineer at Acme,", "Lead Essentials – Essential Developer ()", and before #157 "undefined" (#169). The page
@@ -116,71 +116,132 @@ describe('the traces of an empty field in printed text', () => {
   });
 
   describe('an entry that ends on the separator of a part it does not have', () => {
+    const at = { at: 'at' };
+    const roles = (...entries) => printedEntries({ relevant_experience: entries }, at);
+    const certifications = (...entries) => printedEntries({ certifications: entries }, at);
+
     test('names a role header ending in a comma, wrapped or not', () => {
-      const ends = ['Mobile Developer at Apparound'];
+      const entries = roles({ title: 'Mobile Developer', company: 'Apparound' });
 
       expect(
-        emptyFieldMarks('Mobile Developer at Apparound,\nSeptember 2015 – July 2018', { ends })
+        emptyFieldMarks('Mobile Developer at Apparound,\nSeptember 2015 – July 2018', { entries })
       ).toEqual([
         {
           mark: 'Mobile Developer at Apparound,',
           line: 'Mobile Developer at Apparound,'
         }
       ]);
-      expect(marks('Mobile Developer at\nApparound,\nSeptember 2015', { ends })).toEqual([
+      expect(marks('Mobile Developer at\nApparound,\nSeptember 2015', { entries })).toEqual([
         'Mobile Developer at Apparound,'
       ]);
-      expect(marks('Mobile Developer at Apparound\nSeptember 2015 – July 2018', { ends })).toEqual(
-        []
-      );
+      expect(
+        marks('Mobile Developer at Apparound\nSeptember 2015 – July 2018', { entries })
+      ).toEqual([]);
     });
 
     test('names a certification whose dash introduces no issuer, before its year or at its end', () => {
-      const ends = ['iOS Lead Essentials (TDD, Clean Architecture)'];
+      const entries = certifications({
+        name: 'iOS Lead Essentials (TDD, Clean Architecture)',
+        year: 2024
+      });
 
-      expect(marks('iOS Lead Essentials (TDD, Clean Architecture) – (2024)', { ends })).toEqual([
+      expect(marks('iOS Lead Essentials (TDD, Clean Architecture) – (2024)', { entries })).toEqual([
         'iOS Lead Essentials (TDD, Clean Architecture) –'
       ]);
-      expect(marks('iOS Lead Essentials (TDD, Clean Architecture)\n– ()', { ends })).toEqual([
+      expect(marks('iOS Lead Essentials (TDD, Clean Architecture)\n– ()', { entries })).toEqual([
         'iOS Lead Essentials (TDD, Clean Architecture) –',
         '()'
       ]);
-      expect(marks('iOS Lead Essentials (TDD, Clean Architecture) (2024)', { ends })).toEqual([]);
+      expect(marks('iOS Lead Essentials (TDD, Clean Architecture) (2024)', { entries })).toEqual(
+        []
+      );
+      expect(
+        marks('Android Enterprise Expert – Google –', {
+          entries: certifications({ name: 'Android Enterprise Expert', issuer: 'Google' })
+        })
+      ).toEqual(['Android Enterprise Expert – Google –']);
     });
 
-    // The code review of #205: two roles can share a header, one with a location and one without. The complete one's
-    // comma introduces its location, and was blamed on the entry that has none.
-    test('a separator that introduces a value is not blamed, whichever entry shares the header', () => {
-      const roles = [
+    // The code review of #205, and its re-check: two roles can share a header, one with a location and one without. The
+    // complete one's comma introduces its location, wrapped onto the next line or not, and was blamed on the entry that
+    // has none. Each entry answers only for its own line: the lines of a kind are taken in the profile's order.
+    test("a role sharing its header with one that names a place is blamed only for its own line's comma", () => {
+      const incompleteFirst = roles(
         { title: 'Engineer', company: 'Acme' },
         { title: 'Engineer', company: 'Acme', location: 'Berlin' }
-      ];
-      const ends = openEnds({ relevant_experience: roles }, { at: 'at' });
+      );
+      const completeFirst = roles(
+        { title: 'Engineer', company: 'Acme', location: 'Berlin' },
+        { title: 'Engineer', company: 'Acme' }
+      );
 
-      expect(ends).toEqual(['Engineer at Acme']);
-      expect(emptyFieldMarks('Engineer at Acme\nEngineer at Acme, Berlin', { ends })).toEqual([]);
-      expect(marks('Engineer at Acme, (remote)', { ends })).toEqual([]);
-      expect(marks('Engineer at Acme,\nEngineer at Acme, Berlin', { ends })).toEqual([
+      expect(
+        emptyFieldMarks('Engineer at Acme\nEngineer at Acme,\nBerlin', { entries: incompleteFirst })
+      ).toEqual([]);
+      expect(
+        marks('Engineer at Acme\nEngineer at Acme, Berlin', { entries: incompleteFirst })
+      ).toEqual([]);
+      expect(
+        emptyFieldMarks('Engineer at Acme,\nMay 2015\nEngineer at Acme,\nBerlin', {
+          entries: incompleteFirst
+        })
+      ).toEqual([{ mark: 'Engineer at Acme,', line: 'Engineer at Acme,' }]);
+      expect(
+        marks('Engineer at Acme,\nBerlin\nEngineer at Acme\nMay 2015', { entries: completeFirst })
+      ).toEqual([]);
+      expect(
+        marks('Engineer at Acme,\nBerlin\nEngineer at Acme,\nMay 2015', { entries: completeFirst })
+      ).toEqual(['Engineer at Acme,']);
+      expect(
+        marks('Engineer at Acme\nEngineer at Acme, (remote)', {
+          entries: roles(
+            { title: 'Engineer', company: 'Acme' },
+            { title: 'Engineer', company: 'Acme', location: '(remote)' }
+          )
+        })
+      ).toEqual([]);
+    });
+
+    test('a certification sharing its name with one that has an issuer is blamed only for its own dash', () => {
+      const entries = certifications(
+        { name: 'CISSP', issuer: '(ISC)²', year: 2024 },
+        { name: 'CISSP', year: 2021 }
+      );
+
+      expect(marks('CISSP – (ISC)² (2024)\nCISSP (2021)', { entries })).toEqual([]);
+      expect(marks('CISSP –\n(ISC)² (2024)\nCISSP (2021)', { entries })).toEqual([]);
+      expect(marks('CISSP – (ISC)² (2024)\nCISSP – (2021)', { entries })).toEqual(['CISSP –']);
+    });
+
+    test('each kind of entry is found in its own order, whichever section prints first', () => {
+      const entries = [
+        ...roles({ title: 'Engineer', company: 'Acme' }),
+        ...certifications({ name: 'CISSP', year: 2021 })
+      ];
+
+      expect(marks('CISSP – (2021)\nEngineer at Acme,', { entries })).toEqual([
+        'CISSP –',
         'Engineer at Acme,'
       ]);
     });
 
-    test('a certification sharing its name with one that has an issuer is blamed only for its own dash', () => {
-      const ends = ['CISSP'];
+    test('an entry is a header only where it opens its line, and only as a whole name', () => {
+      const entries = roles(
+        { title: 'Engineer', company: 'Apparound' },
+        { title: 'Intern', company: 'Marte 5' }
+      );
 
-      expect(marks('CISSP – (ISC)² (2024)\nCISSP (2021)', { ends })).toEqual([]);
-      expect(marks('CISSP – (ISC)² (2024)\nCISSP – (2021)', { ends })).toEqual(['CISSP –']);
-    });
-
-    test('an entry is a header only where it opens its line: prose that names it goes on', () => {
+      expect(marks('Worked as Engineer at Apparound, Pisa and Marte 5', { entries })).toEqual([]);
       expect(
-        marks('Worked with Apparound, Pisa and Marte 5', { ends: ['Apparound', 'Marte 5'] })
-      ).toEqual([]);
+        marks('Engineer at Apparounds GmbH, Pisa\nEngineer at Apparound,\nIntern at Marte 5', {
+          entries
+        })
+      ).toEqual(['Engineer at Apparound,']);
     });
   });
 });
 
-describe('where an entry ends on a part it does not have', () => {
+describe('the entries a profile prints, and the parts each leaves out', () => {
   const words = { at: 'at' };
   const profile = {
     relevant_experience: [
@@ -194,30 +255,48 @@ describe('where an entry ends on a part it does not have', () => {
     ]
   };
 
-  test('a profile that fills every part has no open end', () => {
-    expect(openEnds(profile, words)).toEqual([]);
+  test('every entry, by kind and in the order the profile writes it, as its line opens', () => {
+    expect(printedEntries(profile, words)).toEqual([
+      { kind: 'role', start: 'Mobile Developer at Apparound', open: [] },
+      { kind: 'role', start: 'Mobile Developer Intern at Marte 5', open: [] },
+      { kind: 'school', start: 'Catania', open: [] },
+      { kind: 'certification', start: 'Android Enterprise Expert', open: [] },
+      { kind: 'certification', start: 'iOS Lead Essentials', open: [] }
+    ]);
   });
 
-  test('each entry is written as the page writes it, up to the part it leaves out', () => {
+  test('each entry is written as the page writes it, up to each part it leaves out', () => {
     const sparse = JSON.parse(JSON.stringify(profile));
     delete sparse.relevant_experience[0].location;
     delete sparse.education[0].period;
     delete sparse.certifications[0].year;
     delete sparse.certifications[1].issuer;
 
-    expect(openEnds(sparse, words)).toEqual([
-      'Mobile Developer at Apparound',
-      'Catania',
-      'Android Enterprise Expert – Google',
-      'iOS Lead Essentials'
+    expect(printedEntries(sparse, words).map(({ open }) => open)).toEqual([
+      ['Mobile Developer at Apparound'],
+      [],
+      ['Catania'],
+      ['Android Enterprise Expert – Google'],
+      ['iOS Lead Essentials']
     ]);
-    expect(openEnds(sparse, { at: 'bei' })[0]).toBe('Mobile Developer bei Apparound');
+    expect(printedEntries(sparse, { at: 'bei' })[0]).toEqual({
+      kind: 'role',
+      start: 'Mobile Developer bei Apparound',
+      open: ['Mobile Developer bei Apparound']
+    });
   });
 
   test('a certification with neither issuer nor year ends on its name once', () => {
     const bare = { certifications: [{ name: 'Android Enterprise Expert' }] };
 
-    expect(openEnds(bare, words)).toEqual(['Android Enterprise Expert']);
-    expect(openEnds({}, words)).toEqual([]);
+    expect(printedEntries(bare, words)).toEqual([
+      {
+        kind: 'certification',
+        start: 'Android Enterprise Expert',
+        open: ['Android Enterprise Expert']
+      }
+    ]);
+    expect(printedEntries({}, words)).toEqual([]);
+    expect(printedEntries({ relevant_experience: [null, 'Engineer'] }, words)).toEqual([]);
   });
 });
