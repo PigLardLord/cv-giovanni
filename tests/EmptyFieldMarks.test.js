@@ -162,6 +162,81 @@ describe('the traces of an empty field in printed text', () => {
       ).toEqual(['Android Enterprise Expert – Google –']);
     });
 
+    // #212: the check blamed a separator only where its line ended or a year's bracket followed, so a renderer that set
+    // a role's dates on its header line, after a missing location, printed "Apparound, September 2015" and passed.
+    test('names a separator after a part the entry lacks, whatever follows it', () => {
+      const entries = roles({ title: 'Mobile Developer', company: 'Apparound' });
+
+      expect(
+        emptyFieldMarks('Mobile Developer at Apparound, September 2015 – July 2018', { entries })
+      ).toEqual([
+        {
+          mark: 'Mobile Developer at Apparound,',
+          line: 'Mobile Developer at Apparound, September 2015 – July 2018'
+        }
+      ]);
+      expect(marks('Mobile Developer at\nApparound, September 2015', { entries })).toEqual([
+        'Mobile Developer at Apparound,'
+      ]);
+      expect(
+        marks('Mobile Developer at Apparound September 2015 – July 2018', { entries })
+      ).toEqual([]);
+      expect(
+        marks('iOS Lead Essentials – 2024\nAndroid Enterprise Expert – Google · expires 2027', {
+          entries: certifications(
+            { name: 'iOS Lead Essentials', year: 2024 },
+            { name: 'Android Enterprise Expert', issuer: 'Google' }
+          )
+        })
+      ).toEqual(['iOS Lead Essentials –', 'Android Enterprise Expert – Google ·']);
+    });
+
+    // What may follow a part an entry leaves out is the rest of the line EntryLines writes for it, not a rule of the
+    // check's own. No line it writes today goes on with a separator there; one that did would not be a trace.
+    test("a separator the entry's own line writes after a part it leaves out is not a trace", () => {
+      const entries = [
+        { kind: 'certification', start: 'CISSP', line: 'CISSP · 2021', open: ['CISSP'] }
+      ];
+
+      expect(marks('CISSP · 2021', { entries })).toEqual([]);
+      expect(marks('CISSP ·\n2021', { entries })).toEqual([]);
+      expect(marks('CISSP · 2020', { entries })).toEqual(['CISSP ·']);
+      expect(marks('CISSP ·', { entries })).toEqual(['CISSP ·']);
+    });
+
+    // A complete entry sharing the header keeps its separator whatever its line carries after the part it has.
+    test('a role sharing its header is blamed only for its own comma, whatever follows either', () => {
+      const incompleteFirst = roles(
+        { title: 'Engineer', company: 'Acme' },
+        { title: 'Engineer', company: 'Acme', location: 'Berlin' }
+      );
+      const completeFirst = roles(
+        { title: 'Engineer', company: 'Acme', location: 'Berlin' },
+        { title: 'Engineer', company: 'Acme' }
+      );
+
+      expect(
+        marks('Engineer at Acme May 2015\nEngineer at Acme, Berlin, June 2016', {
+          entries: incompleteFirst
+        })
+      ).toEqual([]);
+      expect(
+        marks('Engineer at Acme, May 2015\nEngineer at Acme, Berlin, June 2016', {
+          entries: incompleteFirst
+        })
+      ).toEqual(['Engineer at Acme,']);
+      expect(
+        marks('Engineer at Acme, Berlin, June 2016\nEngineer at Acme May 2015', {
+          entries: completeFirst
+        })
+      ).toEqual([]);
+      expect(
+        emptyFieldMarks('Engineer at Acme, Berlin, June 2016\nEngineer at Acme, May 2015', {
+          entries: completeFirst
+        })
+      ).toEqual([{ mark: 'Engineer at Acme,', line: 'Engineer at Acme, May 2015' }]);
+    });
+
     // The code review of #205, and its re-check: two roles can share a header, one with a location and one without. The
     // complete one's comma introduces its location, wrapped onto the next line or not, and was blamed on the entry that
     // has none. Each entry answers only for its own line: the lines of a kind are taken in the profile's order.
@@ -255,13 +330,33 @@ describe('the entries a profile prints, and the parts each leaves out', () => {
     ]
   };
 
-  test('every entry, by kind and in the order the profile writes it, as its line opens', () => {
+  test('every entry, by kind and in the order the profile writes it, as its line opens and runs', () => {
     expect(printedEntries(profile, words)).toEqual([
-      { kind: 'role', start: 'Mobile Developer at Apparound', open: [] },
-      { kind: 'role', start: 'Mobile Developer Intern at Marte 5', open: [] },
-      { kind: 'school', start: 'Catania', open: [] },
-      { kind: 'certification', start: 'Android Enterprise Expert', open: [] },
-      { kind: 'certification', start: 'iOS Lead Essentials', open: [] }
+      {
+        kind: 'role',
+        start: 'Mobile Developer at Apparound',
+        line: 'Mobile Developer at Apparound, Pisa, Italy',
+        open: []
+      },
+      {
+        kind: 'role',
+        start: 'Mobile Developer Intern at Marte 5',
+        line: 'Mobile Developer Intern at Marte 5, Livorno, Italy',
+        open: []
+      },
+      { kind: 'school', start: 'Catania', line: 'Catania (2009)', open: [] },
+      {
+        kind: 'certification',
+        start: 'Android Enterprise Expert',
+        line: 'Android Enterprise Expert – Google (2026)',
+        open: []
+      },
+      {
+        kind: 'certification',
+        start: 'iOS Lead Essentials',
+        line: 'iOS Lead Essentials – Essential Developer (2024)',
+        open: []
+      }
     ]);
   });
 
@@ -282,8 +377,26 @@ describe('the entries a profile prints, and the parts each leaves out', () => {
     expect(printedEntries(sparse, { at: 'bei' })[0]).toEqual({
       kind: 'role',
       start: 'Mobile Developer bei Apparound',
+      line: 'Mobile Developer bei Apparound',
       open: ['Mobile Developer bei Apparound']
     });
+  });
+
+  // #212: what may follow a part an entry leaves out is the rest of its own line, not what a hand-written rule guesses.
+  test('each entry runs as the page writes its line without the parts it leaves out', () => {
+    const sparse = JSON.parse(JSON.stringify(profile));
+    delete sparse.relevant_experience[0].location;
+    delete sparse.education[0].period;
+    delete sparse.certifications[0].year;
+    delete sparse.certifications[1].issuer;
+
+    expect(printedEntries(sparse, words).map(({ line }) => line)).toEqual([
+      'Mobile Developer at Apparound',
+      'Mobile Developer Intern at Marte 5, Livorno, Italy',
+      'Catania',
+      'Android Enterprise Expert – Google',
+      'iOS Lead Essentials (2024)'
+    ]);
   });
 
   test('a certification with neither issuer nor year ends on its name once', () => {
@@ -293,6 +406,7 @@ describe('the entries a profile prints, and the parts each leaves out', () => {
       {
         kind: 'certification',
         start: 'Android Enterprise Expert',
+        line: 'Android Enterprise Expert',
         open: ['Android Enterprise Expert']
       }
     ]);

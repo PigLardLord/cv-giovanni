@@ -148,7 +148,7 @@ const traces = (text, profile) =>
   emptyFieldMarks(text, { entries: printedEntries(profile, { at }), written: strings(profile) });
 
 describe('a sparse CV, printed', () => {
-  test('every entry opens a line of its own, where the check reads it, and each left-out part is open', async () => {
+  test('every entry opens a line of its own and prints its whole line, and each left-out part is open', async () => {
     const text = await printed(sparse);
     const lines = text.split('\n');
     const entries = printedEntries(sparse, { at });
@@ -161,8 +161,10 @@ describe('a sparse CV, printed', () => {
         sparse.certifications[1].name
       ])
     );
-    for (const { start, open } of entries) {
+    for (const { start, line: written, open } of entries) {
       expect(lines.some((line) => line.startsWith(start))).toBe(true);
+      // What may follow a part the entry leaves out is read from this line (#212), so the page has to print it whole.
+      expect(lines.some((line) => line.startsWith(written))).toBe(true);
       for (const end of open) expect(lines.some((line) => line.startsWith(end))).toBe(true);
     }
   });
