@@ -609,3 +609,88 @@ describe('an entry is matched to the one written by what it says, not by where i
     });
   });
 });
+
+// What makes two entries the same one is said once, on the fields the diff grades an entry by: the diff matches what
+// came back to what was written by it, and `audit:ats:base` lines up the entries of two branches' profiles by it (#221),
+// so the two can never disagree about which entry is which.
+describe('what identifies an entry, said once', () => {
+  const apparound = {
+    title: 'Mobile Developer',
+    employer: 'Apparound',
+    period: 'September 2015 – July 2018'
+  };
+  const pisa = {
+    degree:
+      "First Level Professional Master's Programme in Mobile Applications Development (60 ECTS)",
+    school: 'Università degli Studi di Pisa',
+    period: '2014 – 2016'
+  };
+
+  test('a role by its title and its employer, its period only breaking a tie', () => {
+    expect(RecoveryDiff.likeness('experience', apparound, apparound)).toEqual([4, 2]);
+    expect(
+      RecoveryDiff.likeness('experience', apparound, {
+        ...apparound,
+        title: 'Mobile Developer Intern'
+      })
+    ).toEqual([3, 2]);
+    expect(
+      RecoveryDiff.likeness('experience', apparound, {
+        title: 'Head Chef',
+        employer: 'Trattoria Da Mario',
+        period: apparound.period
+      })
+    ).toEqual([0, 2]);
+  });
+
+  test('a degree by its line and its school, so a degree worded otherwise is still told by its school', () => {
+    expect(RecoveryDiff.likeness('education', pisa, pisa)).toEqual([4, 2]);
+    expect(
+      RecoveryDiff.likeness('education', pisa, {
+        ...pisa,
+        degree: 'Master in Mobile App Engineering'
+      })
+    ).toEqual([2, 2]);
+  });
+
+  test('a skill category by its whole label: a label that says part of it is a category torn, not the same one', () => {
+    expect(
+      RecoveryDiff.likeness(
+        'skills',
+        { category: 'Delivery & platform' },
+        { category: 'Delivery and platform' }
+      )
+    ).toEqual([2]);
+    expect(
+      RecoveryDiff.likeness('skills', { category: 'Delivery & platform' }, { category: 'Delivery' })
+    ).toEqual([0]);
+  });
+
+  test('a language by its name, and a certification by its line', () => {
+    expect(
+      RecoveryDiff.likeness('spokenLanguages', { name: 'English' }, { name: 'english' })
+    ).toEqual([2]);
+    expect(
+      RecoveryDiff.likeness(
+        'certifications',
+        { name: 'iOS Lead Essentials (TDD, Clean Architecture) – Essential Developer (2024)' },
+        { name: 'iOS Lead Essentials (TDD, Clean Architecture)' }
+      )
+    ).toEqual([1]);
+  });
+
+  test('what says which entry it is can be named apart from what only breaks a tie', () => {
+    expect(RecoveryDiff.identifying('experience')).toEqual(['title', 'employer']);
+    expect(RecoveryDiff.identifying('education')).toEqual(['degree', 'school']);
+    expect(RecoveryDiff.identifying('certifications')).toEqual(['name']);
+  });
+
+  test('a field one of the two does not write says nothing, whatever the other writes there', () => {
+    expect(
+      RecoveryDiff.likeness('education', { ...pisa, period: null }, { ...pisa, period: '.' })
+    ).toEqual([4, 0]);
+    expect(RecoveryDiff.likeness('spokenLanguages', { name: 'English' }, { name: null })).toEqual([
+      0
+    ]);
+  });
+});

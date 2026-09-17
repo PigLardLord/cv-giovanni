@@ -1,3 +1,4 @@
+import { RecoveryDiff } from '../../core/RecoveryDiff.js';
 import { importClosure } from './import-closure.mjs';
 
 /**
@@ -134,19 +135,100 @@ const short = (verdict) => verdict in LADDER && LADDER[verdict] < LADDER.exact;
  * (#217), and keys each verdict by the written entry's position in its own branch's profile.
  */
 const REPEATED = ['experience', 'education', 'skills', 'spokenLanguages', 'certifications'];
-const ENTRY = new RegExp(`^(${REPEATED.join('|')})\\.(\\d+)\\.`);
+const ENTRY = new RegExp(`^(${REPEATED.join('|')})\\.(\\d+)\\.(.+)$`);
 
-/** The repeated section a field belongs to, or null for a field of the whole document. */
-const sectionOf = (key) => ENTRY.exec(key)?.[1] ?? null;
+/** The entry a field belongs to, as its section and its place, or null for a field of the whole document. */
+const entryOf = (key) => {
+  const entry = ENTRY.exec(key);
+  return entry ? `${entry[1]}.${entry[2]}` : null;
+};
 
-/** How many entries of each repeated section a reading was graded on. */
-function entryCounts(fields) {
-  const counts = {};
-  for (const { key } of fields) {
-    const entry = ENTRY.exec(key);
-    if (entry) counts[entry[1]] = Math.max(counts[entry[1]] ?? 0, Number(entry[2]) + 1);
+/** An entry as a label names it: its section, and its place in its own branch's profile counted from 1. */
+const entryName = (section, index) => `${SECTION_NAMES[section] ?? section} ${index + 1}`;
+
+/**
+ * Each repeated section's entries a reading was graded on, in its own branch's profile's order: each entry's place,
+ * what it writes in each field the diff grades, and its fields.
+ * @param {ReturnType<typeof fieldVerdicts>} fields - One reading
+ * @returns {Object<string, { index: number, writes: Object<string, *>, fields: Object[] }[]>} The entries, by section
+ */
+function entriesOf(fields) {
+  const sections = Object.fromEntries(REPEATED.map((section) => [section, []]));
+  for (const field of fields) {
+    const entry = ENTRY.exec(field.key);
+    if (!entry) continue;
+    const [, section, at, name] = entry;
+    const index = Number(at);
+    sections[section][index] ??= { index, writes: {}, fields: [] };
+    sections[section][index].writes[name] = field.written;
+    sections[section][index].fields.push(field);
   }
-  return counts;
+  return Object.fromEntries(
+    Object.entries(sections).map(([section, entries]) => [section, entries.filter(Boolean)])
+  );
+}
+
+/**
+ * Which entry of this branch's profile each entry of the base's is, told by what the two write (#221).
+ *
+ * Each print's diff keys an entry by its place in its own branch's profile, so the same key on the two prints names two
+ * entries once a branch adds, removes or reorders one. Each entry of the base's is lined up with the entry of this
+ * branch's that says the same, by `RecoveryDiff.likeness`, the rule the diff matches a recovered entry to a written one
+ * by, on what each branch's own grader says its print writes: a role by its title and employer, a degree by its line and
+ * school, their dates only breaking a tie, a category by its whole label, a language by its name, a certification by its
+ * line. So a degree whose line a branch rewrites is still told by its school; a certification whose line it rewrites
+ * past any whole-word likeness is told by nothing, and is an entry with no counterpart on each side.
+ * @param {ReturnType<typeof fieldVerdicts>} before - The base's parser on the base's print, graded by the base
+ * @param {ReturnType<typeof fieldVerdicts>} after - The base's parser on the new print, graded by this branch
+ * @returns {{ places: Map<string, number>, alone: { base: Object[], head: Object[] } }} This branch's place for each
+ *   entry of the base's lined up, keyed by section and the base's place; and the entries of each profile no entry of the
+ *   other says the same as, with their section
+ */
+function lineUp(before, after) {
+  const base = entriesOf(before);
+  const head = entriesOf(after);
+  const places = new Map();
+  const alone = { base: [], head: [] };
+  for (const section of REPEATED) {
+    const { matched, unmatched } = RecoveryDiff.match(base[section], head[section], (was, now) =>
+      RecoveryDiff.likeness(section, was.writes, now.writes)
+    );
+    base[section].forEach((entry, at) => {
+      if (matched[at]) places.set(`${section}.${entry.index}`, matched[at].index);
+      else alone.base.push({ section, ...entry });
+    });
+    alone.head.push(...unmatched.map((entry) => ({ section, ...entry })));
+  }
+  return { places, alone };
+}
+
+/**
+ * The base's reading, each entry's fields keyed and labelled by the place of the entry of this branch's profile it lines
+ * up with (#221), so a field is compared with the same entry's on the new print. A field of an entry that lines up with
+ * none is left out; a field of the whole document is kept as it is. A field whose entry sits elsewhere in the base's
+ * profile says where, as `moved`.
+ * @param {ReturnType<typeof fieldVerdicts>} before - The base's parser on the base's print, graded by the base
+ * @param {ReturnType<typeof fieldVerdicts>} after - The base's parser on the new print, graded by this branch
+ * @returns {(ReturnType<typeof fieldVerdicts>[number] & { moved?: string })[]} The base's reading, in this branch's places
+ */
+export function inHeadPlaces(before, after) {
+  const { places } = lineUp(before, after);
+  return before.flatMap((field) => {
+    const entry = ENTRY.exec(field.key);
+    if (!entry) return [field];
+    const [, section, at, name] = entry;
+    const index = places.get(`${section}.${at}`);
+    if (index === undefined) return [];
+    if (index === Number(at)) return [field];
+    return [
+      {
+        ...field,
+        key: `${section}.${index}.${name}`,
+        label: field.label.replace(entryName(section, Number(at)), entryName(section, index)),
+        moved: entryName(section, Number(at))
+      }
+    ];
+  });
 }
 
 /**
@@ -240,32 +322,34 @@ export function fieldVerdicts(diff) {
  * The fields a parser recovered from one print and recovers less of from another: a lower rung on the ladder.
  *
  * Each print is graded against its own branch's profile and lines (#201), so a field the change rewrote is not a loss
- * when the new words came back. A field only one print has, such as one the base's grader does not grade, is not
- * compared. Nor is a section the two prints hold a different number of entries in: a field is compared with the one at
- * the same key, a key names an entry by its position in its own branch's profile, and there one position names two
- * entries, so `unmatchedSections` answers for it.
+ * when the new words came back. An entry's field is compared with the same field of the entry of the other profile that
+ * says the same, not of the entry at the same place (#221), and is named by its place in this branch's profile: a
+ * section a branch adds an entry to, removes one from or reorders is compared entry by entry like any other. A field
+ * only one print has, such as one the base's grader does not grade, or one of an entry the other profile has no
+ * counterpart for, is not compared; `unmatchedEntries` answers for the second.
  * @param {ReturnType<typeof fieldVerdicts>} before - The base's parser on the base's print, graded by the base
  * @param {ReturnType<typeof fieldVerdicts>} after - The base's parser on the new print, graded by this branch
- * @returns {{ key: string, label: string, from: string, to: string, was: *, now: *, written: *, before: * }[]} The
- *   losses: what the base's parser recovered from each print, what the new print writes, and what the base's wrote
+ * @returns {{ key: string, label: string, from: string, to: string, was: *, now: *, written: *, before: *,
+ *   moved?: string }[]} The losses: what the base's parser recovered from each print, what the new print writes, what
+ *   the base's wrote, and where the base's profile has the entry when that is elsewhere
  */
 export function lostFields(before, after) {
   const later = new Map(after.map((field) => [field.key, field]));
-  const unmatched = new Set(unmatchedSections(before, after).map(({ section }) => section));
-  return before
-    .filter((field) => later.has(field.key) && !unmatched.has(sectionOf(field.key)))
+  return inHeadPlaces(before, after)
+    .filter((field) => later.has(field.key))
     .filter((field) => LADDER[later.get(field.key).verdict] < LADDER[field.verdict])
     .map((field) => {
       const now = later.get(field.key);
       return {
         key: field.key,
-        label: field.label,
+        label: now.label,
         from: field.verdict,
         to: now.verdict,
         was: field.recovered,
         now: now.recovered,
         written: now.written,
-        before: field.written
+        before: field.written,
+        ...(field.moved ? { moved: field.moved } : {})
       };
     });
 }
@@ -281,22 +365,33 @@ const quote = (value) =>
 
 /**
  * One loss as a line: what the base's parser recovered from the base's print, what it recovers from the new one, and
- * the two verdicts. A structure has nothing to quote and is named by its verdicts.
+ * the two verdicts. A structure has nothing to quote and is named by its verdicts. An entry is named by its place in
+ * this branch's profile, and by its place in the base's too when the two differ (#221).
  *
  * Each print is graded against its own branch's words (#201), so the same text can come back from both and grade lower
  * on the new print: when the new print writes the field otherwise than the base's did, the line says what it writes.
  * @param {ReturnType<typeof lostFields>[number]} loss - One loss
  * @returns {string} The line
  */
-export function lossLine({ label, from, to, was = null, now = null, written = null, before }) {
+export function lossLine({
+  label,
+  from,
+  to,
+  was = null,
+  now = null,
+  written = null,
+  before,
+  moved
+}) {
+  const named = moved ? `${label} (${moved} in the base's profile)` : label;
   if (was !== null || now !== null) {
     const rewritten =
       before !== undefined && written !== null && quote(written) !== quote(before)
         ? ` — this print writes ${quote(written)}`
         : '';
-    return `${label}: ${quote(was)} → ${quote(now)} (${from} → ${to})${rewritten}`;
+    return `${named}: ${quote(was)} → ${quote(now)} (${from} → ${to})${rewritten}`;
   }
-  return `${label}: ${from} → ${to}${written === null ? '' : ` — written ${quote(written)}`}`;
+  return `${named}: ${from} → ${to}${written === null ? '' : ` — written ${quote(written)}`}`;
 }
 
 /**
@@ -330,12 +425,13 @@ export function pullRequestLabels(value) {
  * How the step ends. A loss fails it, unless the pull request declares the trade accepted: the losses are still
  * reported, and the label is the record that someone read them.
  *
- * A section it could not compare, whose entries the two prints number differently and the base's parser reads some of
- * short from the new print, ends it with 2, as a comparison that did not happen does: a lost entry and a moved one read
- * alike there, so nobody read a loss the label could accept.
+ * An entry it could not compare, one of this branch's profile that no entry of the base's says the same as and that the
+ * base's parser reads some of short from the new print, ends it with 2, as a comparison that did not happen does: an
+ * entry the parser misreads and one of the base's that the branch rewrote and the parser now loses read alike there, so
+ * nobody read a loss the label could accept.
  * @param {Object[]} losses - Every loss, over every print and reading order
  * @param {string[]} labels - The pull request's labels
- * @param {ReturnType<typeof readingsUnmatched>} [unmatched] - The sections numbered differently, over every reading
+ * @param {ReturnType<typeof readingsUnmatched>} [unmatched] - The entries with no counterpart, over every reading
  * @returns {{ exitCode: number, accepted: boolean }} The exit code, and whether a trade was accepted
  */
 export function outcome(losses, labels, unmatched = []) {
@@ -391,64 +487,76 @@ export function gradedReadings(texts, { base, head }) {
 }
 
 /**
- * The repeated sections the two prints hold a different number of entries in, with every field of the section the
- * base's parser reads short from the new print.
+ * The entries of either profile that no entry of the other says the same as (#221), with every field of this branch's
+ * the base's parser reads short from the new print.
  *
- * A field is compared with the one at the same key on the other print, and a key names an entry by its position in its
- * own branch's profile. Each print's diff matches what came back to its profile's entries by what they say (#217), but
- * that does not make the two profiles' positions name the same entries: a degree added in front moves the others down,
- * and the base's parser failing the last of them reads as a position the base's print never had (the code review of
- * #216); a degree removed puts the next one where it was, and a loss there can read "partial → partial". So such a
- * section is not compared entry by entry. What can be said of it holds whatever the positions name: a section the base's parser
- * reads in full from the new print lost nothing, and one it reads any of short cannot be told from a moved entry.
+ * Lined up by what they say, the entries of a section a branch adds to, removes from or reorders are compared entry by
+ * entry, where #216 compared none of a section numbered differently. What is left is an entry with no counterpart. One
+ * of the base's profile is not on the new print, and has nothing on it to lose. One of this branch's the base's parser
+ * reads in full from the new print lost nothing. One it reads any of short has nothing to be compared with: it may be an
+ * entry the base's parser always misread, or one of the base's that the branch rewrote past recognition and the parser
+ * now loses, and the two read alike.
  * @param {ReturnType<typeof fieldVerdicts>} before - The base's parser on the base's print, graded by the base
  * @param {ReturnType<typeof fieldVerdicts>} after - The base's parser on the new print, graded by this branch
- * @returns {{ section: string, base: number, head: number, short: { key: string, label: string, verdict: string }[] }[]}
- *   Each section, its entries on each print, and the fields read short from the new one
+ * @returns {{ section: string, profile: 'head'|'base', index: number, name: string, writes: string[],
+ *   short: { key: string, label: string, verdict: string }[] }[]} Each entry: its section, the profile it is in and its
+ *   place there, what identifies it, and the fields read short from the new print, none for one of the base's
  */
-export function unmatchedSections(before, after) {
-  const counts = { base: entryCounts(before), head: entryCounts(after) };
-  return REPEATED.filter(
-    (section) => (counts.base[section] ?? 0) !== (counts.head[section] ?? 0)
-  ).map((section) => ({
+export function unmatchedEntries(before, after) {
+  const { alone } = lineUp(before, after);
+  const described = (profile, { section, index, writes, fields }) => ({
     section,
-    base: counts.base[section] ?? 0,
-    head: counts.head[section] ?? 0,
-    short: after
-      .filter((field) => sectionOf(field.key) === section && short(field.verdict))
-      .map(({ key, label, verdict }) => ({ key, label, verdict }))
-  }));
+    profile,
+    index,
+    name: entryName(section, index),
+    writes: RecoveryDiff.identifying(section)
+      .map((field) => writes[field])
+      .filter((value) => value !== null && value !== undefined && value !== ''),
+    short:
+      profile === 'head'
+        ? fields
+            .filter((field) => short(field.verdict))
+            .map(({ key, label, verdict }) => ({ key, label, verdict }))
+        : []
+  });
+  return [
+    ...alone.head.map((entry) => described('head', entry)),
+    ...alone.base.map((entry) => described('base', entry))
+  ];
 }
 
 /**
- * Every section numbered differently, over every print and reading order.
+ * Every entry with no counterpart, over every print and reading order.
  * @param {{ artefact: string, order: string, baseOnBase: Object[], baseOnHead: Object[] }[]} readings - As
  *   `readingLosses` takes them
- * @returns {Object[]} The sections, each with the print and the order it was read in
+ * @returns {Object[]} The entries, each with the print and the order it was read in
  */
 export function readingsUnmatched(readings) {
   return readings.flatMap(({ artefact, order, baseOnBase, baseOnHead }) =>
-    unmatchedSections(baseOnBase, baseOnHead).map((section) => ({ artefact, order, ...section }))
+    unmatchedEntries(baseOnBase, baseOnHead).map((entry) => ({ artefact, order, ...entry }))
   );
 }
 
 /**
- * The fields the new print was graded on that the base's print carries no verdict for, at a position both prints have:
- * the base's grader does not grade them, as a base from before #200 grades no degree's period, or the base's entry there
- * does not write them. None can be compared, so none is a loss; each is named, so a field left uncompared is not
- * mistaken for one that held. A field of a section the two prints number differently is `unmatchedSections`' to name.
+ * The fields the new print was graded on that the base's print carries no verdict for, of an entry lined up with one of
+ * the base's or of the whole document: the base's grader does not grade them, as a base from before #200 grades no
+ * degree's period, or the base's entry does not write them. None can be compared, so none is a loss; each is named, so
+ * a field left uncompared is not mistaken for one that held. A field of an entry with no counterpart is
+ * `unmatchedEntries`' to name.
  * @param {{ artefact: string, order: string, baseOnBase: Object[], baseOnHead: Object[] }[]} readings - As
  *   `readingLosses` takes them
  * @returns {{ artefact: string, order: string, key: string, label: string }[]} The fields, with the print and the order
  */
 export function notGradedOnBase(readings) {
   return readings.flatMap(({ artefact, order, baseOnBase, baseOnHead }) => {
-    const graded = new Set(baseOnBase.map((field) => field.key));
-    const unmatched = new Set(
-      unmatchedSections(baseOnBase, baseOnHead).map(({ section }) => section)
+    const graded = new Set(inHeadPlaces(baseOnBase, baseOnHead).map((field) => field.key));
+    const alone = new Set(
+      unmatchedEntries(baseOnBase, baseOnHead)
+        .filter((entry) => entry.profile === 'head')
+        .map(({ section, index }) => `${section}.${index}`)
     );
     return baseOnHead
-      .filter((field) => !graded.has(field.key) && !unmatched.has(sectionOf(field.key)))
+      .filter((field) => !graded.has(field.key) && !alone.has(entryOf(field.key)))
       .map(({ key, label }) => ({ artefact, order, key, label }));
   });
 }
@@ -477,13 +585,20 @@ function where(losses) {
     .join('; ');
 }
 
-/** One reading order's fields, a row each, beside what each parser recovered from each print. */
+/**
+ * One reading order's fields, a row each, beside what each parser recovered from each print. A row is a field of this
+ * branch's profile, in its order, and the base's column reads the entry of the base's profile it lines up with (#221).
+ */
 function table(order, readings, lost) {
   const columns = ['baseOnBase', 'baseOnHead', 'headOnHead'];
   const rows = new Map();
   for (const reading of readings) {
-    for (const column of columns) {
-      for (const field of reading[column]) {
+    const fields = {
+      ...reading,
+      baseOnBase: inHeadPlaces(reading.baseOnBase, reading.baseOnHead)
+    };
+    for (const column of ['baseOnHead', 'headOnHead', 'baseOnBase']) {
+      for (const field of fields[column]) {
         if (!rows.has(field.key)) rows.set(field.key, { label: field.label, cells: {} });
         const cells = rows.get(field.key).cells;
         cells[column] ??= new Map();
@@ -549,7 +664,7 @@ export function report({ base, decision, readings = [], losses = [], labels = []
     ...(!losses.length
       ? [
           uncompared
-            ? "No field the base's parser could compare is lost from this print, but not every section could be compared: see _Not compared by position_."
+            ? "No field the base's parser could compare is lost from this print, but not every entry could be compared: see _Not compared_."
             : "No field the base's parser recovered from the base's print is lost from this one."
         ]
       : [
@@ -560,7 +675,7 @@ export function report({ base, decision, readings = [], losses = [], labels = []
     ...(uncompared
       ? [
           '',
-          `**The step fails: it could not compare every section.** The base's parser reads short an entry of a section the two prints number differently, where a lost entry and a moved one read alike: check those fields by hand. The label \`${TRADE_LABEL}\` accepts a loss someone could read, not a comparison that did not happen, so add or remove the entries in one pull request and change the parser in another.`
+          `**The step fails: it could not compare every entry.** The base's parser reads short an entry no entry of the base's profile says the same as, where an entry it misreads and one of the base's it now loses read alike: check those fields by hand. The label \`${TRADE_LABEL}\` accepts a loss someone could read, not a comparison that did not happen, so add or rewrite the entries in one pull request and change the parser in another.`
         ]
       : losses.length
         ? [
@@ -571,36 +686,38 @@ export function report({ base, decision, readings = [], losses = [], labels = []
           ]
         : [])
   ];
-  const sections = new Map();
+  const entries = new Map();
   for (const each of unmatched) {
-    const at = `${each.section}\0${each.base}\0${each.head}`;
-    if (!sections.has(at)) sections.set(at, { ...each, short: new Map() });
+    const at = `${each.profile}\0${each.section}\0${each.index}\0${quote(each.writes)}`;
+    if (!entries.has(at)) entries.set(at, { ...each, short: new Map() });
     for (const field of each.short) {
       const line = `${field.label} (${field.verdict})`;
-      if (!sections.get(at).short.has(line)) sections.get(at).short.set(line, []);
-      sections.get(at).short.get(line).push(each);
+      if (!entries.get(at).short.has(line)) entries.get(at).short.set(line, []);
+      entries.get(at).short.get(line).push(each);
     }
   }
-  const entries = (count) => (count === 1 ? '1 entry' : `${count} entries`);
-  const notCompared = sections.size
+  const notCompared = entries.size
     ? [
-        '### Not compared by position',
+        '### Not compared',
         '',
-        "A field is compared with the entry at the same position on the base's print, so in a section the two prints number differently one position can name two entries, and the section is not compared entry by entry.",
+        'Each entry is compared with the entry of the other profile that says the same (#221). These say what no entry of the other profile says, so nothing is compared with them.',
         '',
-        ...[...sections.values()].flatMap(
-          ({ section, base: before, head: after, short: fields }) => {
-            const counted = `- **${SECTION_NAMES[section] ?? section}:** ${entries(before)} on the base's print, ${after} on this one.`;
-            return fields.size
-              ? [
-                  `${counted} The base's parser reads these short from this print, and the step cannot tell a lost entry from a moved one:`,
-                  ...[...fields.entries()].map(([line, each]) => `  - ${line} — ${where(each)}`)
-                ]
-              : [
-                  `${counted} The base's parser reads every field of it in full from this print, so nothing in it was lost.`
-                ];
-          }
-        ),
+        ...[...entries.values()].flatMap(({ profile, name, writes, short: fields }) => {
+          const named = `- **${name}** of ${profile === 'head' ? "this branch's" : "the base's"} profile${writes.length ? `, ${quote(writes)}` : ''}:`;
+          if (profile === 'base')
+            return [
+              `${named} no entry of this branch's profile says the same, so this print has nothing of it to lose.`
+            ];
+          const counterpart = `${named} no entry of the base's profile says the same.`;
+          return fields.size
+            ? [
+                `${counterpart} The base's parser reads these short from this print, and the step cannot tell an entry it misreads from one of the base's it now loses:`,
+                ...[...fields.entries()].map(([line, each]) => `  - ${line} — ${where(each)}`)
+              ]
+            : [
+                `${counterpart} The base's parser reads all of it in full from this print, so nothing in it was lost.`
+              ];
+        }),
         ''
       ]
     : [];
@@ -628,6 +745,7 @@ export function report({ base, decision, readings = [], losses = [], labels = []
     `- **Why it ran:** ${decision.reason}.`,
     `- **Read:** ${artefacts.join(', ')}, in ${orders.map((order) => order.short).join(', ')}; the base's print built in ${seconds.toFixed(1)} s.`,
     "- **Graded:** the base's print against the base's own lines — its `RecoveryDiff`, `EntryLines` and catalogue — and this print against this branch's (#201).",
+    "- **Lined up:** each entry of this branch's profile is compared with the entry of the base's that says the same, and named by its place in this branch's profile (#221).",
     '',
     '### Losses',
     '',

@@ -50,8 +50,13 @@ import { catalogueTranslator } from './lib/printed-letter.mjs';
  * that printed it, the base's by the base's own diff and lines: graded by this branch's, a change that rewords a line
  * held the base's print to the new words, and a loss read "partial → partial" (#201).
  *
- * Exit codes: 0 compared and nothing lost, a trade accepted, or not applicable; 1 a loss; 2 nothing was compared, or a
- * section whose entries the two prints number differently was read short, where a lost entry and a moved one read alike.
+ * Each entry of the base's profile is compared with the entry of this branch's that says the same, not with the one at
+ * the same place: by place, a branch that reordered a section compared two different entries, and a loss read as none
+ * (#221).
+ *
+ * Exit codes: 0 compared and nothing lost, a trade accepted, or not applicable; 1 a loss; 2 nothing was compared, or an
+ * entry of this branch's profile that no entry of the base's says the same as was read short, where an entry the
+ * parser misreads and one of the base's it now loses read alike.
  */
 const projectRoot = fileURLToPath(new URL('../', import.meta.url));
 const target = GenerationTarget.fromArguments([]);
@@ -349,12 +354,12 @@ const { exitCode, accepted } = outcome(losses, labels, unmatched);
 publish(report({ base, decision, readings, losses, labels, seconds }));
 const uncompared = new Map(
   unmatched
-    .filter((section) => section.short.length)
-    .map((section) => [`${section.section}\0${section.base}\0${section.head}`, section])
+    .filter((entry) => entry.short.length)
+    .map((entry) => [`${entry.section}\0${entry.index}`, entry])
 );
-for (const { section, base: before, head: after } of uncompared.values()) {
+for (const { name } of uncompared.values()) {
   console.error(
-    `audit-ats-base: ${section} holds ${before} entries on the base's print and ${after} on this one, and the base's parser reads some of them short from this print: not compared, check them by hand.`
+    `audit-ats-base: ${name} of this branch's profile says what no entry of the base's says, and the base's parser reads some of it short from this print: not compared, check it by hand.`
   );
 }
 if (losses.length) {
