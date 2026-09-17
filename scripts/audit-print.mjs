@@ -8,7 +8,7 @@ import { writeReport } from './lib/write-report.mjs';
 import { fallbackRuns, typefacesFor } from './lib/printed-typefaces.mjs';
 import { gluedPhrases, type3Fonts } from './lib/extractable-text.mjs';
 import { degreeBesideSchool } from './lib/degree-lines.mjs';
-import { emptyFieldMarks, printedEntries } from './lib/empty-fields.mjs';
+import { emptyFieldMarks, entrySections, printedEntries } from './lib/empty-fields.mjs';
 import { imageCount, outOfOrder } from './lib/section-order.mjs';
 import { builtCv, builtLetters } from './lib/printed-cv.mjs';
 import { PRINTED_PAGE, bboxPages, printedRoom, roomReport } from './lib/page-room.mjs';
@@ -119,9 +119,11 @@ const brokenForms = [
 
 // Every entry the page prints, with each part the profile leaves out, where a separator left in front of that part would
 // print, and every word the profile writes, which is its own and not a trace: for the traces an empty field leaves in
-// the text layer (#178).
+// the text layer (#178). Each kind is looked for under its own heading, so a line elsewhere that reads like an entry's
+// header is not taken for it (#213).
 const entries = printedEntries(profile, { at: catalogue.experience.at });
 const written = strings(profile);
+const entryHeadings = entrySections(labels);
 
 // A degree and its school must stay adjacent, with only the degree's scope between them when it states one (#48).
 const educationPairs = profile.education.map((item) =>
@@ -297,7 +299,7 @@ try {
     const room = bboxPages(bbox).map((page) =>
       page.lines.length ? printedRoom(page, PRINTED_PAGE) : null
     );
-    const traces = emptyFieldMarks(text, { entries, written });
+    const traces = emptyFieldMarks(text, { entries, written, ...entryHeadings });
     const glued = gluedPhrases(drawn, [
       profile.name,
       profile.title,
