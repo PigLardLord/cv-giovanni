@@ -368,7 +368,7 @@ copies off the screen, and the page's controls. `npm run verify:pdf` builds, the
 ATS audits: run it before claiming the document is sound.
 
 **The CV is spelled in its locale, offline.** `tests/CvIsSpelledRight.test.js` reads every published
-profile and every catalogue of its locale (the labels, the page's words, the print's) against a
+profile and every catalogue of its locale (the labels and the page's words) against a
 pinned dictionary, British English for `en`, and names each unknown word with its JSON path.
 Spelling errors are the best-measured penalty in CV screening: five cut the probability of an
 interview invitation by 18.5 percentage points, two by 7.3 (Sterkens et al., PLOS ONE 2023, 445

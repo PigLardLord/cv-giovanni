@@ -6,8 +6,9 @@
  * running footer outlived pdfmake (#153), as did `cv.json`'s "Portfolio" contact and "As of" date.
  *
  * A key counts as read when the code names it whole, quoted or after its namespace, as `t('cv:letter.closing')` and
- * `data-i18n="layouts.nerd"` do. A key the code only builds, as `cv:sections.${key}`, is read through its family, which
- * is listed below with the code that builds it, so the family cannot outlive its builder either.
+ * `data-i18n="layouts.nerd"` do. A key the code also builds, as `cv:sections.${key}`, is still held to being named: a
+ * family let through by its prefix would pass a dead label in it (the code review of #204), and the page names every
+ * section it labels.
  */
 import fs from 'fs';
 import path from 'path';
@@ -15,9 +16,6 @@ import { execFileSync } from 'child_process';
 import { fileURLToPath } from 'url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-
-/** Families of keys the code builds rather than names, each with the text that builds them. */
-const BUILT = [{ family: 'sections.', builder: '`cv:sections.${key}`' }];
 
 const leafKeys = (object, prefix = '') =>
   Object.entries(object).flatMap(([key, value]) => {
@@ -36,12 +34,7 @@ const code = execFileSync('git', ['ls-files', '*.js', '*.mjs', '*.html'], {
   .join('\n');
 
 const escape = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-// A key of one word is too common a word to find alone ("footer" is also an element), so it counts only when named with
-// its namespace.
-const named = (catalogue, key) =>
-  key.includes('.')
-    ? new RegExp(`['"\`:]${escape(key)}['"\`]`).test(code)
-    : code.includes(`${catalogue.replace(/\.json$/, '')}:${key}`);
+const named = (key) => new RegExp(`['"\`:]${escape(key)}['"\`]`).test(code);
 
 const catalogues = fs
   .readdirSync(path.join(root, 'locales', 'en'))
@@ -54,12 +47,10 @@ const catalogues = fs
 
 describe('the catalogues', () => {
   test.each(catalogues)('%s holds %s, which the code reads', (name, key) => {
-    const family = BUILT.find((built) => key.startsWith(built.family));
-
-    expect(named(name, key) || Boolean(family)).toBe(true);
+    expect(named(key)).toBe(true);
   });
 
-  test.each(BUILT)('the $family family is still built by the code', ({ builder }) => {
-    expect(code.includes(builder)).toBe(true);
+  test('a label in a family the code builds still fails when nothing names it', () => {
+    expect(named('sections.deadThing')).toBe(false);
   });
 });
