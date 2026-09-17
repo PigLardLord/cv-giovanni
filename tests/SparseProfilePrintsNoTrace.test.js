@@ -87,6 +87,15 @@ class CertificationsBefore169 extends CertificationsRenderer {
   }
 }
 
+// The renderers as they are, with a comma left after the header of a role that names no place: the trace #213 lost.
+class ExperienceWithDanglingComma extends ExperienceRenderer {
+  createJobEntry(root, job, tenure) {
+    const entry = super.createJobEntry(root, job, tenure);
+    if (!job.location) entry.querySelector('.job-header').append(',');
+    return entry;
+  }
+}
+
 /** What script.js registers, in its order; the entries' renderers replaceable. */
 const renderers = (
   i18n,
@@ -198,5 +207,20 @@ describe('a sparse CV, printed', () => {
         { mark: '()', line: `${sparse.education[1].school} ()` }
       ])
     );
+  });
+
+  // #213: a line of prose that opened with a later role's whole header took that role's line from it, so the role's own
+  // trace went unchecked and the prose's comma was blamed. The check places the prose by the words the profile writes,
+  // so the page has to print a highlight as it is written.
+  test("a highlight that opens with a later role's header takes nothing from that role", async () => {
+    const named = structuredClone(sparse);
+    const [first, role] = named.relevant_experience;
+    const header = `${role.title} ${at} ${role.company}`;
+    first.highlights[0] = `${header}, and later here: ${first.highlights[0]}`;
+
+    expect(traces(await printed(named), named)).toEqual([]);
+    expect(
+      traces(await printed(named, { Experience: ExperienceWithDanglingComma }), named)
+    ).toEqual([{ mark: `${header},`, line: `${header},` }]);
   });
 });
