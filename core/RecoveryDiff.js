@@ -62,8 +62,19 @@ const printedPeriod = (degree) => {
  */
 const LIKENESS = { exact: 2, normalised: 2, partial: 1, wrong: 0, lost: 0 };
 
-/** How much a recovered value says of a written one, from `LIKENESS`. */
-const like = (written, got, kind) => LIKENESS[RecoveryDiff.verdict(written, got, kind)];
+/**
+ * What identifies an entry of each repeated section, named by the fields the diff grades it on: `by` says which entry it
+ * is, and `tie` only breaks a tie between two entries `by` says equally much of (#217). A skill category is told by its
+ * whole label, in the skill normaliser's terms: a label that says part of another is a category torn in two, not the
+ * same one.
+ */
+const IDENTIFIED_BY = {
+  experience: { by: ['title', 'employer'], tie: ['period'] },
+  education: { by: ['degree', 'school'], tie: ['period'] },
+  skills: { by: ['category'], kind: 'skill', whole: true },
+  spokenLanguages: { by: ['name'] },
+  certifications: { by: ['name'] }
+};
 
 /** A recovered field's value; none when nothing came back. */
 const fieldValue = (field) => (field && field.value !== undefined ? field.value : null);
@@ -231,6 +242,39 @@ export class RecoveryDiff {
   }
 
   /**
+   * How much one entry says of another, on the fields that identify an entry of its section, each on the verdict ladder
+   * from `LIKENESS`: first what says which entry it is, then what breaks a tie between two it says equally much of.
+   *
+   * The one notion of the same entry: the diff matches a recovered entry to a written one by it, and
+   * `audit:ats:base` lines up the entries of two branches' profiles by it (#221). A field the first entry does not
+   * write says nothing, whatever the second writes there.
+   * @param {string} section - `experience`, `education`, `skills`, `spokenLanguages` or `certifications`
+   * @param {Object<string, *>} written - The entry the other is weighed against, as the fields the diff grades
+   * @param {Object<string, *>} candidate - The entry weighed, as the same fields
+   * @returns {number[]} What identifies the entry, then, for a section with one, what breaks a tie
+   */
+  static likeness(section, written, candidate) {
+    const { by, tie, kind = 'text', whole = false } = IDENTIFIED_BY[section];
+    const says = (fields) =>
+      fields.reduce((sum, field) => {
+        if (nothing(written[field])) return sum;
+        const verdict = RecoveryDiff.verdict(written[field], candidate[field], kind);
+        return sum + (whole && verdict === 'partial' ? 0 : LIKENESS[verdict]);
+      }, 0);
+    return tie ? [says(by), says(tie)] : [says(by)];
+  }
+
+  /**
+   * The fields that say which entry of a section an entry is, without those that only break a tie: what a report quotes
+   * to name an entry.
+   * @param {string} section - As `likeness` takes it
+   * @returns {string[]} The fields, as the diff grades them
+   */
+  static identifying(section) {
+    return [...IDENTIFIED_BY[section].by];
+  }
+
+  /**
    * Which recovered entry answers for each written one, matched by what the two say rather than where they stand (#217).
    *
    * By position, a parser that dropped the first of three degrees compared the second with the first and the third with
@@ -297,10 +341,17 @@ export class RecoveryDiff {
    * @returns {{ matched: (Object|null)[], unmatched: Object[] }} As `match` returns them
    */
   static roles(document, recovered) {
-    return RecoveryDiff.match(document.experience, recovered.experience, (job, role) => [
-      like(job.title, fieldValue(role.title)) + like(job.company, fieldValue(role.employer)),
-      like(job.period, role.period?.span || null)
-    ]);
+    return RecoveryDiff.match(document.experience, recovered.experience, (job, role) =>
+      RecoveryDiff.likeness(
+        'experience',
+        { title: job.title, employer: job.company, period: job.period },
+        {
+          title: fieldValue(role.title),
+          employer: fieldValue(role.employer),
+          period: role.period?.span || null
+        }
+      )
+    );
   }
 
   /**
@@ -346,11 +397,17 @@ export class RecoveryDiff {
    * @returns {{ matched: (Object|null)[], unmatched: Object[] }} As `match` returns them
    */
   static degrees(document, recovered, words) {
-    return RecoveryDiff.match(document.education, recovered.education, (item, got) => [
-      like(lineText(degreeLine(item, words)), fieldValue(got.degree)) +
-        like(item.school, fieldValue(got.school)),
-      printedPeriod(item) === null ? 0 : like(printedPeriod(item), got.period)
-    ]);
+    return RecoveryDiff.match(document.education, recovered.education, (item, got) =>
+      RecoveryDiff.likeness(
+        'education',
+        {
+          degree: lineText(degreeLine(item, words)),
+          school: item.school,
+          period: printedPeriod(item)
+        },
+        { degree: fieldValue(got.degree), school: fieldValue(got.school), period: got.period }
+      )
+    );
   }
 
   /**
@@ -396,10 +453,12 @@ export class RecoveryDiff {
     const { matched, unmatched } = RecoveryDiff.match(
       document.skills,
       recovered.skills,
-      (group, candidate) => {
-        const verdict = RecoveryDiff.verdict(group.category, candidate.category, 'skill');
-        return [verdict === 'exact' || verdict === 'normalised' ? LIKENESS[verdict] : 0];
-      }
+      (group, candidate) =>
+        RecoveryDiff.likeness(
+          'skills',
+          { category: group.category },
+          { category: candidate.category }
+        )
     );
     return document.skills.map((group, index) => {
       const at = ['skills', index, 'category'];
@@ -444,9 +503,13 @@ export class RecoveryDiff {
    * @returns {{ matched: (Object|null)[], unmatched: Object[] }} As `match` returns them
    */
   static languages(document, recovered) {
-    return RecoveryDiff.match(document.languages, recovered.spokenLanguages, (language, entry) => [
-      like(language.name, entry.name || null)
-    ]);
+    return RecoveryDiff.match(document.languages, recovered.spokenLanguages, (language, entry) =>
+      RecoveryDiff.likeness(
+        'spokenLanguages',
+        { name: language.name },
+        { name: entry.name || null }
+      )
+    );
   }
 
   /**
@@ -494,7 +557,12 @@ export class RecoveryDiff {
     return RecoveryDiff.match(
       document.certifications,
       recovered.certifications,
-      (certification, entry) => [like(printedCertification(certification), entry.text || null)]
+      (certification, entry) =>
+        RecoveryDiff.likeness(
+          'certifications',
+          { name: printedCertification(certification) },
+          { name: entry.text || null }
+        )
     );
   }
 
