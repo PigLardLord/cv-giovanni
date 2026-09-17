@@ -42,7 +42,8 @@ export const renderedGlyphs = (start, end) => `(() => {
   const flowing = (element) => ['inline', 'contents'].includes(getComputedStyle(element).display);
   const content = (element) => {
     const style = getComputedStyle(element);
-    const inset = (side) => (parseFloat(style['padding' + side]) || 0) + (parseFloat(style['border' + side + 'Width']) || 0);
+    const inset = (side) =>
+      (parseFloat(style['padding' + side]) || 0) + (parseFloat(style['border' + side + 'Width']) || 0);
     const drawn = element.getBoundingClientRect();
     return { style, left: drawn.left + scrollX + inset('Left'), right: drawn.right + scrollX - inset('Right') };
   };
@@ -93,7 +94,8 @@ export const renderedGlyphs = (start, end) => `(() => {
           column
         });
       } else if (shown && /^\\s+$/.test(text.slice(index, index + size))) {
-        glyphs.push({ text: text.slice(index, index + size), top: null, bottom: null, left: null, right: null, room, column });
+        const unboxed = { top: null, bottom: null, left: null, right: null };
+        glyphs.push({ text: text.slice(index, index + size), ...unboxed, room, column });
       }
       index += size;
     }
@@ -221,8 +223,8 @@ const pastColumn = (glyph) => {
  * No text of the CV is drawn past its column, and the page does not scroll sideways (#198). A run the page holds
  * together, a period or a separator with the words either side, cannot wrap however narrow its line is, and a run too
  * wide for its line runs past it. A space is never judged: one a line ends at hangs past the edge by design, and one a
- * break took has no box. A run of glyphs past the edge is named line by line, by its text and the line it sits on, since
- * a run can be a single letter, and by the furthest any of its glyphs is.
+ * break took has no box. A run of glyphs past the edge is named line by line, by its text and the line it sits on,
+ * since a run can be a single letter, and by the furthest any of its glyphs is.
  * @param {object[]} glyphs - Every glyph of the CV, as `renderedGlyphs` collects them, each with its column's edges
  * @param {{ scrollWidth: number, clientWidth: number }} page - The page's widths, as `pageWidth` reads them
  * @returns {{ checks: { staysInColumn: boolean }, findings: { overflowing: string[], sideways: string[] } }} The check,

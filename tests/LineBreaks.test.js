@@ -374,7 +374,7 @@ describe('the glyphs the audit collects from the page', () => {
     restore(Element.prototype, 'getBoundingClientRect', originals.box);
   });
 
-  test('are every visible character from the first bound to the last, each with the room and column of its line', () => {
+  test('are every visible character from the first bound to the last, with the room and column of its line', () => {
     const glyphs = window.eval(renderedGlyphs('#start', '#end'));
 
     expect(
@@ -395,9 +395,9 @@ describe('the glyphs the audit collects from the page', () => {
     expect(glyphs.at(-1)).toMatchObject({ room: 280, column: { left: 10, right: 290 } });
   });
 
-  // Every box here is 300px wide, so the inner block is drawn across its parent's padding: a box sized to what it holds
-  // — an inline-block, a flex item — grows past its column with a period that cannot wrap, and the period stays inside
-  // the box. Technical's role dates are one, at 320px (#198).
+  // Every box here is 300px wide, so the inner block is drawn across its parent's padding: a box sized to what it
+  // holds, an inline-block or a flex item, grows past its column with a period that cannot wrap, and the period stays
+  // inside the box. Technical's role dates are one, at 320px (#198).
   test('take as a column the narrowest content box around the line: its own block and each block it sits in', () => {
     document.getElementById('room').innerHTML = '<div style="padding-right: 20px">Pisa</div>';
     const [glyph] = window.eval(renderedGlyphs('#room', '#room'));
