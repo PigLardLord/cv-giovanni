@@ -105,6 +105,22 @@ body {
   line-height: 1.4 !important;
   color: #374151 !important;
   font-family: 'Inter', Arial, sans-serif !important;
+  /* No OpenType feature reaches paper (#238). Inter maps its own alternates — the open 4, 6 and 9, the
+     single-storey a, the case-sensitive punctuation — into the Private Use area of its cmap, and Chrome
+     writes whatever the cmap says into the `/ToUnicode` map when it embeds the subset. A reader that
+     trusts that map, which is what a text layer is for, then hands the code point out or drops it:
+     poppler's pdftohtml read the name as "Giovnni Trovto" and the email as "trovto.giovnni@gmil.com",
+     where pdftotext read both whole because it goes behind the map to the font's own cmap.
+     `style.css` asks for cv02, cv03, cv04 and cv11 on the screen, and this declaration replaces that
+     inherited list wholesale rather than adding to it. `font-variant-ligatures: none` alone switches off
+     the contextual alternates as well — measured, 0 Private Use code points without the line below — and
+     `'calt' 0` stays as the explicit belt, because `calt` is what substitutes the punctuation beside a
+     capital or a digit: "(MDM)", "iOS:", "~30k", "+39" and every closed year range were hit while
+     "(remote)" was not. The screen keeps all of it; only paper gives it up. */
+  font-feature-settings: 'calt' 0 !important;
+  font-variant-ligatures: none !important;
+  font-variant-numeric: normal !important;
+  font-variant-alternates: normal !important;
 }
 
 /* Nothing on paper is positioned. style.css positions the container, the masthead, its text (at z-index 2),
@@ -1055,7 +1071,8 @@ body[data-layout='nerd'] .job-period {
   align-self: baseline !important;
   margin: 0 !important;
   font-size: 9pt !important;
-  font-variant-numeric: tabular-nums !important;
+  /* Tabular figures are an OpenType feature, and every year in this column extracted as four Private Use
+     code points because of it (#244). The dates are a single column of their own, so they line up without. */
   color: #555 !important;
 }
 

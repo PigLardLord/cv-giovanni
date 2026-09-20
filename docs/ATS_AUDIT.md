@@ -65,7 +65,7 @@ Regenerate with `npm run audit:ats`.
 
 3 artefacts, 2 distinct streams.
 
-- `eb97363a28a9` — generated/giovanni-trovato-general-en-nerd.pdf
+- `eb0205c60730` — generated/giovanni-trovato-general-en-nerd.pdf
 - `7e18be38b4a6` — generated/giovanni-trovato-general-en-spotlight.pdf, generated/giovanni-trovato-general-en-technical.pdf
 
 

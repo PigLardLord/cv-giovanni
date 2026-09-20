@@ -1,12 +1,20 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { mkdtemp, readdir, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { writeReport } from './lib/write-report.mjs';
 import { fallbackRuns, typefacesFor } from './lib/printed-typefaces.mjs';
-import { gluedPhrases, type3Fonts } from './lib/extractable-text.mjs';
+import {
+  gluedPhrases,
+  privateUseDestinations,
+  toUnicodeCmaps,
+  toUnicodeFonts,
+  type3Fonts,
+  wordsLostBetween,
+  xmlText
+} from './lib/extractable-text.mjs';
 import { degreeBesideSchool } from './lib/degree-lines.mjs';
 import { emptyFieldMarks, entrySections, printedEntries } from './lib/empty-fields.mjs';
 import { imageCount, outOfOrder } from './lib/section-order.mjs';
@@ -262,10 +270,25 @@ async function measure(path, faces, directory) {
   const info = execFileSync('pdfinfo', [pdf], { encoding: 'utf8' });
   const text = execFileSync('pdftotext', [pdf, '-'], { encoding: 'utf8' });
   // The face of every run of text, so a substitution is named rather than inferred.
-  const fallback = fallbackRuns(
-    execFileSync('pdftohtml', ['-xml', '-i', '-stdout', '-q', pdf], { encoding: 'utf8' }),
-    faces
-  );
+  const html = execFileSync('pdftohtml', ['-xml', '-i', '-stdout', '-q', pdf], {
+    encoding: 'utf8'
+  });
+  const fallback = fallbackRuns(html, faces);
+  // The same file through a reader that trusts the `/ToUnicode` map, against one that goes behind it to the
+  // font's own cmap. They disagree where Skia mapped a glyph Chrome reached through an OpenType feature (#244).
+  const cmaps = toUnicodeCmaps(readFileSync(pdf));
+  const mapping = toUnicodeFonts(execFileSync('pdffonts', [pdf], { encoding: 'utf8' }));
+  const privateUse = privateUseDestinations(cmaps.join('\n'));
+  // Every map `pdffonts` says exists is a map that was read, and every embedded font has one. Without
+  // this the Private Use check reads green on a file whose maps it never found, and an audit that
+  // checked nothing must not read as a pass.
+  const unreadMaps = [
+    ...mapping.unmapped.map((font) => `${font}: no /ToUnicode at all`),
+    ...(cmaps.length < mapping.mapped.length
+      ? [`read ${cmaps.length} of ${mapping.mapped.length} maps pdffonts reports`]
+      : [])
+  ];
+  const lostToTheMap = wordsLostBetween(text, xmlText(html));
   // Drawing order, as PDFBox and Tika read by default, and the fonts a text extractor has to decode (#143).
   const drawn = execFileSync('pdftotext', ['-raw', pdf, '-'], { encoding: 'utf8' });
   const type3 = type3Fonts(execFileSync('pdffonts', [pdf], { encoding: 'utf8' }));
@@ -284,8 +307,25 @@ async function measure(path, faces, directory) {
   const faint = faintWords(bbox, pages);
   await rm(raster, { recursive: true, force: true });
 
-  return { info, text, drawn, bbox, fallback, type3, images, pageCount, margins, faint };
+  return {
+    info,
+    text,
+    drawn,
+    bbox,
+    fallback,
+    type3,
+    privateUse,
+    unreadMaps,
+    lostToTheMap,
+    images,
+    pageCount,
+    margins,
+    faint
+  };
 }
+
+/** A code point as a reader of the report writes it. */
+const asCodePoint = (code) => `U+${code.toString(16).toUpperCase().padStart(4, '0')}`;
 
 // The files the generator wrote for this profile, one per layout. One that is not there was never built, and an
 // audit of it would check nothing: exit 2, as every audit here does when it did not run.
@@ -308,8 +348,21 @@ const letterRows = [];
 
 try {
   for (const { layout, path } of files) {
-    const { info, text, drawn, bbox, fallback, type3, images, pageCount, margins, faint } =
-      await measure(path, typefacesFor(layout), workspace);
+    const {
+      info,
+      text,
+      drawn,
+      bbox,
+      fallback,
+      type3,
+      privateUse,
+      unreadMaps,
+      lostToTheMap,
+      images,
+      pageCount,
+      margins,
+      faint
+    } = await measure(path, typefacesFor(layout), workspace);
     const long = longProseLines(text, prose, { periods });
     const overflow = layout === 'nerd' ? overflowingPeriods(bbox, periods) : [];
     // How close each page runs to its foot, reported and never gated: the page count is the gate (#162). A page with
@@ -416,6 +469,11 @@ try {
       // Every font a TrueType or CID font, which extractors map to text without drawing it: Chrome prints
       // a variable web font as Type 3, and several extractors have documented bugs with those.
       noType3Fonts: type3.length === 0,
+      // No glyph mapped to a Private Use code point. Inter maps its own alternates there, Chrome copies the
+      // cmap's code point into the `/ToUnicode` map, and a reader that trusts the map hands it out or drops
+      // it: pdftohtml read the email as "trovto.giovnni@gmil.com" while pdftotext, which goes behind the map
+      // to the font's cmap, read it whole — so no audit here could see it (#238).
+      noPrivateUseGlyphs: privateUse.length === 0 && unreadMaps.length === 0,
       // Read in drawing order, the name, every title, employer, school and skill category keeps the
       // spaces between its words: "GiovanniTrovato" is a name no search finds.
       wordsSpacedInDrawingOrder: glued.length === 0,
@@ -455,6 +513,9 @@ try {
       faint: faint.slice(0, 8),
       fallback: fallback.slice(0, 8),
       type3,
+      privateUse: privateUse.map(asCodePoint),
+      unreadMaps,
+      lostToTheMap: lostToTheMap.slice(0, 8),
       traces,
       glued,
       sections,
@@ -489,8 +550,21 @@ try {
       .map(collapse);
 
     for (const { layout, path } of letters.files) {
-      const { info, text, drawn, bbox, fallback, type3, images, pageCount, margins, faint } =
-        await measure(path, typefacesFor(layout, 'letter'), workspace);
+      const {
+        info,
+        text,
+        drawn,
+        bbox,
+        fallback,
+        type3,
+        privateUse,
+        unreadMaps,
+        lostToTheMap,
+        images,
+        pageCount,
+        margins,
+        faint
+      } = await measure(path, typefacesFor(layout, 'letter'), workspace);
       const parts = { read: outOfOrder(text, anchors), drawn: outOfOrder(drawn, anchors) };
       const flat = collapse(text);
       // Where each line of the address landed on the paper, as poppler places it.
@@ -515,6 +589,9 @@ try {
         textLayerClean: !/\p{Extended_Pictographic}/u.test(text),
         intendedTypeface: fallback.length === 0,
         noType3Fonts: type3.length === 0,
+        // The letter is the other artefact this script audits, and the rule is the same: no glyph mapped
+        // to a Private Use code point, because a reader that trusts the map loses it (#238).
+        noPrivateUseGlyphs: privateUse.length === 0 && unreadMaps.length === 0,
         noImages: images === 0
       };
 
@@ -527,6 +604,9 @@ try {
         faint: faint.slice(0, 8),
         fallback: fallback.slice(0, 8),
         type3,
+        privateUse: privateUse.map(asCodePoint),
+        unreadMaps,
+        lostToTheMap: lostToTheMap.slice(0, 8),
         parts,
         window: address,
         images,
@@ -575,7 +655,8 @@ const report = [
   `no narrower than ${MARGIN_FLOOR_MM}mm and symmetric within ${SIDE_TOLERANCE_MM}mm, a text layer carrying nothing`,
   'the data did not write and no trace of a field left empty (no `()`, no `undefined` or `null`, no',
   'separator doubled on its line, no entry ending on the separator of a part it does not have),',
-  'every run of text set in a typeface its layout prints in, no Type 3 font,',
+  'every run of text set in a typeface its layout prints in, no Type 3 font, no glyph mapped to a Private',
+  'Use code point,',
   'and, read in drawing order as PDFBox and Tika read, the name, titles, employers, schools and',
   'skill categories with the spaces between their words, the sections in reading order both as',
   'poppler reconstructs the page and as the PDF draws it, no image, no line of prose past',
@@ -607,7 +688,7 @@ const report = [
         "inside a DL window envelope's window 20–110mm across (DIN 5008 form B), every word at 4.5:1",
         `on paper, every margin no narrower than ${MARGIN_FLOOR_MM}mm (form B is asymmetric by design, so the sides`,
         'are not compared), no pictograph in the text layer, every run of text set in a typeface its layout',
-        'prints in, no Type 3 font, and no image.'
+        'prints in, no Type 3 font, no glyph mapped to a Private Use code point, and no image.'
       ]
     : [])
 ].join('\n');
@@ -631,6 +712,9 @@ if (failures.length || letterFailures.length) {
             faint,
             fallback,
             type3,
+            privateUse,
+            unreadMaps,
+            lostToTheMap,
             traces,
             glued,
             sections,
@@ -648,6 +732,9 @@ if (failures.length || letterFailures.length) {
             faint,
             fallback,
             type3,
+            privateUse,
+            unreadMaps,
+            lostToTheMap,
             traces,
             glued,
             sections,
