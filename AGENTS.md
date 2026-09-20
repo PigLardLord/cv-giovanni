@@ -617,6 +617,20 @@ Settled on #144 by the owner, and not to be undone by someone reclaiming space:
   variable or CFF font as Type 3, which several extractors mishandle, and letter-spacing narrowed
   the gap a drawing-order parser reads as a word break: "GiovanniTrovato" (#143). `print.css` loads
   `vendor/fonts/inter/Inter-*.ttf` and sets `letter-spacing: 0`.
+- **No OpenType feature reaches paper.** Inter maps its own alternates — the open 4, 6 and 9, the
+  single-storey a, the case-sensitive punctuation `calt` substitutes beside a capital — into the
+  Private Use area of its cmap, and Chrome writes whatever the cmap says into the `/ToUnicode` map
+  when it embeds the subset. A reader that trusts that map, which is what a text layer is for, hands
+  the code point out or drops it. `pdftohtml` read the name as "Giovnni Trovto" and the email as
+  "trovto.giovnni@gmil.com" on documents `pdftotext` read whole, because `pdftotext` goes behind the
+  map to the font's own cmap, and so does PDFBox: three audits read the file that way and none of
+  them could see it (#238). `print.css` and `letter.css` therefore turn the features off for paper,
+  and the screen keeps Inter's alternates. `audit:print` fails on any Private Use destination in any
+  embedded font's map, in the CV and in the letter alike, and names the glyphs and the words a
+  `pdftohtml` read and a `pdftotext` read disagree on.
+  The lost-word list is not decoration: a font that does **not** map its alternates into the Private
+  Use area would leave a feature glyph out of the map altogether, which the Private Use check cannot
+  see and only the two reads disagreeing would show.
 - **Chrome is not pinned.** The print embeds only static TrueType faces, so a Chrome update would
   have to change how Skia embeds TrueType before the PDF degraded, and `audit:print` would fail the
   build on a Type 3 font or a glued word before anything was published. Pinning a Chrome for Testing
