@@ -1,0 +1,227 @@
+{
+  "name": "Giovanni Trovato",
+  "title": "Senior iOS Engineer",
+  "subtitle": "Swift · SwiftUI · Enterprise Mobility · CI/CD · Entwicklung mit KI-Agenten",
+  "location": "Bad Liebenstein, Thüringen, Deutschland",
+  "email": "trovato.giovanni@gmail.com",
+  "phone": "+39 329 8484 046",
+  "availability": "Remote · ab sofort verfügbar",
+  "workAuthorisation": "EU-Bürger · keine Arbeitserlaubnis für Deutschland erforderlich",
+  "profile": "Senior iOS Engineer mit über 11 Jahren nativer App-Entwicklung, davon 8 bei Cortado Mobile Solutions. Entwickelt dort den MDM-Client für iOS in SwiftUI, seit 2025 auch den für Android.",
+  "career_highlights": [
+    "Cortado MDM für iOS: rund 30.000 Downloads, 4 Absturzberichte in App Store Connect seit 2021",
+    "ezeep Blue für iOS: 300.000 Downloads seit dem Release 2020",
+    "Cortado MDM für Android, 2026: 1.040 → 5.308 Tests, Branch-Coverage 14% → 83%"
+  ],
+  "asOf": "2026-09",
+  "relevant_experience": [
+    {
+      "title": "iOS Developer",
+      "company": "Cortado Mobile Solutions",
+      "location": "Berlin (remote)",
+      "period": "08/2018 – 11/2026",
+      "summary": "Enterprise Mobility und Mobile Device Management, seit 2020 im zweiköpfigen Mobile-Team. Verantwortlich für die Architektur des iOS-Clients und dessen interne Releases.",
+      "highlights": [
+        "Cortado MDM für iOS, seit dem ersten Commit 2020 in SwiftUI entwickelt: Clean Architecture, TDD, Live Activities, App Intents.",
+        "ezeep Blue für iOS, 2020–2023: gemeinsam mit einem weiteren Entwickler in SwiftUI neu implementiert.",
+        "Cortado MDM für Android, 2025: Compose auf den meisten Screens; Testlaufzeit von 37,7 auf 5,2 Minuten (Spitze Juli 2026).",
+        "Frühere Produkte, 2018–2023: Workplace und Teamplace auf Swift und Combine umgestellt; NFCReader allein entwickelt.",
+        "Produktübergreifend: CI/CD, Code Signing, Provisioning, Releases für App Store und Google Play; SBOM und Sicherheitsscans.",
+        "Seit 2025 Entwicklung mit KI-Agenten (Mentor für 2 Entwickler); Cortados Zertifizierung im Android Enterprise Partner Program."
+      ]
+    },
+    {
+      "title": "Mobile Developer",
+      "company": "Apparound",
+      "location": "Pisa, Italien",
+      "period": "09/2015 – 07/2018",
+      "summary": "B2B-Plattform zur Vertriebsautomatisierung für Außendienstteams großer Unternehmen.",
+      "highlights": [
+        "Offline-first-Funktionen für iOS und Android entwickelt, mit denen Außendienstteams auch ohne Verbindung weiterarbeiten konnten.",
+        "UI-Komponentenbibliothek aufgebaut, UI/UX-Redesign der mobilen Clients geleitet; weniger Doppelarbeit bei neuen Screens."
+      ]
+    },
+    {
+      "title": "Mobile Developer Intern (Praktikum)",
+      "company": "Marte 5",
+      "location": "Livorno, Italien",
+      "period": "05/2015 – 08/2015",
+      "summary": "Augmented-Reality-Anwendungen für Android im Produktiveinsatz bei Kunden aus Fertigung und Automobilindustrie, entwickelt mit Java, Vuforia und Wikitude.",
+      "highlights": []
+    },
+    {
+      "title": "IT-Systemadministrator",
+      "company": "Compusoft",
+      "location": "Modica, Italien",
+      "period": "05/2010 – 11/2014",
+      "highlights": [],
+      "summary": "Firmennetzwerke, Server, NAS und Sicherheitssysteme; die Firmenwebsite; Geschäftsanwendungen auf Basis von Microsoft Access."
+    }
+  ],
+  "education": [
+    {
+      "degree": "First Level Professional Master's Programme in Mobile Applications Development",
+      "school": "Università degli Studi di Pisa",
+      "period": "2014–2016",
+      "credits": 60
+    },
+    {
+      "degree": "BSc in Computer Engineering",
+      "school": "Università degli Studi di Catania",
+      "period": "2009"
+    }
+  ],
+  "skills": [
+    {
+      "category": "iOS",
+      "items": [
+        {
+          "name": "Swift"
+        },
+        {
+          "name": "SwiftUI"
+        },
+        {
+          "name": "UIKit"
+        },
+        {
+          "name": "Combine"
+        },
+        {
+          "name": "Swift Concurrency"
+        },
+        {
+          "name": "Objective-C"
+        },
+        {
+          "name": "XCTest"
+        },
+        {
+          "name": "XCUITest"
+        },
+        {
+          "name": "App Intents"
+        },
+        {
+          "name": "Live Activities"
+        },
+        {
+          "name": "Swift Package Manager"
+        }
+      ]
+    },
+    {
+      "category": "Android",
+      "items": [
+        {
+          "name": "Kotlin"
+        },
+        {
+          "name": "Jetpack Compose"
+        },
+        {
+          "name": "DevicePolicyManager"
+        }
+      ]
+    },
+    {
+      "category": "Build & Release",
+      "items": [
+        {
+          "name": "GitLab CI/CD"
+        },
+        {
+          "name": "fastlane"
+        },
+        {
+          "name": "Code Signing und Provisioning"
+        },
+        {
+          "name": "TestFlight"
+        },
+        {
+          "name": "App Store Connect"
+        },
+        {
+          "name": "Google Play Console"
+        },
+        {
+          "name": "SBOM"
+        }
+      ]
+    },
+    {
+      "category": "Architektur & Methoden",
+      "items": [
+        {
+          "name": "Clean Architecture"
+        },
+        {
+          "name": "MVVM"
+        },
+        {
+          "name": "Modularisierung"
+        },
+        {
+          "name": "REST-APIs"
+        },
+        {
+          "name": "TDD"
+        },
+        {
+          "name": "Entwicklung mit KI-Agenten"
+        },
+        {
+          "name": "Claude Code"
+        }
+      ]
+    }
+  ],
+  "languages": [
+    {
+      "name": "Italienisch",
+      "level": "Muttersprache"
+    },
+    {
+      "name": "Englisch",
+      "level": "C1 (GER), Arbeitssprache seit 2018"
+    },
+    {
+      "name": "Deutsch",
+      "level": "A1 (GER), im Selbststudium"
+    }
+  ],
+  "certifications": [
+    {
+      "name": "Android Enterprise Expert (Associate, Professional)",
+      "issuer": "Google",
+      "year": 2026,
+      "url": "https://androidenterprise.exceedlms.com/student/award/zAefp6qrpzWEb5kgEKVb7bah"
+    },
+    {
+      "name": "iOS Lead Essentials (TDD, Clean Architecture)",
+      "issuer": "Essential Developer",
+      "year": 2024,
+      "url": "https://academy.essentialdeveloper.com/achievements/cc210373-d44f-4345-aff2-a1402b5104d4"
+    }
+  ],
+  "interests": [
+    "Robotik und IoT",
+    "Bergwandern",
+    "Strategiespiele"
+  ],
+  "social": [
+    {
+      "platform": "GitHub",
+      "url": "https://github.com/PigLardLord"
+    },
+    {
+      "platform": "LinkedIn",
+      "url": "https://www.linkedin.com/in/piglardlord/"
+    },
+    {
+      "platform": "Online-Lebenslauf",
+      "url": "https://piglardlord.github.io/cv-giovanni/"
+    }
+  ]
+}
