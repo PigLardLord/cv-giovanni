@@ -7,9 +7,9 @@ Layouts: 3
 
 | Layout | Pages | Score | Worst side margin | Room left |
 |---|---:|---:|---:|---|
-| nerd | 2 | 25/25 | 13.7mm | p1 49.5pt · p2 198.3pt |
-| spotlight | 2 | 25/25 | 33.4mm | p1 26.3pt · p2 189.3pt |
-| technical | 2 | 25/25 | 33.4mm | p1 30.8pt · p2 188.5pt |
+| nerd | 2 | 26/26 | 13.7mm | p1 65.3pt · p2 198.3pt |
+| spotlight | 2 | 26/26 | 33.5mm | p1 26.3pt · p2 189.3pt |
+| technical | 2 | 26/26 | 33.5mm | p1 30.8pt · p2 188.5pt |
 
 Room left is the space between each page's lowest line and its 33pt bottom margin. A last
 page with less than one 15.4pt line of running text free is marked ⚠: the next line
@@ -21,7 +21,8 @@ attached to its category, every role present, every word at 4.5:1 on paper, marg
 no narrower than 10mm and symmetric within 1.5mm, a text layer carrying nothing
 the data did not write and no trace of a field left empty (no `()`, no `undefined` or `null`, no
 separator doubled on its line, no entry ending on the separator of a part it does not have),
-every run of text set in a typeface its layout prints in, no Type 3 font,
+every run of text set in a typeface its layout prints in, no Type 3 font, no glyph mapped to a Private
+Use code point,
 and, read in drawing order as PDFBox and Tika read, the name, titles, employers, schools and
 skill categories with the spaces between their words, the sections in reading order both as
 poppler reconstructs the page and as the PDF draws it, no image, no line of prose past

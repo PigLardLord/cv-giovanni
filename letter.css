@@ -56,6 +56,14 @@
   font-synthesis: none;
   /* No tracking: a parser reading in drawing order finds a word's end only in the gap the page leaves (#143). */
   letter-spacing: 0;
+  /* And no OpenType feature, for the reason print.css gives: Inter maps its alternates into the Private Use
+     area of its own cmap, Chrome writes whatever the cmap says into the `/ToUnicode` map, and a reader that
+     trusts that map — pdftohtml, PDF.js — hands the code point out or drops it. Unchecked here, the letter
+     printed the phone with no "+", "2020–2023" welded and "~30k" without its tilde (#238). */
+  font-feature-settings: normal;
+  font-variant-ligatures: none;
+  font-variant-numeric: normal;
+  font-variant-alternates: normal;
 }
 
 html {

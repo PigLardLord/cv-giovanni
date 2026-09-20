@@ -299,6 +299,22 @@ describe('SourceRenderer', () => {
     expect(code().textContent).toContain('14% → 83%');
   });
 
+  // The editor calls `holdSeparators` itself rather than going through `setProse`, so it never had the
+  // closed-range rule `setProse` gained on #230: the Cortado entry's "2020–2023" was held as the dash
+  // alone, and a line could still break after it. This is the path the published page actually changed
+  // on #232, and the assertion above cannot see it, because it keeps only the bare separators.
+  test('holds a range the data wrote without spaces whole, dash and both ends', () => {
+    fedTheModel(new SourceRenderer(i18n)).render(document, {
+      ...profile,
+      career_highlights: ['ezeep Blue for iOS, 2020–2023: rewrote it']
+    });
+
+    const runs = [...code().querySelectorAll('.tok .no-break')].map((span) => span.textContent);
+    expect(runs).toContain('2020–2023:');
+    expect(runs).not.toContain('–');
+    expect(code().textContent).toContain('ezeep Blue for iOS, 2020–2023: rewrote it');
+  });
+
   test('copies a line of names as a list, and a language as a name and its level', () => {
     render();
 

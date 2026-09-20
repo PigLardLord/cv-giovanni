@@ -73,6 +73,61 @@ describe('ExperienceRenderer', () => {
     ]);
   });
 
+  // The range above is held by `setProse`, which knows the hyphen and the en dash and not the em dash, so
+  // "2014—2016" still reached `holdSeparators` and was held as the dash alone (#232). Every separator the domain
+  // names is held the same way when the data writes it with no space: the dash alone is an atomic box a line may
+  // still break after, which is the stranded separator #180 forbids.
+  test('holds a separator the data wrote without spaces to the words either side of it', () => {
+    renderer.render(document, {
+      relevant_experience: [
+        {
+          title: 'Mobile Developer',
+          company: 'Apparound',
+          period: 'September 2015 – July 2018',
+          summary: 'Read 2014—2016 as one range.',
+          highlights: ['Shipped to Berlin·Munich, 14%→83% covered.']
+        }
+      ]
+    });
+
+    const summary = document.querySelector('.job-summary');
+    expect(summary.textContent).toBe('Read 2014—2016 as one range.');
+    expect([...summary.querySelectorAll('.no-break')].map((held) => held.textContent)).toEqual([
+      '2014—2016'
+    ]);
+
+    const highlight = document.querySelector('.job-highlights li');
+    expect(highlight.textContent).toBe('Shipped to Berlin·Munich, 14%→83% covered.');
+    expect([...highlight.querySelectorAll('.no-break')].map((held) => held.textContent)).toEqual([
+      'Berlin·Munich,',
+      '14%→83%'
+    ]);
+  });
+
+  // Two separators that took the same word between them are one run and not two: left as two spans they are two
+  // atomic boxes side by side, and the boundary between them is a break opportunity like any other, so a line
+  // could still open on "—2018".
+  test('holds a word two separators share as one run, not as two boxes side by side', () => {
+    renderer.render(document, {
+      relevant_experience: [
+        {
+          title: 'Mobile Developer',
+          company: 'Apparound',
+          period: 'September 2015 – July 2018',
+          summary: 'Ran 2014—2016—2018 throughout.',
+          highlights: ['Shipped to Berlin·Munich·Hamburg.']
+        }
+      ]
+    });
+
+    expect(
+      [...document.querySelectorAll('.job-summary .no-break')].map((held) => held.textContent)
+    ).toEqual(['2014—2016—2018']);
+    expect(
+      [...document.querySelectorAll('.job-highlights .no-break')].map((held) => held.textContent)
+    ).toEqual(['Berlin·Munich·Hamburg.']);
+  });
+
   // "from its first commit" / "— owned" opened a line at Impact Spotlight's 320px (#180).
   test("holds each separator in a role's prose to the words either side of it", () => {
     renderer.render(document, {
