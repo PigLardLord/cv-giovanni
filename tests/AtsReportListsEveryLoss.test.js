@@ -254,7 +254,7 @@ describe("the table's Fidelity column reads every field the fidelity band scores
 // or a certification costs nothing.
 describe('what came back that matches nothing written is quoted as nobody wrote it', () => {
   const invented = fixture('page-print-nerd')
-    .replace('August 2018 – Present', 'January 2019 – March 2020')
+    .replace('August 2018 – November 2026', 'January 2019 – March 2020')
     .replace(
       'iOS Developer at Cortado Mobile Solutions, Berlin (remote)',
       'Head Chef at Trattoria Da Mario, Rome, Italy'

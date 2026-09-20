@@ -187,7 +187,7 @@ describe('the printed page, in the order poppler reads it', () => {
 
     expect(cv.experience.map(identityOf)).toEqual(ROLES);
     expect(cv.experience.map((role) => role.period.span)).toEqual([
-      'August 2018 – Present',
+      'August 2018 – November 2026',
       'September 2015 – July 2018',
       'May 2015 – August 2015',
       'May 2010 – November 2014'
@@ -202,7 +202,7 @@ describe('the printed page, in the order poppler reads it', () => {
 
     expect(cv.experience.map(identityOf)).toEqual(ROLES);
     expect(cv.experience.map((role) => role.period.raw)).toEqual([
-      'August 2018 – Present',
+      'August 2018 – November 2026',
       'September 2015 – July 2018',
       'May 2015 – August 2015',
       'May 2010 – November 2014'
@@ -383,7 +383,7 @@ describe('the same artefacts, in content-stream order', () => {
     expect(cv.segmentation).toBe('ok');
     expect(cv.experience.map(identityOf)).toEqual(ROLES);
     expect(cv.experience.map((role) => role.period.raw)).toEqual([
-      'August 2018 – Present',
+      'August 2018 – November 2026',
       'September 2015 – July 2018',
       'May 2015 – August 2015',
       'May 2010 – November 2014'
@@ -398,7 +398,7 @@ describe('the same artefacts, in content-stream order', () => {
   test("a role's body is its own lines, up to the next role's header", () => {
     const [first] = parse('page-print-spotlight.raw').experience;
 
-    expect(first.bodyLines).toContain('test runtime from a July 2026 peak of 37.7 to 5.2 minutes.');
+    expect(first.bodyLines).toContain('from a July 2026 peak of 37.7 to 5.2 minutes.');
     expect(first.bodyLines.some((line) => line.startsWith('Earlier products, 2018–2023'))).toBe(
       true
     );

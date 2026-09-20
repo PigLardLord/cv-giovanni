@@ -19,12 +19,12 @@
       "title": "iOS Developer",
       "company": "Cortado Mobile Solutions",
       "location": "Berlin (remote)",
-      "period": "August 2018 – Present",
+      "period": "August 2018 – November 2026",
       "summary": "Enterprise mobility and device management, in a mobile team of 2 since 2020. Owns the iOS client's architecture and its internal releases.",
       "highlights": [
         "Cortado MDM for iOS, built in SwiftUI from its first commit in 2020: Clean Architecture, TDD, Live Activities, App Intents.",
         "ezeep Blue for iOS, 2020–2023: rewrote it in SwiftUI with another developer.",
-        "Cortado MDM for Android, since 2025: most screens to Jetpack Compose; test runtime from a July 2026 peak of 37.7 to 5.2 minutes.",
+        "Cortado MDM for Android, 2025: Compose on most screens; test runtime from a July 2026 peak of 37.7 to 5.2 minutes.",
         "Earlier products, 2018–2023: moved Workplace and Teamplace to Swift and Combine; NFCReader, sole author.",
         "Across products: CI/CD, code signing and provisioning, App Store and Google Play releases; SBOM and security scans.",
         "Agentic development since 2025, mentoring 2 developers in it; Cortado's Android Enterprise Partner Program certification."
@@ -207,7 +207,7 @@
   ],
   "certifications": [
     {
-      "name": "Android Enterprise Expert (with Associate and Professional)",
+      "name": "Android Enterprise Expert (Associate, Professional)",
       "issuer": "Google",
       "year": 2026,
       "url": "https://androidenterprise.exceedlms.com/student/award/zAefp6qrpzWEb5kgEKVb7bah"

@@ -19,17 +19,18 @@ Cortado MDM for Android, 2026: 1040 → 5308 tests, branch
 coverage 14% → 83%
 
 Professional Experience
-August 2018 – Present
+August 2018 – November 2026
 
 iOS Developer at Cortado Mobile Solutions, Berlin (remote)
 Enterprise mobility and device management, in a mobile team of 2
-since 2020. Owns the iOS client's architecture and its internal releases.
+since 2020. Owns the iOS client's architecture and its internal
+releases.
 Cortado MDM for iOS, built in SwiftUI from its first commit in 2020:
 Clean Architecture, TDD, Live Activities, App Intents.
 ezeep Blue for iOS, 2020–2023: rewrote it in SwiftUI with another
 developer.
-Cortado MDM for Android, since 2025: most screens to Jetpack
-Compose; test runtime from a July 2026 peak of 37.7 to 5.2 minutes.
+Cortado MDM for Android, 2025: Compose on most screens; test
+runtime from a July 2026 peak of 37.7 to 5.2 minutes.
 Earlier products, 2018–2023: moved Workplace and Teamplace to
 Swift and Combine; NFCReader, sole author.
 Across products: CI/CD, code signing and provisioning, App Store
@@ -41,8 +42,8 @@ September 2015 – July 2018
 
 Mobile Developer at Apparound, Pisa, Italy
 B2B sales-automation platform for enterprise field sales teams.
-Built offline-first iOS and Android features that kept field sales teams
-working without a connection.
+Built offline-first iOS and Android features that kept field sales
+teams working without a connection.
 Created a reusable UI component library and led the mobile clients'
 UI/UX redesign, cutting duplicate work on new screens.
 
@@ -60,7 +61,8 @@ IT System Administrator at Compusoft, Modica, Italy
 Core Technologies
 iOS – Swift, SwiftUI, UIKit, Combine, Swift concurrency, Objective-C, XCTest,
 XCUITest, App Intents, Live Activities, Swift Package Manager
-Android – Kotlin, Jetpack Compose, Android Enterprise, DevicePolicyManager
+Android – Kotlin, Jetpack Compose, Android Enterprise,
+DevicePolicyManager
 Delivery – GitLab CI/CD, fastlane, code signing and provisioning, TestFlight,
 App Store Connect, Google Play Console, staged rollout, SBOM,
 Dependency-Track
@@ -69,7 +71,7 @@ APIs, TDD, mobile device management (MDM), agentic development, Claude
 Code, Codex
 
 Certifications
-Android Enterprise Expert (with Associate and Professional) – Google (2026)
+Android Enterprise Expert (Associate, Professional) – Google (2026)
 iOS Lead Essentials (TDD, Clean Architecture) – Essential Developer (2024)
 
 Education

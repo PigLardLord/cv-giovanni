@@ -20,7 +20,7 @@ Cortado MDM for Android, 2026: 1040 → 5308 tests, branch coverage
 
 Professional Experience
 iOS Developer at Cortado Mobile Solutions, Berlin (remote)
-August 2018 – Present (8 years, 2 months)
+August 2018 – November 2026 (8 years, 4 months)
 
 Enterprise mobility and device management, in a mobile team of 2 since
 2020. Owns the iOS client's architecture and its internal releases.
@@ -28,8 +28,8 @@ Cortado MDM for iOS, built in SwiftUI from its first commit in 2020: Clean
 Architecture, TDD, Live Activities, App Intents.
 ezeep Blue for iOS, 2020–2023: rewrote it in SwiftUI with another
 developer.
-Cortado MDM for Android, since 2025: most screens to Jetpack Compose;
-test runtime from a July 2026 peak of 37.7 to 5.2 minutes.
+Cortado MDM for Android, 2025: Compose on most screens; test runtime
+from a July 2026 peak of 37.7 to 5.2 minutes.
 Earlier products, 2018–2023: moved Workplace and Teamplace to Swift
 and Combine; NFCReader, sole author.
 Across products: CI/CD, code signing and provisioning, App Store and
@@ -63,7 +63,7 @@ Architecture & practices – Clean Architecture, MVVM, modularisation, REST APIs
 TDD, mobile device management (MDM), agentic development, Claude Code, Codex
 
 Certifications
-Android Enterprise Expert (with Associate and Professional) – Google (2026)
+Android Enterprise Expert (Associate, Professional) – Google (2026)
 iOS Lead Essentials (TDD, Clean Architecture) – Essential Developer (2024)
 
 Education

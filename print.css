@@ -889,8 +889,9 @@ body[data-layout='technical'] .skill-category {
    #555 metadata, #d8d8d8 rules, #ebebeb the quieter ones. Measured on the artefact with pdftoppm at
    24dpi and at 150dpi: maximum channel spread 0 across both pages.
 
-   The text block is 517pt: a 128pt date column, a 14pt gap and a 375pt text column, whose longest
-   11pt line measured 69 characters. The masthead's lines and the section labels start at the date
+   The text block is 517pt: a 142pt date column, a 6pt gap and a 369pt text column, whose longest
+   11pt line measured 67 characters. The column took the gap's room when #230 closed the Cortado
+   period: "August 2018 – November 2026" needs 133.6pt where "August 2018 – Present" needed 110. The masthead's lines and the section labels start at the date
    column's edge; the summary and every section's body sit in the text column.
    ============================================================================= */
 
@@ -959,7 +960,7 @@ body[data-layout='nerd'] .social-links a {
 }
 
 /* The summary shares the masthead's left edge. Indented into the text column alone, it opened the page
-   142pt right of the lines above and below it, with nothing in the gutter to say why (the product review
+   148pt right of the lines above and below it, with nothing in the gutter to say why (the product review
    of #156). It keeps the text column's width, so its lines stay as short as the rest of the prose. */
 body[data-layout='nerd'] .hero-summary {
   max-width: 375pt !important;
@@ -971,13 +972,13 @@ body[data-layout='nerd'] .education-content,
 body[data-layout='nerd'] .certifications-list,
 body[data-layout='nerd'] .languages-list,
 body[data-layout='nerd'] .interests-line {
-  margin-left: 142pt !important;
+  margin-left: 148pt !important;
 }
 
 /* Selected Impact's items start where a role's achievements do, at the text column's edge plus their own 13pt
    hanging indent, so both lists' bullets stand on one line. */
 body[data-layout='nerd'] .career-highlights {
-  margin-left: 155pt !important;
+  margin-left: 161pt !important;
   color: #333 !important;
 }
 
@@ -1013,17 +1014,19 @@ body[data-layout='nerd'] .skill-list {
    reads by position, gives the period on the line above its title. Either way no period leaves its
    role, and every section stays in order.
 
-   The length of service is not printed here: "September 2015 – July 2018", the longest period today,
-   measures 125.3pt of the column's 128pt, and "(2 years, 11 months)" could not sit beside it. A longer
-   period wraps inside the column rather than running under the title, and spans the role's first two
-   rows so its second line sits beside the summary instead of pushing it down. Held to one line with
+   The length of service is not printed here: "August 2018 – November 2026", the longest period today,
+   measures 133.6pt of the column's 142pt, and "(8 years, 4 months)" could not sit beside it. The column
+   was 128pt until #230 closed that period, which then wrapped after its dash — and a wrapped period is
+   no anchor for the ATS parser: Nerd Mode lost every role, and Recoverability fell to 60/80. A longer
+   period still wraps inside the column rather than running under the title, and spans the role's first
+   two rows so its second line sits beside the summary instead of pushing it down. Held to one line with
    nowrap, "September 2015 – December 2025" printed across the title (the code review of #156). The
    role's identity stays with its first achievement inside the grid as well: pushed to the foot of page
    one, the first role moved whole to page two with its heading. */
 body[data-layout='nerd'] .job-entry {
   display: grid !important;
-  grid-template-columns: 128pt minmax(0, 1fr) !important;
-  column-gap: 14pt !important;
+  grid-template-columns: 142pt minmax(0, 1fr) !important;
+  column-gap: 6pt !important;
   row-gap: 0 !important;
 }
 
@@ -1043,7 +1046,7 @@ body[data-layout='nerd'] .job-header {
   align-self: baseline !important;
 }
 
-/* Nerd Mode's dates keep 9pt: the column is 128pt and the longest period measured 125.3pt at that size,
+/* Nerd Mode's dates keep 9pt: the column is 142pt and the longest period measured 133.6pt at that size,
    so the 10pt the other layouts give the dates would run it into the role beside it (#155). */
 body[data-layout='nerd'] .job-period {
   grid-column: 1 !important;

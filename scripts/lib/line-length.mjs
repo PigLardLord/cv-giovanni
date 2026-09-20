@@ -18,7 +18,7 @@ export const MEASURE_LIMIT = 80;
  * Nerd Mode's date column on paper, in points from the page's left edge: the page's side margin, and the column's
  * width, as print.css declares them. The audit reads no CSS, so `tests/LineLength.test.js` holds them to it.
  */
-export const NERD_DATE_COLUMN = { left: 39, width: 128 };
+export const NERD_DATE_COLUMN = { left: 39, width: 142 };
 
 /** Less than half a point past an edge is rounding, not overflow. */
 const TOLERANCE = 0.5;

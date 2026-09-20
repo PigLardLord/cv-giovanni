@@ -125,8 +125,12 @@ self-rating into the main evidence of competence.
   `tests/QualificationsStateTheirScope.test.js` holds every published degree named a Master's to
   stating its credits.
 - **A certification's name is the title on the page its link opens.** Lower tiers it includes go in
-  brackets after it — `Android Enterprise Expert (incl. Associate, Professional)` — never as equal names
-  in one entry, which reads as a credential nobody issues.
+  brackets after it — `Android Enterprise Expert (Associate, Professional)` — never as equal names
+  in one entry, which reads as a credential nobody issues. The brackets hold the tiers and no word
+  before them: the line prints as `name – issuer (year)`, a parser reads one line as one
+  certification, and the longest line Nerd Mode's text column takes is 68 characters, where
+  "(incl. Associate, Professional)" wrapped and "(2026)" came back as a certification nobody wrote
+  (#230).
 - **A certification may lose its description only if its name line still states the subject.** Page
   budget took the description of iOS Lead Essentials; its subject moved into brackets on the name line,
   `iOS Lead Essentials (TDD, Clean Architecture)`, rather than disappearing.

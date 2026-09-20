@@ -113,10 +113,11 @@ describe('each defect shows up as its own kind of damage', () => {
 
     expect(diff.roleOrderMonotonic).toBe(false);
     expect(diff.experience.map(({ employer, period }) => [employer, period])).toEqual([
+      // The fixture predates the period the profile closed on #230, so the first role's dates come back as
+      // other dates, and it predates the role the profile now ends on, which has nothing to come back from.
+      ['exact', 'wrong'],
       ['exact', 'exact'],
       ['exact', 'exact'],
-      ['exact', 'exact'],
-      // The fixture predates the role the profile now ends on, so that one has nothing to come back from.
       ['lost', 'lost']
     ]);
   });
@@ -154,7 +155,7 @@ describe('each defect shows up as its own kind of damage', () => {
           '',
           'Mobile Software Engineer',
           'Cortado · Berlin',
-          'August 2018 – Present',
+          'August 2018 – November 2026',
           '',
           'Education',
           '',
@@ -414,7 +415,7 @@ describe('an entry is matched to the one written by what it says, not by where i
     };
     // The first role's block as the print writes it: its period, its header and its achievements.
     const cortado = nerd.slice(
-      nerd.indexOf('August 2018 – Present'),
+      nerd.indexOf('August 2018 – November 2026'),
       nerd.indexOf('September 2015 – July 2018')
     );
 
@@ -465,7 +466,7 @@ describe('an entry is matched to the one written by what it says, not by where i
     // nobody wrote, and the one it displaced is lost, though the document holds no more roles than came back.
     test('a role that says nothing of any written one is a role nobody wrote, and the one it displaced is lost', () => {
       const invented = nerd
-        .replace('August 2018 – Present', 'January 2019 – March 2020')
+        .replace('August 2018 – November 2026', 'January 2019 – March 2020')
         .replace(
           'iOS Developer at Cortado Mobile Solutions, Berlin (remote)',
           'Head Chef at Trattoria Da Mario, Rome, Italy'
@@ -505,7 +506,7 @@ describe('an entry is matched to the one written by what it says, not by where i
         whole
       ]);
       expect(diff.unmatched.experience).toEqual([
-        ['Head Chef', 'Trattoria Da Mario', 'August 2018 – Present']
+        ['Head Chef', 'Trattoria Da Mario', 'August 2018 – November 2026']
       ]);
       expect(diff.unexpected.roles).toBe(1);
     });
@@ -525,7 +526,7 @@ describe('an entry is matched to the one written by what it says, not by where i
 
   describe('a certification, by the line it prints', () => {
     const scrum = { name: 'Professional Scrum Master I', issuer: 'Scrum.org', year: 2020 };
-    const android = 'Android Enterprise Expert (with Associate and Professional) – Google (2026)';
+    const android = 'Android Enterprise Expert (Associate, Professional) – Google (2026)';
     const ios = 'iOS Lead Essentials (TDD, Clean Architecture) – Essential Developer (2024)';
 
     test('a parse that drops the first of three loses that one, and the other two come back whole', () => {

@@ -127,10 +127,10 @@ describe("Nerd Mode's dates in their column", () => {
     ]);
   });
 
-  test('names a period line that runs past the 128pt column into the gap', () => {
+  test('names a period line that runs past the 142pt column into the gap', () => {
     const extract = page(
-      line(39, 164.3, 100, 'September 2015 – July 2018'),
-      line(39, 171.2, 120, 'September 2015 – September 2018'),
+      line(39, 178.3, 100, 'September 2015 – July 2018'),
+      line(39, 185.2, 120, 'September 2015 – September 2018'),
       line(181, 540, 100, 'Mobile Developer at Apparound, Pisa, Italy')
     );
     const periods = [
@@ -138,9 +138,9 @@ describe("Nerd Mode's dates in their column", () => {
       'September 2015 – September 2018'
     ];
 
-    expect(NERD_DATE_COLUMN).toEqual({ left: 39, width: 128 });
+    expect(NERD_DATE_COLUMN).toEqual({ left: 39, width: 142 });
     expect(overflowingPeriods(extract, periods)).toEqual([
-      { page: 1, right: 171.2, text: 'September 2015 – September 2018' }
+      { page: 1, right: 185.2, text: 'September 2015 – September 2018' }
     ]);
   });
 
@@ -160,12 +160,12 @@ describe("Nerd Mode's dates in their column", () => {
       413,
       100,
       'May 2015 – August 2015 Mobile Developer Intern',
-      [60, 85, 92, 150, 175, 250, 330, 413]
+      [60, 85, 92, 160, 190, 250, 330, 413]
     );
 
     expect(overflowingPeriods(page(inside), periods)).toEqual([]);
     expect(overflowingPeriods(page(past), periods)).toEqual([
-      { page: 1, right: 175, text: 'May 2015 – August 2015' }
+      { page: 1, right: 190, text: 'May 2015 – August 2015' }
     ]);
   });
 
