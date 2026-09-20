@@ -6,7 +6,8 @@ import {
   proseSpans,
   raggedMasthead,
   rolePages,
-  straddlingRoles
+  straddlingRoles,
+  strandedSeparators
 } from '../scripts/lib/printed-prose.mjs';
 
 // What a sentence costs on paper is not what it costs in the profile: the same bullet is set over two lines in one
@@ -124,6 +125,31 @@ describe('what a sentence costs on the printed page', () => {
 
     expect(raggedMasthead(extract, { until: 'Selected Impact' })).toEqual([
       { left: 98, edge: 95.2, text: 'ada@example.com' }
+    ]);
+  });
+
+  // A check that cannot find what it measures has not measured it: a layout that printed the title and the employer
+  // on two lines left `rolePages` with no header, and the role straddled the break unreported.
+  test('a role whose header the print does not hold is reported, not passed over', () => {
+    const roles = [{ title: 'Head Chef', company: 'Trattoria', prose: ['Cooked.'] }];
+
+    expect(straddlingRoles('Something else entirely.', roles)).toEqual([
+      { title: 'Head Chef', company: 'Trattoria', header: null, pages: [] }
+    ]);
+  });
+
+  // The contacts' separators are drawn by the stylesheet in the place of a hidden label, so a field the profile
+  // leaves out takes its value away and leaves the dot behind (#230).
+  test('a masthead line left ending on its separator is found, and the sections below it are not read', () => {
+    const printed = [
+      'Giovanni Trovato',
+      'Bad Liebenstein, Thuringia, Germany ·',
+      'Selected Impact',
+      'Cortado MDM for iOS ·'
+    ].join('\n');
+
+    expect(strandedSeparators(printed, { until: 'Selected Impact' })).toEqual([
+      'Bad Liebenstein, Thuringia, Germany ·'
     ]);
   });
 });

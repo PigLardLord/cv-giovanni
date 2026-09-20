@@ -549,8 +549,12 @@ caught them. An indentation test would have policed one rule; a formatter remove
   single quotes, no trailing commas, 100 columns. `proseWrap` is `preserve`, so Markdown keeps its
   line breaks.
 - **`.prettierignore` says what is not formatted, and why:** vendored code and the lockfile, the
-  files the scripts write (`generated/` and the three audit reports), the harness's own files, and
-  test fixtures whose exact bytes are what the tests check.
+  files the scripts write (`generated/` and the three audit reports), the harness's own files, the
+  profiles, and test fixtures whose exact bytes are what the tests check. The profiles are the local
+  app's to lay out: `ProfileStore` writes them with `JSON.stringify` at two spaces, which sets one
+  entry of a list a line, and Prettier sets a short list on one line — so a formatted profile came
+  back rewritten on the editor's next save. `tests/ProfileStore.test.js` is the guard there instead,
+  and it fails on exactly that byte (#230).
 - **`.editorconfig`** carries the same indentation to editors that do not run Prettier.
 - **`npm run format`** writes, **`npm run format:check`** checks, and
   `tests/SourceIsFormatted.test.js` runs the check inside the suite — and proves it can fail on a
@@ -571,6 +575,10 @@ section heads, six `P`, five lists with sixteen `LI` and eleven `Lbl`, and five 
 annotations. Most of the page — 183 to 196 elements a layout — is `NonStruct`, Chrome's element for a
 `div` or `span` with no role, and poppler reports `StructElem object is wrong type (Strong)` nine
 times in every layout, most likely Chrome's tagging of `<strong>`.
+
+Since #230 the print sets its own section order, and the tree does not follow it: Chrome builds the tree
+from the markup, so a screen reader meets Core Technologies where the page prints the roles. The text layer
+does follow the printed order, in both of the orders a parser reads, which is what the audits hold.
 
 pdfmake, which composed the PDF before, wrote the tagged flag over an empty tree, and the project
 refused to set it: a flag over nothing tells a screen reader structure exists, and the reader stops

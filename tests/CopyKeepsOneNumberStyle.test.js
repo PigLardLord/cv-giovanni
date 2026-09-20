@@ -13,7 +13,13 @@ import { proseOf } from '../scripts/lib/line-length.mjs';
 // and separators, no em dash, and no space around a slash between single words.
 const read = (path) => JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));
 const manifest = read('config/cv-manifest.json');
-const published = Object.values(manifest.profiles).flatMap(({ locales }) => Object.values(locales));
+// English only: every name, level and figure below is written in English, and a German CV writes its own. A locale
+// published without a list of its own would be held to this one and fail on words it never uses (#230).
+const published = Object.values(manifest.profiles).flatMap(({ locales }) =>
+  Object.entries(locales)
+    .filter(([locale]) => locale === 'en')
+    .map(([, path]) => path)
+);
 
 /** Every string a profile holds. */
 const strings = (node) =>
@@ -35,6 +41,13 @@ const STYLE = [
   },
   // A figure is read in prose, where a number spelled out reads as a different hand from the numeral beside it. A
   // list of names is not prose: "One Platform" could be a product.
+  // A German reader's decimal separator is the comma, so "1,040" reads as 1.04 for a beat on a CV addressed to
+  // Germany. Below five digits neither convention writes a separator, so neither does the CV (#230).
+  {
+    rule: 'a figure under five digits carries no separator',
+    against: /\b\d{1,3},\d{3}\b/g,
+    where: strings
+  },
   {
     rule: 'a figure is a numeral',
     against: /\b(?:one|two|three|four|five|six|seven|eight|nine|ten)\b/gi,
@@ -55,11 +68,12 @@ describe('the CV writes its figures, dashes and slashes one way', () => {
     expect(
       departures({
         profile: 'Six years of it, from 2014 – 2016, on XCTest / XCUITest.',
-        career_highlights: ['3–7 engineers, CI/CD from August 2018 – Present']
+        career_highlights: ['3–7 engineers and 1,040 tests, CI/CD from August 2018 – Present']
       })
     ).toEqual([
       '2014 – 2016 → a range between numbers is closed',
       'XCTest / XCUITest → a slash between single words is closed',
+      '1,040 → a figure under five digits carries no separator',
       'Six → a figure is a numeral'
     ]);
   });

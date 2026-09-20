@@ -8,7 +8,8 @@
  * differently in each layout, so they are measured here on the text layer rather than asserted on the source.
  */
 
-import { bboxLines } from './line-length.mjs';
+import { bboxLines, withoutPeriod } from './line-length.mjs';
+import { SEPARATOR_GLYPHS } from '../../domain/Separators.js';
 
 const squash = (text) =>
   String(text ?? '')
@@ -34,21 +35,6 @@ const printedLines = (text) =>
   printedPages(text).flatMap(({ page, lines }) => lines.map((line) => ({ page, text: line })));
 
 /**
- * What a line can open a sentence with: the line itself, and what follows a period poppler set at its start. Nerd
- * Mode prints each role's dates in a column beside the role, and poppler joins that column's last word to the prose
- * beside it, "Present Enterprise mobility and…" (the code review of #177).
- */
-const openings = (line, periods) => {
-  const words = line.split(' ');
-  const rest = [];
-  for (let cut = 1; cut < words.length; cut += 1) {
-    if (!periods.some((period) => period.includes(words.slice(0, cut).join(' ')))) break;
-    rest.push(words.slice(cut).join(' '));
-  }
-  return [line, ...rest];
-};
-
-/**
  * Each sentence as it printed: where it starts, how many lines it is set over, and the pages it reaches.
  *
  * A sentence the text layer does not hold comes back `found: false` rather than silently passing a check: a bullet
@@ -63,7 +49,7 @@ export function proseSpans(text, sentences, { periods = [] } = {}) {
   const written = periods.map(squash);
   return sentences.map(squash).map((sentence) => {
     for (let at = 0; at < lines.length; at += 1) {
-      for (const opening of openings(lines[at].text, written)) {
+      for (const opening of withoutPeriod(lines[at].text, written)) {
         if (!opening || !sentence.startsWith(opening)) continue;
         let said = opening;
         let count = 1;
@@ -117,10 +103,14 @@ export function rolePages(text, roles, options) {
 }
 
 /**
- * The roles whose own sentences run onto a page after the one their header stands on.
+ * The roles whose own sentences run onto a page after the one their header stands on, and the roles whose header
+ * was not found at all.
  *
  * Page 2 of the printed CV opened on three bullets under no heading, and a reader who turns the page meets evidence
  * with nothing to attach it to: no employer, no title, no dates. The break belongs between two roles.
+ *
+ * A role whose header line the print does not hold is reported rather than passed over: a check that cannot find
+ * what it measures has not measured it, and a run that did not happen must never read as a pass (AGENTS.md).
  * @param {string} text - The text layer, from `pdftotext`
  * @param {{ title: string, company: string, prose: string[] }[]} roles - Each role and what it says
  * @param {{ periods?: string[] }} [options] - Each role's dates as they print
@@ -128,7 +118,7 @@ export function rolePages(text, roles, options) {
  */
 export function straddlingRoles(text, roles, options) {
   return rolePages(text, roles, options).filter(
-    ({ header, pages }) => header !== null && pages.some((page) => page !== header)
+    ({ header, pages }) => header === null || pages.some((page) => page !== header)
   );
 }
 
@@ -154,4 +144,26 @@ export function raggedMasthead(extract, { until, tolerance = 0.5 }) {
   return masthead
     .filter(({ left }) => left > edge + tolerance)
     .map(({ left, text }) => ({ left, edge, text }));
+}
+
+/**
+ * The lines of the masthead that open or close on a separator.
+ *
+ * The contacts' separators are drawn by the stylesheet, in the place of a label it hides, so a field the profile
+ * leaves out takes its value away and leaves the dot behind: a profile with no availability printed
+ * "Bad Liebenstein, Thuringia, Germany ·". The rule against an entry ending on the separator of a part it does not
+ * have (#178) reads the entries under their headings, and the masthead is not an entry, so it needs its own (#230).
+ * @param {string} text - The text layer, from `pdftotext`
+ * @param {{ until: string }} options - The first heading under the masthead
+ * @returns {string[]} Every masthead line that starts or ends on a separator
+ */
+export function strandedSeparators(text, { until }) {
+  const [page] = printedPages(text);
+  if (!page) return [];
+  const heading = page.lines.findIndex((line) => line === squash(until));
+  return page.lines
+    .slice(0, heading < 0 ? page.lines.length : heading)
+    .filter((line) =>
+      SEPARATOR_GLYPHS.some((glyph) => line.startsWith(glyph) || line.endsWith(glyph))
+    );
 }

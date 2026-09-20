@@ -13,7 +13,13 @@ import { readFileSync } from 'node:fs';
 // the forms it replaces.
 const read = (path) => JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));
 const manifest = read('config/cv-manifest.json');
-const published = Object.values(manifest.profiles).flatMap(({ locales }) => Object.values(locales));
+// English only: every name, level and figure below is written in English, and a German CV writes its own. A locale
+// published without a list of its own would be held to this one and fail on words it never uses (#230).
+const published = Object.values(manifest.profiles).flatMap(({ locales }) =>
+  Object.entries(locales)
+    .filter(([locale]) => locale === 'en')
+    .map(([, path]) => path)
+);
 
 const NAMES = [
   { one: 'Google Play', instead: /\bPlay Store\b/gi },

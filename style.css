@@ -241,6 +241,14 @@ body {
   display: block;
 }
 
+/* And a line the page hides stays hidden: `display` above, and print.css's `inline`, both beat the browser's own
+   rule for `[hidden]`, so a profile that states no availability printed its place ending on the separator drawn
+   for a line that was not there — "Bad Liebenstein, Thuringia, Germany ·" (#178, #180). The attribute wins on
+   specificity, in print too. */
+.contact-availability[hidden] {
+  display: none !important;
+}
+
 .contact-icon {
   margin-right: var(--space-sm);
 }

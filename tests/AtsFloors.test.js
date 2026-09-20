@@ -15,10 +15,10 @@ const root = fileURLToPath(new URL('..', import.meta.url));
 const document = new CvDocument(
   JSON.parse(readFileSync(`${root}profiles/general/en.json`, 'utf8'))
 );
-const floorsOf = (fixture) =>
+const floorsOf = (fixture, against = document) =>
   AtsFloors.failures(
     RecoveryDiff.diff(
-      document,
+      against,
       AtsTextParser.parse(readFileSync(`${root}tests/fixtures/ats/${fixture}.txt`, 'utf8'))
     )
   );
@@ -41,8 +41,16 @@ describe('the four floors, one failure each', () => {
 // Not a print of the page: the label beside its block that the retired pdfmake layout drew (#153). The parser still
 // has to read that shape, because a stranger's CV can have it (#184).
 describe('a label beside its block, as the retired pdfmake layout drew it', () => {
+  // The fixture is a frozen artefact: the PDF pdfmake composed before #149, of the CV as it then read. It is graded
+  // against that CV — the profile without the role added since — because a role it never printed is not a role its
+  // shape lost, and editing the artefact to add one would make it prove something it never held.
   test('in content-stream order it fails no floor', () => {
-    expect(floorsOf('pdfmake-rail.raw')).toEqual([]);
+    const asItThenRead = new CvDocument({
+      ...JSON.parse(readFileSync(`${root}profiles/general/en.json`, 'utf8')),
+      relevant_experience: document.experience.slice(0, 3)
+    });
+
+    expect(floorsOf('pdfmake-rail.raw', asItThenRead)).toEqual([]);
   });
 });
 

@@ -7,9 +7,9 @@ Layouts: 3
 
 | Layout | Pages | Score | Worst side margin | Room left |
 |---|---:|---:|---:|---|
-| nerd | 2 | 24/24 | 13.7mm | p1 29.3pt · p2 208.8pt |
-| spotlight | 2 | 24/24 | 33.4mm | p1 6.0pt · p2 219.3pt |
-| technical | 2 | 24/24 | 33.4mm | p1 9.8pt · p2 222.3pt |
+| nerd | 2 | 25/25 | 13.7mm | p1 49.5pt · p2 203.5pt |
+| spotlight | 2 | 25/25 | 33.4mm | p1 10.5pt · p2 223.8pt |
+| technical | 2 | 25/25 | 33.4mm | p1 15.0pt · p2 223.0pt |
 
 Room left is the space between each page's lowest line and its 33pt bottom margin. A last
 page with less than one 15.4pt line of running text free is marked ⚠: the next line
@@ -29,4 +29,4 @@ poppler reconstructs the page and as the PDF draws it, no image, no line of pros
 measure, and are exempt), in Nerd Mode every line of a role's dates inside its column, every bullet set over no
 more than 2 printed lines and the summary over no more than 3, and every role whole on one page, so no
 page opens on a bullet whose role heading stands on the page before, and every line of the masthead on the
-page's left edge.
+page's left edge, none of them opening or closing on a separator.

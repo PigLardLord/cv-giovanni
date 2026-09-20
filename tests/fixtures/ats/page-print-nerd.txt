@@ -11,9 +11,11 @@ them at Cortado Mobile Solutions. Builds its mobile device management
 (MDM) client for iOS in SwiftUI, and its Android client since 2025.
 
 Selected Impact
-Cortado MDM for iOS: ~30k downloads, 4 crash reports since 2021
-ezeep Blue for iOS: 300k downloads, 15k still installed in 2026
-Cortado MDM for Android, 2026: 1,040 → 5,308 tests, branch
+Cortado MDM for iOS: ~30k downloads, 4 App Store Connect crash
+reports since 2021
+ezeep Blue for iOS: 300k downloads since release, 15k still installed
+in 2026
+Cortado MDM for Android, 2026: 1040 → 5308 tests, branch
 coverage 14% → 83%
 
 Professional Experience
@@ -21,20 +23,19 @@ August 2018 – Present
 
 iOS Developer at Cortado Mobile Solutions, Berlin (remote)
 Enterprise mobility and device management, in a mobile team of 2
-since 2020; decides the iOS client's architecture and its internal
-releases.
-Cortado MDM for iOS, since 2020: SwiftUI from the first commit,
-Clean Architecture, TDD, Swift concurrency.
+since 2020. Owns the iOS client's architecture and its internal releases.
+Cortado MDM for iOS, built in SwiftUI from its first commit in 2020:
+Clean Architecture, TDD, Live Activities, App Intents.
 ezeep Blue for iOS, 2020–2023: rewrote it in SwiftUI with another
 developer.
-Cortado MDM for Android, since 2025: nearly all screens to Jetpack
-Compose; test runtime from a July peak of 37.7 to 5.2 minutes.
-Earlier products, 2018–2023: Workplace and Teamplace for iOS,
-Objective-C to Swift, RxSwift to Combine; NFCReader, sole author.
+Cortado MDM for Android, since 2025: most screens to Jetpack
+Compose; test runtime from a July 2026 peak of 37.7 to 5.2 minutes.
+Earlier products, 2018–2023: moved Workplace and Teamplace to
+Swift and Combine; NFCReader, sole author.
 Across products: CI/CD, code signing and provisioning, App Store
 and Google Play releases; SBOM and security scans.
 Agentic development since 2025, mentoring 2 developers in it;
-Android Enterprise Partner Program certification.
+Cortado's Android Enterprise Partner Program certification.
 
 September 2015 – July 2018
 
@@ -44,8 +45,6 @@ Built offline-first iOS and Android features that kept field sales teams
 working without a connection.
 Created a reusable UI component library and led the mobile clients'
 UI/UX redesign, cutting duplicate work on new screens.
-Fixed production defects and performance issues for enterprise
-customers in Swift, Objective-C and Java, against a REST backend.
 
 May 2015 – August 2015
 

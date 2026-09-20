@@ -421,17 +421,13 @@ body[data-layout='spotlight'] .hero-name {
   color: #4b5563 !important;
 }
 
-/* The first label on the line stands in front of the address, where no separator belongs. Its value still opens
-   with the space the markup writes between label and value, and with no dot drawn in the label's place that space
-   pushed the whole line 2.8pt — one space at 10pt — to the right of every other line of the masthead, which a
-   neutral read of the printed CV saw before any check did (#230). The indent takes the space back; `audit:print`
-   holds every masthead line to the page's left edge. */
-.contact-details strong:first-child::before {
-  content: '';
-}
-
-.contact-details {
-  text-indent: -0.28em !important;
+/* The first label on the line stands in front of the address, where no separator belongs — and its box goes with
+   it, rather than staying hidden. Hidden, it kept the space the markup writes between a label and its value, and
+   the email line printed 2.8pt — one space at 10pt — to the right of every other line of the masthead, which a
+   neutral read of the printed CV saw before any check did (#230). Removed, the space falls at the start of the
+   line and collapses away. `audit:print` holds every masthead line to the page's left edge. */
+.contact-details strong:first-child {
+  display: none !important;
 }
 
 .social-links {
@@ -454,8 +450,8 @@ body[data-layout='spotlight'] .hero-name {
   text-decoration: none !important;
 }
 
-/* The renderer writes the dot as an element of its own, with no space in it, so the room either side is
-   its margin. */
+/* The renderer writes the dot as an element of its own, with no space in it, so the room either side is its
+   margin — tighter here than the screen's, since at 10pt the three addresses run 400pt of the column's 405. */
 .social-links .inline-separator {
   display: inline !important;
   margin: 0 0.15em !important;
@@ -489,13 +485,6 @@ section {
 .certifications-section,
 .languages-section,
 .interests-section {
-  break-inside: avoid !important;
-}
-
-/* And the break inside Experience falls between two roles. Page 2 used to open on three bullets with no
-   title, employer or dates above them: evidence a reader cannot attach to anything (#230). A role is
-   short enough now to move whole, and the print audit's `rolesWhole` fails a page that opens mid-role. */
-.job-entry {
   break-inside: avoid !important;
 }
 
@@ -605,6 +594,11 @@ section {
    its title line. What stays together is its identity — the title line, the period and the summary — and
    the first achievement after it, so no page ends on a bare heading and none opens mid-sentence. Pushed to
    the foot of page one for a measurement, the first role moved whole to page two, heading and all. */
+/* The break inside Experience falls between two roles: page 2 used to open on three bullets with no title,
+   employer or dates above them, which is evidence a reader cannot attach to anything (#230). A role is short
+   enough now to move whole, and the print audit's `rolesWhole` fails a page that opens mid-role. The rule stands
+   here, with the rest of the role's box: declared earlier in the file it was overridden by the `auto` this
+   replaces, and did nothing. */
 .job-entry {
   display: block !important;
   margin: 0 !important;
@@ -613,7 +607,7 @@ section {
   border: 0 !important;
   border-radius: 0 !important;
   box-shadow: none !important;
-  break-inside: auto !important;
+  break-inside: avoid !important;
 }
 
 /* 9pt between two roles, 12pt until Selected Impact needed the room (#148). */

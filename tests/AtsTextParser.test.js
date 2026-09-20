@@ -392,16 +392,17 @@ describe('the same artefacts, in content-stream order', () => {
     expect(cv.roleOrderMonotonic).toBe(true);
   });
 
-  // In content-stream order a page break writes no newline: "37.7 to 5.2 minutes.\fEarlier products …".
-  test('a page break is a line break', () => {
+  // Since #230 the print keeps every role whole on one page, so no body crosses a page break. What this holds is
+  // what that leaves: the first role's body comes back as the lines poppler wrote, in order, and stops at the next
+  // role's header.
+  test("a role's body is its own lines, up to the next role's header", () => {
     const [first] = parse('page-print-spotlight.raw').experience;
 
-    expect(first.bodyLines).toContain(
-      'Compose; test runtime from a July peak of 37.7 to 5.2 minutes.'
-    );
+    expect(first.bodyLines).toContain('test runtime from a July 2026 peak of 37.7 to 5.2 minutes.');
     expect(first.bodyLines.some((line) => line.startsWith('Earlier products, 2018–2023'))).toBe(
       true
     );
+    expect(first.bodyLines.some((line) => line.includes('Apparound'))).toBe(false);
   });
 
   // A layout that sets each label in a rail beside its block draws it on the block's first baseline, so
@@ -422,8 +423,7 @@ describe('the same artefacts, in content-stream order', () => {
     expect(cv.experience.map((role) => [role.title?.value, role.employer?.value])).toEqual([
       ['Mobile Software Engineer / Technical Owner, iOS & Android', 'Cortado Mobile Solutions'],
       ['Mobile Developer', 'Apparound'],
-      ['Mobile Developer Intern', 'Marte 5'],
-      ['IT System Administrator', 'Compusoft']
+      ['Mobile Developer Intern', 'Marte 5']
     ]);
     expect(cv.tripleAdjacent).toBe(true);
   });

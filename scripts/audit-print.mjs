@@ -13,7 +13,12 @@ import { imageCount, outOfOrder } from './lib/section-order.mjs';
 import { builtCv, builtLetters } from './lib/printed-cv.mjs';
 import { PRINTED_PAGE, bboxPages, printedRoom, roomReport } from './lib/page-room.mjs';
 import { MEASURE_LIMIT, longProseLines, overflowingPeriods, proseOf } from './lib/line-length.mjs';
-import { proseSpans, raggedMasthead, straddlingRoles } from './lib/printed-prose.mjs';
+import {
+  proseSpans,
+  raggedMasthead,
+  straddlingRoles,
+  strandedSeparators
+} from './lib/printed-prose.mjs';
 import {
   addressInWindow,
   bboxLines,
@@ -341,9 +346,10 @@ try {
     const summary = proseSpans(text, [profile.profile], { periods })[0];
     const straddling = straddlingRoles(text, roleProse, { periods });
     // And whether the masthead's lines share one left edge, which a hidden label's leftover space broke.
-    const ragged = raggedMasthead(bbox, {
-      until: highlights.length > 0 ? labels.selectedImpact : labels.experience
-    });
+    const firstHeading = highlights.length > 0 ? labels.selectedImpact : labels.experience;
+    const ragged = raggedMasthead(bbox, { until: firstHeading });
+    // And whether a line of it ends on a separator drawn for a field the profile does not state.
+    const stranded = strandedSeparators(text, { until: firstHeading });
     const flat = text.replace(/\s+/g, ' ');
 
     const order = [profile.name, profile.title, labels.experience].map((term) =>
@@ -358,8 +364,10 @@ try {
       format: isA4(info),
       pages: pageCount > 0 && pageCount <= 2,
       // Every string a parser looks for, in the case the catalogue wrote it. A
-      // section label drawn in capitals no longer matches the label itself.
-      content: mustHave.every((term) => text.includes(term)),
+      // section label drawn in capitals no longer matches the label itself. The
+      // text is read with its line breaks flattened: a sentence set over two lines
+      // is still printed, and how many lines it takes is `bulletsScan`'s question.
+      content: mustHave.every((term) => flat.includes(term.replace(/\s+/g, ' ').trim())),
       readingOrder: order.every((at, index) => at >= 0 && (index === 0 || at > order[index - 1])),
       canonicalCompounds: !brokenForms.some(({ broken }) => broken.test(text)),
       blockIntegrity: educationPairs.every((pair) => pair.test(flat)),
@@ -432,7 +440,10 @@ try {
       rolesWhole: straddling.length === 0,
       // Every line of the masthead starts on the page's left edge: the name, the headline, the contact block and the
       // summary. A line 2.8pt in reads as a mistake, and a reader sees it before any check does.
-      mastheadAligned: ragged.length === 0
+      mastheadAligned: ragged.length === 0,
+      // No line of the masthead opens or closes on a separator: the contacts' dots are drawn by the stylesheet, so
+      // a field the profile leaves out takes its value away and would leave its dot behind (#178, #180).
+      mastheadSeparatorsHeld: stranded.length === 0
     };
 
     const passed = Object.values(checks).filter(Boolean).length;
@@ -455,7 +466,8 @@ try {
       bullets,
       summary,
       straddling,
-      ragged
+      ragged,
+      stranded
     });
   }
 
@@ -571,7 +583,7 @@ const report = [
   "measure, and are exempt), in Nerd Mode every line of a role's dates inside its column, every bullet set over no",
   `more than ${BULLET_LINES} printed lines and the summary over no more than ${SUMMARY_LINES}, and every role whole on one page, so no`,
   'page opens on a bullet whose role heading stands on the page before, and every line of the masthead on the',
-  "page's left edge.",
+  "page's left edge, none of them opening or closing on a separator.",
   // Only a profile that carries a letter has one to report, so the published report reads as it always has.
   ...(letterRows.length
     ? [
@@ -628,7 +640,8 @@ if (failures.length || letterFailures.length) {
             bullets,
             summary,
             straddling,
-            ragged
+            ragged,
+            stranded
           }) => ({
             layout,
             failed: failedChecks(checks),
@@ -644,7 +657,8 @@ if (failures.length || letterFailures.length) {
             bullets,
             summary,
             straddling,
-            ragged
+            ragged,
+            stranded
           })
         ),
         ...letterFailures.map(
