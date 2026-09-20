@@ -13,8 +13,7 @@ them at Cortado Mobile Solutions. Builds its mobile device management
 Selected Impact
 Cortado MDM for iOS: ~30k downloads, 4 App Store Connect crash
 reports since 2021
-ezeep Blue for iOS: 300k downloads since release, 15k still installed
-in 2026
+ezeep Blue for iOS: 300k downloads since its 2020 release
 Cortado MDM for Android, 2026: 1040 → 5308 tests, branch
 coverage 14% → 83%
 
@@ -57,6 +56,8 @@ Wikitude.
 May 2010 – November 2014
 
 IT System Administrator at Compusoft, Modica, Italy
+Company networks, servers, NAS and security systems; the company
+website; business applications on Microsoft Access.
 
 Core Technologies
 iOS – Swift, SwiftUI, UIKit, Combine, Swift concurrency, Objective-C, XCTest,

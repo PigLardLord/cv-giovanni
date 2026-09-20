@@ -31,6 +31,7 @@ Marte # Marte 5, employer
 MDM # mobile device management
 Modica # city
 MVVM # model-view-viewmodel
+NAS # network-attached storage
 NFCReader # product
 Robolectric # tool
 rollout # staged rollout, as app stores write it

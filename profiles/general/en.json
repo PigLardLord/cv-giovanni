@@ -10,7 +10,7 @@
   "profile": "Senior iOS engineer with 11+ years in native mobile development, 8 of them at Cortado Mobile Solutions. Builds its mobile device management (MDM) client for iOS in SwiftUI, and its Android client since 2025.",
   "career_highlights": [
     "Cortado MDM for iOS: ~30k downloads, 4 App Store Connect crash reports since 2021",
-    "ezeep Blue for iOS: 300k downloads since release, 15k still installed in 2026",
+    "ezeep Blue for iOS: 300k downloads since its 2020 release",
     "Cortado MDM for Android, 2026: 1040 → 5308 tests, branch coverage 14% → 83%"
   ],
   "asOf": "2026-09",
@@ -54,7 +54,8 @@
       "company": "Compusoft",
       "location": "Modica, Italy",
       "period": "May 2010 – November 2014",
-      "highlights": []
+      "highlights": [],
+      "summary": "Company networks, servers, NAS and security systems; the company website; business applications on Microsoft Access."
     }
   ],
   "education": [
