@@ -125,8 +125,12 @@ self-rating into the main evidence of competence.
   `tests/QualificationsStateTheirScope.test.js` holds every published degree named a Master's to
   stating its credits.
 - **A certification's name is the title on the page its link opens.** Lower tiers it includes go in
-  brackets after it — `Android Enterprise Expert (incl. Associate, Professional)` — never as equal names
-  in one entry, which reads as a credential nobody issues.
+  brackets after it — `Android Enterprise Expert (Associate, Professional)` — never as equal names
+  in one entry, which reads as a credential nobody issues. The brackets hold the tiers and no word
+  before them: the line prints as `name – issuer (year)`, a parser reads one line as one
+  certification, and the longest line Nerd Mode's text column takes is 68 characters, where
+  "(incl. Associate, Professional)" wrapped and "(2026)" came back as a certification nobody wrote
+  (#230).
 - **A certification may lose its description only if its name line still states the subject.** Page
   budget took the description of iOS Lead Essentials; its subject moved into brackets on the name line,
   `iOS Lead Essentials (TDD, Clean Architecture)`, rather than disappearing.
@@ -385,7 +389,11 @@ still attached to its category, nothing in the text layer the data did not write
 order the PDF draws it, every name spaced and every section in its place. No line of prose, the
 summary, the highlights and what a role, a certificate or a degree says, runs past WCAG 1.4.8's 80
 characters; a line of skills, interests or contacts is a list, scanned item by item, and is exempt.
-In Nerd Mode no line of a role's dates runs out of its 128pt column (#155). It also reports how much
+In Nerd Mode no line of a role's dates runs out of its 128pt column (#155). Every bullet is set over
+no more than two printed lines and the summary over no more than three, and every role prints whole on
+one page, so no page opens on a bullet whose role heading stands on the page before (#230): what a
+sentence costs on paper is not what it costs in the profile, and the same words wrap differently in
+each layout. It also reports how much
 room each page has left above its foot, and marks a last page with less than one line of running
 text free, as a warning and never a failure: the page count is the gate, and the warning is the
 notice that it is close (#162). A check on the stylesheet passed a page that printed a line of
@@ -545,8 +553,12 @@ caught them. An indentation test would have policed one rule; a formatter remove
   single quotes, no trailing commas, 100 columns. `proseWrap` is `preserve`, so Markdown keeps its
   line breaks.
 - **`.prettierignore` says what is not formatted, and why:** vendored code and the lockfile, the
-  files the scripts write (`generated/` and the three audit reports), the harness's own files, and
-  test fixtures whose exact bytes are what the tests check.
+  files the scripts write (`generated/` and the three audit reports), the harness's own files, the
+  profiles, and test fixtures whose exact bytes are what the tests check. The profiles are the local
+  app's to lay out: `ProfileStore` writes them with `JSON.stringify` at two spaces, which sets one
+  entry of a list a line, and Prettier sets a short list on one line — so a formatted profile came
+  back rewritten on the editor's next save. `tests/ProfileStore.test.js` is the guard there instead,
+  and it fails on exactly that byte (#230).
 - **`.editorconfig`** carries the same indentation to editors that do not run Prettier.
 - **`npm run format`** writes, **`npm run format:check`** checks, and
   `tests/SourceIsFormatted.test.js` runs the check inside the suite — and proves it can fail on a
@@ -568,6 +580,10 @@ annotations. Most of the page — 183 to 196 elements a layout — is `NonStruct
 `div` or `span` with no role, and poppler reports `StructElem object is wrong type (Strong)` nine
 times in every layout, most likely Chrome's tagging of `<strong>`.
 
+Since #230 the print sets its own section order, and the tree does not follow it: Chrome builds the tree
+from the markup, so a screen reader meets Core Technologies where the page prints the roles. The text layer
+does follow the printed order, in both of the orders a parser reads, which is what the audits hold.
+
 pdfmake, which composed the PDF before, wrote the tagged flag over an empty tree, and the project
 refused to set it: a flag over nothing tells a screen reader structure exists, and the reader stops
 looking. Chrome's tree is not nothing, but its headings and lists are only as good as the page's
@@ -583,11 +599,16 @@ Settled on #144 by the owner, and not to be undone by someone reclaiming space:
 - **One CV, printed from the page.** `npm run build:pdf` prints each layout `config/cv-manifest.json`
   declares, under the names the page already offers, and writes `generated/manifest.json` from what
   it printed. There is no second design to keep in step.
-- **One reading column.** The sections print in the order the markup writes them: no grid moves a
-  section, and nothing is positioned or floated. Printed in two columns, the text layer put Education
-  between the first role's achievements, and a parser reading in drawing order met the name after
-  the skills (#142). The one column inside a section is Nerd Mode's dates, beside the role they date
-  and drawn before it, so no period leaves its role in either reading order (`print.css`).
+- **One reading column, and the print sets its order.** Nothing is positioned or floated, and no grid
+  moves a section: printed in two columns, the text layer put Education between the first role's
+  achievements, and a parser reading in drawing order met the name after the skills (#142). The order
+  of the one column is `print.css`'s, not the markup's, since #230: each screen layout arranges the
+  same sections its own way, and the print gives each a place in one flex column — contacts under the
+  headline, then the summary, Selected Impact, the roles, Core Technologies, the credentials. Chrome
+  draws flex items in that order, so the text layer comes out in the printed order in both of the
+  orders a parser reads; `audit:print` checks both, and a page that fails either fails the build. The
+  one column inside a section is Nerd Mode's dates, beside the role they date and drawn before it, so
+  no period leaves its role in either reading order (`print.css`).
 - **Two A4 pages, in colour.** The LETTER and monochrome variants existed to audit pdfmake's design
   system. The target market is Germany, and contrast is measured word by word on the printed page,
   which covers a monochrome printout. `audit:print` fails a third page.

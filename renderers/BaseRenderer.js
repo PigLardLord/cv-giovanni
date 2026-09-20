@@ -75,7 +75,9 @@ export class BaseRenderer extends Renderer {
    */
   setProse(root, element, text) {
     element.textContent = '';
-    const parts = String(text ?? '').split(/([A-Za-z0-9]+(?:-[A-Za-z0-9]+)+)/g);
+    // A closed range is held the same way, and for the neighbouring reason: broken at its en dash it leaves
+    // "2020–" ending a line, which is the stranded separator #180 forbids (#230).
+    const parts = String(text ?? '').split(/([A-Za-z0-9]+(?:[-–][A-Za-z0-9]+)+)/g);
     parts.forEach((part, index) => {
       if (!part) return;
       if (index % 2 === 1) {
@@ -222,7 +224,9 @@ export class BaseRenderer extends Renderer {
         container.appendChild(this.createElement(root, 'span', `${kind}-sep`, separator));
       }
       const chip = this.createElement(root, 'span', `${kind}-chip`);
-      chip.textContent = name;
+      // Through setProse, so a hyphenated name is one atomic inline box: the print broke "Dependency-Track"
+      // at its hyphen and poppler read it back as "DependencyTrack" (#230).
+      this.setProse(root, chip, name);
       container.appendChild(chip);
     });
   }

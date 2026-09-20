@@ -254,20 +254,20 @@ describe("the table's Fidelity column reads every field the fidelity band scores
 // or a certification costs nothing.
 describe('what came back that matches nothing written is quoted as nobody wrote it', () => {
   const invented = fixture('page-print-nerd')
-    .replace('August 2018 – Present', 'January 2019 – March 2020')
+    .replace('August 2018 – November 2026', 'January 2019 – March 2020')
     .replace(
       'iOS Developer at Cortado Mobile Solutions, Berlin (remote)',
       'Head Chef at Trattoria Da Mario, Rome, Italy'
     )
     .replace(
-      'B.Sc. Computer Engineering\nUniversità degli Studi di Catania (2009)',
+      'BSc in Computer Engineering\nUniversità degli Studi di Catania (2009)',
       'Diploma in Culinary Arts\nScuola Alberghiera di Roma (2008)'
     )
     .replace(
       'iOS Lead Essentials (TDD, Clean Architecture) – Essential Developer (2024)',
       'Food Safety Level 2 – Highfield (2012)'
     )
-    .replace('German: A1 — currently studying', 'Spanish: B1');
+    .replace('German: A1 (CEFR), self-study', 'Spanish: B1');
   const diff = diffOf(invented);
   const listed = section(diff);
 
@@ -288,7 +288,7 @@ describe('what came back that matches nothing written is quoted as nobody wrote 
   test('the written entries they displaced are lost, not graded against them', () => {
     expect(listed).toContain('- experience 1, title: lost — written ');
     expect(listed).toContain(
-      '- education 2, degree: lost — written "B.Sc. Computer Engineering"; nothing recovered'
+      '- education 2, degree: lost — written "BSc in Computer Engineering"; nothing recovered'
     );
     expect(listed).toContain('- languages 3, name: lost — written "German"; nothing recovered');
     expect(listed).not.toMatch(/: wrong/);

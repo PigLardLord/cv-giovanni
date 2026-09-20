@@ -53,8 +53,8 @@ const read = (text) =>
 // The print as it is, and as #179 first drew it: the scope after the school's period, not after the degree's name.
 const print = readFileSync(`${root}tests/fixtures/ats/page-print-nerd.txt`, 'utf8');
 const firstPlacement = print.replace(
-  'Development (60 ECTS)\nUniversità degli Studi di Pisa (2014 – 2016)',
-  'Development\nUniversità degli Studi di Pisa (2014 – 2016) · 60 ECTS'
+  'Development (60 ECTS)\nUniversità degli Studi di Pisa (2014–2016)',
+  'Development\nUniversità degli Studi di Pisa (2014–2016) · 60 ECTS'
 );
 
 describe('what renders the CV, as the product review names it', () => {
@@ -360,8 +360,8 @@ describe("what the base branch's parser recovered, field by field", () => {
       expect.objectContaining({
         label: 'education 1, period',
         verdict: 'exact',
-        written: '2014 – 2016',
-        recovered: '2014 – 2016'
+        written: '2014–2016',
+        recovered: '2014–2016'
       })
     );
   });
@@ -379,13 +379,13 @@ describe("what the base branch's parser recovered, field by field", () => {
   test("reads the degree's period from the audit's diff, verdict and evidence", () => {
     const diff = RecoveryDiff.diff(document, AtsTextParser.parse(print), { words });
     diff.education[0].period = 'wrong';
-    diff.evidence['education.0.period'] = { written: '2014 – 2016', recovered: '2016' };
+    diff.evidence['education.0.period'] = { written: '2014–2016', recovered: '2016' };
 
     expect(fieldVerdicts(diff).find((field) => field.key === 'education.0.period')).toEqual({
       key: 'education.0.period',
       label: 'education 1, period',
       verdict: 'wrong',
-      written: '2014 – 2016',
+      written: '2014–2016',
       recovered: '2016'
     });
   });
@@ -398,7 +398,7 @@ describe("a field the base branch's parser loses from the new print", () => {
     expect(lines).toEqual(
       expect.arrayContaining([
         'education 1, school: "Università degli Studi di Pisa" → "Development" (exact → wrong)',
-        'education 1, period: "2014 – 2016" → nothing (exact → lost)'
+        'education 1, period: "2014–2016" → nothing (exact → lost)'
       ])
     );
     expect(lines.filter((line) => /^education 2/.test(line))).toEqual([]);
@@ -413,7 +413,7 @@ describe("a field the base branch's parser loses from the new print", () => {
   // (#217). Matched by what it says, the degree lost is the one named.
   test("a degree the base's parser drops from the new print is the one named, and the degree after it is not", () => {
     const dropped = print.replace(
-      "First Level Professional Master's Programme in Mobile Applications\nDevelopment (60 ECTS)\nUniversità degli Studi di Pisa (2014 – 2016)\n\n",
+      "First Level Professional Master's Programme in Mobile Applications\nDevelopment (60 ECTS)\nUniversità degli Studi di Pisa (2014–2016)\n\n",
       ''
     );
     const lines = lostFields(read(print), read(dropped)).map(lossLine);
@@ -422,7 +422,7 @@ describe("a field the base branch's parser loses from the new print", () => {
     expect(lines).toEqual([
       'education 1, degree: "First Level Professional Master\'s Programme in Mobile Applications Development (60 ECTS)" → nothing (exact → lost)',
       'education 1, school: "Università degli Studi di Pisa" → nothing (exact → lost)',
-      'education 1, period: "2014 – 2016" → nothing (exact → lost)',
+      'education 1, period: "2014–2016" → nothing (exact → lost)',
       'education 1, degree beside its school: held → broken'
     ]);
   });
@@ -492,19 +492,19 @@ describe("a field the base branch's parser loses from the new print", () => {
     const [loss] = lostFields(
       [
         field('education.0.school', 'exact', pisa),
-        field('education.0.period', 'exact', { written: '2014 – 2016', recovered: '2014 – 2016' })
+        field('education.0.period', 'exact', { written: '2014–2016', recovered: '2014–2016' })
       ],
       [
         field('education.0.school', 'exact', pisa),
         field('education.0.period', 'partial', {
-          written: '· 2014 – 2016',
-          recovered: '2014 – 2016'
+          written: '· 2014–2016',
+          recovered: '2014–2016'
         })
       ]
     );
 
     expect(lossLine(loss)).toBe(
-      'education.0.period: "2014 – 2016" → "2014 – 2016" (exact → partial) — this print writes "· 2014 – 2016"'
+      'education.0.period: "2014–2016" → "2014–2016" (exact → partial) — this print writes "· 2014–2016"'
     );
     expect(
       lossLine(
@@ -630,8 +630,8 @@ describe("each print, graded against its own branch's lines", () => {
   test("a period this branch's school line writes otherwise is graded in those words on this print only", () => {
     const dotted = print
       .replace(
-        'Università degli Studi di Pisa (2014 – 2016)',
-        'Università degli Studi di Pisa · 2014 – 2016'
+        'Università degli Studi di Pisa (2014–2016)',
+        'Università degli Studi di Pisa · 2014–2016'
       )
       .replace(
         'Università degli Studi di Catania (2009)',
@@ -714,10 +714,10 @@ const DEGREES = {
     degree:
       "First Level Professional Master's Programme in Mobile Applications Development (60 ECTS)",
     school: 'Università degli Studi di Pisa',
-    period: '2014 – 2016'
+    period: '2014–2016'
   },
   Bachelor: {
-    degree: 'B.Sc. Computer Engineering',
+    degree: 'BSc in Computer Engineering',
     school: 'Università degli Studi di Catania',
     period: '2009'
   }
@@ -888,8 +888,8 @@ describe("the base's entries, lined up with this branch's by what they say", () 
     const [pisa, catania] = profile.education;
     const reordered = new CvDocument({ ...profile, education: [catania, pisa] });
     const pisaBlock =
-      "First Level Professional Master's Programme in Mobile Applications\nDevelopment\nUniversità degli Studi di Pisa (2014 – 2016) · 60 ECTS";
-    const cataniaBlock = 'B.Sc. Computer Engineering\nUniversità degli Studi di Catania (2009)';
+      "First Level Professional Master's Programme in Mobile Applications\nDevelopment\nUniversità degli Studi di Pisa (2014–2016) · 60 ECTS";
+    const cataniaBlock = 'BSc in Computer Engineering\nUniversità degli Studi di Catania (2009)';
     const movedPrint = firstPlacement.replace(
       `${pisaBlock}\n\n${cataniaBlock}`,
       `${cataniaBlock}\n\n${pisaBlock}`
@@ -909,7 +909,7 @@ describe("the base's entries, lined up with this branch's by what they say", () 
     expect(lostFields(readings.baseOnBase, readings.baseOnHead).map(lossLine)).toEqual([
       'education 2, degree (education 1 in the base\'s profile): "First Level Professional Master\'s Programme in Mobile Applications Development (60 ECTS)" → "First Level Professional Master\'s Programme in Mobile Applications" (exact → partial)',
       'education 2, school (education 1 in the base\'s profile): "Università degli Studi di Pisa" → "Development" (exact → wrong)',
-      'education 2, period (education 1 in the base\'s profile): "2014 – 2016" → nothing (exact → lost)'
+      'education 2, period (education 1 in the base\'s profile): "2014–2016" → nothing (exact → lost)'
     ]);
   });
 
@@ -924,8 +924,8 @@ describe("the base's entries, lined up with this branch's by what they say", () 
     const swap = (text, first, second) => text.replace(`${first}${second}`, `${second}${first}`);
     const movedPrint = [
       [
-        "First Level Professional Master's Programme in Mobile Applications\nDevelopment (60 ECTS)\nUniversità degli Studi di Pisa (2014 – 2016)\n\n",
-        'B.Sc. Computer Engineering\nUniversità degli Studi di Catania (2009)\n\n'
+        "First Level Professional Master's Programme in Mobile Applications\nDevelopment (60 ECTS)\nUniversità degli Studi di Pisa (2014–2016)\n\n",
+        'BSc in Computer Engineering\nUniversità degli Studi di Catania (2009)\n\n'
       ],
       [
         'Android Enterprise Expert (incl. Associate, Professional) – Google (2026)\n',
@@ -1111,7 +1111,7 @@ describe('an entry the other profile has no counterpart for', () => {
     const readings = [reading(before, after)];
 
     expect(lostFields(before, after).map(lossLine)).toEqual([
-      'education 1, degree (education 2 in the base\'s profile): "B.Sc. Computer Engineering" → "B.Sc. Computer" (exact → partial)'
+      'education 1, degree (education 2 in the base\'s profile): "BSc in Computer Engineering" → "BSc in" (exact → partial)'
     ]);
     expect(unmatchedEntries(before, after)).toEqual([
       {

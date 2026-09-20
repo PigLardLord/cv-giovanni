@@ -7,9 +7,9 @@ Layouts: 3
 
 | Layout | Pages | Score | Worst side margin | Room left |
 |---|---:|---:|---:|---|
-| nerd | 2 | 20/20 | 13.7mm | p1 6.8pt · p2 67.0pt |
-| spotlight | 2 | 20/20 | 33.5mm | p1 39.8pt · p2 76.8pt |
-| technical | 2 | 20/20 | 33.5mm | p1 44.3pt · p2 76.8pt |
+| nerd | 2 | 25/25 | 13.7mm | p1 49.5pt · p2 198.3pt |
+| spotlight | 2 | 25/25 | 33.4mm | p1 26.3pt · p2 189.3pt |
+| technical | 2 | 25/25 | 33.4mm | p1 30.8pt · p2 188.5pt |
 
 Room left is the space between each page's lowest line and its 33pt bottom margin. A last
 page with less than one 15.4pt line of running text free is marked ⚠: the next line
@@ -26,4 +26,7 @@ and, read in drawing order as PDFBox and Tika read, the name, titles, employers,
 skill categories with the spaces between their words, the sections in reading order both as
 poppler reconstructs the page and as the PDF draws it, no image, no line of prose past
 80 characters (WCAG 1.4.8; lists of skills, interests and contacts are scanned, not read along a
-measure, and are exempt), and in Nerd Mode every line of a role's dates inside its column.
+measure, and are exempt), in Nerd Mode every line of a role's dates inside its column, every bullet set over no
+more than 2 printed lines and the summary over no more than 3, and every role whole on one page, so no
+page opens on a bullet whose role heading stands on the page before, and every line of the masthead on the
+page's left edge, none of them opening or closing on a separator.

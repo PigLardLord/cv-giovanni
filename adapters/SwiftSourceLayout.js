@@ -377,10 +377,11 @@ export class SwiftSourceLayout {
   }
 
   profile(data) {
-    const [focus, summary, availability] = [
+    const [focus, summary, availability, authorisation] = [
       identityOf(data).subtitle,
       data.profile,
-      identityOf(data).availability
+      identityOf(data).availability,
+      identityOf(data).workAuthorisation
     ].map(clean);
 
     const lines = [];
@@ -403,6 +404,9 @@ export class SwiftSourceLayout {
     }
     if (availability) {
       lines.push([0, [...declaration('let', 'availability'), ...quoted(availability)]]);
+    }
+    if (authorisation) {
+      lines.push([0, [...declaration('let', 'workAuthorisation'), ...quoted(authorisation)]]);
     }
     return lines;
   }

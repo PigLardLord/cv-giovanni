@@ -10,6 +10,10 @@ const SEPARATOR_GLYPH = '·';
  * the generated whitespace when it lays the page out, welding the two items
  * together in the PDF. A real element carries real margins that survive.
  *
+ * A margin is room on the page and no character in the file, so a reader in
+ * drawing order gets the addresses as one token — filed as its own ticket,
+ * since the spaces that would fix it run the line past its column at 10pt.
+ *
  * The element is an atomic inline box, so the line may break on either side of
  * it: use it only inside a line that cannot wrap. Anywhere a line is free to
  * wrap, `holdSeparators` is the safe form.

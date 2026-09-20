@@ -18,7 +18,7 @@ export const MEASURE_LIMIT = 80;
  * Nerd Mode's date column on paper, in points from the page's left edge: the page's side margin, and the column's
  * width, as print.css declares them. The audit reads no CSS, so `tests/LineLength.test.js` holds them to it.
  */
-export const NERD_DATE_COLUMN = { left: 39, width: 128 };
+export const NERD_DATE_COLUMN = { left: 39, width: 142 };
 
 /** Less than half a point past an edge is rounding, not overflow. */
 const TOLERANCE = 0.5;
@@ -61,15 +61,33 @@ export function proseOf(profile) {
  * @returns {string|null} The prose on the line, or null when it holds none
  */
 const proseOn = (line, prose, periods) => {
-  if (prose.some((string) => string.includes(line))) return line;
-  const words = line.split(' ');
-  for (let cut = 1; cut < words.length; cut += 1) {
-    if (!periods.some((period) => period.includes(words.slice(0, cut).join(' ')))) break;
-    const rest = words.slice(cut).join(' ');
+  for (const rest of withoutPeriod(line, periods)) {
     if (prose.some((string) => string.includes(rest))) return rest;
   }
   return null;
 };
+
+/**
+ * A printed line, and what is left of it once the words of a period poppler set at its start are taken off, longest
+ * prefix last. The line itself comes first: a line that is prose as printed is never shortened.
+ *
+ * Nerd Mode prints each role's dates in a column beside the role, and poppler joins that column's last word to the
+ * prose beside it, "Present Enterprise mobility and…" (the code review of #177). Both the measure and the count of
+ * the lines a sentence takes have to read past that, so they read it here.
+ * @param {string} line - One printed line, its whitespace squashed
+ * @param {string[]} periods - Each role's dates as they print
+ * @returns {string[]} The line, then what follows each period-shaped prefix of it
+ */
+export function withoutPeriod(line, periods) {
+  const words = String(line ?? '').split(' ');
+  const rest = [line];
+  for (let cut = 1; cut < words.length; cut += 1) {
+    if (!periods.some((period) => period.includes(words.slice(0, cut).join(' ')))) break;
+    const following = words.slice(cut).join(' ');
+    if (following) rest.push(following);
+  }
+  return rest;
+}
 
 /**
  * The prose lines longer than the measure, each with its page.

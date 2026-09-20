@@ -5,7 +5,11 @@ agentic # agentic development, newer than the dictionary
 Agentic # Agentic Development, the headline's subtitle
 APIs
 Apparound # employer
+backend # one word, as the CV names it (#230)
+BSc # bachelor of science, British style
 Catania # Università degli Studi di Catania
+CEFR # Common European Framework of Reference for Languages
+Compusoft # employer
 Cortado # employer
 Cortado's # employer, possessive
 degli # Università degli Studi
@@ -13,6 +17,7 @@ DevicePolicyManager # Android API
 di # Università degli Studi di
 ECTS # European Credit Transfer and Accumulation System: a degree's credits
 ezeep # ezeep Blue, product
+fastlane # tool, as its makers write it
 Fastlane # tool
 GitLab # product
 Gradle # tool
@@ -24,7 +29,9 @@ LinkedIn # product
 Livorno # city
 Marte # Marte 5, employer
 MDM # mobile device management
+Modica # city
 MVVM # model-view-viewmodel
+NAS # network-attached storage
 NFCReader # product
 Robolectric # tool
 rollout # staged rollout, as app stores write it

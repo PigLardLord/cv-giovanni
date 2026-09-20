@@ -234,6 +234,21 @@ body {
   font-size: 0.9rem;
 }
 
+/* How the candidate works and when they can start answer the question the place raises, so they stand under it in
+   the contact card — a line of their own on screen, and beside the place on paper, where print.css draws the dot
+   between them (#230). */
+.contact-availability {
+  display: block;
+}
+
+/* And a line the page hides stays hidden: `display` above, and print.css's `inline`, both beat the browser's own
+   rule for `[hidden]`, so a profile that states no availability printed its place ending on the separator drawn
+   for a line that was not there — "Bad Liebenstein, Thuringia, Germany ·" (#178, #180). The attribute wins on
+   specificity, in print too. */
+.contact-availability[hidden] {
+  display: none !important;
+}
+
 .contact-icon {
   margin-right: var(--space-sm);
 }

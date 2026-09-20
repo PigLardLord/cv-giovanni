@@ -165,7 +165,15 @@ describe('the shape of a profile', () => {
       'carrer_highlights',
       /not a field the CV reads/
     ],
-    ['no month while a role is still running', (p) => delete p.asOf, 'asOf', /still running/]
+    [
+      'no month while a role is still running',
+      (p) => {
+        p.relevant_experience[0].period = 'August 2018 – Present';
+        delete p.asOf;
+      },
+      'asOf',
+      /still running/
+    ]
   ])('%s is a problem, at its path', (what, change, path, reason) => {
     const problems = ProfileShape.problems(changed(change));
 
@@ -182,7 +190,7 @@ describe('the shape of a profile', () => {
       })
     );
 
-    expect(at(problems)).toEqual(['name', 'interests[6]', 'carrer_highlights']);
+    expect(at(problems)).toEqual(['name', 'interests[3]', 'carrer_highlights']);
   });
 
   test('a degree may state its credits, and need not', () => {

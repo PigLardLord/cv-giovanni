@@ -14,6 +14,12 @@ import { builtCv, builtLetters } from './lib/printed-cv.mjs';
 import { PRINTED_PAGE, bboxPages, printedRoom, roomReport } from './lib/page-room.mjs';
 import { MEASURE_LIMIT, longProseLines, overflowingPeriods, proseOf } from './lib/line-length.mjs';
 import {
+  proseSpans,
+  raggedMasthead,
+  straddlingRoles,
+  strandedSeparators
+} from './lib/printed-prose.mjs';
+import {
   addressInWindow,
   bboxLines,
   catalogueTranslator,
@@ -54,6 +60,14 @@ const cv = new CvDocument(profile);
 // Each role's dates as the page writes them, the period with its length (Nerd Mode's print hides the length; a run of
 // the period still matches).
 const periods = cv.experience.map((role) => periodText(cv, role, target.locale));
+// Every bullet the roles print, and what each role says of itself, for the two measurements a reader makes of the
+// page rather than of a line: how far a bullet runs, and whether a role's evidence stayed with its heading (#230).
+const everyBullet = profile.relevant_experience.flatMap((role) => role.highlights ?? []);
+const roleProse = profile.relevant_experience.map((role) => ({
+  title: role.title,
+  company: role.company,
+  prose: [role.summary, role.description, ...(role.highlights ?? [])].filter(Boolean)
+}));
 
 /** Read a file the audit cannot run without. Missing means unchecked, which is exit 2. */
 async function readJson(path) {
@@ -79,6 +93,10 @@ try {
 const DPI = 150;
 const MM = 25.4;
 const CONTRAST_FLOOR = 4.5;
+// What a reader skimming for six seconds takes in: a bullet of at most two printed lines, and a summary of at most
+// three (#230). Both are counted on the paper, since the same words wrap differently in each layout.
+const BULLET_LINES = 2;
+const SUMMARY_LINES = 3;
 const MARGIN_FLOOR_MM = 10;
 const SIDE_TOLERANCE_MM = 1.5;
 
@@ -313,14 +331,25 @@ try {
       profile.name,
       profile.email,
       ...(highlights.length > 0 ? [{ heading: labels.selectedImpact }] : []),
-      { heading: labels.skills },
       { heading: labels.experience },
       ...profile.relevant_experience.map((job) => job.title),
+      { heading: labels.skills },
       { heading: labels.education },
       ...profile.education.map((entry) => entry.degree),
       { heading: labels.languages }
     ];
     const sections = { read: outOfOrder(text, anchors), drawn: outOfOrder(drawn, anchors) };
+    // What each bullet, and the summary, cost on the paper, and whether a role's own evidence left its header's page.
+    const bullets = proseSpans(text, everyBullet, { periods }).filter(
+      (span) => !span.found || span.lines > BULLET_LINES
+    );
+    const summary = proseSpans(text, [profile.profile], { periods })[0];
+    const straddling = straddlingRoles(text, roleProse, { periods });
+    // And whether the masthead's lines share one left edge, which a hidden label's leftover space broke.
+    const firstHeading = highlights.length > 0 ? labels.selectedImpact : labels.experience;
+    const ragged = raggedMasthead(bbox, { until: firstHeading });
+    // And whether a line of it ends on a separator drawn for a field the profile does not state.
+    const stranded = strandedSeparators(text, { until: firstHeading });
     const flat = text.replace(/\s+/g, ' ');
 
     const order = [profile.name, profile.title, labels.experience].map((term) =>
@@ -335,8 +364,10 @@ try {
       format: isA4(info),
       pages: pageCount > 0 && pageCount <= 2,
       // Every string a parser looks for, in the case the catalogue wrote it. A
-      // section label drawn in capitals no longer matches the label itself.
-      content: mustHave.every((term) => text.includes(term)),
+      // section label drawn in capitals no longer matches the label itself. The
+      // text is read with its line breaks flattened: a sentence set over two lines
+      // is still printed, and how many lines it takes is `bulletsScan`'s question.
+      content: mustHave.every((term) => flat.includes(term.replace(/\s+/g, ' ').trim())),
       readingOrder: order.every((at, index) => at >= 0 && (index === 0 || at > order[index - 1])),
       canonicalCompounds: !brokenForms.some(({ broken }) => broken.test(text)),
       blockIntegrity: educationPairs.every((pair) => pair.test(flat)),
@@ -399,7 +430,20 @@ try {
       measure: long.length === 0,
       // Nerd Mode's dates stay inside their 128pt column: a longer period runs into the gap beside its role and wraps
       // nothing a text check would see.
-      datesInColumn: overflow.length === 0
+      datesInColumn: overflow.length === 0,
+      // A bullet a recruiter reads in one glance: at most two printed lines, whatever the layout (#230).
+      bulletsScan: bullets.length === 0,
+      // The summary is the first prose on the page and the last thing a skimmer gives time to: three lines.
+      summaryScans: summary.found && summary.lines <= SUMMARY_LINES,
+      // The page break falls between two roles. Page 2 opened on three bullets with no employer above them, which
+      // is evidence a reader cannot attach to anything.
+      rolesWhole: straddling.length === 0,
+      // Every line of the masthead starts on the page's left edge: the name, the headline, the contact block and the
+      // summary. A line 2.8pt in reads as a mistake, and a reader sees it before any check does.
+      mastheadAligned: ragged.length === 0,
+      // No line of the masthead opens or closes on a separator: the contacts' dots are drawn by the stylesheet, so
+      // a field the profile leaves out takes its value away and would leave its dot behind (#178, #180).
+      mastheadSeparatorsHeld: stranded.length === 0
     };
 
     const passed = Object.values(checks).filter(Boolean).length;
@@ -418,7 +462,12 @@ try {
       margins,
       room,
       long,
-      overflow
+      overflow,
+      bullets,
+      summary,
+      straddling,
+      ragged,
+      stranded
     });
   }
 
@@ -531,7 +580,10 @@ const report = [
   'skill categories with the spaces between their words, the sections in reading order both as',
   'poppler reconstructs the page and as the PDF draws it, no image, no line of prose past',
   `${MEASURE_LIMIT} characters (WCAG 1.4.8; lists of skills, interests and contacts are scanned, not read along a`,
-  "measure, and are exempt), and in Nerd Mode every line of a role's dates inside its column.",
+  "measure, and are exempt), in Nerd Mode every line of a role's dates inside its column, every bullet set over no",
+  `more than ${BULLET_LINES} printed lines and the summary over no more than ${SUMMARY_LINES}, and every role whole on one page, so no`,
+  'page opens on a bullet whose role heading stands on the page before, and every line of the masthead on the',
+  "page's left edge, none of them opening or closing on a separator.",
   // Only a profile that carries a letter has one to report, so the published report reads as it always has.
   ...(letterRows.length
     ? [
@@ -584,7 +636,12 @@ if (failures.length || letterFailures.length) {
             sections,
             images,
             long,
-            overflow
+            overflow,
+            bullets,
+            summary,
+            straddling,
+            ragged,
+            stranded
           }) => ({
             layout,
             failed: failedChecks(checks),
@@ -596,7 +653,12 @@ if (failures.length || letterFailures.length) {
             sections,
             images,
             long,
-            overflow
+            overflow,
+            bullets,
+            summary,
+            straddling,
+            ragged,
+            stranded
           })
         ),
         ...letterFailures.map(

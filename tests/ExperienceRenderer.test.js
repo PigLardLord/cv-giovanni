@@ -52,6 +52,27 @@ describe('ExperienceRenderer', () => {
     ]);
   });
 
+  // A closed range is one word too: "ezeep Blue for iOS, 2020–" ended a line at Technical Profile's 320px,
+  // with "2023" opening the next (#230). The rule against a line ending on a separator is the same rule.
+  test('holds a closed range whole, as it holds a hyphenated compound', () => {
+    renderer.render(document, {
+      relevant_experience: [
+        {
+          title: 'Mobile Developer',
+          company: 'Apparound',
+          period: 'September 2015 – July 2018',
+          highlights: ['ezeep Blue for iOS, 2020–2023: rewrote it in SwiftUI.']
+        }
+      ]
+    });
+
+    const highlight = document.querySelector('.job-highlights li');
+    expect(highlight.textContent).toBe('ezeep Blue for iOS, 2020–2023: rewrote it in SwiftUI.');
+    expect([...highlight.querySelectorAll('.no-break')].map((held) => held.textContent)).toEqual([
+      '2020–2023'
+    ]);
+  });
+
   // "from its first commit" / "— owned" opened a line at Impact Spotlight's 320px (#180).
   test("holds each separator in a role's prose to the words either side of it", () => {
     renderer.render(document, {
@@ -70,7 +91,8 @@ describe('ExperienceRenderer', () => {
       [...document.querySelectorAll('.job-summary .no-break, .job-highlights .no-break')].map(
         (span) => span.textContent
       )
-    ).toEqual(['–', ' — ']);
+      // The range is held whole now, dash and both ends: a break after the dash strands it (#230).
+    ).toEqual(['3–7', ' — ']);
     expect(document.querySelector('.job-highlights li').textContent).toBe(
       'Owner from its first commit — owned the architecture.'
     );

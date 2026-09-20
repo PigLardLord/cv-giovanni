@@ -157,7 +157,8 @@ describe('a change to the profile', () => {
     expect(moved.map(({ company }) => company)).toEqual([
       published.relevant_experience[2].company,
       published.relevant_experience[0].company,
-      published.relevant_experience[1].company
+      published.relevant_experience[1].company,
+      published.relevant_experience[3].company
     ]);
     expect(published).toEqual(untouched);
   });
