@@ -380,8 +380,7 @@ body[data-layout='spotlight'] .hero-name {
 }
 
 .contact-item,
-.contact-details,
-.contact-authorisation {
+.contact-details {
   display: block !important;
   margin: 0 !important;
   font-size: 10pt !important;
