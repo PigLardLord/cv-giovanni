@@ -43,6 +43,21 @@ describe('SkillsRenderer', () => {
   });
 });
 
+// The print broke "Dependency-Track" at its hyphen in Nerd Mode, and poppler read it back welded shut as
+// "DependencyTrack": right on the page, unfindable by anyone searching the canonical spelling (#230). Prose has
+// held its compounds since #143; a name in a list is text too.
+test('holds a hyphenated name whole, as prose holds its compounds', () => {
+  document.body.innerHTML = '<div id="skills"></div>';
+  fedTheModel(new SkillsRenderer()).render(document, {
+    skills: [{ category: 'Delivery', items: [{ name: 'SBOM' }, { name: 'Dependency-Track' }] }]
+  });
+
+  expect([...document.querySelectorAll('.skill-chip .no-break')].map((s) => s.textContent)).toEqual(
+    ['Dependency-Track']
+  );
+  expect(document.querySelector('.skill-list').textContent).toBe('SBOM, Dependency-Track');
+});
+
 test('gives every skill its own element while the line still reads as it did', () => {
   // A layout can now style each name — a chip, a pill — by hiding the separators. The
   // separators stay real text nodes, so copy/paste and any parser still see "Swift, SwiftUI"
