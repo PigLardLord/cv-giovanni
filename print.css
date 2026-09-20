@@ -421,9 +421,17 @@ body[data-layout='spotlight'] .hero-name {
   color: #4b5563 !important;
 }
 
-/* The first label on the line stands in front of the address, where no separator belongs. */
+/* The first label on the line stands in front of the address, where no separator belongs. Its value still opens
+   with the space the markup writes between label and value, and with no dot drawn in the label's place that space
+   pushed the whole line 2.8pt — one space at 10pt — to the right of every other line of the masthead, which a
+   neutral read of the printed CV saw before any check did (#230). The indent takes the space back; `audit:print`
+   holds every masthead line to the page's left edge. */
 .contact-details strong:first-child::before {
   content: '';
+}
+
+.contact-details {
+  text-indent: -0.28em !important;
 }
 
 .social-links {

@@ -13,7 +13,7 @@ import { imageCount, outOfOrder } from './lib/section-order.mjs';
 import { builtCv, builtLetters } from './lib/printed-cv.mjs';
 import { PRINTED_PAGE, bboxPages, printedRoom, roomReport } from './lib/page-room.mjs';
 import { MEASURE_LIMIT, longProseLines, overflowingPeriods, proseOf } from './lib/line-length.mjs';
-import { proseSpans, straddlingRoles } from './lib/printed-prose.mjs';
+import { proseSpans, raggedMasthead, straddlingRoles } from './lib/printed-prose.mjs';
 import {
   addressInWindow,
   bboxLines,
@@ -340,6 +340,10 @@ try {
     );
     const summary = proseSpans(text, [profile.profile], { periods })[0];
     const straddling = straddlingRoles(text, roleProse, { periods });
+    // And whether the masthead's lines share one left edge, which a hidden label's leftover space broke.
+    const ragged = raggedMasthead(bbox, {
+      until: highlights.length > 0 ? labels.selectedImpact : labels.experience
+    });
     const flat = text.replace(/\s+/g, ' ');
 
     const order = [profile.name, profile.title, labels.experience].map((term) =>
@@ -425,7 +429,10 @@ try {
       summaryScans: summary.found && summary.lines <= SUMMARY_LINES,
       // The page break falls between two roles. Page 2 opened on three bullets with no employer above them, which
       // is evidence a reader cannot attach to anything.
-      rolesWhole: straddling.length === 0
+      rolesWhole: straddling.length === 0,
+      // Every line of the masthead starts on the page's left edge: the name, the headline, the contact block and the
+      // summary. A line 2.8pt in reads as a mistake, and a reader sees it before any check does.
+      mastheadAligned: ragged.length === 0
     };
 
     const passed = Object.values(checks).filter(Boolean).length;
@@ -447,7 +454,8 @@ try {
       overflow,
       bullets,
       summary,
-      straddling
+      straddling,
+      ragged
     });
   }
 
@@ -562,7 +570,8 @@ const report = [
   `${MEASURE_LIMIT} characters (WCAG 1.4.8; lists of skills, interests and contacts are scanned, not read along a`,
   "measure, and are exempt), in Nerd Mode every line of a role's dates inside its column, every bullet set over no",
   `more than ${BULLET_LINES} printed lines and the summary over no more than ${SUMMARY_LINES}, and every role whole on one page, so no`,
-  'page opens on a bullet whose role heading stands on the page before.',
+  'page opens on a bullet whose role heading stands on the page before, and every line of the masthead on the',
+  "page's left edge.",
   // Only a profile that carries a letter has one to report, so the published report reads as it always has.
   ...(letterRows.length
     ? [
@@ -618,7 +627,8 @@ if (failures.length || letterFailures.length) {
             overflow,
             bullets,
             summary,
-            straddling
+            straddling,
+            ragged
           }) => ({
             layout,
             failed: failedChecks(checks),
@@ -633,7 +643,8 @@ if (failures.length || letterFailures.length) {
             overflow,
             bullets,
             summary,
-            straddling
+            straddling,
+            ragged
           })
         ),
         ...letterFailures.map(

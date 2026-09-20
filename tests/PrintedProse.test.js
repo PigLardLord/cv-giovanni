@@ -4,6 +4,7 @@
 import {
   printedPages,
   proseSpans,
+  raggedMasthead,
   rolePages,
   straddlingRoles
 } from '../scripts/lib/printed-prose.mjs';
@@ -106,6 +107,23 @@ describe('what a sentence costs on the printed page', () => {
 
     expect(straddlingRoles(printed, roles)).toEqual([
       { title: 'iOS Developer', company: 'Cortado Mobile Solutions', header: 1, pages: [1, 2] }
+    ]);
+  });
+
+  // One line of the masthead started 2.8pt — a 10pt space — to the right of every other, because the contact line's
+  // first hidden label left its space behind and no separator was drawn in its place (#230).
+  test('a masthead line that starts past the page edge is named, and the heading below it is not read', () => {
+    const extract = [
+      '<page width="595" height="842">',
+      '<line xMin="95.2" yMin="31" xMax="295" yMax="60"><word xMin="95.2" xMax="295">Giovanni Trovato</word></line>',
+      '<line xMin="98.0" yMin="105" xMax="300" yMax="118"><word xMin="98.0" xMax="300">ada@example.com</word></line>',
+      '<line xMin="95.2" yMin="130" xMax="200" yMax="145"><word xMin="95.2" xMax="200">Selected Impact</word></line>',
+      '<line xMin="108.2" yMin="150" xMax="300" yMax="165"><word xMin="108.2" xMax="300">An indented bullet</word></line>',
+      '</page>'
+    ].join('\n');
+
+    expect(raggedMasthead(extract, { until: 'Selected Impact' })).toEqual([
+      { left: 98, edge: 95.2, text: 'ada@example.com' }
     ]);
   });
 });

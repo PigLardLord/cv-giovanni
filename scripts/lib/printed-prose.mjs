@@ -8,6 +8,8 @@
  * differently in each layout, so they are measured here on the text layer rather than asserted on the source.
  */
 
+import { bboxLines } from './line-length.mjs';
+
 const squash = (text) =>
   String(text ?? '')
     .replace(/\s+/g, ' ')
@@ -128,4 +130,28 @@ export function straddlingRoles(text, roles, options) {
   return rolePages(text, roles, options).filter(
     ({ header, pages }) => header !== null && pages.some((page) => page !== header)
   );
+}
+
+/**
+ * The lines of the masthead that do not start on the page's left edge.
+ *
+ * `HeaderRenderer` writes each contact as a hidden label and a value that opens with a space, and print.css draws the
+ * separator in the label's place. The first label on a line has no separator to draw, so its value kept the space and
+ * the email line printed 2.8pt — one space at 10pt — to the right of every line above and below it. A neutral read of
+ * the printed CV saw it before any check did (#230).
+ * @param {string} extract - What `pdftotext -bbox-layout` wrote
+ * @param {{ until: string, tolerance?: number }} options - The first heading under the masthead, and what counts as
+ *   rounding rather than a ragged edge
+ * @returns {{ left: number, edge: number, text: string }[]} Every masthead line that starts past the edge
+ */
+export function raggedMasthead(extract, { until, tolerance = 0.5 }) {
+  const lines = bboxLines(extract).filter(({ page }) => page === 1);
+  const heading = lines.findIndex(({ text }) => squash(text) === squash(until));
+  const masthead = lines.slice(0, heading < 0 ? lines.length : heading);
+  if (!masthead.length) return [];
+
+  const edge = Math.min(...masthead.map(({ left }) => left));
+  return masthead
+    .filter(({ left }) => left > edge + tolerance)
+    .map(({ left, text }) => ({ left, edge, text }));
 }
