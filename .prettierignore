@@ -12,5 +12,10 @@ docs/SCREEN_AUDIT.md
 .agents/harness/
 .agents/skills/
 
+# Written by the local app through ProfileStore, which owns their layout: `JSON.stringify(profile, null, 2)`.
+# Prettier sets a short array on one line where that writes one entry a line, so a formatted profile would be
+# rewritten by the next save from the editor, and `tests/ProfileStore.test.js` fails on exactly that byte (#230).
+profiles/
+
 # Inputs whose exact bytes are what the test checks.
 tests/fixtures/

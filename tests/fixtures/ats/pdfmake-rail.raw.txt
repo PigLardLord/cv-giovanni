@@ -45,6 +45,9 @@ Marte 5 · Livorno, Italy
 May 2015 – August 2015 (4 months)
 Built production Android augmented-reality applications for manufacturing and
 automotive clients using Java, Vuforia and Wikitude.
+IT System Administrator
+Compusoft · Modica, Italy
+May 2010 – November 2014 (4 years, 7 months)
 Core Technologies iOS Swift, SwiftUI, UIKit, Swift Concurrency,
 XCTest / XCUITest, App Intents, Live Activities,
 Swift Package Manager (SPM)

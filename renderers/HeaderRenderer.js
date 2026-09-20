@@ -15,6 +15,7 @@ export class HeaderRenderer extends Renderer {
     const titleElement = root.getElementById('title');
     const subtitleElement = root.getElementById('subtitle');
     const availabilityElement = root.getElementById('availability');
+    const authorisationElement = root.getElementById('work-authorisation');
     const locationElement = root.getElementById('location');
     const contactsElement = root.getElementById('contacts');
 
@@ -22,6 +23,7 @@ export class HeaderRenderer extends Renderer {
     if (titleElement) titleElement.textContent = identity.title || '';
     this.renderOptional(subtitleElement, identity.subtitle);
     this.renderOptional(availabilityElement, identity.availability);
+    this.renderOptional(authorisationElement, identity.workAuthorisation);
     if (locationElement) locationElement.textContent = identity.location || '';
 
     if (contactsElement) {

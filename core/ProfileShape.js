@@ -24,6 +24,7 @@ export const PROFILE = group('Profile', {
   email: text('Email'),
   phone: text('Phone'),
   availability: text('Availability'),
+  workAuthorisation: text('Work authorisation'),
   portfolio: address('Portfolio'),
   profile: text('Profile', { multiline: true }),
   career_highlights: list(

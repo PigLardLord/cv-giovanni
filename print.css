@@ -133,6 +133,60 @@ body {
   overflow: visible !important;
 }
 
+/* The order a recruiter reads the page in, which is not the order the markup writes it in (#230). Four
+   neutral reads of the printed CV asked for the evidence first: the contacts under the headline, then the
+   summary, the figures, the roles, and the lists of technologies and credentials after them. The markup
+   keeps the order each screen layout arranges its own way, so the print sets the sections in one column
+   and gives each its place in it.
+
+   One column still, and nothing positioned or floated (#142, #144): the page is a single flex column, and
+   Chrome draws flex items in the order this sets, so the text layer comes out in the printed order in both
+   of the orders a parser reads. The print audit's `sectionsInOrder` and `sectionsInOrderDrawn` hold it. */
+.container {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* The wrappers the screen layouts arrange their columns with carry no order of their own on paper. */
+.main-content,
+.content-grid,
+.primary-column,
+.secondary-column {
+  display: contents !important;
+}
+
+.hero-section {
+  order: 1 !important;
+}
+
+.career-highlights-section {
+  order: 2 !important;
+}
+
+.experience-section {
+  order: 3 !important;
+}
+
+.skills-spotlight {
+  order: 4 !important;
+}
+
+.certifications-section {
+  order: 5 !important;
+}
+
+.education-section {
+  order: 6 !important;
+}
+
+.languages-section {
+  order: 7 !important;
+}
+
+.interests-section {
+  order: 8 !important;
+}
+
 /* Impact Spotlight and Technical Profile set one 405pt column in the middle of the text block. Its longest
    11pt line measured 76 characters, under the 80 WCAG 1.4.8 sets as a ceiling and the print audit holds
    prose to; set across the full 517pt, the same text measured 99. Centred, the two side margins are
@@ -174,18 +228,56 @@ body[data-layout='technical'] .container {
   background: white !important;
   color: #374151 !important;
   padding: 0 !important;
-  margin: 0 0 12pt !important;
+  margin: 0 !important;
   border: 0 !important;
   overflow: visible !important;
   break-inside: avoid !important;
 }
 
-.hero-content,
-.hero-text,
-.hero-sidebar {
-  display: block !important;
+/* The masthead in the order a reader takes it in: the name, the headline, the skills line, the contact
+   block, and the summary under them. The contacts moved above the summary because the reviewers measured
+   what the old order cost — the first quantified line began half a point below the fold, and the block
+   that says where the candidate is, how they work and that they may work in Germany stood fourth, at 9pt,
+   in the lightest grey on the page (#230). The two wrappers the screen uses for its portrait and its card
+   step out of the box tree, so their children take their places in this one column. */
+.hero-content {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  /* The screen's masthead is a grid with a gap between its columns; on paper the gap would open between
+     every line of the one column. Each line states its own space above it instead. */
+  gap: 0 !important;
   padding: 0 !important;
   margin: 0 !important;
+}
+
+.hero-text,
+.hero-sidebar {
+  display: contents !important;
+}
+
+.hero-name {
+  order: 1 !important;
+}
+
+.hero-title {
+  order: 2 !important;
+}
+
+.hero-subtitle {
+  order: 3 !important;
+}
+
+.contact-card {
+  order: 4 !important;
+}
+
+.hero-availability {
+  order: 5 !important;
+}
+
+.hero-summary {
+  order: 6 !important;
 }
 
 .hero-name {
@@ -245,28 +337,35 @@ body[data-layout='spotlight'] .hero-name {
   margin: 8pt 0 0 !important;
 }
 
+/* The one line that says the candidate may work here, in the contact block's own size and colour rather than
+   the page's lightest grey: the reviewers of #230 measured it as the least visible line on the page. */
 .hero-availability {
-  font-size: 9pt !important;
+  font-size: 10pt !important;
   font-weight: 400 !important;
   line-height: 1.4 !important;
-  color: #4b5563 !important;
-  margin: 6pt 0 0 !important;
+  color: #1f2937 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: none !important;
+  border-radius: 0 !important;
+  display: block !important;
 }
 
-/* --- The contacts: two lines of text -------------------------------------------------------- */
-/* Location, email and phone on the first line, the three addresses on the second, each item parted from
-   the next by a middle dot. No "Email:" or "Phone:": a parser knows an address and a number by their
-   shape, and the pdfmake masthead wrote none either. The dot is not decoration on the first line: the
-   ATS parser finds the location by splitting that line on it, and rejects a piece holding an "@" or a
-   digit, so without the dot the location is lost.
+/* --- The contact block: four lines under the headline --------------------------------------- */
+/* Where the candidate is and how they work, how to reach them, where to read more, and that they may work
+   here: one line each, at 10pt in the body's own dark grey rather than 9pt in the page's lightest (#230).
+   No "Email:" or "Phone:": a parser knows an address and a number by their shape. The dot is not
+   decoration on the first line: the ATS parser finds the location by splitting a line on it and rejects a
+   piece holding an "@" or a digit, so the place keeps a dot between itself and what follows.
 
-   Neither line may wrap, and the first is the longer. Measured on the printed PDF, it runs 375.5pt of Impact
-   Spotlight's and Technical Profile's 405pt at 9pt, and 417pt of Nerd Mode's 517pt at 10pt. Both extraction
-   orders read it as "Germany · trovato.giovanni@gmail.com · +39 329 8484 046", with no label. */
+   No line may wrap. Measured on the printed PDF at 10pt, the longest runs 412pt of Nerd Mode's 517pt and
+   391pt of Impact Spotlight's and Technical Profile's 405pt: the addresses, whose separators are set
+   tighter here than the screen's for exactly that reason. */
 .contact-card {
   display: block !important;
   width: auto !important;
-  margin: 2pt 0 0 !important;
+  margin: 8pt 0 0 !important;
   padding: 0 !important;
   background: none !important;
   border: 0 !important;
@@ -274,19 +373,33 @@ body[data-layout='spotlight'] .hero-name {
   backdrop-filter: none !important;
   text-align: left !important;
   white-space: nowrap !important;
-  font-size: 9pt !important;
+  font-size: 10pt !important;
   font-weight: 400 !important;
   line-height: 1.4 !important;
-  color: #374151 !important;
+  color: #1f2937 !important;
 }
 
 .contact-item,
-.contact-details {
-  display: inline !important;
+.contact-details,
+.contact-authorisation {
+  display: block !important;
   margin: 0 !important;
-  font-size: 9pt !important;
+  font-size: 10pt !important;
   line-height: 1.4 !important;
-  color: #374151 !important;
+  color: #1f2937 !important;
+}
+
+/* The work mode and the notice period answer the question the place raises, so they share its line. The
+   dot is drawn here, as the contacts' are: the screen keeps the two apart with a gap instead. */
+.contact-availability {
+  display: inline !important;
+  font-size: 10pt !important;
+  color: #1f2937 !important;
+}
+
+.contact-availability::before {
+  content: ' · ';
+  color: #4b5563 !important;
 }
 
 .contact-details br {
@@ -304,9 +417,14 @@ body[data-layout='spotlight'] .hero-name {
 .contact-details strong::before {
   content: '·';
   visibility: visible !important;
-  font-size: 9pt !important;
+  font-size: 10pt !important;
   font-weight: 400 !important;
   color: #4b5563 !important;
+}
+
+/* The first label on the line stands in front of the address, where no separator belongs. */
+.contact-details strong:first-child::before {
+  content: '';
 }
 
 .social-links {
@@ -323,9 +441,9 @@ body[data-layout='spotlight'] .hero-name {
   background: none !important;
   border: 0 !important;
   border-radius: 0 !important;
-  font-size: 9pt !important;
+  font-size: 10pt !important;
   font-weight: 400 !important;
-  color: #374151 !important;
+  color: #1f2937 !important;
   text-decoration: none !important;
 }
 
@@ -333,7 +451,7 @@ body[data-layout='spotlight'] .hero-name {
    its margin. */
 .social-links .inline-separator {
   display: inline !important;
-  margin: 0 0.3em !important;
+  margin: 0 0.15em !important;
   color: #4b5563 !important;
 }
 
@@ -343,14 +461,6 @@ body[data-layout='spotlight'] .hero-name {
 
 .main-content {
   padding: 0 !important;
-}
-
-/* One column. The two wrappers stay in the markup and print as plain blocks, so the sections follow each
-   other in the order index.html writes them: Experience, Certifications, Education, Languages, Interests. */
-.content-grid,
-.primary-column,
-.secondary-column {
-  display: block !important;
 }
 
 /* 12pt above every heading after the first. The project's own ATS parser recognises a heading only after a
@@ -365,12 +475,6 @@ section {
   border: 0 !important;
 }
 
-/* Selected Impact opens the sections when the profile has highlights, and Core Technologies when it has none. */
-.career-highlights-section,
-.career-highlights-section[hidden] + .skills-spotlight {
-  margin-top: 0 !important;
-}
-
 /* Each of these fits on the page it starts on; Experience alone is long enough to cross a page break. */
 .career-highlights-section,
 .skills-spotlight,
@@ -378,6 +482,13 @@ section {
 .certifications-section,
 .languages-section,
 .interests-section {
+  break-inside: avoid !important;
+}
+
+/* And the break inside Experience falls between two roles. Page 2 used to open on three bullets with no
+   title, employer or dates above them: evidence a reader cannot attach to anything (#230). A role is
+   short enough now to move whole, and the print audit's `rolesWhole` fails a page that opens mid-role. */
+.job-entry {
   break-inside: avoid !important;
 }
 
@@ -465,9 +576,10 @@ section {
 }
 
 /* The dash takes the list's colour. In Inter's static Regular (#143) the thin dash measured 4.35:1 on the
-   paper at #6b7280, under the 4.5:1 every printed word is held to. */
+   paper at #6b7280, under the 4.5:1 every printed word is held to. It is the spaced en dash the rest of
+   the CV separates with, since one document sets one dash (#230). */
 .skill-category::after {
-  content: ' — ';
+  content: ' – ';
   font-weight: 400 !important;
   color: #374151 !important;
 }
@@ -530,10 +642,10 @@ section {
    the 4.5:1 every printed word is held to. At #4b5563 it measures 6.79:1. */
 .job-period {
   margin: 1pt 0 0 !important;
-  font-size: 9pt !important;
+  font-size: 10pt !important;
   font-weight: 400 !important;
   line-height: 1.4 !important;
-  color: #4b5563 !important;
+  color: #1f2937 !important;
   text-transform: none !important;
 }
 
@@ -564,7 +676,7 @@ section {
 
 .job-highlights li,
 .career-highlights li {
-  margin: 3pt 0 0 !important;
+  margin: 5pt 0 0 !important;
   font-size: 11pt !important;
   font-weight: 400 !important;
   line-height: 1.4 !important;
@@ -677,11 +789,32 @@ section {
 /* 10pt, like the other short lists. It printed at 11pt only because nothing gave it a size and body's
    reached it. */
 .interests-line {
-  display: block !important;
+  display: inline !important;
   font-size: 10pt !important;
   font-weight: 400 !important;
   line-height: 1.4 !important;
   color: #374151 !important;
+}
+
+/* The interests follow the languages as a line under a label rather than a section of their own: three of
+   them do not earn a 13pt heading and the rule under it, and the reviewers of #230 read the old list —
+   "iOS Architecture, Enterprise Solutions, Tech Mentoring" — as work repeated as leisure.
+   The label keeps a line of its own, and that is the point: set at the head of the line instead, it was
+   drawn against the first interest with no space between them, and the content stream read
+   "InterestsRobotics and IoT" — the welded word of #143, in the order PDFBox and Tika read. */
+.interests-section {
+  margin-top: 6pt !important;
+}
+
+.interests-section .section-title {
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  font-size: 10pt !important;
+  font-weight: 700 !important;
+  line-height: 1.4 !important;
+  color: #1f2937 !important;
 }
 
 /* =============================================================================
@@ -909,12 +1042,15 @@ body[data-layout='nerd'] .job-header {
   align-self: baseline !important;
 }
 
+/* Nerd Mode's dates keep 9pt: the column is 128pt and the longest period measured 125.3pt at that size,
+   so the 10pt the other layouts give the dates would run it into the role beside it (#155). */
 body[data-layout='nerd'] .job-period {
   grid-column: 1 !important;
   grid-row: 1 / span 2 !important;
   order: -1 !important;
   align-self: baseline !important;
   margin: 0 !important;
+  font-size: 9pt !important;
   font-variant-numeric: tabular-nums !important;
   color: #555 !important;
 }

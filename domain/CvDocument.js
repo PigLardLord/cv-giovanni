@@ -10,6 +10,7 @@ export class CvDocument {
       email: data.email,
       phone: data.phone,
       availability: data.availability || '',
+      workAuthorisation: data.workAuthorisation || '',
       portfolio: data.portfolio || '',
       social: data.social || []
     };

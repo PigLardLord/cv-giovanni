@@ -234,6 +234,13 @@ body {
   font-size: 0.9rem;
 }
 
+/* How the candidate works and when they can start answer the question the place raises, so they stand under it in
+   the contact card — a line of their own on screen, and beside the place on paper, where print.css draws the dot
+   between them (#230). */
+.contact-availability {
+  display: block;
+}
+
 .contact-icon {
   margin-right: var(--space-sm);
 }

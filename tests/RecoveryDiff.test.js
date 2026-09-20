@@ -71,29 +71,15 @@ describe('the artefact this repository actually ships', () => {
   });
 
   test('every role keeps its title, employer, period and neighbours', () => {
-    expect(diff.experience).toEqual([
-      {
-        title: 'exact',
-        employer: 'exact',
-        period: 'exact',
-        tripleAdjacent: true,
-        highlights: 'exact'
-      },
-      {
-        title: 'exact',
-        employer: 'exact',
-        period: 'exact',
-        tripleAdjacent: true,
-        highlights: 'exact'
-      },
-      {
-        title: 'exact',
-        employer: 'exact',
-        period: 'exact',
-        tripleAdjacent: true,
-        highlights: 'exact'
-      }
-    ]);
+    const whole = {
+      title: 'exact',
+      employer: 'exact',
+      period: 'exact',
+      tripleAdjacent: true,
+      highlights: 'exact'
+    };
+
+    expect(diff.experience).toEqual([whole, whole, whole, whole]);
     expect(diff.roleOrderMonotonic).toBe(true);
   });
 
@@ -129,7 +115,9 @@ describe('each defect shows up as its own kind of damage', () => {
     expect(diff.experience.map(({ employer, period }) => [employer, period])).toEqual([
       ['exact', 'exact'],
       ['exact', 'exact'],
-      ['exact', 'exact']
+      ['exact', 'exact'],
+      // The fixture predates the role the profile now ends on, so that one has nothing to come back from.
+      ['lost', 'lost']
     ]);
   });
 
@@ -390,7 +378,7 @@ describe('an entry is matched to the one written by what it says, not by where i
     // review of #222).
     test('a degree that shares only its period with a written one matches none, and that one is lost', () => {
       const culinary = nerd.replace(
-        'B.Sc. Computer Engineering\nUniversità degli Studi di Catania (2009)',
+        'BSc in Computer Engineering\nUniversità degli Studi di Catania (2009)',
         'Diploma in Culinary Arts\nScuola Alberghiera di Roma (2009)'
       );
       const diff = diffOfText(culinary, profile);
@@ -407,8 +395,8 @@ describe('an entry is matched to the one written by what it says, not by where i
 
     test('degrees printed in another order come back whole', () => {
       const pisa =
-        "First Level Professional Master's Programme in Mobile Applications\nDevelopment (60 ECTS)\nUniversità degli Studi di Pisa (2014 – 2016)";
-      const catania = 'B.Sc. Computer Engineering\nUniversità degli Studi di Catania (2009)';
+        "First Level Professional Master's Programme in Mobile Applications\nDevelopment (60 ECTS)\nUniversità degli Studi di Pisa (2014–2016)";
+      const catania = 'BSc in Computer Engineering\nUniversità degli Studi di Catania (2009)';
       const reordered = nerd.replace(`${pisa}\n\n${catania}`, `${catania}\n\n${pisa}`);
 
       expect(reordered).not.toBe(nerd);
@@ -443,6 +431,7 @@ describe('an entry is matched to the one written by what it says, not by where i
           highlights: 'lost'
         },
         whole,
+        whole,
         whole
       ]);
       expect(
@@ -468,7 +457,7 @@ describe('an entry is matched to the one written by what it says, not by where i
       const diff = diffOfText(reordered, profile);
 
       expect(reordered).not.toBe(nerd);
-      expect(diff.experience).toEqual([whole, whole, whole]);
+      expect(diff.experience).toEqual([whole, whole, whole, whole]);
       expect(diff.roleOrderMonotonic).toBe(false);
     });
 
@@ -487,7 +476,7 @@ describe('an entry is matched to the one written by what it says, not by where i
       expect(diff.experience[0]).toEqual(
         expect.objectContaining({ title: 'lost', employer: 'lost', period: 'lost' })
       );
-      expect(diff.experience.slice(1)).toEqual([whole, whole]);
+      expect(diff.experience.slice(1)).toEqual([whole, whole, whole]);
       expect(diff.unexpected.roles).toBe(1);
     });
 
@@ -512,6 +501,7 @@ describe('an entry is matched to the one written by what it says, not by where i
           highlights: 'lost'
         },
         whole,
+        whole,
         whole
       ]);
       expect(diff.unmatched.experience).toEqual([
@@ -535,7 +525,7 @@ describe('an entry is matched to the one written by what it says, not by where i
 
   describe('a certification, by the line it prints', () => {
     const scrum = { name: 'Professional Scrum Master I', issuer: 'Scrum.org', year: 2020 };
-    const android = 'Android Enterprise Expert (incl. Associate, Professional) – Google (2026)';
+    const android = 'Android Enterprise Expert (with Associate and Professional) – Google (2026)';
     const ios = 'iOS Lead Essentials (TDD, Clean Architecture) – Essential Developer (2024)';
 
     test('a parse that drops the first of three loses that one, and the other two come back whole', () => {
@@ -568,7 +558,7 @@ describe('an entry is matched to the one written by what it says, not by where i
     const whole = { name: 'exact', level: 'exact' };
 
     test('a parse that drops the first of three loses that one, and the other two come back whole', () => {
-      const diff = diffOfText(nerd.replace('Italian: Native\n', ''), profile);
+      const diff = diffOfText(nerd.replace('Italian: native\n', ''), profile);
 
       expect(diff.spokenLanguages).toEqual([{ name: 'lost', level: 'lost' }, whole, whole]);
       expect(diff.evidence['spokenLanguages.0.name']).toEqual({
@@ -578,8 +568,8 @@ describe('an entry is matched to the one written by what it says, not by where i
     });
 
     test('languages printed in another order come back whole', () => {
-      const italian = 'Italian: Native\n';
-      const english = 'English: C1 — professional working proficiency\n';
+      const italian = 'Italian: native\n';
+      const english = 'English: C1 (CEFR), working language since 2018\n';
       const reordered = nerd.replace(`${italian}${english}`, `${english}${italian}`);
 
       expect(reordered).not.toBe(nerd);

@@ -16,6 +16,7 @@ describe('HeaderRenderer', () => {
           <div id="title"></div>
           <div id="subtitle" hidden></div>
           <div id="availability" hidden></div>
+          <div id="work-authorisation" hidden></div>
           <div id="location"></div>
           <div id="contacts"></div>
         </body>
@@ -85,6 +86,25 @@ describe('HeaderRenderer', () => {
     expect(held('subtitle')).toEqual([' · ', ' · ']);
     expect(held('availability')).toEqual([' · ']);
     expect(document.getElementById('subtitle').textContent).toBe('iOS · Android · CI/CD');
+  });
+
+  // Work mode and eligibility are two answers to two questions, so they print as two lines: "Remote · available
+  // immediately" beside the place, and the citizenship under the links (#230).
+  test('renders the work authorisation beside the rest of the contact block, and hides it when there is none', () => {
+    renderer.render(document, {
+      name: 'John Doe',
+      availability: 'Remote · available immediately',
+      workAuthorisation: 'EU citizen · no work permit needed in Germany'
+    });
+
+    expect(document.getElementById('work-authorisation').textContent).toBe(
+      'EU citizen · no work permit needed in Germany'
+    );
+    expect(document.getElementById('work-authorisation').hidden).toBe(false);
+
+    renderer.render(document, { name: 'John Doe' });
+
+    expect(document.getElementById('work-authorisation').hidden).toBe(true);
   });
 
   test('localizes contact labels', () => {

@@ -64,7 +64,8 @@ describe('a clean document, as the artefact actually extracts', () => {
     expect(cv.experience.map((role) => role.employer.value)).toEqual([
       'Cortado Mobile Solutions',
       'Apparound',
-      'Marte 5'
+      'Marte 5',
+      'Compusoft'
     ]);
     expect(cv.tripleAdjacent).toBe(true);
     expect(cv.roleOrderMonotonic).toBe(true);
@@ -74,12 +75,12 @@ describe('a clean document, as the artefact actually extracts', () => {
     expect(cv.skills.map((group) => group.category)).toEqual([
       'iOS',
       'Android',
-      'Delivery & platform',
+      'Delivery',
       'Architecture & practices'
     ]);
     expect(cv.skills[0].items).toContain('Swift');
     // Split on `,` and `·` only: on `/` this would shatter into halves that are not skills.
-    expect(cv.skills[0].items).toContain('XCTest / XCUITest');
+    expect(cv.skills[2].items).toContain('GitLab CI/CD');
   });
 
   test('a CEFR level is read only where one was written', () => {
@@ -174,7 +175,8 @@ describe('the pathological shapes, each failing the check it was written for', (
 const ROLES = [
   ['iOS Developer', 'Cortado Mobile Solutions', 'Berlin (remote)'],
   ['Mobile Developer', 'Apparound', 'Pisa, Italy'],
-  ['Mobile Developer Intern', 'Marte 5', 'Livorno, Italy']
+  ['Mobile Developer Intern', 'Marte 5', 'Livorno, Italy'],
+  ['IT System Administrator', 'Compusoft', 'Modica, Italy']
 ];
 const identityOf = (role) => [role.title?.value, role.employer?.value, role.location?.value];
 
@@ -187,7 +189,8 @@ describe('the printed page, in the order poppler reads it', () => {
     expect(cv.experience.map((role) => role.period.span)).toEqual([
       'August 2018 – Present',
       'September 2015 – July 2018',
-      'May 2015 – August 2015'
+      'May 2015 – August 2015',
+      'May 2010 – November 2014'
     ]);
     expect(cv.tripleAdjacent).toBe(true);
     expect(cv.roleOrderMonotonic).toBe(true);
@@ -201,7 +204,8 @@ describe('the printed page, in the order poppler reads it', () => {
     expect(cv.experience.map((role) => role.period.raw)).toEqual([
       'August 2018 – Present',
       'September 2015 – July 2018',
-      'May 2015 – August 2015'
+      'May 2015 – August 2015',
+      'May 2010 – November 2014'
     ]);
     expect(cv.tripleAdjacent).toBe(true);
   });
@@ -212,8 +216,8 @@ describe('the printed page, in the order poppler reads it', () => {
     (fixture) => {
       const [first, second] = parse(fixture).experience;
 
-      expect(first.bodyText).toContain('Earlier products (2018 – 2023)');
-      expect(first.bodyText).toContain('mentoring two developers in agentic workflows.');
+      expect(first.bodyText).toContain('Earlier products, 2018–2023');
+      expect(first.bodyText).toContain('mentoring 2 developers in it;');
       expect(first.bodyText).not.toContain('Mobile Developer at Apparound');
       expect(first.bodyText).not.toContain('September 2015');
       expect(second.bodyText).toContain('B2B sales-automation platform');
@@ -233,9 +237,9 @@ describe('the printed page, in the order poppler reads it', () => {
         [
           "First Level Professional Master's Programme in Mobile Applications Development (60 ECTS)",
           'Università degli Studi di Pisa',
-          '2014 – 2016'
+          '2014–2016'
         ],
-        ['B.Sc. Computer Engineering', 'Università degli Studi di Catania', '2009']
+        ['BSc in Computer Engineering', 'Università degli Studi di Catania', '2009']
       ]);
     }
   );
@@ -339,13 +343,13 @@ describe('the printed page, in the order poppler reads it', () => {
       expect(cv.skills.map((group) => group.category)).toEqual([
         'iOS',
         'Android',
-        'Delivery & platform',
+        'Delivery',
         'Architecture & practices'
       ]);
-      expect(cv.skills[0].items).toContain('XCTest / XCUITest');
-      expect(cv.skills[0].items).toContain('Swift Package Manager (SPM)');
-      expect(cv.skills[1].items).toContain('Mobile Device Management (MDM)');
-      expect(cv.skills[2].items).toContain('security scanning & vulnerability review');
+      expect(cv.skills[0].items).toContain('Swift Package Manager');
+      expect(cv.skills[1].items).toContain('DevicePolicyManager');
+      expect(cv.skills[2].items).toContain('code signing and provisioning');
+      expect(cv.skills[3].items).toContain('mobile device management (MDM)');
     }
   );
 });
@@ -359,8 +363,8 @@ describe('the same artefacts, in content-stream order', () => {
     expect(cv.segmentation).toBe('ok');
     expect(cv.sections.map((section) => section.section)).toEqual([
       'selectedImpact',
-      'skills',
       'experience',
+      'skills',
       'certifications',
       'education',
       'languages',
@@ -381,7 +385,8 @@ describe('the same artefacts, in content-stream order', () => {
     expect(cv.experience.map((role) => role.period.raw)).toEqual([
       'August 2018 – Present',
       'September 2015 – July 2018',
-      'May 2015 – August 2015'
+      'May 2015 – August 2015',
+      'May 2010 – November 2014'
     ]);
     expect(cv.tripleAdjacent).toBe(true);
     expect(cv.roleOrderMonotonic).toBe(true);
@@ -391,8 +396,10 @@ describe('the same artefacts, in content-stream order', () => {
   test('a page break is a line break', () => {
     const [first] = parse('page-print-spotlight.raw').experience;
 
-    expect(first.bodyLines).toContain('July peak of 37.7 to 5.2 minutes.');
-    expect(first.bodyLines.some((line) => line.startsWith('Earlier products (2018 – 2023)'))).toBe(
+    expect(first.bodyLines).toContain(
+      'Compose; test runtime from a July peak of 37.7 to 5.2 minutes.'
+    );
+    expect(first.bodyLines.some((line) => line.startsWith('Earlier products, 2018–2023'))).toBe(
       true
     );
   });
@@ -415,7 +422,8 @@ describe('the same artefacts, in content-stream order', () => {
     expect(cv.experience.map((role) => [role.title?.value, role.employer?.value])).toEqual([
       ['Mobile Software Engineer / Technical Owner, iOS & Android', 'Cortado Mobile Solutions'],
       ['Mobile Developer', 'Apparound'],
-      ['Mobile Developer Intern', 'Marte 5']
+      ['Mobile Developer Intern', 'Marte 5'],
+      ['IT System Administrator', 'Compusoft']
     ]);
     expect(cv.tripleAdjacent).toBe(true);
   });

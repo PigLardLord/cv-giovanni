@@ -182,7 +182,7 @@ describe('the shape of a profile', () => {
       })
     );
 
-    expect(at(problems)).toEqual(['name', 'interests[6]', 'carrer_highlights']);
+    expect(at(problems)).toEqual(['name', 'interests[3]', 'carrer_highlights']);
   });
 
   test('a degree may state its credits, and need not', () => {

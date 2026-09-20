@@ -385,7 +385,11 @@ still attached to its category, nothing in the text layer the data did not write
 order the PDF draws it, every name spaced and every section in its place. No line of prose, the
 summary, the highlights and what a role, a certificate or a degree says, runs past WCAG 1.4.8's 80
 characters; a line of skills, interests or contacts is a list, scanned item by item, and is exempt.
-In Nerd Mode no line of a role's dates runs out of its 128pt column (#155). It also reports how much
+In Nerd Mode no line of a role's dates runs out of its 128pt column (#155). Every bullet is set over
+no more than two printed lines and the summary over no more than three, and every role prints whole on
+one page, so no page opens on a bullet whose role heading stands on the page before (#230): what a
+sentence costs on paper is not what it costs in the profile, and the same words wrap differently in
+each layout. It also reports how much
 room each page has left above its foot, and marks a last page with less than one line of running
 text free, as a warning and never a failure: the page count is the gate, and the warning is the
 notice that it is close (#162). A check on the stylesheet passed a page that printed a line of
@@ -583,11 +587,16 @@ Settled on #144 by the owner, and not to be undone by someone reclaiming space:
 - **One CV, printed from the page.** `npm run build:pdf` prints each layout `config/cv-manifest.json`
   declares, under the names the page already offers, and writes `generated/manifest.json` from what
   it printed. There is no second design to keep in step.
-- **One reading column.** The sections print in the order the markup writes them: no grid moves a
-  section, and nothing is positioned or floated. Printed in two columns, the text layer put Education
-  between the first role's achievements, and a parser reading in drawing order met the name after
-  the skills (#142). The one column inside a section is Nerd Mode's dates, beside the role they date
-  and drawn before it, so no period leaves its role in either reading order (`print.css`).
+- **One reading column, and the print sets its order.** Nothing is positioned or floated, and no grid
+  moves a section: printed in two columns, the text layer put Education between the first role's
+  achievements, and a parser reading in drawing order met the name after the skills (#142). The order
+  of the one column is `print.css`'s, not the markup's, since #230: each screen layout arranges the
+  same sections its own way, and the print gives each a place in one flex column — contacts under the
+  headline, then the summary, Selected Impact, the roles, Core Technologies, the credentials. Chrome
+  draws flex items in that order, so the text layer comes out in the printed order in both of the
+  orders a parser reads; `audit:print` checks both, and a page that fails either fails the build. The
+  one column inside a section is Nerd Mode's dates, beside the role they date and drawn before it, so
+  no period leaves its role in either reading order (`print.css`).
 - **Two A4 pages, in colour.** The LETTER and monochrome variants existed to audit pdfmake's design
   system. The target market is Germany, and contrast is measured word by word on the printed page,
   which covers a monochrome printout. `audit:print` fails a third page.
