@@ -120,9 +120,6 @@
           "name": "Jetpack Compose"
         },
         {
-          "name": "Android Enterprise"
-        },
-        {
           "name": "DevicePolicyManager"
         }
       ]
@@ -149,13 +146,7 @@
           "name": "Google Play Console"
         },
         {
-          "name": "staged rollout"
-        },
-        {
           "name": "SBOM"
-        },
-        {
-          "name": "Dependency-Track"
         }
       ]
     },
@@ -178,16 +169,10 @@
           "name": "TDD"
         },
         {
-          "name": "mobile device management (MDM)"
-        },
-        {
           "name": "agentic development"
         },
         {
           "name": "Claude Code"
-        },
-        {
-          "name": "Codex"
         }
       ]
     }

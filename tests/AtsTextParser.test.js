@@ -349,7 +349,7 @@ describe('the printed page, in the order poppler reads it', () => {
       expect(cv.skills[0].items).toContain('Swift Package Manager');
       expect(cv.skills[1].items).toContain('DevicePolicyManager');
       expect(cv.skills[2].items).toContain('code signing and provisioning');
-      expect(cv.skills[3].items).toContain('mobile device management (MDM)');
+      expect(cv.skills[3].items).toContain('agentic development');
     }
   );
 });

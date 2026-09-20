@@ -58,11 +58,11 @@ website; business applications on Microsoft Access.
 Core Technologies
 iOS – Swift, SwiftUI, UIKit, Combine, Swift concurrency, Objective-C, XCTest,
 XCUITest, App Intents, Live Activities, Swift Package Manager
-Android – Kotlin, Jetpack Compose, Android Enterprise, DevicePolicyManager
+Android – Kotlin, Jetpack Compose, DevicePolicyManager
 Delivery – GitLab CI/CD, fastlane, code signing and provisioning, TestFlight, App
-Store Connect, Google Play Console, staged rollout, SBOM, Dependency-Track
+Store Connect, Google Play Console, SBOM
 Architecture & practices – Clean Architecture, MVVM, modularisation, REST APIs,
-TDD, mobile device management (MDM), agentic development, Claude Code, Codex
+TDD, agentic development, Claude Code
 
 Certifications
 Android Enterprise Expert (Associate, Professional) – Google (2026)
