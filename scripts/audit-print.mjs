@@ -677,7 +677,7 @@ const report = [
         '',
         stale.length
           ? `✗ Stale ATS fixtures, extracted from an older print: ${stale.map(({ fixture }) => fixture).join(', ')}.`
-          : `The ATS fixtures in \`${FIXTURES}/\` are this print, as \`pdftotext\` and \`pdftotext -raw\` extract it.`
+          : `The ATS fixtures in \`${FIXTURES}/\` are this print, word for word and line for line as \`pdftotext\` and \`pdftotext -raw\` extract it, allowing for the spaces poppler infers.`
       ]
     : []),
   '',

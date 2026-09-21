@@ -61,7 +61,8 @@ describe('the print fixtures', () => {
   });
 
   // The same PDF read by two versions of poppler: CI's puts a space either side of a "·" in the raw reading, and this
-  // machine's does not. The words and the lines are the print; the spaces poppler infers are not.
+  // machine's does not; the next version may space a "–" or a "|" otherwise. The words and the lines are the print;
+  // the spaces poppler infers are not.
   test('a space poppler infers, beside a separator or between words, is not a difference', () => {
     const links = { ...PRINT, drawn: 'github.com/ada · linkedin.com/in/ada\n' };
     expect(
@@ -70,6 +71,18 @@ describe('the print fixtures', () => {
         reading({
           'page-print-nerd.txt': 'Giovanni  Trovato\nSenior iOS Engineer\n',
           'page-print-nerd.raw.txt': 'github.com/ada·linkedin.com/in/ada\n'
+        })
+      )
+    ).toEqual([]);
+  });
+
+  test('a space poppler infers around a dash or a bar is not a difference either', () => {
+    expect(
+      staleFixtures(
+        { ...PRINT, drawn: 'Swift – SwiftUI | iOS\n' },
+        reading({
+          'page-print-nerd.txt': PRINT.text,
+          'page-print-nerd.raw.txt': 'Swift–SwiftUI|iOS\n'
         })
       )
     ).toEqual([]);

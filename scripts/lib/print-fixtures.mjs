@@ -9,16 +9,13 @@
 export const FIXTURES = 'tests/fixtures/ats';
 
 /**
- * A line as the comparison reads it: its words, one space apart, and none beside a "·". Where poppler infers a space
- * between glyphs differs by its version: CI's reads the links line of the raw print as "PigLardLord · linkedin" where
- * this machine's reads "PigLardLord·linkedin", from the same PDF (the first run of #297 on CI). That is the
- * extractor, not the print. The words and the lines they break into are the print, and are compared as they are.
+ * A line as the comparison reads it: its characters, without the spaces between them. Where poppler infers a space
+ * between glyphs differs by its version — CI's reads the links line of the raw print as "PigLardLord · linkedin" where
+ * this machine's reads "PigLardLord·linkedin", from the same PDF (the first run of #297 on CI) — and the next version
+ * may space another separator differently. That is the extractor, not the print. The words, and the lines they break
+ * into, are the print: a changed word or a line broken elsewhere still differs.
  */
-const comparable = (line) =>
-  line
-    .replace(/\s*·\s*/g, '·')
-    .replace(/\s+/g, ' ')
-    .trim();
+const comparable = (line) => line.replace(/\s+/g, '');
 
 /** The fixtures a layout's print stands behind, each with the extraction it is. */
 export const fixturesOf = (layout) => [
