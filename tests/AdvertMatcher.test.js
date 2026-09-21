@@ -240,3 +240,21 @@ describe('a German advert', () => {
     expect(AdvertMatcher.keeps('3–5', ['3–5'])).toBe(false);
   });
 });
+
+// #314: lines with "design", "signal" or "align" were dropped whole, and a title's marker ranked as a term.
+describe('an advert whose lines hold a gender marker or the letters of one', () => {
+  test('keeps the terms of both, and ranks no marker', () => {
+    const advert = [
+      'Senior iOS Engineer (m/f/d) – Berlin',
+      '',
+      'Requirements',
+      '- Alignment with the backend team',
+      '- Signal processing on device'
+    ].join('\n');
+    const terms = AdvertMatcher.extractTerms(advert, 40).terms.map(({ term }) => term);
+    const words = terms.flatMap((term) => term.split(' '));
+
+    expect(words).toEqual(expect.arrayContaining(['Alignment', 'Signal', 'Engineer']));
+    expect(words.filter((word) => /m\/f\/d/i.test(word))).toEqual([]);
+  });
+});

@@ -102,9 +102,61 @@ const ROLE = /^relevant_experience\[\d+\]$/;
 const COPIED = Object.freeze(['name', 'email', 'phone', 'portfolio', 'asOf']);
 const WORDED = Object.freeze(['location', 'availability', 'workAuthorisation']);
 
-/** The words a title adds when it claims more seniority, in either language. */
-const SENIORITY =
-  /(?<![\p{L}])(senior|lead|leading|principal|staff|head|chief|director|manager|architect|leitend\p{L}*|\p{L}*(?:leiter|leitung|architekt)\p{L}*|chef\p{L}*|führungs\p{L}*)(?![\p{L}])/giu;
+/**
+ * The ranks a title claims, by what its words mean in either language, not by the words: "Team Lead" and
+ * "Teamleiter" claim one rank, and "Begleiter" claims none (#313). German writes a lead and a head alike, as Leiter;
+ * each word names every rank it may mean, and a translation may write any rank its source claims.
+ */
+const RANKS = Object.freeze([
+  [/^senior$/, ['senior']],
+  [/^(?:lead|leading)$/, ['lead']],
+  [/^principal$/, ['principal']],
+  [/^staff$/, ['staff']],
+  [/^(?:head|chief)$/, ['head']],
+  [/^director$/, ['director']],
+  [/^manager(?:in)?$/, ['manager']],
+  [/^architect$/, ['architect']],
+  // No German word ends in "architekt" without being one; "Architektur" is the craft, not the rank.
+  [/^\p{L}*architekt(?:in)?$/u, ['architect']],
+  // A Leiter leads, heads, manages or directs: German writes "Engineering Manager" and "Director of Engineering" as
+  // Entwicklungsleiter too (the review of #334). The few words that only end like one are named below.
+  [/^\p{L}*(?:leiter(?:in)?|leitung)$/u, ['lead', 'head', 'manager', 'director']],
+  [/^leitende[rnms]?$/, ['lead', 'head']],
+  [/^chef(?:entwickler(?:in)?|architekt(?:in)?)?$/, ['lead', 'head']],
+  [/^fuhrungs\p{L}*$/u, ['lead', 'head']]
+]);
+
+/** Words that end like a rank and are none: a companion, a semiconductor, a lightning rod, a pipe. */
+const NOT_RANKS = new Set([
+  'begleiter',
+  'begleiterin',
+  'wegbegleiter',
+  'halbleiter',
+  'supraleiter',
+  'lichtleiter',
+  'wellenleiter',
+  'ableiter',
+  'blitzableiter',
+  'wasserleitung',
+  'stromleitung',
+  'gasleitung',
+  'rohrleitung',
+  'datenleitung',
+  'telefonleitung'
+]);
+
+/** Every rank a text's words claim, each with the word that claims it, folded. */
+function ranksOf(text) {
+  return String(text ?? '')
+    .split(/[^\p{L}-]+/u)
+    .flatMap((word) => word.split('-'))
+    .map(fold)
+    .filter((word) => word && !NOT_RANKS.has(word))
+    .flatMap((word) => {
+      const rank = RANKS.find(([pattern]) => pattern.test(word));
+      return rank ? [{ word, ranks: rank[1] }] : [];
+    });
+}
 
 /** The words German writes as its own nouns that an English CV writes as names: "die App" is no name in German. */
 const SHARED_NOUNS = new Set(
@@ -311,9 +363,12 @@ export class ProvenanceCheck {
     // A title a translation words its own way claims no more than its source: no seniority it does not write.
     const worded = (path, text, against) => {
       states(path, text, against);
-      const claimed = new Set((String(against).match(SENIORITY) || []).map(fold));
-      for (const word of new Set((String(text).match(SENIORITY) || []).map(fold))) {
-        if (!claimed.has(word)) fail(path, `claims "${word}", which its source does not`);
+      const claimed = new Set(ranksOf(against).flatMap(({ ranks }) => ranks));
+      const said = new Set();
+      for (const { word, ranks } of ranksOf(text)) {
+        if (said.has(word) || ranks.some((rank) => claimed.has(rank))) continue;
+        said.add(word);
+        fail(path, `claims "${word}", which its source does not`);
       }
     };
 
@@ -566,10 +621,31 @@ export class ProvenanceCheck {
     }
     // The page greets the recipient from `recipient` and signs off itself, in the catalogue's words: a salutation or a
     // valediction the model writes is printed twice, and a form of address it writes there escapes the rule above.
-    const SALUTATION =
-      /^\s*(dear|hello|hi|to whom it may concern|sehr geehrte[rn]?|liebe[rn]?|hallo|guten tag)(?![\p{L}])/iu;
-    const VALEDICTION =
-      /^\s*((kind|best|warm|warmest)\s+regards|yours\s+(sincerely|faithfully)|sincerely|mit freundlichen grüßen|viele grüße|beste grüße|herzliche grüße)(?![\p{L}])/iu;
+    // A greeting is a greeting followed by whom it greets — a form of address, a title, a name — or by its comma or the
+    // line's end; "Hi-fi audio", "Lieber als …" open prose. A closing stands as its own sentence, with at most the
+    // name it signs; "Sincerely, I believe …" goes on (#312).
+    const GREETING =
+      /^\s*(?:dear|hello|hi|sehr geehrte[rns]?|liebe[rns]?(?!\s+grüße)|hallo|guten tag)(?![\p{L}-])/iu;
+    // An addressee may carry up to two words before its noun: "Dear recruiting team", "Dear hiring manager" (the review
+    // of #331).
+    const WHOM =
+      /^(?:\s*[,:!]|\s*$|\s+there\s*(?:[,!]|$)|\s+(?:\p{Lu}|(?:[\p{L}-]+\s+){0,2}(?:team|manager|committee|department)(?![\p{L}])|(?:frau|herrn?|ms|mrs|mr|dr|prof|sir|madam|all|everyone|friends|recruiters?|colleagues|zusammen|damen|kolleg\p{L}*)(?![\p{L}])))/u;
+    const SALUTATION = {
+      test: (text) => {
+        if (/^\s*to whom it may concern(?![\p{L}])/iu.test(text)) return true;
+        const greeting = GREETING.exec(text);
+        return Boolean(greeting) && WHOM.test(text.slice(greeting[0].length));
+      }
+    };
+    const CLOSING =
+      /^\s*(?:(?:with\s+)?(?:kind|best|warm|warmest)\s+regards|best\s+wishes|yours\s+(?:sincerely|faithfully|truly)|sincerely(?:\s+yours)?|mit\s+(?:freundlichen|besten|herzlichen|lieben)\s+grüßen|(?:viele|beste|herzliche|freundliche|liebe|schöne)\s+grüße)(?![\p{L}])/iu;
+    const SIGNED = /^\s*,?(?:\s+\p{Lu}[\p{L}.'’-]*){0,3}\s*[.!]?\s*$/u;
+    const VALEDICTION = {
+      test: (sentence) => {
+        const closing = CLOSING.exec(sentence);
+        return Boolean(closing) && SIGNED.test(sentence.slice(closing[0].length));
+      }
+    };
     // Read in every paragraph, and a valediction at any sentence of the letter's end: "… from you. Kind regards" prints
     // twice as surely as "Kind regards" does (the review of #300).
     const body = Array.isArray(letter.body) ? letter.body : [letter.body];
