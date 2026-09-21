@@ -124,7 +124,11 @@ describe('a tailoring the check passes', () => {
       sources: faithful().sources,
       questions: expect.any(Array),
       attempts: 1,
-      cost: { backend: 'anthropic-api', usd: 0.42 }
+      cost: { backend: 'anthropic-api', usd: 0.42 },
+      // The answer, for a print that fails its gate to send back (#303).
+      answer: expect.objectContaining({
+        profile: expect.objectContaining({ name: 'Ada Lovelace' })
+      })
     });
     // Every required term the full CV does not evidence, then what the model says it would have needed.
     expect(result.questions).toContainEqual(

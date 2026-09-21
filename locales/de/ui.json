@@ -1,6 +1,10 @@
 {
-  "meta": { "title": "{{name}} – Lebenslauf" },
-  "actions": { "downloadPdf": "PDF herunterladen" },
+  "meta": {
+    "title": "{{name}} – Lebenslauf"
+  },
+  "actions": {
+    "downloadPdf": "PDF herunterladen"
+  },
   "layouts": {
     "nerd": "Nerd-Modus",
     "spotlight": "Wirkung im Fokus",
@@ -14,7 +18,10 @@
     "outline": "Abschnitte",
     "preview": "Vorschau",
     "device": "iPhone",
-    "marks": { "profile": "Profil", "contact": "Kontakt" },
+    "marks": {
+      "profile": "Profil",
+      "contact": "Kontakt"
+    },
     "card": {
       "call": "anrufen",
       "mail": "E-Mail",
@@ -25,9 +32,15 @@
       "location": "Standort"
     }
   },
-  "letter": { "absent": "Dieses Profil enthält kein Anschreiben." },
+  "letter": {
+    "absent": "Dieses Profil enthält kein Anschreiben."
+  },
   "errors": {
     "loadingTitle": "Lebenslauf konnte nicht geladen werden",
     "loadingHint": "Weitere Informationen finden Sie in der Konsole."
+  },
+  "files": {
+    "cv": "Lebenslauf",
+    "letter": "Anschreiben"
   }
 }

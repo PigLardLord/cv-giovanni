@@ -6,6 +6,8 @@ import { LocalProfiles } from '../core/LocalProfiles.js';
 import { Applications } from '../core/Applications.js';
 import { Tailorings } from '../core/Tailorings.js';
 import { Tailor } from '../core/Tailor.js';
+import { TailoringJob } from '../core/TailoringJob.js';
+import { TailoringPrint } from '../core/TailoringPrint.js';
 import { ProfileStore } from '../core/ProfileStore.js';
 import { handleApi } from '../adapters/LocalApi.js';
 import { NodeProjectFiles } from '../adapters/NodeProjectFiles.js';
@@ -155,11 +157,16 @@ export function localServices(
     new ClaudeCliInference({ command: claude }),
     new AnthropicApiInference({ file: apiKeyFile })
   ]);
-  // What a tailoring job does: the model tailors, and the check holds the answer to the full CV (#284).
-  const tailor = new Tailor({ inference, files });
+  // What a tailoring job does: the model tailors and the check holds the answer to the full CV (#284); the scripts the
+  // command line runs print it in the job's layout, and its audits gate it (#303).
+  const scripts = new NodeScripts(root);
+  const job = new TailoringJob({
+    tailor: new Tailor({ inference, files }),
+    print: new TailoringPrint({ files, scripts })
+  });
   return {
     profile: new ProfileStore(files),
-    applications: new Applications({ files, scripts: new NodeScripts(root) }),
+    applications: new Applications({ files, scripts }),
     inference,
     // The full CV and the letter's defaults live beside the key, outside the project, and `fullCvFiles` refuses a
     // place for them inside it (#279).
@@ -167,7 +174,7 @@ export function localServices(
       files,
       inference,
       fullCv: new FullCvFiles(fullCvFiles({ env, projectRoot: root })),
-      work: (job, progress) => tailor.run(job, progress)
+      work: (tailoring, progress) => job.run(tailoring, progress)
     })
   };
 }

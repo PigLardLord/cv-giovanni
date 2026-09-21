@@ -28,7 +28,12 @@ const recording = (overrides = {}) => {
       applications: Object.fromEntries(
         ['create', 'match', 'build'].map((name) => [name, method('applications', name)])
       ),
-      tailorings: { create: method('tailorings', 'create'), status: method('tailorings', 'status') }
+      tailorings: {
+        create: method('tailorings', 'create'),
+        status: method('tailorings', 'status'),
+        cv: method('tailorings', 'cv'),
+        letter: method('tailorings', 'letter')
+      }
     }
   };
 };
@@ -97,7 +102,7 @@ describe('the local API passes every request through', () => {
   const passesThrough = (call) => PASS_THROUGH.test(call.toString().replace(/\s+/g, ' ').trim());
 
   test('every route is one call to one service method, and the check catches one that is not', () => {
-    expect(ROUTES.map(({ method, path }) => `${method} ${path.source}`)).toHaveLength(8);
+    expect(ROUTES.map(({ method, path }) => `${method} ${path.source}`)).toHaveLength(10);
     expect(ROUTES.filter(({ call }) => !passesThrough(call))).toEqual([]);
 
     const leaking = [
@@ -201,6 +206,35 @@ describe('what the local API answers when a request goes wrong', () => {
     expect(response.status).toBe(202);
     expect(response.body).toEqual({ answeredBy: 'tailorings.create' });
   });
+
+  // A ready job's documents are files a recruiter receives (#303): the service says which bytes and under what name.
+  test.each([
+    ['cv', 'ada-lovelace-cv.pdf'],
+    ['letter', 'ada-lovelace-cover-letter.pdf']
+  ])(
+    'GET /api/tailorings/:id/%s hands over the file the service gives, as a download',
+    async (document, filename) => {
+      const bytes = Buffer.from('%PDF-1.7 a printed document');
+      const { calls, services } = recording({
+        [`tailorings.${document}`]: async (id) => {
+          calls.push([`tailorings.${document}`, id]);
+          return { file: bytes, type: 'application/pdf', filename };
+        }
+      });
+      await serve(services);
+
+      const response = await fetch(`${origin}/api/tailorings/20260921-143205-a1b2c3/${document}`);
+
+      expect(calls).toEqual([[`tailorings.${document}`, '20260921-143205-a1b2c3']]);
+      expect(response.status).toBe(200);
+      expect(response.headers.get('content-type')).toBe('application/pdf');
+      expect(response.headers.get('content-disposition')).toBe(
+        `attachment; filename="${filename}"`
+      );
+      expect(response.headers.get('cache-control')).toBe('no-store');
+      expect(Buffer.from(await response.arrayBuffer())).toEqual(bytes);
+    }
+  );
 
   test('the application route that answered 501 for tailoring is gone', async () => {
     const { calls, services } = recording();

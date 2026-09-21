@@ -137,16 +137,17 @@ letter. A tailored CV leaves the machine only as an attached PDF.
 endpoint hands its request to one service in `core/` and answers with what that service returns, so the browser and
 the command line run the same code:
 
-| Endpoint                              | What it does                                                                                   |
-| ------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `GET /api/profile`                    | Reads `profiles/general/en.json`                                                               |
-| `PUT /api/profile`                    | Writes it, refusing a profile without the shape the renderers read, with every problem         |
-| `GET /api/inference`                  | Says which backend a run would use, and how it is charged, before any run                      |
-| `POST /api/applications`              | Creates an application: the advert, and a copy of the general profile to tailor                |
-| `POST /api/applications/<name>/match` | Runs `npm run audit:ats` with the application's profile and advert                             |
-| `POST /api/applications/<name>/build` | Runs `npm run build:pdf` with the application's profile                                        |
-| `POST /api/tailorings`                | Queues a tailoring of the CV to an advert, and answers 202 at once with its id and an estimate |
-| `GET /api/tailorings/<id>`            | Answers the job's state — queued, running, ready or failed — and the seconds left              |
+| Endpoint                                 | What it does                                                                                   |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `GET /api/profile`                       | Reads `profiles/general/en.json`                                                               |
+| `PUT /api/profile`                       | Writes it, refusing a profile without the shape the renderers read, with every problem         |
+| `GET /api/inference`                     | Says which backend a run would use, and how it is charged, before any run                      |
+| `POST /api/applications`                 | Creates an application: the advert, and a copy of the general profile to tailor                |
+| `POST /api/applications/<name>/match`    | Runs `npm run audit:ats` with the application's profile and advert                             |
+| `POST /api/applications/<name>/build`    | Runs `npm run build:pdf` with the application's profile                                        |
+| `POST /api/tailorings`                   | Queues a tailoring of the CV to an advert, and answers 202 at once with its id and an estimate |
+| `GET /api/tailorings/<id>`               | Answers the job's state — queued, running, ready or failed — and the seconds left              |
+| `GET /api/tailorings/<id>/cv`, `/letter` | A ready job's CV or letter, as a PDF named for a recruiter; 409 before, 404 if it failed       |
 
 It answers only this machine: its browser holding the run's key, as `applications/` does, or a program sending
 `Authorization: Bearer` with the token the server keeps in `~/.config/mycv/api-token` and names on start. Either
@@ -171,9 +172,17 @@ evidence, addressed as the advert addresses its contact — a form of address on
 stating only the salary and the start the defaults give; the job dates and signs it. A job in `de` is translated from
 the English full CV, and the check reads it as a translation: German capitalises its nouns, so it holds the full CV's
 names, the technologies and the figures rather than capitals. What the advert asks the letter for and nothing gave —
-a salary expectation, a start date — comes back as a question. The PDFs are the next step of #260. The system prompt is
-`prompts/tailor-cv.md`, sent byte for byte. The check holds the tailored CV, never the report or the questions: those are the model's own words, shown
+a salary expectation, a start date — comes back as a question. The system prompt is `prompts/tailor-cv.md`, sent byte
+for byte. The check holds the tailored CV, never the report or the questions: those are the model's own words, shown
 to the owner on this machine, and are read as such.
+
+Then the job prints the CV and the letter from `applications/<id>/<language>.json`, in its one layout, and gates them:
+`audit:ats`'s floors, `audit:print`, and the pages — the CV on two A4 pages, the letter on one. A document past its
+pages goes back to the model, up to `auditRetries` times; a layout defect the copy cannot fix does not. When the last
+print still fails, `auditGate` decides: on, the job fails with the results and nothing to download; off, it is ready
+and its gate lists every failed check. An audit that did not run is never a pass. A ready job's documents download
+from `GET /api/tailorings/<id>/cv` and `/letter`, named for a recruiter: the candidate's name, then the document's in
+the job's language — ada-lovelace-cv.pdf, ada-lovelace-lebenslauf.pdf.
 
 A tailoring subtracts from a CV that lists everything, so a job starts from the **full CV** its owner keeps in
 `~/.config/mycv/full-cv/en.json` (or under `$XDG_CONFIG_HOME`), in the profile's shape; with none there, from the

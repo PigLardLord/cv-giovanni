@@ -1,6 +1,10 @@
 {
-  "meta": { "title": "{{name}} – Curriculum Vitae" },
-  "actions": { "downloadPdf": "Download PDF" },
+  "meta": {
+    "title": "{{name}} – Curriculum Vitae"
+  },
+  "actions": {
+    "downloadPdf": "Download PDF"
+  },
   "layouts": {
     "nerd": "Nerd Mode",
     "spotlight": "Impact Spotlight",
@@ -14,7 +18,10 @@
     "outline": "Sections",
     "preview": "Preview",
     "device": "iPhone",
-    "marks": { "profile": "Profile", "contact": "Contact" },
+    "marks": {
+      "profile": "Profile",
+      "contact": "Contact"
+    },
     "card": {
       "call": "call",
       "mail": "mail",
@@ -25,9 +32,15 @@
       "location": "Location"
     }
   },
-  "letter": { "absent": "This profile carries no cover letter." },
+  "letter": {
+    "absent": "This profile carries no cover letter."
+  },
   "errors": {
     "loadingTitle": "Error loading CV",
     "loadingHint": "Please check the console for more details."
+  },
+  "files": {
+    "cv": "CV",
+    "letter": "cover letter"
   }
 }

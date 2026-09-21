@@ -1,4 +1,5 @@
 import { APPLICATION_NAME } from './Applications.js';
+import { nameSlug } from './FileNaming.js';
 import { EFFORTS, MODELS } from './Inference.js';
 import { ProfileShape } from './ProfileShape.js';
 import { ProfileStore } from './ProfileStore.js';
@@ -192,7 +193,63 @@ export class Tailorings {
     await this.start();
     const state = typeof id === 'string' && APPLICATION_NAME.test(id) ? this.jobs.get(id) : null;
     if (!state) throw new Refusal(404, `No tailoring job ${JSON.stringify(String(id))}.`);
-    return { ...state, secondsLeft: this.secondsLeft(id) };
+    // A ready job says where its documents download from (#303); the files on this machine stay its own business.
+    const printed = state.status === 'ready' ? (state.result?.files ?? {}) : {};
+    const downloads = Object.fromEntries(
+      ['cv', 'letter']
+        .filter((document) => printed[document])
+        .map((document) => [document, `/api/tailorings/${id}/${document}`])
+    );
+    return {
+      ...state,
+      secondsLeft: this.secondsLeft(id),
+      ...(Object.keys(downloads).length && { downloads })
+    };
+  }
+
+  /**
+   * A ready job's CV, as a recruiter receives it (#303).
+   * @param {string} id - A job's id
+   * @returns {Promise<{ file: Buffer, type: string, filename: string }>} The PDF, and the name it is saved as
+   * @throws {Refusal} 404 when no job has that id, or it failed; 409 while it is not ready
+   */
+  cv(id) {
+    return this.download(id, 'cv');
+  }
+
+  /** A ready job's letter, as `cv` gives its CV. */
+  letter(id) {
+    return this.download(id, 'letter');
+  }
+
+  /**
+   * A document a ready job printed. Named for the recruiter who saves it — the candidate's name, then the document's
+   * name in the job's language, `ada-lovelace-lebenslauf.pdf` — never for the job, whose id says nothing to them.
+   */
+  async download(id, document) {
+    const state = await this.status(id);
+    if (state.status === 'failed') {
+      throw new Refusal(404, `The job ${id} failed: it delivered no ${document}.`);
+    }
+    if (state.status !== 'ready') {
+      throw new Refusal(
+        409,
+        `The job ${id} is ${state.status}: its ${document} is not printed yet.`
+      );
+    }
+    const path = state.result?.files?.[document];
+    if (!path) throw new Refusal(404, `The job ${id} printed no ${document}.`);
+    const { language } = JSON.parse(await this.files.readText(Tailorings.paths(id).request));
+    const catalogue = JSON.parse(await this.files.readText(`locales/${language}/ui.json`));
+    const profile = JSON.parse(await this.files.readText(`applications/${id}/${language}.json`));
+    // The document's name as the job's language writes it, in the catalogue: "CV", "Lebenslauf".
+    const key = { cv: 'files.cv', letter: 'files.letter' }[document];
+    const word = key.split('.').reduce((node, step) => node?.[step], catalogue) ?? document;
+    return {
+      file: await this.files.readBytes(path),
+      type: 'application/pdf',
+      filename: `${nameSlug(profile.name)}-${nameSlug(word)}.pdf`
+    };
   }
 
   /** Resolves once the queue is empty and nothing runs. */
@@ -390,7 +447,9 @@ export class Tailorings {
             : 'The job failed: the terminal running the server says why.',
         // What failed, item by item, and what the attempts cost, when the work says (#284).
         ...(error instanceof Refusal && error.details && { problems: error.details }),
-        ...(error instanceof Refusal && error.cost && { cost: error.cost })
+        ...(error instanceof Refusal && error.cost && { cost: error.cost }),
+        // What a job that ran to its gate found, though it delivers nothing (#303).
+        ...(error instanceof Refusal && error.result && { result: error.result })
       };
     }
     const finished = this.clock();

@@ -3,7 +3,8 @@ import { execFile } from 'node:child_process';
 /** The scripts the local app may run, by the name its services use: the ones `npm run` runs. */
 const SCRIPTS = {
   'generate-pdfs': 'scripts/generate-pdfs.mjs',
-  'audit-ats': 'scripts/audit-ats.mjs'
+  'audit-ats': 'scripts/audit-ats.mjs',
+  'audit-print': 'scripts/audit-print.mjs'
 };
 
 /**

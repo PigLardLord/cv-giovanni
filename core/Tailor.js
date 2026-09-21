@@ -68,12 +68,14 @@ export class Tailor {
   /**
    * @param {{ directory: string, advert: string, options: object, cv: object }} job - The job, as `Tailorings` hands it
    * @param {{ update: Function }} progress - Records the attempts as they are made
+   * @param {{ answer: object, failures: { path: string, reason: string }[] }|null} [seed] - A previous answer and what
+   *   its print failed, when the job sends it back after the gate (#303)
    * @returns {Promise<object>} The tailored profile's file, the report, the sources, the questions, the attempts and
    *   the cost
    * @throws {Refusal} When the job cannot run, when the model or its backend refuses, or when the last attempt still
    *   fails the check — then with every failure as its details
    */
-  async run(job, { update }) {
+  async run(job, { update }, seed = null) {
     const { directory, advert, options, cv: source } = job;
     const translated = options.language !== SOURCE_LANGUAGE;
     // The job dates and signs the letter: a model that wrote either would be inventing them.
@@ -97,8 +99,8 @@ export class Tailor {
       )
       .map(({ term }) => term);
 
-    let failures = [];
-    let answer = null;
+    let failures = seed?.failures ?? [];
+    let answer = seed?.answer ?? null;
     const spent = [];
     for (let attempt = 1; attempt <= RETRIES + 1; attempt += 1) {
       await update({ attempts: attempt });
@@ -161,7 +163,8 @@ export class Tailor {
             letter: options.letter ?? {}
           }),
           attempts: attempt,
-          cost: Tailor.cost(spent)
+          cost: Tailor.cost(spent),
+          answer
         };
       }
     }
