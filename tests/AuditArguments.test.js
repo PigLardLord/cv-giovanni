@@ -67,6 +67,13 @@ describe('the audits read their options written either way', () => {
     }
   );
 
+  test('audit-ats-base refuses --layout rather than compare every layout in its place', () => {
+    const { status, stderr } = run('audit-ats-base.mjs', ['--layout=technical']);
+
+    expect(stderr).toMatch(/every layout it prints; --layout is not read/);
+    expect(status).toBe(2);
+  });
+
   test('audit-ats-base refuses --out rather than read generated/ in its place', () => {
     const { status, stderr } = run('audit-ats-base.mjs', ['--out=build']);
 

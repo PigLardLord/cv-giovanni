@@ -133,7 +133,8 @@ describe('GenerationTarget', () => {
       [['--profile', '--out=build']],
       [['--out']],
       [['--advert']],
-      [['--base=']]
+      [['--base=']],
+      [['--layout']]
     ])('with no value, %j is refused rather than read as the public CV', (argv) => {
       expect(() => GenerationTarget.fromArguments(argv)).toThrow(/needs a value/);
     });

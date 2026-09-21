@@ -125,6 +125,13 @@ if (options.has('out')) {
     'Run it without --out, after `npm run build:pdf`.'
   );
 }
+// It compares every layout the public CV prints in; a --layout, taken and ignored, would say otherwise (#303).
+if (options.has('layout')) {
+  cannotCheck(
+    'compares the public CV in every layout it prints; --layout is not read',
+    'Run it without --layout.'
+  );
+}
 const ref =
   options.get('base') ||
   (process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_REF}` : 'origin/main');

@@ -102,7 +102,8 @@ export function unlistedProfile(argv, targets) {
  * @param {object} options - How to read the manifest, and optionally how to run a script, how to speak, and a
  *   wrapper `around(runAll, published, manifest)` for work before and after the whole run
  * @returns {Promise<{ target: GenerationTarget, manifest: object } | { exit: number }>} The CV to read and the
- *   manifest it was read against, or how the run ends
+ *   manifest it was read against — its layouts narrowed to the one `--layout` names, when it names one — or how the
+ *   run ends
  */
 export async function resolveRun(name, script, argv, options) {
   const { readManifest, run = spawnSync, around, say = console.error } = options;
@@ -131,6 +132,34 @@ export async function resolveRun(name, script, argv, options) {
       return { error: error.message };
     }
   };
+
+  // One layout of a tailored CV, which a tailoring job prints and audits in the layout it was asked for (#303). Never of a
+  // published one: its build writes the list of downloads the page offers, and its audits the reports in docs/, and
+  // either narrowed to one layout would drop the others.
+  const layout = GenerationTarget.options(argv).get('layout');
+  if (layout !== undefined) {
+    if (!(manifest.layouts || []).includes(layout)) {
+      return refuse(
+        `--layout ${layout} is not a layout the manifest lists: ${(manifest.layouts || []).join(', ')}.`
+      );
+    }
+    // A --profile that names no CV is refused below, with its own reason.
+    let tailored = false;
+    if (namesProfile(argv)) {
+      try {
+        tailored = !GenerationTarget.fromArguments(argv).dataPath.startsWith('profiles/');
+      } catch {
+        tailored = true;
+      }
+    }
+    if (!tailored) {
+      return refuse(
+        '--layout prints and audits one layout of a tailored CV, named with --profile outside profiles/. A ' +
+          'published CV is printed and audited in every layout the page offers.'
+      );
+    }
+    manifest = { ...manifest, layouts: [layout] };
+  }
 
   if (namesProfile(argv)) {
     let target;
