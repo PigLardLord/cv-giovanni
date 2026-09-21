@@ -69,15 +69,34 @@ describe('the room left on a printed page', () => {
       { points: 2.51, lines: 0.16, tight: true }
     ];
 
-    expect(roomReport(rooms)).toEqual({ column: 'p1 36.8pt · p2 2.5pt ⚠', lastPageTight: true });
+    expect(roomReport(rooms)).toEqual({
+      column: 'p1 36.8pt · p2 2.5pt ⚠',
+      lastPageTight: true,
+      tightBefore: []
+    });
     expect(roomReport([rooms[0], null])).toEqual({
       column: 'p1 36.8pt · p2 —',
-      lastPageTight: false
+      lastPageTight: false,
+      tightBefore: []
     });
-    expect(roomReport([{ points: 11.5, lines: 0.75, tight: true }, rooms[0]])).toEqual({
-      column: 'p1 11.5pt · p2 36.8pt',
-      lastPageTight: false
+  });
+
+  // A tight page before the last fails nothing — the page count is the gate — but the next line added to it moves the
+  // role below, whole, to the next page, and leaves this one's foot blank. #262 took Spotlight's page 1 to 6pt, and
+  // nothing said so (#294).
+  test('a tight page before the last is marked too, and named', () => {
+    const roomy = { points: 185.5, lines: 12, tight: false };
+    expect(roomReport([{ points: 6, lines: 0.4, tight: true }, roomy])).toEqual({
+      column: 'p1 6.0pt ⚠ · p2 185.5pt',
+      lastPageTight: false,
+      tightBefore: [1]
     });
+    expect(
+      roomReport([
+        { points: 6, lines: 0.4, tight: true },
+        { points: 2.5, lines: 0.16, tight: true }
+      ])
+    ).toEqual({ column: 'p1 6.0pt ⚠ · p2 2.5pt ⚠', lastPageTight: true, tightBefore: [1] });
   });
 
   // The audit reads no CSS; the page box and the running text it counts in are declared beside it, and held here to

@@ -125,7 +125,8 @@ CV's files alone, so the page offers only it until the next run with no `--profi
 
 A CV tailored to a named employer lives in `applications/`, which git ignores: this repository is public, and a
 committed application would publish where the candidate applied. `npm run build:pdf -- --profile=<path>` builds
-from that profile into a folder beside it, the audits take the same `--profile`, and a `letter` in the profile
+from that profile into a folder beside it, the audits take the same `--profile`, `--layout <name>` prints and audits
+one layout the manifest lists — a published CV is always every layout — and a `letter` in the profile
 adds a cover letter, printed from `letter.html` and checked by `npm run audit:print` too. CI never prints one, since
 the published profile has none, and the site leaves `letter.html` out: published, it could only say there is no
 letter. A tailored CV leaves the machine only as an attached PDF.

@@ -25,6 +25,7 @@ import { PRINTED_PAGE, bboxPages, printedRoom, roomReport } from './lib/page-roo
 import { MEASURE_LIMIT, longProseLines, overflowingPeriods, proseOf } from './lib/line-length.mjs';
 import {
   proseSpans,
+  runtSpans,
   raggedMasthead,
   straddlingRoles,
   strandedSeparators
@@ -37,6 +38,7 @@ import {
   marginsClear
 } from './lib/printed-letter.mjs';
 import { manifestReader, resolveRun } from './lib/published-targets.mjs';
+import { FIXTURES, staleFixtures } from './lib/print-fixtures.mjs';
 import { LetterContent } from '../core/LetterContent.js';
 import { CoverLetter } from '../domain/CoverLetter.js';
 import { CvDocument } from '../domain/CvDocument.js';
@@ -349,6 +351,18 @@ if (missing.length) {
 const workspace = await mkdtemp(join(tmpdir(), 'mycv-print-'));
 const rows = [];
 const letterRows = [];
+// The ATS fixtures are extractions of the public CV's print, which tests read as the current one (#234). Each run of the
+// public CV compares them with what it extracts, so a content change that forgets them fails here, naming the fixture.
+const holdsFixtures = target.dataPath === 'profiles/general/en.json';
+const stale = [];
+const readFixture = (name) => {
+  try {
+    return readFileSync(new URL(`${FIXTURES}/${name}`, projectUrl), 'utf8');
+  } catch (error) {
+    if (error.code === 'ENOENT') return null;
+    throw error;
+  }
+};
 
 try {
   for (const { layout, path } of files) {
@@ -367,6 +381,7 @@ try {
       margins,
       faint
     } = await measure(path, typefacesFor(layout), workspace);
+    if (holdsFixtures) stale.push(...staleFixtures({ layout, text, drawn }, readFixture));
     const long = longProseLines(text, prose, { periods });
     const overflow = layout === 'nerd' ? overflowingPeriods(bbox, periods) : [];
     // How close each page runs to its foot, reported and never gated: the page count is the gate (#162). A page with
@@ -397,9 +412,10 @@ try {
     ];
     const sections = { read: outOfOrder(text, anchors), drawn: outOfOrder(drawn, anchors) };
     // What each bullet, and the summary, cost on the paper, and whether a role's own evidence left its header's page.
-    const bullets = proseSpans(text, everyBullet, { periods }).filter(
-      (span) => !span.found || span.lines > BULLET_LINES
-    );
+    const spans = proseSpans(text, everyBullet, { periods });
+    const bullets = spans.filter((span) => !span.found || span.lines > BULLET_LINES);
+    // And whether one ends on a line of a single word (#295).
+    const runts = runtSpans(spans);
     const summary = proseSpans(text, [profile.profile], { periods })[0];
     const straddling = straddlingRoles(text, roleProse, { periods });
     // And whether the masthead's lines share one left edge, which a hidden label's leftover space broke.
@@ -495,6 +511,8 @@ try {
       datesInColumn: overflow.length === 0,
       // A bullet a recruiter reads in one glance: at most two printed lines, whatever the layout (#230).
       bulletsScan: bullets.length === 0,
+      // And no bullet ends on a line of one word (#295).
+      bulletsEndWhole: runts.length === 0,
       // The summary is the first prose on the page and the last thing a skimmer gives time to: three lines.
       summaryScans: summary.found && summary.lines <= SUMMARY_LINES,
       // The page break falls between two roles. Page 2 opened on three bullets with no employer above them, which
@@ -529,6 +547,7 @@ try {
       long,
       overflow,
       bullets,
+      runts,
       summary,
       straddling,
       ragged,
@@ -631,6 +650,11 @@ const letterFailures = letterRows.filter(failed);
 const tight = rows
   .filter((row) => roomReport(row.room).lastPageTight)
   .map((row) => `${row.layout} (${row.room[row.room.length - 1].points.toFixed(1)}pt)`);
+const tightBefore = rows.flatMap((row) =>
+  roomReport(row.room).tightBefore.map(
+    (page) => `${row.layout} p${page} (${row.room[page - 1].points.toFixed(1)}pt)`
+  )
+);
 // The score is `passed/Object.keys(checks).length`, so it cannot miscount; the prose describing the checks can,
 // and did — 25 described under a 26/26 score (#252). So each description ends on the list the score counts,
 // derived the same way, and a check added without a sentence still appears here by name.
@@ -654,10 +678,25 @@ const report = [
     return `| ${row.layout} | ${row.pages} | ${row.score} | ${worst}mm | ${roomReport(row.room).column} |`;
   }),
   '',
-  `Room left is the space between each page's lowest line and its ${PRINTED_PAGE.bottomMargin}pt bottom margin. A last`,
-  `page with less than one ${PRINTED_PAGE.bodyLine.toFixed(1)}pt line of running text free is marked ⚠: the next line`,
-  'added to it has nowhere to go. It is a warning, never a failure, since the page count is the gate.',
+  `Room left is the space between each page's lowest line and its ${PRINTED_PAGE.bottomMargin}pt bottom margin. A page`,
+  `with less than one ${PRINTED_PAGE.bodyLine.toFixed(1)}pt line of running text free is marked ⚠: on the last page the`,
+  'next line has nowhere to go; on a page before it, the next line moves the block at its foot — today a role —',
+  'whole to the next page. It is a warning, never a failure, since the page count is the gate.',
   ...(tight.length ? ['', `⚠ Tight last page: ${tight.join(', ')}.`] : []),
+  ...(tightBefore.length
+    ? [
+        '',
+        `⚠ Tight page before the last: ${tightBefore.join(', ')} — the next line added moves the block at its foot to the next page.`
+      ]
+    : []),
+  ...(holdsFixtures
+    ? [
+        '',
+        stale.length
+          ? `✗ Stale ATS fixtures, extracted from an older print: ${stale.map(({ fixture }) => fixture).join(', ')}.`
+          : `The ATS fixtures in \`${FIXTURES}/\` are this print, word for word and line for line as \`pdftotext\` and \`pdftotext -raw\` extract it, allowing for the spaces poppler infers.`
+      ]
+    : []),
   '',
   'Checks: A4, at most two pages, required ATS text in the case the catalogue wrote it,',
   'reading order, canonical hyphenated compounds, degree beside its school, every skill',
@@ -672,7 +711,7 @@ const report = [
   'poppler reconstructs the page and as the PDF draws it, no image, no line of prose past',
   `${MEASURE_LIMIT} characters (WCAG 1.4.8; lists of skills, interests and contacts are scanned, not read along a`,
   "measure, and are exempt), in Nerd Mode every line of a role's dates inside its column, every bullet set over no",
-  `more than ${BULLET_LINES} printed lines and the summary over no more than ${SUMMARY_LINES}, and every role whole on one page, so no`,
+  `more than ${BULLET_LINES} printed lines and none ending on a line of one word, the summary over no more than ${SUMMARY_LINES}, and every role whole on one page, so no`,
   'page opens on a bullet whose role heading stands on the page before, and every line of the masthead on the',
   "page's left edge, none of them opening or closing on a separator.",
   '',
@@ -714,6 +753,20 @@ const failedChecks = (checks) =>
   Object.entries(checks)
     .filter(([, value]) => !value)
     .map(([name]) => name);
+if (stale.length) {
+  console.error('');
+  console.error(
+    'audit-print: the ATS fixtures are not this print. Extract them again from this build — `pdftotext` and ' +
+      '`pdftotext -raw` of each layout into tests/fixtures/ats/ — and check what the tests they feed now say. On ' +
+      "CI, the run's audit-reports artefact holds the PDFs it printed, under printed/."
+  );
+  for (const { fixture, line, printed, fixed } of stale) {
+    console.error(
+      `  ${fixture}, line ${line}: printed ${JSON.stringify(printed)}, fixture ${JSON.stringify(fixed)}`
+    );
+  }
+  process.exitCode = 1;
+}
 if (failures.length || letterFailures.length) {
   console.error('');
   console.error(
@@ -736,6 +789,7 @@ if (failures.length || letterFailures.length) {
             long,
             overflow,
             bullets,
+            runts,
             summary,
             straddling,
             ragged,
@@ -756,6 +810,7 @@ if (failures.length || letterFailures.length) {
             long,
             overflow,
             bullets,
+            runts,
             summary,
             straddling,
             ragged,
