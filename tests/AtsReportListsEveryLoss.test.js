@@ -154,7 +154,7 @@ describe('a field short of recovered is quoted as written and as recovered', () 
   test('a certification cut short is named, and said to cost nothing', () => {
     const [android] = document.certifications;
     const printed = `${android.name} – ${android.issuer} (${android.year})`;
-    const text = fixture('page-print-nerd');
+    const text = fixture('page-print-general-en-nerd');
     const diff = diffOf(text.replace(printed, android.name));
 
     expect(text).toContain(printed);
@@ -205,7 +205,10 @@ describe('a field short of recovered is quoted as written and as recovered', () 
       ...JSON.parse(profile),
       education: [phd, ...document.education]
     });
-    const diff = RecoveryDiff.diff(three, AtsTextParser.parse(fixture('page-print-nerd')));
+    const diff = RecoveryDiff.diff(
+      three,
+      AtsTextParser.parse(fixture('page-print-general-en-nerd'))
+    );
     const listed = section(diff);
 
     expect(listed).toContain(
@@ -253,7 +256,7 @@ describe("the table's Fidelity column reads every field the fidelity band scores
 // one nobody wrote, so what came back stays in the report: a role nobody wrote costs, as it did; a degree, a language
 // or a certification costs nothing.
 describe('what came back that matches nothing written is quoted as nobody wrote it', () => {
-  const invented = fixture('page-print-nerd')
+  const invented = fixture('page-print-general-en-nerd')
     .replace('August 2018 – November 2026', 'January 2019 – March 2020')
     .replace(
       'iOS Developer at Cortado Mobile Solutions, Berlin (remote)',
@@ -272,7 +275,7 @@ describe('what came back that matches nothing written is quoted as nobody wrote 
   const listed = section(diff);
 
   test('each is listed with what came back', () => {
-    expect(invented).not.toBe(fixture('page-print-nerd'));
+    expect(invented).not.toBe(fixture('page-print-general-en-nerd'));
     expect(listed).toContain(
       '- a role nobody wrote: "Head Chef", "Trattoria Da Mario", "January 2019 – March 2020"'
     );

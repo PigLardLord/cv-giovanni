@@ -867,6 +867,108 @@ describe('a restart of the server', () => {
   });
 });
 
+// A ready job's documents, as a recruiter receives them (#303): named for the candidate and the document in the job's
+// language, never for the job.
+describe('downloading what a job printed', () => {
+  const ID = '20260921-100000-aaaaaa';
+  const printed = (status, extra = {}) => ({
+    [`applications/${ID}/state.json`]: JSON.stringify({
+      id: ID,
+      status,
+      createdAt: '2026-09-21T10:00:00.000Z',
+      estimate: { seconds: 1, basis: 'seed' },
+      ...extra
+    }),
+    [`applications/${ID}/request.json`]: JSON.stringify({ ...DEFAULTS, language: 'de' }),
+    [`applications/${ID}/de.json`]: JSON.stringify({
+      name: 'Ada Lovelace',
+      title: 'Senior iOS-Entwicklerin'
+    }),
+    [`applications/${ID}/out/cv.pdf`]: '%PDF-',
+    [`applications/${ID}/out/letter.pdf`]: '%PDF-',
+    'locales/de/ui.json': JSON.stringify({ files: { letter: 'Anschreiben' } })
+  });
+  const withBytes = (files) => {
+    const { disk, tailorings } = setup({ work: controlled().work, files });
+    disk.readBytes = async (path) => Buffer.from(`bytes of ${path}`);
+    return tailorings;
+  };
+
+  // Named as the public CV is — the person, the role and the document — so a recruiter never saves two shapes (the
+  // product review of #320).
+  test('a ready job’s CV and letter, each named as the public CV is, the letter in the job’s language', async () => {
+    const tailorings = withBytes(
+      printed('ready', {
+        result: {
+          files: {
+            cv: `applications/${ID}/out/cv.pdf`,
+            letter: `applications/${ID}/out/letter.pdf`
+          }
+        }
+      })
+    );
+
+    expect(await tailorings.cv(ID)).toEqual({
+      file: Buffer.from(`bytes of applications/${ID}/out/cv.pdf`),
+      type: 'application/pdf',
+      filename: 'Ada-Lovelace-Senior-iOS-Entwicklerin-CV.pdf'
+    });
+    expect((await tailorings.letter(ID)).filename).toBe(
+      'Ada-Lovelace-Senior-iOS-Entwicklerin-Anschreiben.pdf'
+    );
+  });
+
+  test('a document gone from disk since is not found, rather than the server failing', async () => {
+    const files = printed('ready', {
+      result: { files: { cv: `applications/${ID}/out/cv.pdf` } }
+    });
+    delete files[`applications/${ID}/out/cv.pdf`];
+
+    await expect(withBytes(files).cv(ID)).rejects.toMatchObject({ status: 404 });
+  });
+
+  // A job found running when the server starts was interrupted, and is failed: running is asked of a live one below.
+  test.each([
+    ['queued', 409],
+    ['failed', 404]
+  ])('a %s job has nothing to download: %i', async (status, code) => {
+    const tailorings = withBytes(printed(status));
+
+    await expect(tailorings.cv(ID)).rejects.toMatchObject({ status: code });
+  });
+
+  test('a ready job says where its documents download from', async () => {
+    const tailorings = withBytes(
+      printed('ready', { result: { files: { cv: 'out/cv.pdf', letter: 'out/letter.pdf' } } })
+    );
+
+    expect((await tailorings.status(ID)).downloads).toEqual({
+      cv: `/api/tailorings/${ID}/cv`,
+      letter: `/api/tailorings/${ID}/letter`
+    });
+  });
+
+  test('a running job has nothing to download yet: 409', async () => {
+    const { tailorings } = setup({ work: controlled().work });
+
+    const { id } = await tailorings.create({ advert: 'Senior iOS Engineer' });
+
+    await expect(tailorings.cv(id)).rejects.toMatchObject({ status: 409 });
+  });
+
+  test('a job that printed no letter has no letter to download', async () => {
+    const tailorings = withBytes(
+      printed('ready', { result: { files: { cv: 'x.pdf', letter: null } } })
+    );
+
+    await expect(tailorings.letter(ID)).rejects.toMatchObject({ status: 404 });
+  });
+
+  test('an id that names no job is a 404', async () => {
+    await expect(withBytes({}).cv('20260921-100000-ffffff')).rejects.toMatchObject({ status: 404 });
+  });
+});
+
 describe('asking after a job', () => {
   test.each(['20260921-143205-ffffff', '../etc', 'ACME', '', 42, undefined])(
     '%j names no job: 404',

@@ -56,10 +56,10 @@ describe('a label beside its block, as the retired pdfmake layout drew it', () =
 
 describe('the page’s print holds in both reading orders', () => {
   test.each([
-    'page-print-spotlight',
-    'page-print-spotlight.raw',
-    'page-print-nerd',
-    'page-print-nerd.raw'
+    'page-print-general-en-spotlight',
+    'page-print-general-en-spotlight.raw',
+    'page-print-general-en-nerd',
+    'page-print-general-en-nerd.raw'
   ])('%s fails no floor', (fixture) => {
     expect(floorsOf(fixture)).toEqual([]);
   });
@@ -79,7 +79,10 @@ describe('the page’s print holds in both reading orders', () => {
 // Neither occurs in anything this project prints; both are pinned so a later change cannot make them silent.
 describe('shapes the parser misreads fail a floor instead of passing', () => {
   const published = JSON.parse(readFileSync(`${root}profiles/general/en.json`, 'utf8'));
-  const print = readFileSync(`${root}tests/fixtures/ats/page-print-spotlight.txt`, 'utf8');
+  const print = readFileSync(
+    `${root}tests/fixtures/ats/page-print-general-en-spotlight.txt`,
+    'utf8'
+  );
   const floorsFor = (profile, text) =>
     AtsFloors.failures(RecoveryDiff.diff(new CvDocument(profile), AtsTextParser.parse(text)));
 

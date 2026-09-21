@@ -106,6 +106,17 @@ describe('GenerationTarget', () => {
         GenerationTarget.fromArguments(['--profile=applications/act-ai/de.json']).isPublished
       ).toBe(false);
     });
+
+    // Which CV it is, not where it printed: the print fixtures are named for it (#302, the review of #317).
+    test('a published profile is one wherever it prints, and a tailored one never is', () => {
+      const de = GenerationTarget.fromArguments(['--profile=profiles/general/de.json']);
+
+      expect(de.isPublished).toBe(false);
+      expect(de.isPublicProfile).toBe(true);
+      expect(
+        GenerationTarget.fromArguments(['--profile=applications/general/en.json']).isPublicProfile
+      ).toBe(false);
+    });
   });
 
   // "--profile profiles/general/de.json", with a space, built the English CV and said nothing: the parser read only
