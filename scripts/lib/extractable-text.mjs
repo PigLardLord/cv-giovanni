@@ -1,4 +1,5 @@
 import { inflateSync } from 'node:zlib';
+import { WORD_CHARACTER } from '../../domain/Separators.js';
 
 /**
  * Whether a printed page's text survives the extractors that read it without laying the page out (#143).
@@ -209,4 +210,38 @@ export function toUnicodeFonts(pdffonts) {
     mapped: embedded.filter((match) => match[4] === 'yes').map((match) => match[1].trim()),
     unmapped: embedded.filter((match) => match[4] === 'no').map((match) => match[1].trim())
   };
+}
+
+/** The edge of a run of letters and digits in any script. */
+const EDGE_BEFORE = `(?<!${WORD_CHARACTER})`;
+const EDGE_AFTER = `(?!${WORD_CHARACTER})`;
+
+/**
+ * Every hyphenated compound the texts write, in any script, each once (#251).
+ *
+ * A line broken at an existing hyphen extracts without it, so "offline-first" arrives welded as "offlinefirst":
+ * right on the page, unfindable by anyone searching the canonical spelling. The audit looks for that welded
+ * form of each compound found here, and found here with an ASCII class, "Menü-Leiste" was never one.
+ * @param {string[]} texts - Every string the profile writes
+ * @returns {string[]} The compounds, in the order the texts first write them
+ */
+export function hyphenatedCompounds(texts) {
+  const compound = new RegExp(`${WORD_CHARACTER}+-${WORD_CHARACTER}+`, 'gu');
+  return [...new Set(texts.flatMap((text) => String(text ?? '').match(compound) ?? []))];
+}
+
+/**
+ * The welded form of a compound, as a whole word (#251).
+ *
+ * Its edges are letters or digits in any script. `\b` is an ASCII boundary in JavaScript even under the `u` flag: it saw
+ * no word edge before "Ü", so a welded compound that opened on one was never found, and a check built on it
+ * would pass a page that had lost the hyphen.
+ * @param {string} compound - A compound as `hyphenatedCompounds` found it
+ * @returns {RegExp} What the text layer carries where a line broke at the compound's hyphen
+ */
+export function brokenCompound(compound) {
+  return new RegExp(
+    `${EDGE_BEFORE}${escapeForRegExp(compound.replace(/-/g, ''))}${EDGE_AFTER}`,
+    'u'
+  );
 }

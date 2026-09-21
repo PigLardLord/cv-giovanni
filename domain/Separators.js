@@ -29,3 +29,12 @@ export function periodEnds(period) {
   const [, first, space, second] = PERIOD_DASH.exec(String(period ?? '')) ?? [];
   return first ? { first, space, second } : null;
 }
+
+/**
+ * A letter or a digit in any script: what a compound is made of, on either side of its hyphen (#251).
+ *
+ * The page's rule and the print audit both read compounds with `[A-Za-z0-9]`, so German's "Menü-Leiste" was
+ * split at the ü — the page held "Men" and let the line break at the hyphen, and the audit never looked for the
+ * welded "MenüLeiste" a text extractor reads there. One class, read by both, as the separators are.
+ */
+export const WORD_CHARACTER = '[\\p{L}\\p{N}]';

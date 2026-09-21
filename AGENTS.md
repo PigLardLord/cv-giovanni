@@ -379,7 +379,7 @@ When a finding's prevention rule is mechanically checkable, the follow-up ticket
 check rather than the reminder. `scripts/audit-print.mjs` already scores every printed layout on
 format, page count, required text, reading order in both of the orders a parser reads, contrast on
 the paper, margins, typefaces, Type 3 fonts and images, and every printed cover letter on checks of
-its own — an eighteenth check there outlives any number of review comments.
+its own — one more check there outlives any number of review comments.
 
 **One CV and three audits**, and they fail differently. `npm run audit:print` reads the PDFs
 `npm run build:pdf` printed — the files CI publishes, never a copy printed for the audit, which would

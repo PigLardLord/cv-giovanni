@@ -31,3 +31,5 @@ measure, and are exempt), in Nerd Mode every line of a role's dates inside its c
 more than 2 printed lines and the summary over no more than 3, and every role whole on one page, so no
 page opens on a bullet whose role heading stands on the page before, and every line of the masthead on the
 page's left edge, none of them opening or closing on a separator.
+
+The checks the score counts: format, pages, content, readingOrder, canonicalCompounds, blockIntegrity, skillsAttached, rolesPresent, contrast, margins, textLayerClean, noEmptyFieldMarks, intendedTypeface, noType3Fonts, noPrivateUseGlyphs, wordsSpacedInDrawingOrder, sectionsInOrder, sectionsInOrderDrawn, noImages, measure, datesInColumn, bulletsScan, summaryScans, rolesWhole, mastheadAligned, mastheadSeparatorsHeld.
