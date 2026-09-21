@@ -1,4 +1,4 @@
-import { realpathSync } from 'node:fs';
+import { lstatSync, readlinkSync, realpathSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 
@@ -40,15 +40,31 @@ function within(root, path) {
   return !isAbsolute(inside) && inside !== '..' && !inside.startsWith(`..${sep}`);
 }
 
-/** Where a path really leads: its nearest part that exists, with every link followed, and the rest as written. */
-function leadsTo(path) {
+/**
+ * Where a path really leads: its nearest part this process can resolve, with every link followed, and the rest as
+ * written. A link whose target does not exist yet is followed by what it says, so a link into the project is refused
+ * before an editor writes a secret through it (the review of #287).
+ */
+function leadsTo(path, hops = 0) {
   const rest = [];
   for (let existing = resolve(path); ; existing = dirname(existing)) {
     try {
       return join(realpathSync.native(existing), ...rest);
     } catch {
+      const dangling = hops < 40 && isLink(existing);
+      if (dangling)
+        return leadsTo(join(resolve(dirname(existing), readlinkSync(existing)), ...rest), hops + 1);
       if (dirname(existing) === existing) return resolve(path);
       rest.unshift(basename(existing));
     }
+  }
+}
+
+/** Whether a path is a symbolic link, whatever it leads to. */
+function isLink(path) {
+  try {
+    return lstatSync(path).isSymbolicLink();
+  } catch {
+    return false;
   }
 }

@@ -31,16 +31,10 @@ describe('a configuration file is never inside the project', () => {
     expect(place({ XDG_CONFIG_HOME: config })).toBe(join(config, 'mycv', 'full-cv', 'en.json'));
   });
 
-  test('a directory inside it is refused, however it is named', () => {
-    for (const inside of [
-      join(project, 'config'),
-      join(project, '..config'),
-      join(project, '...')
-    ]) {
-      expect(() => place({ XDG_CONFIG_HOME: inside })).toThrow(
-        /full CV would be inside the project/
-      );
-    }
+  test.each(['config', '..config', '...'])('a directory inside it named %s is refused', (name) => {
+    expect(() => place({ XDG_CONFIG_HOME: join(project, name) })).toThrow(
+      /full CV would be inside the project/
+    );
   });
 
   test('a sibling that shares its name’s beginning is outside it', () => {
@@ -56,6 +50,22 @@ describe('a configuration file is never inside the project', () => {
     writeFileSync(join(project, 'en.json'), '{}');
     symlinkSync(join(project, 'en.json'), join(config, 'mycv', 'full-cv', 'en.json'));
     expect(() => place({ XDG_CONFIG_HOME: config })).toThrow(/inside the project/);
+  });
+
+  test('a link into it whose target does not exist yet is refused, before anything is written through it', () => {
+    mkdirSync(join(config, 'mycv', 'full-cv'), { recursive: true });
+    symlinkSync(join(project, 'not-yet'), join(config, 'mycv', 'full-cv', 'en.json'));
+    expect(() => place({ XDG_CONFIG_HOME: config })).toThrow(/inside the project/);
+
+    rmSync(join(config, 'mycv'), { recursive: true });
+    symlinkSync(join(project, 'nothing', 'here'), join(config, 'mycv'));
+    expect(() => place({ XDG_CONFIG_HOME: config })).toThrow(/inside the project/);
+  });
+
+  test('a link out of the way, to somewhere that does not exist, is not the project', () => {
+    mkdirSync(join(config, 'mycv', 'full-cv'), { recursive: true });
+    symlinkSync(join(scratch, 'elsewhere'), join(config, 'mycv', 'full-cv', 'en.json'));
+    expect(() => place({ XDG_CONFIG_HOME: config })).not.toThrow();
   });
 
   test('a project reached through a link is still the project', () => {
