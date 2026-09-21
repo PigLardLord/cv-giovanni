@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { chmod, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { chmod, lstat, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { configFile } from './ConfigDirectory.js';
 
@@ -22,10 +22,11 @@ export function apiTokenFile(where = {}) {
  * A file other users can read is not used: a token they can read is one they can send. It is not replaced either:
  * the file is its owner's, and a server that silently rotated it would break every client that already read it.
  * @param {string} file - The token's file, from `apiTokenFile`
+ * @param {{ retried?: boolean }} [attempt] - Whether this is the one re-read a race is given
  * @returns {Promise<{ token: string } | { token: null, reason: string }>} The token, or why there is none; the
  *   reason never carries the file's content
  */
-export async function ensureApiToken(file) {
+export async function ensureApiToken(file, { retried = false } = {}) {
   let info;
   try {
     info = await stat(file);
@@ -33,10 +34,22 @@ export async function ensureApiToken(file) {
     if (error.code !== 'ENOENT') {
       return { token: null, reason: `the API token's file ${file} cannot be read` };
     }
+    // A link that leads nowhere reads as absent, and the exclusive write refuses it as present: at the file, retried as a
+    // race, the two disagreed for ever and the server never started (#291); at the directory, making it failed with a
+    // reason that did not say why. Either is named now, and nothing is made through a link.
+    const link = await linkToNothing(file);
+    if (link) {
+      return {
+        token: null,
+        reason: `the API token's file ${file} cannot be made: ${link} is a link to nothing`
+      };
+    }
     const made = await make(file);
     if (made !== 'taken') return made;
-    // Another server started at the same moment and made the file first: read what it made, so both hold one token.
-    return ensureApiToken(file);
+    // Another server started at the same moment and made the file first: read what it made, once, so both hold one
+    // token. A second "taken" is no race.
+    if (retried) return { token: null, reason: `the API token's file ${file} cannot be read` };
+    return ensureApiToken(file, { retried: true });
   }
   if (!info.isFile()) {
     return { token: null, reason: `the API token's file ${file} cannot be read: it is not a file` };
@@ -55,6 +68,15 @@ export async function ensureApiToken(file) {
   }
   if (!token) return { token: null, reason: `the API token's file ${file} is empty` };
   return { token };
+}
+
+/** The file, or its directory, when it is a link whose target does not exist; null otherwise. */
+async function linkToNothing(file) {
+  for (const path of [file, dirname(file)]) {
+    const entry = await lstat(path).catch(() => null);
+    if (entry?.isSymbolicLink() && !(await stat(path).catch(() => null))) return path;
+  }
+  return null;
 }
 
 /**
