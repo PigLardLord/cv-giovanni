@@ -203,9 +203,17 @@ describe('a German advert', () => {
     const terms = AdvertMatcher.extractTerms(advert, 60).terms.map(({ term }) => term);
     const words = terms.flatMap((term) => term.split(' '));
 
-    expect(words).toEqual(expect.arrayContaining(['Qualitätssicherung', 'Barrierefreiheit']));
+    expect(words).toEqual(
+      expect.arrayContaining(['Qualitätssicherung', 'frühestmöglichen', 'Hauptstraße'])
+    );
     for (const fragment of ['fr', 'hestm', 'glichen', 'Hauptstra', 'Qualit', 'tssicherung']) {
       expect(words).not.toContain(fragment);
     }
+  });
+
+  test('a word in a script without ASCII letters is a word, and a number is not', () => {
+    expect(AdvertMatcher.keeps('Опыт', ['Опыт'])).toBe(true);
+    expect(AdvertMatcher.keeps('10115', ['10115'])).toBe(false);
+    expect(AdvertMatcher.keeps('3–5', ['3–5'])).toBe(false);
   });
 });

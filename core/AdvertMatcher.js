@@ -116,11 +116,14 @@ export class AdvertMatcher {
     return kept;
   }
 
-  /** A phrase worth ranking: not a stopword, not boilerplate, not a bare number. */
+  /**
+   * A phrase worth ranking: not a stopword, not boilerplate, not a bare number. A number is a phrase with no letter in
+   * any script: "Опыт" is a word as much as "Erfahrung" is (the review of #310).
+   */
   static keeps(phrase, words) {
     if (words.some((word) => AdvertLexicon.isStopword(word))) return false;
     if (AdvertLexicon.isBoilerplate(phrase)) return false;
-    if (/^[\d\W]+$/.test(phrase)) return false;
+    if (/^\P{L}+$/u.test(phrase)) return false;
     return phrase.length >= 2 && phrase.length <= 60;
   }
 
