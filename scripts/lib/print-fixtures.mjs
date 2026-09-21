@@ -40,6 +40,19 @@ export const fixturesOf = ({ profile, locale, layout }) => [
 ];
 
 /**
+ * The fixtures a CV's print in one layout has, and the half of a pair it lacks: a `.txt` regenerated without its
+ * `.raw.txt`, or the reverse, is the likely mistake of extracting by hand, and would pass unread (#321).
+ * @param {{ profile: string, locale: string, layout: string }} print - Which CV, and which layout
+ * @param {(name: string) => string | null} read - A fixture's text, or null when there is none
+ * @returns {{ held: string[], missing: string[] }} The fixtures there are, and each one missing beside its other half
+ */
+export function fixturePair(print, read) {
+  const names = fixturesOf(print).map(({ name }) => name);
+  const held = names.filter((name) => read(name) !== null);
+  return { held, missing: held.length ? names.filter((name) => !held.includes(name)) : [] };
+}
+
+/**
  * @param {{ profile: string, locale: string, layout: string, text: string, drawn: string }} print - A CV's print in one
  *   layout, and its two extractions
  * @param {(name: string) => string | null} read - A fixture's text, or null when that layout has none

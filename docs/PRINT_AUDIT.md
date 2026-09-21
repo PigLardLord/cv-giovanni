@@ -16,7 +16,7 @@ with less than one 15.4pt line of running text free is marked ⚠: on the last p
 next line has nowhere to go; on a page before it, the next line moves the block at its foot — today a role —
 whole to the next page. It is a warning, never a failure, since the page count is the gate.
 
-The ATS fixtures in `tests/fixtures/ats/` are this print, word for word and line for line as `pdftotext` and `pdftotext -raw` extract it, allowing for the spaces poppler infers.
+The ATS fixtures `page-print-general-en-nerd.txt`, `page-print-general-en-nerd.raw.txt`, `page-print-general-en-spotlight.txt`, `page-print-general-en-spotlight.raw.txt` in `tests/fixtures/ats/` are this print, word for word and line for line as `pdftotext` and `pdftotext -raw` extract it, allowing for the spaces poppler infers.
 
 Checks: A4, at most two pages, required ATS text in the case the catalogue wrote it,
 reading order, canonical hyphenated compounds, degree beside its school, every skill

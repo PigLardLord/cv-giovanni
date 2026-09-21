@@ -38,7 +38,7 @@ import {
   marginsClear
 } from './lib/printed-letter.mjs';
 import { manifestReader, resolveRun } from './lib/published-targets.mjs';
-import { FIXTURES, fixturesOf, staleFixtures } from './lib/print-fixtures.mjs';
+import { FIXTURES, fixturePair, fixturesOf, staleFixtures } from './lib/print-fixtures.mjs';
 import { LetterContent } from '../core/LetterContent.js';
 import { CoverLetter } from '../domain/CoverLetter.js';
 import { CvDocument } from '../domain/CvDocument.js';
@@ -373,6 +373,9 @@ const holdsFixtures =
     )
   );
 const stale = [];
+// Which fixtures were compared, named in the report, and each half of a pair the other half lacks (#321).
+const heldFixtures = [];
+const halfFixtures = [];
 
 try {
   for (const { layout, path } of files) {
@@ -394,6 +397,9 @@ try {
     } = await measure(path, typefacesFor(layout), workspace);
     if (holdsFixtures) {
       const print = { profile: target.profile, locale: target.locale, layout, text, drawn };
+      const { held, missing } = fixturePair(print, readFixture);
+      heldFixtures.push(...held);
+      halfFixtures.push(...missing.map((name) => `${FIXTURES}/${name}`));
       stale.push(...staleFixtures(print, readFixture));
     }
     const long = longProseLines(text, prose, { periods });
@@ -716,7 +722,10 @@ const report = [
         '',
         stale.length
           ? `✗ Stale ATS fixtures, extracted from an older print: ${stale.map(({ fixture }) => fixture).join(', ')}.`
-          : `The ATS fixtures in \`${FIXTURES}/\` are this print, word for word and line for line as \`pdftotext\` and \`pdftotext -raw\` extract it, allowing for the spaces poppler infers.`
+          : `The ATS fixtures ${heldFixtures.map((name) => `\`${name}\``).join(', ')} in \`${FIXTURES}/\` are this print, word for word and line for line as \`pdftotext\` and \`pdftotext -raw\` extract it, allowing for the spaces poppler infers.`,
+        ...(halfFixtures.length
+          ? [`✗ Half an ATS fixture pair, the other half missing: ${halfFixtures.join(', ')}.`]
+          : [])
       ]
     : []),
   '',
@@ -791,6 +800,15 @@ const failedChecks = (checks) =>
   Object.entries(checks)
     .filter(([, value]) => !value)
     .map(([name]) => name);
+if (halfFixtures.length) {
+  console.error('');
+  console.error(
+    'audit-print: an ATS fixture is missing beside its other half — extract both `pdftotext` and `pdftotext -raw` ' +
+      'of the layout, or neither:'
+  );
+  for (const fixture of halfFixtures) console.error(`  ${fixture}`);
+  process.exitCode = 1;
+}
 if (stale.length) {
   console.error('');
   console.error(

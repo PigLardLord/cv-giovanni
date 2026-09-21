@@ -3,7 +3,7 @@
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import { GenerationTarget } from '../core/GenerationTarget.js';
-import { fixturesOf, staleFixtures } from '../scripts/lib/print-fixtures.mjs';
+import { fixturePair, fixturesOf, staleFixtures } from '../scripts/lib/print-fixtures.mjs';
 
 // The print fixtures are extractions of the printed CV that tests read as the current one. Nothing checked they still
 // were, and Nerd Mode's had drifted (#234): audit:print now compares them with the print it extracts.
@@ -174,5 +174,27 @@ describe('the print fixtures', () => {
     const audit = readFileSync(new URL('../scripts/audit-print.mjs', import.meta.url), 'utf8');
 
     expect(audit).not.toMatch(/['"`]profiles\//);
+  });
+
+  // A layout with no fixtures was claimed held all the same, and half a pair passed unread (#321).
+  test('are named as held, and half a pair is named missing', () => {
+    const pair = {
+      'page-print-general-en-nerd.txt': PRINT.text,
+      'page-print-general-en-nerd.raw.txt': PRINT.drawn
+    };
+    const print = { profile: 'general', locale: 'en', layout: 'nerd' };
+
+    expect(fixturePair(print, reading(pair))).toEqual({
+      held: ['page-print-general-en-nerd.txt', 'page-print-general-en-nerd.raw.txt'],
+      missing: []
+    });
+    expect(fixturePair(print, reading({ 'page-print-general-en-nerd.txt': PRINT.text }))).toEqual({
+      held: ['page-print-general-en-nerd.txt'],
+      missing: ['page-print-general-en-nerd.raw.txt']
+    });
+    expect(fixturePair({ ...print, layout: 'technical' }, reading(pair))).toEqual({
+      held: [],
+      missing: []
+    });
   });
 });
