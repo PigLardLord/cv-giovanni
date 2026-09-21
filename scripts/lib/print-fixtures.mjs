@@ -1,8 +1,9 @@
 /**
  * Whether the ATS fixtures are still the print they stand for (#234).
  *
- * `tests/fixtures/ats/page-print-<layout>.txt` is `pdftotext` of a layout's print, and `page-print-<layout>.raw.txt`
- * is `pdftotext -raw` of it. Tests read them as the current CV, so a content change that forgets to extract them again
+ * `tests/fixtures/ats/page-print-<profile>-<locale>-<layout>.txt` is `pdftotext` of a published CV's print in one
+ * layout, and `….raw.txt` is `pdftotext -raw` of it. The name says which CV it is the print of, so a second published
+ * CV can carry fixtures of its own (#302). Tests read them as the current CV, so a content change that forgets to extract them again
  * leaves the suite asserting an older CV, and passing: Nerd Mode's had drifted two lines from its print on `main` when
  * #262 regenerated them. `audit:print` extracts both on every run; this compares them with the fixtures.
  */
@@ -28,21 +29,26 @@ const linesOf = (reading) =>
     .map((line) => ({ line, compared: comparable(line) }))
     .filter(({ compared }) => compared !== '');
 
-/** The fixtures a layout's print stands behind, each with the extraction it is. */
-export const fixturesOf = (layout) => [
-  { name: `page-print-${layout}.txt`, reading: 'text' },
-  { name: `page-print-${layout}.raw.txt`, reading: 'drawn' }
+/**
+ * The fixtures a CV's print in one layout stands behind, each with the extraction it is.
+ * @param {{ profile: string, locale: string, layout: string }} print - Which CV, and which layout
+ * @returns {{ name: string, reading: 'text'|'drawn' }[]} The fixtures' names, under `FIXTURES`
+ */
+export const fixturesOf = ({ profile, locale, layout }) => [
+  { name: `page-print-${profile}-${locale}-${layout}.txt`, reading: 'text' },
+  { name: `page-print-${profile}-${locale}-${layout}.raw.txt`, reading: 'drawn' }
 ];
 
 /**
- * @param {{ layout: string, text: string, drawn: string }} print - A layout's two extractions
+ * @param {{ profile: string, locale: string, layout: string, text: string, drawn: string }} print - A CV's print in one
+ *   layout, and its two extractions
  * @param {(name: string) => string | null} read - A fixture's text, or null when that layout has none
  * @returns {{ fixture: string, line: number, printed: string, fixed: string }[]} Each fixture that differs from the
  *   print, with the first line where they part
  */
-export function staleFixtures({ layout, text, drawn }, read) {
+export function staleFixtures({ profile, locale, layout, text, drawn }, read) {
   const extractions = { text, drawn };
-  return fixturesOf(layout).flatMap(({ name, reading }) => {
+  return fixturesOf({ profile, locale, layout }).flatMap(({ name, reading }) => {
     const fixed = read(name);
     if (fixed === null) return [];
     const printedLines = linesOf(extractions[reading]);

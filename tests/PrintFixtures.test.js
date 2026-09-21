@@ -1,11 +1,14 @@
 /**
  * @jest-environment node
  */
-import { staleFixtures } from '../scripts/lib/print-fixtures.mjs';
+import { readFileSync } from 'node:fs';
+import { fixturesOf, staleFixtures } from '../scripts/lib/print-fixtures.mjs';
 
 // The print fixtures are extractions of the printed CV that tests read as the current one. Nothing checked they still
 // were, and Nerd Mode's had drifted (#234): audit:print now compares them with the print it extracts.
 const PRINT = {
+  profile: 'general',
+  locale: 'en',
   layout: 'nerd',
   text: 'Giovanni Trovato\nSenior iOS Engineer\n',
   drawn: 'Giovanni Trovato\n'
@@ -17,7 +20,10 @@ describe('the print fixtures', () => {
     expect(
       staleFixtures(
         PRINT,
-        reading({ 'page-print-nerd.txt': PRINT.text, 'page-print-nerd.raw.txt': PRINT.drawn })
+        reading({
+          'page-print-general-en-nerd.txt': PRINT.text,
+          'page-print-general-en-nerd.raw.txt': PRINT.drawn
+        })
       )
     ).toEqual([]);
   });
@@ -27,13 +33,13 @@ describe('the print fixtures', () => {
       staleFixtures(
         PRINT,
         reading({
-          'page-print-nerd.txt': 'Giovanni Trovato\niOS Engineer\n',
-          'page-print-nerd.raw.txt': PRINT.drawn
+          'page-print-general-en-nerd.txt': 'Giovanni Trovato\niOS Engineer\n',
+          'page-print-general-en-nerd.raw.txt': PRINT.drawn
         })
       )
     ).toEqual([
       {
-        fixture: 'tests/fixtures/ats/page-print-nerd.txt',
+        fixture: 'tests/fixtures/ats/page-print-general-en-nerd.txt',
         line: 2,
         printed: 'Senior iOS Engineer',
         fixed: 'iOS Engineer'
@@ -46,13 +52,13 @@ describe('the print fixtures', () => {
       staleFixtures(
         { ...PRINT, drawn: 'Giovanni Trovato\nSenior iOS Engineer\n' },
         reading({
-          'page-print-nerd.txt': PRINT.text,
-          'page-print-nerd.raw.txt': 'Giovanni Trovato\n'
+          'page-print-general-en-nerd.txt': PRINT.text,
+          'page-print-general-en-nerd.raw.txt': 'Giovanni Trovato\n'
         })
       )
     ).toEqual([
       {
-        fixture: 'tests/fixtures/ats/page-print-nerd.raw.txt',
+        fixture: 'tests/fixtures/ats/page-print-general-en-nerd.raw.txt',
         line: 2,
         printed: 'Senior iOS Engineer',
         fixed: '(end)'
@@ -69,8 +75,8 @@ describe('the print fixtures', () => {
       staleFixtures(
         links,
         reading({
-          'page-print-nerd.txt': 'Giovanni  Trovato\nSenior iOS Engineer\n',
-          'page-print-nerd.raw.txt': 'github.com/ada·linkedin.com/in/ada\n'
+          'page-print-general-en-nerd.txt': 'Giovanni  Trovato\nSenior iOS Engineer\n',
+          'page-print-general-en-nerd.raw.txt': 'github.com/ada·linkedin.com/in/ada\n'
         })
       )
     ).toEqual([]);
@@ -81,8 +87,8 @@ describe('the print fixtures', () => {
       staleFixtures(
         { ...PRINT, drawn: 'Swift – SwiftUI | iOS\n' },
         reading({
-          'page-print-nerd.txt': PRINT.text,
-          'page-print-nerd.raw.txt': 'Swift–SwiftUI|iOS\n'
+          'page-print-general-en-nerd.txt': PRINT.text,
+          'page-print-general-en-nerd.raw.txt': 'Swift–SwiftUI|iOS\n'
         })
       )
     ).toEqual([]);
@@ -94,8 +100,8 @@ describe('the print fixtures', () => {
       staleFixtures(
         { ...PRINT, drawn: 'last line of page one.\n\fFirst line of page two\n' },
         reading({
-          'page-print-nerd.txt': PRINT.text,
-          'page-print-nerd.raw.txt': 'last line of page one.\fFirst line of page two\n'
+          'page-print-general-en-nerd.txt': PRINT.text,
+          'page-print-general-en-nerd.raw.txt': 'last line of page one.\fFirst line of page two\n'
         })
       )
     ).toEqual([]);
@@ -106,16 +112,45 @@ describe('the print fixtures', () => {
       staleFixtures(
         PRINT,
         reading({
-          'page-print-nerd.txt': 'Giovanni Trovato Senior\niOS Engineer\n',
-          'page-print-nerd.raw.txt': PRINT.drawn
+          'page-print-general-en-nerd.txt': 'Giovanni Trovato Senior\niOS Engineer\n',
+          'page-print-general-en-nerd.raw.txt': PRINT.drawn
         })
       )
     ).toEqual([
-      expect.objectContaining({ fixture: 'tests/fixtures/ats/page-print-nerd.txt', line: 1 })
+      expect.objectContaining({
+        fixture: 'tests/fixtures/ats/page-print-general-en-nerd.txt',
+        line: 1
+      })
     ]);
   });
 
   test('a layout with no fixtures has nothing to be stale', () => {
     expect(staleFixtures({ ...PRINT, layout: 'technical' }, reading({}))).toEqual([]);
+  });
+
+  // Named for the CV they are the print of, so a second published CV carries its own, held by the same check (#302).
+  test('are each CV’s own: the German print is held to the German fixtures, not the English', () => {
+    const german = { ...PRINT, locale: 'de', text: 'Giovanni Trovato\nSenior iOS-Entwickler\n' };
+    const fixtures = reading({
+      'page-print-general-en-nerd.txt': PRINT.text,
+      'page-print-general-en-nerd.raw.txt': PRINT.drawn,
+      'page-print-general-de-nerd.txt': 'Giovanni Trovato\niOS-Entwickler\n',
+      'page-print-general-de-nerd.raw.txt': PRINT.drawn
+    });
+
+    expect(fixturesOf(german).map(({ name }) => name)).toEqual([
+      'page-print-general-de-nerd.txt',
+      'page-print-general-de-nerd.raw.txt'
+    ]);
+    expect(staleFixtures(PRINT, fixtures)).toEqual([]);
+    expect(staleFixtures(german, fixtures)).toEqual([
+      expect.objectContaining({ fixture: 'tests/fixtures/ats/page-print-general-de-nerd.txt' })
+    ]);
+  });
+
+  test('are found by the CV the audit prints, never by a profile’s path written into it', () => {
+    const audit = readFileSync(new URL('../scripts/audit-print.mjs', import.meta.url), 'utf8');
+
+    expect(audit).not.toMatch(/['"`]profiles\//);
   });
 });
