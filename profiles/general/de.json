@@ -27,7 +27,7 @@
         "Cortado MDM für Android, 2025: Compose auf den meisten Screens; Testlaufzeit von 37,7 auf 5,2 Minuten (Spitze Juli 2026).",
         "Frühere Produkte, 2018–2023: Workplace und Teamplace auf Swift und Combine umgestellt; NFCReader allein entwickelt.",
         "Produktübergreifend: CI/CD, Code Signing, Provisioning, Releases für App Store und Google Play.",
-        "Software Bill of Materials (SBOM) und Sicherheitsscans, produktübergreifend.",
+        "Software Bill of Materials (SBOM) und Sicherheitsscans.",
         "Seit 2025 Entwicklung mit KI-Agenten (Mentor für 2 Entwickler); Cortados Zertifizierung im Android Enterprise Partner Program."
       ]
     },
