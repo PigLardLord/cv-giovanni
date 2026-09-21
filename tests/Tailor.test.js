@@ -330,7 +330,10 @@ describe('what the review of the tailoring found', () => {
     ['Ihr Gehaltswunsch und Ihr frühestmöglicher Eintrittstermin', 2],
     ['Bitte mit Gehaltsvorstellung und Eintrittstermin.', 2],
     ['Gehaltsvorstellung: 80.000–90.000 €', 0],
-    ['Earliest start date: 1 January 2027', 0]
+    ['Earliest start date: 1 January 2027', 0],
+    ['The start date is 1 January 2027.', 0],
+    ['Die Kündigungsfrist beträgt drei Monate.', 0],
+    ['Expected salary range: €80k–€90k', 0]
   ])('"%s" asks the letter %i questions', async (line, count) => {
     const { run } = setup([reply(faithful())], {
       advert: `Senior iOS Engineer at Engine Works\n\n${line}`

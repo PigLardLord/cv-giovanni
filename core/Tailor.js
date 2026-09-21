@@ -23,14 +23,14 @@ const LANGUAGES = Object.freeze({ en: 'English', de: 'German' });
 
 /**
  * What an advert says when it asks the letter for a salary or a start date, in English or German — not where it states
- * its own: "Gehaltsvorstellung: 80.000 €" and "Start date: 1 January 2027" are its terms, and ask nothing (the reviews
- * of #300).
+ * its own: "Gehaltsvorstellung: 80.000 €", "Start date: 1 January 2027", "Die Kündigungsfrist beträgt drei Monate" are
+ * its terms, and ask nothing (the reviews of #300).
  */
 const ASKS = Object.freeze({
   salaryExpectation:
-    /(?:salary\s+(?:expectations?|requirements?)|expected\s+salary|desired\s+salary|gehaltsvorstellung(?:en)?|gehaltswunsch(?:es)?)(?![\p{L}])(?!\s*:)/iu,
+    /(?:salary\s+(?:expectations?|requirements?)|expected\s+salary|desired\s+salary|gehaltsvorstellung(?:en)?|gehaltswunsch(?:es)?)(?![\p{L}])(?!\s*[:–—-])(?!\s+(?:is|ist|of|beträgt|ab|range|applies|wird|\d))/iu,
   startDate:
-    /(?:earliest\s+(?:possible\s+)?(?:start(?:ing)?\s+date|start(?!(?:ing)?\s+date)|availability)|start(?:ing)?\s+date|availability\s+date|notice\s+period|when\s+you\s+could\s+start|frühest(?:möglich)?e?[nrs]?\s+(?:eintritt|start)\p{L}*|eintrittstermin\p{L}*|eintrittsdatum|kündigungsfrist|starttermin)(?![\p{L}])(?!\s*:)/iu
+    /(?:earliest\s+(?:possible\s+)?(?:start(?:ing)?\s+date|start(?!(?:ing)?\s+date)|availability)|start(?:ing)?\s+date|availability\s+date|notice\s+period|when\s+you\s+could\s+start|frühest(?:möglich)?e?[nrs]?\s+(?:eintritt|start)\p{L}*|eintrittstermin\p{L}*|eintrittsdatum|kündigungsfrist|starttermin)(?![\p{L}])(?!\s*[:–—-])(?!\s+(?:is|ist|of|beträgt|ab|range|applies|wird|\d))/iu
 });
 
 /**

@@ -342,6 +342,14 @@ describe('what the review of the check found', () => {
     ).toEqual([]);
   });
 
+  test('a version a name carries states no figure: iOS17, v2.0', () => {
+    const states = (text, against) =>
+      ProvenanceCheck.additions(text, against).filter((reason) => reason.startsWith('states'));
+
+    expect(states('Shipped for iOS17.', 'Shipped for iOS 17.')).toEqual([]);
+    expect(states('Shipped v2.0.', 'Shipped v2.')).toEqual([]);
+  });
+
   test('a figure in words is a figure', () => {
     const failures = check((cv) => {
       cv.profile =
@@ -798,6 +806,87 @@ describe('what the second review of the letter found', () => {
       } else l[path] = text;
     };
     expect(letter(edit).map(({ path: at }) => at)).toContain(`letter.${path}`);
+  });
+});
+
+// What the third review of #300 found: the phrases taken out, the letter's end, and the addresses a letter meets.
+describe('what the third review of the letter found', () => {
+  const ADVERT = [
+    'SAP Fiori Developer at SAP SE',
+    'Kontakt: Frau Anna-Lena Hopper, Engine Works UG (haftungsbeschränkt), A-1010 Wien',
+    'Reference: REQ/2026/117+ for our C++ Engineer and Head of R&D'
+  ].join('\n');
+  const letter = (edit, { language = 'en' } = {}) => {
+    const tailored = structuredClone(SOURCE);
+    tailored.letter = {
+      recipient: { company: 'SAP SE' },
+      position: 'SAP Fiori Developer',
+      subject: 'SAP Fiori Developer',
+      opening: 'I am writing about the SAP Fiori Developer role.',
+      body: ['At Analytical Engines I cut the test suite from 37.7 to 5.2 minutes.'],
+      closing: 'I look forward to hearing from you.'
+    };
+    edit(tailored.letter);
+    return ProvenanceCheck.failures({
+      source: SOURCE,
+      tailored,
+      sources: itself(SOURCE),
+      terms: [],
+      advert: ADVERT,
+      language
+    });
+  };
+
+  test('a role that carries the company’s name is read whole, before the company’s', () => {
+    expect(letter(() => {})).toEqual([]);
+  });
+
+  test('a name after a phrase taken out is still a name', () => {
+    expect(
+      letter((l) => (l.subject = 'SAP Fiori Developer Zephyr')).map(({ reason }) => reason)
+    ).toEqual(['names "Zephyr", which its source does not']);
+  });
+
+  test('a valediction after a line break is read, in German too', () => {
+    const german = letter(
+      (l) => {
+        l.opening = 'Ich schreibe Ihnen wegen der Stelle als SAP Fiori Developer.';
+        l.body = [
+          'Bei Analytical Engines habe ich die Testlaufzeit von 37,7 auf 5,2 Minuten gesenkt.'
+        ];
+        l.closing = 'Ich freue mich auf Ihre Antwort\n\nMit freundlichen Grüßen';
+      },
+      { language: 'de' }
+    );
+    // The rest of the CV is not translated here, so only the letter is read.
+    expect(german.map(({ path }) => path).filter((path) => path.startsWith('letter.'))).toEqual([
+      'letter.closing'
+    ]);
+  });
+
+  test('an Austrian address, a company’s German legal form and a hyphenated given name are the advert’s', () => {
+    expect(
+      letter((l) => {
+        l.recipient = {
+          company: 'Engine Works UG (haftungsbeschränkt)',
+          name: 'Anna-Lena Hopper',
+          surname: 'Hopper',
+          form: 'ms',
+          address: ['A-1010 Wien']
+        };
+        l.body.push('I would gladly join Engine Works in Wien.');
+      })
+    ).toEqual([]);
+  });
+
+  test('a phrase with the marks a pattern reads is taken out as written', () => {
+    expect(
+      letter((l) => {
+        l.reference = 'REQ/2026/117+';
+        l.recipient.role = 'Head of R&D';
+        l.body.push('I write about REQ/2026/117+ to the Head of R&D.');
+      })
+    ).toEqual([]);
   });
 });
 

@@ -155,7 +155,7 @@ const technicalPart = (part) =>
 
 /** The legal form a company's name ends in, which its prose leaves out. */
 const LEGAL_FORM =
-  /[\s,]+(?:gmbh\s*&\s*co\.?\s*kg|gmbh|ag|se|kg|ug|e\.\s?v\.|ltd\.?|limited|inc\.?|llc|plc)\s*$/iu;
+  /[\s,]+(?:gmbh\s*&\s*co\.?\s*kga?a?|ug\s*\(haftungsbeschränkt\)|g?gmbh|kgaa|ag|se|kg|ug|e\.\s?v\.|s\.a\.|b\.v\.|ltd\.?|limited|inc\.?|llc|plc)\s*$/iu;
 
 /** Abbreviations German writes its own way, and the English one a source writes: "KI" is "AI", "GER" is "CEFR". */
 const GERMAN_ABBREVIATIONS = Object.freeze({ ki: 'AI', ger: 'CEFR', eu: 'EU' });
@@ -492,7 +492,8 @@ export class ProvenanceCheck {
   /**
    * Whether a tailored letter says only what the full CV, the advert and its defaults say (#299).
    *
-   * Who it is addressed to is the advert's: its company, contact, role, address and reference appear there, and it
+   * Who it is addressed to is the advert's: its company, contact, role, address, reference and the position applied for
+   * appear there, and it
    * takes a form of address only when the advert writes one before the contact's name — never from a first name
    * (#174). What it argues is the full CV's: its figures are the source's, or the salary and the start the defaults
    * give; its names are the source's or the advert's. Its date and signature are the job's, not the model's.
@@ -501,7 +502,8 @@ export class ProvenanceCheck {
    * @param {object} letter.source - The full CV
    * @param {string} letter.advert - The advert
    * @param {{ salaryExpectation?: string, startDate?: string, note?: string }} letter.defaults - What it was told
-   * @param {(path: string, text: string, against: string) => void} letter.states - Holds a text to what backs it
+   * @param {(path: string, text: string, against: string, allowed: string[]) => void} letter.states - Holds a text to
+   *   what backs it, and the phrases it may write whole
    * @returns {{ path: string, reason: string }[]} What the letter says that nothing backs
    */
   static letterFailures({ letter, source, advert, defaults = {}, states }) {
@@ -541,11 +543,11 @@ export class ProvenanceCheck {
             .at(-1) ||
           ''
       );
-      // "Frau Dr. Grace Hopper", "Herrn Max Müller", "Herr John von Neumann", "MS GRACE HOPPER": the form, a title or
+      // "Frau Dr. Grace Hopper", "Herrn Karl-Heinz Müller", "Herr John von Neumann", "MS GRACE HOPPER": the form, a title or
       // two, up to three given names and particles, then the surname — read case and accents aside. A given name is
       // no form and no conjunction: "Frau Müller und Herr Hopper" writes no "Frau" before Hopper (the review of #300).
       const words = form === 'ms' ? 'frau|ms|mrs' : 'herrn?|mr';
-      const given = `(?:(?!(?:frau|ms|mrs|miss|herrn?|mr|und|and|oder|or|sowie)(?![\\p{L}]))\\p{L}+\\s+)`;
+      const given = `(?:(?!(?:frau|ms|mrs|miss|herrn?|mr|und|and|oder|or|sowie)(?![\\p{L}]))\\p{L}+(?:-\\p{L}+)*\\s+)`;
       const written = new RegExp(
         `(?<![\\p{L}])(?:${words})\\s+(?:(?:dr|prof)\\s+)*${given}{0,3}${surname.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}])`,
         'u'
@@ -582,7 +584,7 @@ export class ProvenanceCheck {
     }
     const end = paragraphs.filter(([path]) => path !== 'opening').slice(-2);
     for (const [path, text] of end) {
-      if (text.split(/(?<=[.!?])\s+/).some((sentence) => VALEDICTION.test(sentence))) {
+      if (text.split(/(?<=[.!?])\s+|\n+/).some((sentence) => VALEDICTION.test(sentence))) {
         found.push({
           path,
           reason: 'is a valediction: the page signs off itself, in its own words'
@@ -620,10 +622,16 @@ export class ProvenanceCheck {
       ...address.map(city),
       letter.reference,
       letter.position
-    ].filter(
-      (value, index, all) =>
-        typeof value === 'string' && value.trim() && inAdvert(value) && all.indexOf(value) === index
-    );
+    ]
+      .filter(
+        (value, index, all) =>
+          typeof value === 'string' &&
+          value.trim() &&
+          inAdvert(value) &&
+          all.indexOf(value) === index
+      )
+      // The longest first: "SAP" must not take its word out of "SAP Fiori Developer" before the role is read whole.
+      .sort((a, b) => b.length - a.length);
     for (const field of ['subject', 'opening', 'closing']) {
       if (typeof letter[field] === 'string' && letter[field].trim())
         states(field, letter[field], against, allowed);
@@ -646,18 +654,23 @@ export class ProvenanceCheck {
 
   /**
    * What a tailored text states that its source does not: a figure, a name, or a term of the vocabulary.
-   * @param {string} text - The tailored text
+   * @param {string} original - The tailored text
    * @param {string} against - Everything its sources say
    * @param {{ vocabulary?: string[], advertNames?: Set<string>, allowed?: string[] }} [words] - Terms that must not
    *   appear without a source, the names the advert writes, folded, and the phrases the text may write whole
    * @returns {string[]} A reason for each addition
    */
   static additions(
-    written,
+    original,
     against,
     { vocabulary = [], advertNames = new Set(), reading = ENGLISH, allowed = [] } = {}
   ) {
-    const text = allowed.reduce((rest, phrase) => rest.replace(wholePhrase(phrase), ' '), written);
+    // An allowed phrase is taken out as a dash, which says the sentence goes on: a capital after it is still a name
+    // (the third review of #300).
+    const text = allowed.reduce(
+      (rest, phrase) => rest.replace(wholePhrase(phrase), ' – '),
+      original
+    );
     const reasons = [];
     const figures = new Set(figuresOf(against).map(({ value }) => value));
     const added = new Map();
@@ -813,9 +826,14 @@ function unincorporated(company) {
   return name && name !== company.trim() ? name : null;
 }
 
-/** The city an address line ends in after its postcode: "Berlin" in "10115 Berlin". */
+/**
+ * The city an address line ends in after its postcode: "Berlin" in "10115 Berlin", "Wien" in "A-1010 Wien". A German,
+ * Austrian or Swiss address is the jurisdiction's; a US or UK one names its city on a line the letter writes whole.
+ */
 function city(line) {
-  return typeof line === 'string' ? (/^\s*\d{4,5}\s+(\p{L}.*)$/u.exec(line)?.[1] ?? null) : null;
+  return typeof line === 'string'
+    ? (/^\s*(?:[A-Z]{1,3}-)?\d{4,5}\s+(\p{L}.*)$/u.exec(line)?.[1] ?? null)
+    : null;
 }
 
 /**
