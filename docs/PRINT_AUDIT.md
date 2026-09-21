@@ -7,7 +7,7 @@ Layouts: 3
 
 | Layout | Pages | Score | Worst side margin | Room left |
 |---|---:|---:|---:|---|
-| nerd | 2 | 26/26 | 13.7mm | p1 29.3pt · p2 198.3pt |
+| nerd | 2 | 26/26 | 13.7mm | p1 45.0pt · p2 198.3pt |
 | spotlight | 2 | 26/26 | 33.5mm | p1 6.0pt · p2 185.5pt |
 | technical | 2 | 26/26 | 33.5mm | p1 9.8pt · p2 188.5pt |
 

@@ -33,8 +33,7 @@ Earlier products, 2018–2023: moved Workplace and Teamplace to
 Swift and Combine; NFCReader, sole author.
 Across products: CI/CD, code signing and provisioning, App Store
 and Google Play releases.
-Software bill of materials (SBOM) and security scans, across
-products.
+Software bill of materials (SBOM) and security scans.
 Agentic development since 2025, mentoring 2 developers in it;
 Cortado's Android Enterprise Partner Program certification.
 
