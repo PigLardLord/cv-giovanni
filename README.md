@@ -181,8 +181,10 @@ Then the job prints the CV and the letter from `applications/<id>/<language>.jso
 pages goes back to the model, up to `auditRetries` times; a layout defect the copy cannot fix does not. When the last
 print still fails, `auditGate` decides: on, the job fails with the results and nothing to download; off, it is ready
 and its gate lists every failed check. An audit that did not run is never a pass. A ready job's documents download
-from `GET /api/tailorings/<id>/cv` and `/letter`, named for a recruiter: the candidate's name, then the document's in
-the job's language — ada-lovelace-cv.pdf, ada-lovelace-lebenslauf.pdf.
+from `GET /api/tailorings/<id>/cv` and `/letter`, named for a recruiter as the public CV's download is — the
+candidate, the role and the document, the letter in the job's language: Ada-Lovelace-Senior-iOS-Engineer-CV.pdf,
+Ada-Lovelace-Senior-iOS-Engineer-Cover-Letter.pdf, …-Anschreiben.pdf. A build that printed nothing fails the job
+whatever the gate.
 
 A tailoring subtracts from a CV that lists everything, so a job starts from the **full CV** its owner keeps in
 `~/.config/mycv/full-cv/en.json` (or under `$XDG_CONFIG_HOME`), in the profile's shape; with none there, from the

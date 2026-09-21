@@ -14,9 +14,10 @@ const JOB = {
 };
 const OUT = `${JOB.directory}/out`;
 
+// The print audit writes its results when it runs to its end, as the script does: not when it checked nothing, and not
+// when it was stopped.
 const setup = ({ exits = {}, results } = {}) => {
   const stored = new Map();
-  if (results !== undefined) stored.set(`${OUT}/PRINT_AUDIT.json`, JSON.stringify(results));
   const runs = [];
   const files = {
     stored,
@@ -27,7 +28,11 @@ const setup = ({ exits = {}, results } = {}) => {
   const scripts = {
     run: async (name, args) => {
       runs.push([name, args]);
-      return { exitCode: exits[name] ?? 0, stdout: '', stderr: '' };
+      const exitCode = name in exits ? exits[name] : 0;
+      if (name === 'audit-print' && results !== undefined && exitCode !== 2 && exitCode !== null) {
+        stored.set(`${OUT}/PRINT_AUDIT.json`, JSON.stringify(results));
+      }
+      return { exitCode, stdout: '', stderr: '' };
     }
   };
   return { stored, runs, print: new TailoringPrint({ files, scripts }) };
@@ -52,6 +57,7 @@ describe('the print of a tailoring', () => {
     ]);
     expect(result).toEqual({
       passed: true,
+      printed: true,
       failures: [],
       notRun: [],
       files: {
@@ -122,9 +128,39 @@ describe('the print of a tailoring', () => {
         '  at x (file.mjs:1)\nError: Runtime.evaluate got no answer within 30s\n    at Timeout.<anonymous>\n'
     });
 
-    expect((await print.run(JOB, PROFILE)).notRun).toEqual([
+    const result = await print.run(JOB, PROFILE);
+
+    expect(result.notRun).toEqual([
       'build:pdf (failed: Error: Runtime.evaluate got no answer within 30s)'
     ]);
+    // Nothing was printed, so nothing is offered (the review of #320).
+    expect(result).toMatchObject({ printed: false, files: { cv: null, letter: null } });
+  });
+
+  // The review of #320: an audit that stopped before writing its results left the last attempt's in place, and they
+  // were read as this attempt's.
+  test.each([
+    ['stopped by a signal or its time limit', null, 'audit:print'],
+    ['failed without writing its results', 1, 'audit:print (no results)']
+  ])('an audit %s is not run, whatever an earlier attempt wrote', async (_, exitCode, said) => {
+    const { stored, print } = setup({ exits: { 'audit-print': exitCode } });
+    stored.set(
+      `${OUT}/PRINT_AUDIT.json`,
+      JSON.stringify({ cv: [{ layout: 'technical', pages: 3, failed: ['pages'] }], letters: [] })
+    );
+
+    const result = await print.run(JOB, PROFILE);
+
+    expect(result.failures).toEqual([]);
+    expect(result.notRun).toEqual([said]);
+  });
+
+  test('results with no row for the job’s layout are no results', async () => {
+    const { print } = setup({
+      results: { cv: [{ layout: 'nerd', pages: 2, failed: [] }], letters: [] }
+    });
+
+    expect((await print.run(JOB, PROFILE)).notRun).toEqual(['audit:print (no results)']);
   });
 
   test('a build that printed nothing stops before any audit', async () => {

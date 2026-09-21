@@ -209,8 +209,8 @@ describe('what the local API answers when a request goes wrong', () => {
 
   // A ready job's documents are files a recruiter receives (#303): the service says which bytes and under what name.
   test.each([
-    ['cv', 'ada-lovelace-cv.pdf'],
-    ['letter', 'ada-lovelace-cover-letter.pdf']
+    ['cv', 'Ada-Lovelace-Senior-iOS-Engineer-CV.pdf'],
+    ['letter', 'Ada-Lovelace-Senior-iOS-Engineer-Cover-Letter.pdf']
   ])(
     'GET /api/tailorings/:id/%s hands over the file the service gives, as a download',
     async (document, filename) => {

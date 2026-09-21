@@ -63,6 +63,7 @@ export class TailoringJob {
       if (!copy.length || retries >= auditRetries) break;
       retries += 1;
       seed = {
+        kind: 'print',
         answer: tailored.answer,
         failures: copy.map(({ document, reason }) => ({ path: document, reason }))
       };
@@ -76,17 +77,21 @@ export class TailoringJob {
       retries
     };
     const outcome = { ...result, attempts, cost: { ...result.cost, usd }, gate };
-    if (!printed.passed && auditGate) {
+    // Nothing printed is nothing to deliver, whatever the gate: a ready job would list downloads that are not there
+    // (the review of #320).
+    if ((!printed.passed && auditGate) || printed.printed === false) {
       const problems = [
         ...printed.failures.map(({ document, reason }) => ({ path: document, reason })),
         ...printed.notRun.map((audit) => ({ path: audit, reason: 'did not run' }))
       ];
+      // The reason names its document itself: "the CV printed 3 pages…", "build:pdf (…) did not run".
+      const said = problems.map(({ path, reason }) =>
+        reason === 'did not run' ? `${path} did not run` : reason
+      );
+      const after = retries ? ` after ${retries} ${retries === 1 ? 'retry' : 'retries'}` : '';
+      const more = said.length > 1 ? `, and ${said.length - 1} more` : '';
       throw Object.assign(
-        new Refusal(
-          422,
-          `The print failed its gate${retries ? ` after ${retries} ${retries === 1 ? 'retry' : 'retries'}` : ''}: ${problems[0].path} ${problems[0].reason}${problems.length > 1 ? `, and ${problems.length - 1} more` : ''}.`,
-          problems
-        ),
+        new Refusal(422, `The print failed its gate${after}: ${said[0]}${more}.`, problems),
         { cost: outcome.cost, result: outcome }
       );
     }

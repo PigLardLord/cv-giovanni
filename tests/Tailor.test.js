@@ -360,6 +360,27 @@ describe('what the review of the tailoring found', () => {
     expect(questions.filter(({ from }) => from === 'letter')).toEqual([]);
   });
 
+  // The review of #320: a print that ran past its pages went back framed as a failed check against the full CV.
+  test('a print sent back asks for less, not for other claims, and only on its own round', () => {
+    const asked = (failed) =>
+      Tailor.prompt({
+        source: { name: 'Ada Lovelace' },
+        advert: 'Senior iOS Engineer',
+        terms: [],
+        answer: { profile: { name: 'Ada Lovelace' } },
+        failures: [
+          { path: 'cv', reason: 'the CV printed 3 pages, and must fit 2: cut it until it does' }
+        ],
+        failed
+      });
+
+    expect(asked('print')).toMatch(
+      /passed the check against the full CV, and printed past its pages/
+    );
+    expect(asked('print')).not.toMatch(/failed the check/);
+    expect(asked('check')).toMatch(/failed the check against the full CV/);
+  });
+
   test('the deadline is the job’s, set once, not one per attempt', async () => {
     let now = 1_000_000;
     const { asked, run } = setup([reply(inventive()), reply(faithful())], {

@@ -1,9 +1,9 @@
 import { APPLICATION_NAME } from './Applications.js';
-import { nameSlug } from './FileNaming.js';
 import { EFFORTS, MODELS } from './Inference.js';
 import { ProfileShape } from './ProfileShape.js';
 import { ProfileStore } from './ProfileStore.js';
 import { Refusal } from './Refusal.js';
+import { CvFiles } from './CvFiles.js';
 
 /** What a tailoring takes besides its advert, and what each is when the request leaves it out (#260). */
 export const DEFAULTS = Object.freeze({
@@ -223,8 +223,9 @@ export class Tailorings {
   }
 
   /**
-   * A document a ready job printed. Named for the recruiter who saves it — the candidate's name, then the document's
-   * name in the job's language, `ada-lovelace-lebenslauf.pdf` — never for the job, whose id says nothing to them.
+   * A document a ready job printed. Named for the recruiter who saves it as the public CV is — the candidate, the role
+   * and the document, `Ada-Lovelace-Senior-iOS-Engineer-CV.pdf`, its letter in the job's language,
+   * `…-Anschreiben.pdf` — never for the job, whose id says nothing to them.
    */
   async download(id, document) {
     const state = await this.status(id);
@@ -238,17 +239,22 @@ export class Tailorings {
       );
     }
     const path = state.result?.files?.[document];
-    if (!path) throw new Refusal(404, `The job ${id} printed no ${document}.`);
+    // A file gone from disk since — applications/ cleaned by hand — is a refusal, not the server failing.
+    if (!path || !(await this.files.exists(path)))
+      throw new Refusal(404, `The job ${id} printed no ${document}.`);
     const { language } = JSON.parse(await this.files.readText(Tailorings.paths(id).request));
-    const catalogue = JSON.parse(await this.files.readText(`locales/${language}/ui.json`));
     const profile = JSON.parse(await this.files.readText(`applications/${id}/${language}.json`));
-    // The document's name as the job's language writes it, in the catalogue: "CV", "Lebenslauf".
-    const key = { cv: 'files.cv', letter: 'files.letter' }[document];
-    const word = key.split('.').reduce((node, step) => node?.[step], catalogue) ?? document;
+    // The CV is a CV in every language, as the public one's name says; a letter is named in the job's catalogue:
+    // "Cover Letter", "Anschreiben".
+    let word = 'CV';
+    if (document === 'letter') {
+      const catalogue = JSON.parse(await this.files.readText(`locales/${language}/ui.json`));
+      word = 'files.letter'.split('.').reduce((node, step) => node?.[step], catalogue) ?? 'letter';
+    }
     return {
       file: await this.files.readBytes(path),
       type: 'application/pdf',
-      filename: `${nameSlug(profile.name)}-${nameSlug(word)}.pdf`
+      filename: new CvFiles().downloadName(profile, word)
     };
   }
 

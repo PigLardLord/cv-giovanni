@@ -3,6 +3,12 @@ import { CvFiles } from './CvFiles.js';
 /** How the scripts end: 0 checked and passed, 1 checked and failed, 2 not checked at all. */
 const NOT_RUN = 2;
 
+/**
+ * Whether a script checked nothing: it said so, or it was stopped — by a signal or its time limit — before it could say
+ * anything (the review of #320).
+ */
+const checkedNothing = ({ exitCode }) => exitCode === NOT_RUN || exitCode === null;
+
 /** The pages each document may take (#260): the CV two A4 pages, the letter one. */
 const PAGES = Object.freeze({ cv: 2, letter: 1 });
 
@@ -35,9 +41,9 @@ export class TailoringPrint {
   /**
    * @param {{ id: string, directory: string, options: { language: string, layout: string } }} job - The job
    * @param {object} profile - The tailored profile, its letter included
-   * @returns {Promise<{ passed: boolean, failures: object[], notRun: string[], files: { cv: string, letter: string|null } }>}
-   *   Whether the print passed, every failure — each saying whether the copy can fix it — the audits that could not
-   *   run, and the documents it printed
+   * @returns {Promise<{ passed: boolean, printed: boolean, failures: object[], notRun: string[], files: object }>}
+   *   Whether the print passed, whether anything was printed at all, every failure — each saying whether the copy can
+   *   fix it — the audits that could not run, and the documents it printed
    */
   async run(job, profile) {
     const { directory, options } = job;
@@ -57,25 +63,33 @@ export class TailoringPrint {
 
     const built = await this.scripts.run('generate-pdfs', args);
     if (built.exitCode !== 0) {
+      // Nothing to deliver, whatever the gate says: the names above are what it would have printed (the review of
+      // #320).
       return {
         passed: false,
+        printed: false,
         failures: [],
         notRun: [
-          `build:pdf (${built.exitCode === NOT_RUN ? 'nothing printed' : 'failed'}${lastWords(built.stderr)})`
+          `build:pdf (${checkedNothing(built) ? 'nothing printed' : 'failed'}${lastWords(built.stderr)})`
         ],
-        files
+        files: { cv: null, letter: null }
       };
     }
 
     const failures = [];
     const notRun = [];
+    // The results of an earlier attempt are overwritten first, so an audit that stops before writing its own is read as
+    // no results, never as the last attempt's (the review of #320).
+    const resultsPath = `${out}/PRINT_AUDIT.json`;
+    await this.files.writeText(resultsPath, 'null\n');
     const print = await this.scripts.run('audit-print', args);
-    if (print.exitCode === NOT_RUN) notRun.push('audit:print');
+    if (checkedNothing(print)) notRun.push('audit:print');
     else {
-      const results = await this.results(`${out}/PRINT_AUDIT.json`);
-      if (!results) notRun.push('audit:print (no results)');
+      const results = await this.results(resultsPath);
+      const ofLayout = results?.cv?.some?.(({ layout }) => layout === options.layout);
+      if (!results || !ofLayout) notRun.push('audit:print (no results)');
       else failures.push(...TailoringPrint.printFailures(results));
-      if (print.exitCode !== 0 && results && !failures.length) {
+      if (print.exitCode !== 0 && results && ofLayout && !failures.length) {
         failures.push({
           document: 'cv',
           check: 'audit:print',
@@ -85,16 +99,17 @@ export class TailoringPrint {
       }
     }
     const ats = await this.scripts.run('audit-ats', args);
-    if (ats.exitCode === NOT_RUN) notRun.push('audit:ats');
+    if (checkedNothing(ats)) notRun.push('audit:ats');
     else if (ats.exitCode !== 0) {
       failures.push({
         document: 'cv',
         check: 'audit:ats',
         copy: false,
-        reason: 'the CV fails one of audit:ats’s floors: the report beside it says which'
+        reason:
+          'the CV or its letter fails one of audit:ats’s floors: the report beside it says which'
       });
     }
-    return { passed: !failures.length && !notRun.length, failures, notRun, files };
+    return { passed: !failures.length && !notRun.length, printed: true, failures, notRun, files };
   }
 
   /** The results `audit:print` writes beside its report for a tailored CV, or null when there are none to read. */

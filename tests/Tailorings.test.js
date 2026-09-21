@@ -878,8 +878,13 @@ describe('downloading what a job printed', () => {
       ...extra
     }),
     [`applications/${ID}/request.json`]: JSON.stringify({ ...DEFAULTS, language: 'de' }),
-    [`applications/${ID}/de.json`]: JSON.stringify({ name: 'Ada Lovelace' }),
-    'locales/de/ui.json': JSON.stringify({ files: { cv: 'lebenslauf', letter: 'anschreiben' } })
+    [`applications/${ID}/de.json`]: JSON.stringify({
+      name: 'Ada Lovelace',
+      title: 'Senior iOS-Entwicklerin'
+    }),
+    [`applications/${ID}/out/cv.pdf`]: '%PDF-',
+    [`applications/${ID}/out/letter.pdf`]: '%PDF-',
+    'locales/de/ui.json': JSON.stringify({ files: { letter: 'Anschreiben' } })
   });
   const withBytes = (files) => {
     const { disk, tailorings } = setup({ work: controlled().work, files });
@@ -887,7 +892,9 @@ describe('downloading what a job printed', () => {
     return tailorings;
   };
 
-  test('a ready job’s CV and letter, each named for the candidate and the document in the job’s language', async () => {
+  // Named as the public CV is — the person, the role and the document — so a recruiter never saves two shapes (the
+  // product review of #320).
+  test('a ready job’s CV and letter, each named as the public CV is, the letter in the job’s language', async () => {
     const tailorings = withBytes(
       printed('ready', {
         result: {
@@ -902,9 +909,20 @@ describe('downloading what a job printed', () => {
     expect(await tailorings.cv(ID)).toEqual({
       file: Buffer.from(`bytes of applications/${ID}/out/cv.pdf`),
       type: 'application/pdf',
-      filename: 'ada-lovelace-lebenslauf.pdf'
+      filename: 'Ada-Lovelace-Senior-iOS-Entwicklerin-CV.pdf'
     });
-    expect((await tailorings.letter(ID)).filename).toBe('ada-lovelace-anschreiben.pdf');
+    expect((await tailorings.letter(ID)).filename).toBe(
+      'Ada-Lovelace-Senior-iOS-Entwicklerin-Anschreiben.pdf'
+    );
+  });
+
+  test('a document gone from disk since is not found, rather than the server failing', async () => {
+    const files = printed('ready', {
+      result: { files: { cv: `applications/${ID}/out/cv.pdf` } }
+    });
+    delete files[`applications/${ID}/out/cv.pdf`];
+
+    await expect(withBytes(files).cv(ID)).rejects.toMatchObject({ status: 404 });
   });
 
   // A job found running when the server starts was interrupted, and is failed: running is asked of a live one below.

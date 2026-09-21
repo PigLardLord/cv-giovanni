@@ -85,6 +85,7 @@ describe('a tailoring job', () => {
     expect(seeds).toEqual([
       null,
       {
+        kind: 'print',
         answer: { profile: { name: 'Ada Lovelace', round: 1 } },
         failures: [{ path: 'cv', reason: TOO_LONG.reason }]
       }
@@ -113,7 +114,7 @@ describe('a tailoring job', () => {
 
     expect(seeds).toHaveLength(3);
     expect(refusal).toBeInstanceOf(Refusal);
-    expect(refusal.message).toMatch(/failed its gate after 2 retries: cv the CV printed 3 pages/);
+    expect(refusal.message).toMatch(/failed its gate after 2 retries: the CV printed 3 pages/);
     expect(refusal.details).toEqual([{ path: 'cv', reason: TOO_LONG.reason }]);
     expect(refusal.cost).toMatchObject({ usd: 1.5 });
     expect(refusal.result).toMatchObject({ gate: { passed: false, retries: 2 } });
@@ -150,5 +151,24 @@ describe('a tailoring job', () => {
 
     const off = setup({ prints: [{ ...notRun }], options: { auditGate: false } });
     expect((await off.run()).gate).toMatchObject({ passed: false, notRun: ['audit:print'] });
+  });
+
+  // The review of #320: with the gate off, a build that printed nothing ended ready, listing downloads that were not
+  // there, and each answered 500.
+  test('a build that printed nothing fails the job whatever the gate, with nothing to deliver', async () => {
+    const nothing = {
+      passed: false,
+      printed: false,
+      failures: [],
+      notRun: ['build:pdf (nothing printed: no browser found)'],
+      files: { cv: null, letter: null }
+    };
+    const off = setup({ prints: [nothing], options: { auditGate: false } });
+
+    const refusal = await off.run().catch((error) => error);
+
+    expect(refusal.status).toBe(422);
+    expect(refusal.message).toMatch(/build:pdf \(nothing printed: no browser found\) did not run/);
+    expect(refusal.result).not.toHaveProperty('files');
   });
 });

@@ -101,6 +101,8 @@ export class Tailor {
 
     let failures = seed?.failures ?? [];
     let answer = seed?.answer ?? null;
+    // What the failures are: the print's, on the round a failed print sent back, and the check's after that.
+    let failed = seed?.kind ?? 'check';
     const spent = [];
     for (let attempt = 1; attempt <= RETRIES + 1; attempt += 1) {
       await update({ attempts: attempt });
@@ -115,7 +117,8 @@ export class Tailor {
             letter: options.letter,
             language: options.language,
             answer,
-            failures
+            failures,
+            failed
           }),
           model: options.model,
           effort: options.effort,
@@ -128,6 +131,7 @@ export class Tailor {
         throw error;
       }
       spent.push(reply);
+      failed = 'check';
       const read = Tailor.read(reply);
       answer = read.answer;
       if (answer && Tailor.isLetter(answer.profile.letter)) {
@@ -210,7 +214,16 @@ export class Tailor {
   }
 
   /** What the model is asked: the four things #260 names, and, on a retry, its last answer and what failed. */
-  static prompt({ source, advert, terms, letter, language = SOURCE_LANGUAGE, answer, failures }) {
+  static prompt({
+    source,
+    advert,
+    terms,
+    letter,
+    language = SOURCE_LANGUAGE,
+    answer,
+    failures,
+    failed = 'check'
+  }) {
     const parts = [
       `<full_cv>\n${JSON.stringify(source, null, 2)}\n</full_cv>`,
       `<advert>\n${advert}\n</advert>`,
@@ -226,9 +239,14 @@ export class Tailor {
       parts.push(
         `<previous_answer>\n${answer ? JSON.stringify(answer, null, 2) : '(none that could be read)'}\n</previous_answer>`,
         `<what_failed>\n${failures.map(({ path, reason }) => `- ${path}: ${reason}`).join('\n')}\n</what_failed>`,
-        'Your previous answer failed the check against the full CV. Correct every failure above — by using what the ' +
-          'source item states, or by leaving the claim out and asking about it in `questions` — and answer again ' +
-          'with the whole JSON object.'
+        failed === 'print'
+          ? // A print that ran past its pages asks for less, never for other claims (the review of #320).
+            'Your previous answer passed the check against the full CV, and printed past its pages. Shorten it as ' +
+              'every failure above asks — fewer or shorter items, the claims unchanged — and answer again with the ' +
+              'whole JSON object.'
+          : 'Your previous answer failed the check against the full CV. Correct every failure above — by using ' +
+              'what the source item states, or by leaving the claim out and asking about it in `questions` — and ' +
+              'answer again with the whole JSON object.'
       );
     } else {
       parts.push('Tailor the full CV to the advert, and answer with the JSON object.');
