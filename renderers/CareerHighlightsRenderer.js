@@ -1,4 +1,5 @@
 import { BaseRenderer } from './BaseRenderer.js';
+import { figurePieces } from '../domain/Figures.js';
 
 /**
  * The profile's career highlights, under "Selected Impact": its summary of evidence, which only the
@@ -15,9 +16,17 @@ export class CareerHighlightsRenderer extends BaseRenderer {
     container.textContent = '';
     this.setSectionVisibility(container, highlights.length > 0);
 
-    // As text, with each hyphenated compound held together the way a role's achievements are (setProse).
+    // As text, with each hyphenated compound held together the way a role's achievements are (setProse), and each
+    // figure in Bold, whole — #230 set them so, and the page had left them in the body's weight (#261). What a figure
+    // is, is the domain's rule, not the renderer's guess.
     highlights.forEach((highlight) => {
-      container.appendChild(this.setProse(root, this.createElement(root, 'li'), highlight));
+      const item = this.createElement(root, 'li');
+      figurePieces(highlight).forEach(({ text, figure }) => {
+        if (figure)
+          item.appendChild(this.createElement(root, 'strong', 'impact-figure no-break', text));
+        else this.appendProse(root, item, text);
+      });
+      container.appendChild(item);
     });
   }
 

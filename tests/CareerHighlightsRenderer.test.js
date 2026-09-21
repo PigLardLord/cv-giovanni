@@ -28,6 +28,17 @@ describe('CareerHighlightsRenderer', () => {
   const section = () => document.querySelector('.career-highlights-section');
   const items = () => [...list().querySelectorAll('li')].map((item) => item.textContent);
 
+  // #230 set the figures of Selected Impact in Bold, and the page left them in the body's weight (#261). What a figure
+  // is, is the domain's rule; the text is unchanged.
+  test('sets each figure in Bold, whole, and changes no character of the line', () => {
+    const line = 'Cortado MDM for Android, 2026: 1040 → 5308 tests, branch coverage 14% → 83%';
+    renderer.render(document, { career_highlights: [line] });
+
+    const figures = [...list().querySelectorAll('strong.impact-figure.no-break')];
+    expect(figures.map((figure) => figure.textContent)).toEqual(['1040 → 5308', '14% → 83%']);
+    expect(items()).toEqual([line]);
+  });
+
   test('renders every highlight as an item of the list, in order', () => {
     renderer.render(document, {
       career_highlights: [
@@ -60,7 +71,10 @@ describe('CareerHighlightsRenderer', () => {
     renderer.render(document, { career_highlights: ['Cut crashes to <b>0.1%</b> at AT&T & co'] });
 
     expect(items()).toEqual(['Cut crashes to <b>0.1%</b> at AT&T & co']);
-    expect(list().querySelector('li').children).toHaveLength(0);
+    // The one element is the page's own: the figure it sets in Bold (#261). The data's "<b>" stays text.
+    expect([...list().querySelector('li').children].map((child) => child.outerHTML)).toEqual([
+      '<strong class="impact-figure no-break">0.1%</strong>'
+    ]);
     expect(list().querySelectorAll('b')).toHaveLength(0);
   });
 
@@ -70,11 +84,13 @@ describe('CareerHighlightsRenderer', () => {
 
     expect(items()).toEqual(['82% of app screens UI-tested']);
     expect([...list().querySelectorAll('li .no-break')].map((held) => held.textContent)).toEqual([
+      '82%',
       'UI-tested'
     ]);
   });
 
-  // "branch coverage 14% →" ended a line in Nerd Mode and "83%" opened the next (product review of #229).
+  // "branch coverage 14% →" ended a line in Nerd Mode and "83%" opened the next (product review of #229). A change is
+  // one figure since #261, held whole in Bold, its arrow with it.
   test('holds an arrow to the figures either side of it, as every separator is held', () => {
     renderer.render(document, {
       career_highlights: ['1,040 → 5,308 tests, branch coverage 14% → 83%']
@@ -82,8 +98,8 @@ describe('CareerHighlightsRenderer', () => {
 
     expect(items()).toEqual(['1,040 → 5,308 tests, branch coverage 14% → 83%']);
     expect([...list().querySelectorAll('li .no-break')].map((held) => held.textContent)).toEqual([
-      ' → ',
-      ' → '
+      '1,040 → 5,308',
+      '14% → 83%'
     ]);
   });
 
