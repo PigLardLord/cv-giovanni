@@ -55,17 +55,26 @@ export function printedRoom({ height, lines }, { bottomMargin, bodyLine }) {
 }
 
 /**
- * The report's words for a layout's room: every page's room in points, and a warning on a tight last page. A tight
- * page 1 is not warned about, since the page count, not the room, is the gate, and a tight last page is the one
- * the next line spills from.
+ * The report's words for a layout's room: every page's room in points, each tight page marked. Neither is a failure,
+ * since the page count is the gate, but they warn of different things: a tight last page is the one the next line
+ * spills from, onto a page too many; a tight page before it moves the role below, whole, to the next page, and leaves
+ * its own foot blank (#294).
  * @param {({ points: number, tight: boolean }|null)[]} rooms - Each page's room, in order; null for a page with no
  *   line to measure from
- * @returns {{ column: string, lastPageTight: boolean }} The table cell, and whether the last page is tight
+ * @returns {{ column: string, lastPageTight: boolean, tightBefore: number[] }} The table cell, whether the last page
+ *   is tight, and the number of each tight page before it
  */
 export function roomReport(rooms) {
-  const lastPageTight = rooms.length > 0 && Boolean(rooms[rooms.length - 1]?.tight);
+  const last = rooms.length - 1;
+  const lastPageTight = rooms.length > 0 && Boolean(rooms[last]?.tight);
+  const tightBefore = rooms
+    .map((room, index) => (index < last && room?.tight ? index + 1 : null))
+    .filter((page) => page !== null);
   const column = rooms
-    .map((room, index) => `p${index + 1} ${room ? `${room.points.toFixed(1)}pt` : '—'}`)
+    .map(
+      (room, index) =>
+        `p${index + 1} ${room ? `${room.points.toFixed(1)}pt${room.tight ? ' ⚠' : ''}` : '—'}`
+    )
     .join(' · ');
-  return { column: lastPageTight ? `${column} ⚠` : column, lastPageTight };
+  return { column, lastPageTight, tightBefore };
 }

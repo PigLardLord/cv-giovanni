@@ -11,9 +11,10 @@ Layouts: 3
 | spotlight | 2 | 26/26 | 33.5mm | p1 26.3pt · p2 189.3pt |
 | technical | 2 | 26/26 | 33.5mm | p1 30.8pt · p2 188.5pt |
 
-Room left is the space between each page's lowest line and its 33pt bottom margin. A last
-page with less than one 15.4pt line of running text free is marked ⚠: the next line
-added to it has nowhere to go. It is a warning, never a failure, since the page count is the gate.
+Room left is the space between each page's lowest line and its 33pt bottom margin. A page
+with less than one 15.4pt line of running text free is marked ⚠: on the last page the
+next line has nowhere to go; on a page before it, the next line moves the role below, whole, to the next page. It
+is a warning, never a failure, since the page count is the gate.
 
 Checks: A4, at most two pages, required ATS text in the case the catalogue wrote it,
 reading order, canonical hyphenated compounds, degree beside its school, every skill
