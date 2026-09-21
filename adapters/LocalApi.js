@@ -46,8 +46,32 @@ export const ROUTES = [
     method: 'GET',
     path: /^\/api\/tailorings\/([^/]+)$/,
     call: (services, { name }) => services.tailorings.status(name)
+  },
+  // A ready job's documents, as files a recruiter receives (#303).
+  {
+    method: 'GET',
+    path: /^\/api\/tailorings\/([^/]+)\/cv$/,
+    file: true,
+    call: (services, { name }) => services.tailorings.cv(name)
+  },
+  {
+    method: 'GET',
+    path: /^\/api\/tailorings\/([^/]+)\/letter$/,
+    file: true,
+    call: (services, { name }) => services.tailorings.letter(name)
   }
 ];
+
+/** Writes a file a service handed over, to be saved under the name it gives, never cached. */
+function send(response, { file, type, filename }) {
+  response.writeHead(200, {
+    'Content-Type': type,
+    'Content-Length': file.length,
+    'Content-Disposition': `attachment; filename="${String(filename).replace(/[^\w.-]/g, '_')}"`,
+    'Cache-Control': 'no-store'
+  });
+  response.end(file);
+}
 
 /** Writes one JSON answer, never cached. */
 function answer(response, status, value, headers = {}) {
@@ -146,7 +170,9 @@ export async function handleApi(request, response, services, { maxBody = 1024 * 
   }
 
   try {
-    answer(response, found.route.status ?? 200, await found.route.call(services, { body, name }));
+    const value = await found.route.call(services, { body, name });
+    if (found.route.file) send(response, value);
+    else answer(response, found.route.status ?? 200, value);
   } catch (error) {
     if (error instanceof Refusal) {
       answer(

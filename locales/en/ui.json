@@ -29,5 +29,8 @@
   "errors": {
     "loadingTitle": "Error loading CV",
     "loadingHint": "Please check the console for more details."
+  },
+  "files": {
+    "letter": "Cover Letter"
   }
 }
