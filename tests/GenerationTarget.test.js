@@ -108,6 +108,33 @@ describe('GenerationTarget', () => {
     });
   });
 
+  // "--profile profiles/general/de.json", with a space, built the English CV and said nothing: the parser read only
+  // "--name=value", found "--profile" with no value, and fell back to the public CV. So did "--profile" alone and
+  // "--profile=". A run that checks something other than what it was asked about must never read as a pass (#258).
+  describe('an option written the other way', () => {
+    test('as two tokens is read as the one it is', () => {
+      const target = GenerationTarget.fromArguments([
+        '--profile',
+        'profiles/general/de.json',
+        '--out',
+        'build'
+      ]);
+
+      expect([target.dataPath, target.locale, target.outDir]).toEqual([
+        'profiles/general/de.json',
+        'de',
+        'build'
+      ]);
+    });
+
+    test.each([[['--profile']], [['--profile=']], [['--profile', '--out=build']], [['--out']]])(
+      'with no value, %j is refused rather than read as the public CV',
+      (argv) => {
+        expect(() => GenerationTarget.fromArguments(argv)).toThrow(/needs a value/);
+      }
+    );
+  });
+
   // A path that does not name a profile and a locale would produce filenames nobody can
   // trace back to a CV. Refusing is cheaper than a directory of mislabelled PDFs.
   test.each([

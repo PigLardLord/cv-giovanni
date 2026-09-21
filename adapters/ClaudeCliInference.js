@@ -104,20 +104,34 @@ export class ClaudeCliInference {
   }
 
   /**
-   * @param {{ system: string, prompt: string }} request - What the model is told, and asked
+   * @param {{ system: string, prompt: string, model?: string, effort?: string, deadline?: number }} request -
+   *   What the model is told and asked, which model, how hard it thinks, and by when it must have answered
    * @returns {Promise<{ text: string, usd: number|null }>} The answer, and the CLI's own estimate of its cost
-   * @throws {Refusal} 502 when the CLI does not answer
+   * @throws {Refusal} 502 when the CLI does not answer, 504 when the deadline passed before the run began
    */
-  async complete({ system, prompt }) {
+  async complete({ system, prompt, model = this.model, effort, deadline }) {
+    // A job has a deadline, and a run inside it has what is left of it: the fixed limit was sized for a Sonnet
+    // answer, and Opus 5 at max effort thinks for longer (#266).
+    const timeout = deadline === undefined ? this.timeout : deadline - Date.now();
+    if (timeout <= 0) {
+      throw new Refusal(504, "The run's deadline had passed before it started.");
+    }
     const cwd = await mkdtemp(join(tmpdir(), 'mycv-inference-'));
     try {
       const { code, stdout, stderr, timedOut } = await run(
         this.command,
-        [...RESTRICTED, '--model', this.model, '--system-prompt', system],
-        { cwd, input: prompt, timeout: this.timeout, grace: this.grace }
+        [
+          ...RESTRICTED,
+          '--model',
+          model,
+          ...(effort === undefined ? [] : ['--effort', effort]),
+          '--system-prompt',
+          system
+        ],
+        { cwd, input: prompt, timeout, grace: this.grace }
       );
       if (timedOut) {
-        throw new Refusal(502, `The claude CLI did not answer in time (${this.timeout} ms).`);
+        throw new Refusal(502, `The claude CLI did not answer in time (${timeout} ms).`);
       }
       let answer = null;
       try {

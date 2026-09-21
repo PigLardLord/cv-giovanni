@@ -79,6 +79,51 @@ ${then}
     expect(stdin).toBe(REQUEST.prompt);
   });
 
+  // #260 runs Opus 5 at max effort by default; the CLI takes both per run (#266).
+  test('runs the model and the effort a run names', async () => {
+    const command = fake(
+      'claude',
+      `console.log(JSON.stringify({ type: 'result', subtype: 'success', is_error: false, result: 'Tailored copy', total_cost_usd: 0.5, session_id: 'x' }));`
+    );
+
+    await new ClaudeCliInference({ command }).complete({
+      ...REQUEST,
+      model: 'claude-opus-5',
+      effort: 'max'
+    });
+
+    const { args } = invocation('claude');
+    expect(args.slice(args.indexOf('--model'))).toEqual([
+      '--model',
+      'claude-opus-5',
+      '--effort',
+      'max',
+      '--system-prompt',
+      'You tailor CVs.'
+    ]);
+  });
+
+  // A job has a deadline, and a run inside it has what is left of it: a fixed five minutes was sized for a Sonnet
+  // answer, and Opus 5 at max effort thinks for longer than that (#266).
+  test('a run is stopped at its deadline, not at a fixed limit', async () => {
+    const command = fake('claude', 'setTimeout(() => {}, 10000);');
+    const started = Date.now();
+
+    await expect(
+      new ClaudeCliInference({ command }).complete({ ...REQUEST, deadline: Date.now() + 400 })
+    ).rejects.toMatchObject({ status: 502, message: expect.stringMatching(/time/) });
+    expect(Date.now() - started).toBeLessThan(5000);
+  });
+
+  test('a run whose deadline has passed is refused before anything runs', async () => {
+    const command = fake('claude', `console.log('{}');`);
+
+    await expect(
+      new ClaudeCliInference({ command }).complete({ ...REQUEST, deadline: Date.now() - 1 })
+    ).rejects.toMatchObject({ status: 504, message: expect.stringMatching(/deadline/) });
+    expect(existsSync(join(bin, 'claude.json'))).toBe(false);
+  });
+
   test('runs in an empty directory made for the run, gone once it answers', async () => {
     const command = fake(
       'claude',
