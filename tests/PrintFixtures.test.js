@@ -60,6 +60,35 @@ describe('the print fixtures', () => {
     ]);
   });
 
+  // The same PDF read by two versions of poppler: CI's puts a space either side of a "·" in the raw reading, and this
+  // machine's does not. The words and the lines are the print; the spaces poppler infers are not.
+  test('a space poppler infers, beside a separator or between words, is not a difference', () => {
+    const links = { ...PRINT, drawn: 'github.com/ada · linkedin.com/in/ada\n' };
+    expect(
+      staleFixtures(
+        links,
+        reading({
+          'page-print-nerd.txt': 'Giovanni  Trovato\nSenior iOS Engineer\n',
+          'page-print-nerd.raw.txt': 'github.com/ada·linkedin.com/in/ada\n'
+        })
+      )
+    ).toEqual([]);
+  });
+
+  test('a line broken elsewhere is a difference', () => {
+    expect(
+      staleFixtures(
+        PRINT,
+        reading({
+          'page-print-nerd.txt': 'Giovanni Trovato Senior\niOS Engineer\n',
+          'page-print-nerd.raw.txt': PRINT.drawn
+        })
+      )
+    ).toEqual([
+      expect.objectContaining({ fixture: 'tests/fixtures/ats/page-print-nerd.txt', line: 1 })
+    ]);
+  });
+
   test('a layout with no fixtures has nothing to be stale', () => {
     expect(staleFixtures({ ...PRINT, layout: 'technical' }, reading({}))).toEqual([]);
   });
