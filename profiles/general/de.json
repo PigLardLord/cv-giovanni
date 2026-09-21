@@ -5,12 +5,12 @@
   "location": "Bad Liebenstein, Thüringen, Deutschland",
   "email": "trovato.giovanni@gmail.com",
   "phone": "+39 329 8484 046",
-  "availability": "Remote · ab sofort verfügbar",
+  "availability": "Nur remote · ab sofort verfügbar",
   "workAuthorisation": "EU-Bürger · keine Arbeitserlaubnis für Deutschland erforderlich",
   "profile": "Senior iOS Engineer mit über 11 Jahren nativer App-Entwicklung, davon 8 bei Cortado Mobile Solutions. Entwickelt dort den MDM-Client für iOS in SwiftUI, seit 2025 auch den für Android.",
   "career_highlights": [
     "Cortado MDM für iOS: rund 30.000 Downloads, 4 Absturzberichte in App Store Connect seit 2021",
-    "ezeep Blue für iOS: 300.000 Downloads seit dem Release 2020",
+    "ezeep Blue für iOS: rund 300.000 Downloads seit dem Release 2020",
     "Cortado MDM für Android, 2026: 1.040 → 5.308 Tests, Branch-Coverage 14% → 83%"
   ],
   "asOf": "2026-09",
@@ -26,7 +26,8 @@
         "ezeep Blue für iOS, 2020–2023: gemeinsam mit einem weiteren Entwickler in SwiftUI neu implementiert.",
         "Cortado MDM für Android, 2025: Compose auf den meisten Screens; Testlaufzeit von 37,7 auf 5,2 Minuten (Spitze Juli 2026).",
         "Frühere Produkte, 2018–2023: Workplace und Teamplace auf Swift und Combine umgestellt; NFCReader allein entwickelt.",
-        "Produktübergreifend: CI/CD, Code Signing, Provisioning, Releases für App Store und Google Play; SBOM und Sicherheitsscans.",
+        "Produktübergreifend: CI/CD, Code Signing, Provisioning, Releases für App Store und Google Play.",
+        "Software Bill of Materials (SBOM) und Sicherheitsscans.",
         "Seit 2025 Entwicklung mit KI-Agenten (Mentor für 2 Entwickler); Cortados Zertifizierung im Android Enterprise Partner Program."
       ]
     },
@@ -125,7 +126,7 @@
       ]
     },
     {
-      "category": "Build & Release",
+      "category": "Build und Release",
       "items": [
         {
           "name": "GitLab CI/CD"
@@ -151,7 +152,7 @@
       ]
     },
     {
-      "category": "Architektur & Methoden",
+      "category": "Architektur und Methoden",
       "items": [
         {
           "name": "Clean Architecture"
