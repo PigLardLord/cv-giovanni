@@ -566,10 +566,29 @@ export class ProvenanceCheck {
     }
     // The page greets the recipient from `recipient` and signs off itself, in the catalogue's words: a salutation or a
     // valediction the model writes is printed twice, and a form of address it writes there escapes the rule above.
-    const SALUTATION =
-      /^\s*(dear|hello|hi|to whom it may concern|sehr geehrte[rn]?|liebe[rn]?|hallo|guten tag)(?![\p{L}])/iu;
-    const VALEDICTION =
-      /^\s*((kind|best|warm|warmest)\s+regards|yours\s+(sincerely|faithfully)|sincerely|mit freundlichen grüßen|viele grüße|beste grüße|herzliche grüße)(?![\p{L}])/iu;
+    // A greeting is a greeting followed by whom it greets — a form of address, a title, a name — or by its comma or the
+    // line's end; "Hi-fi audio", "Lieber als …" open prose. A closing stands as its own sentence, with at most the
+    // name it signs; "Sincerely, I believe …" goes on (#312).
+    const GREETING =
+      /^\s*(?:dear|hello|hi|sehr geehrte[rn]?|liebe[rn]?|hallo|guten tag)(?![\p{L}-])/iu;
+    const WHOM =
+      /^(?:\s*,|\s*$|\s+(?:\p{Lu}|(?:frau|herrn?|ms|mrs|mr|dr|prof|hiring|team|sir|madam|all|everyone|recruiters?|colleagues|zusammen|damen|kolleg\p{L}*)(?![\p{L}])))/u;
+    const SALUTATION = {
+      test: (text) => {
+        if (/^\s*to whom it may concern(?![\p{L}])/iu.test(text)) return true;
+        const greeting = GREETING.exec(text);
+        return Boolean(greeting) && WHOM.test(text.slice(greeting[0].length));
+      }
+    };
+    const CLOSING =
+      /^\s*(?:(?:kind|best|warm|warmest)\s+regards|yours\s+(?:sincerely|faithfully)|sincerely|mit freundlichen grüßen|viele grüße|beste grüße|herzliche grüße)(?![\p{L}])/iu;
+    const SIGNED = /^\s*,?(?:\s+\p{Lu}[\p{L}.'’-]*){0,3}\s*[.!]?\s*$/u;
+    const VALEDICTION = {
+      test: (sentence) => {
+        const closing = CLOSING.exec(sentence);
+        return Boolean(closing) && SIGNED.test(sentence.slice(closing[0].length));
+      }
+    };
     // Read in every paragraph, and a valediction at any sentence of the letter's end: "… from you. Kind regards" prints
     // twice as surely as "Kind regards" does (the review of #300).
     const body = Array.isArray(letter.body) ? letter.body : [letter.body];
