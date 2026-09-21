@@ -525,6 +525,135 @@ describe('what the review of the check found', () => {
   });
 });
 
+// The advert's plain words (#296): a tailoring rewords into the advert's vocabulary, and its function words, its
+// plain verbs and what a claim measures are no claim; a quality the source never claims still is.
+describe('a rewording into the advert’s plain words', () => {
+  const ADVERT = [
+    'Senior iOS Engineer (m/f/d) – Berlin or remote',
+    '',
+    'Responsibilities',
+    '- Design, build and ship production iOS features in Swift and SwiftUI',
+    '- Own the architecture of a scalable, modular codebase',
+    '- Improve app performance, stability and accessibility',
+    '- Mentor engineers and drive engineering quality through code reviews',
+    '- Across teams, deliver reliable releases with CI/CD pipelines',
+    '',
+    'Requirements',
+    '- Strong Swift, SwiftUI and Combine knowledge',
+    '- Kotlin Multiplatform is a plus',
+    '',
+    'Benefits',
+    '- Competitive salary, hybrid work, 30 days of holiday'
+  ].join('\n');
+  const reword = (path, text) =>
+    check(
+      (cv) => {
+        const [, role, field, index] = /^relevant_experience\[(\d)\]\.(\w+)(?:\[(\d)\])?$/.exec(
+          path
+        );
+        if (index === undefined) cv.relevant_experience[role][field] = text;
+        else cv.relevant_experience[role][field][index] = text;
+      },
+      { terms: [], advert: ADVERT }
+    );
+
+  // The second review of #315: a plain word the tailoring was shown as a required term, and one that opens an advert's
+  // bullet, came back as additions.
+  test('a plain word passes when it is one of the advert’s terms, or opens one of its bullets', () => {
+    const advert = `${ADVERT}\n- Set up Gradle build caching`;
+    const shown = (edit) => check(edit, { terms: ['knowledge', 'Exposure'], advert });
+
+    expect(
+      shown(
+        (cv) =>
+          (cv.relevant_experience[0].highlights[0] =
+            'Brought SwiftUI knowledge to Engine Notes for iOS from its first commit in 2021: Clean Architecture, TDD.')
+      )
+    ).toEqual([]);
+    expect(
+      shown(
+        (cv) =>
+          (cv.relevant_experience[1].highlights[0] =
+            'Gained exposure to Swift while moving the app from Objective-C.')
+      )
+    ).toEqual([]);
+    expect(
+      shown(
+        (cv) =>
+          (cv.relevant_experience[0].highlights[2] = 'Set up App Store releases every two weeks.')
+      )
+    ).toEqual([]);
+  });
+
+  // The third review of #315.
+  test('a skill the full CV lists is held whatever it is called, and a term said twice is one addition', () => {
+    // Parsed, not cloned: the check walks plain objects of this realm only, and Jest's structuredClone makes the host's.
+    const skilled = JSON.parse(JSON.stringify(SOURCE));
+    skilled.skills[1].items.push({ name: 'Design' });
+    const designed = structuredClone(skilled);
+    designed.relevant_experience[0].highlights[1] =
+      'Led the design of the test suite, cutting it from 37.7 to 5.2 minutes.';
+    expect(
+      ProvenanceCheck.failures({
+        source: skilled,
+        tailored: designed,
+        sources: itself(skilled),
+        terms: [],
+        advert: ''
+      })
+    ).toEqual([expect.objectContaining({ reason: 'says "Design", which its source does not' })]);
+
+    const twice = `${ADVERT}\n- Performance matters`;
+    expect(
+      reasonsAt(
+        check(
+          (cv) => (cv.relevant_experience[0].highlights[1] = 'Cut the performance-critical suite.'),
+          { terms: [], advert: twice }
+        ),
+        'relevant_experience[0].highlights[1]'
+      )
+    ).toEqual(['says "performance", which its source does not']);
+  });
+
+  test.each([
+    ['relevant_experience[0].summary', 'Owned the iOS client in a team of 2 engineers.'],
+    ['relevant_experience[0].highlights[1]', 'Cut test performance from 37.7 to 5.2 minutes.'],
+    ['relevant_experience[0].highlights[1]', 'Improved test speed: from 37.7 to 5.2 minutes.'],
+    [
+      'relevant_experience[0].highlights[2]',
+      'Shipped App Store releases every two weeks through the year.'
+    ]
+  ])('%s as "%s" holds', (path, text) => {
+    expect(reword(path, text)).toEqual([]);
+  });
+
+  test.each([
+    ['relevant_experience[0].summary', 'Owned the scalable iOS client in a team of 2.', 'scalable'],
+    [
+      'relevant_experience[0].highlights[2]',
+      'Shipped reliable App Store releases every two weeks.',
+      'reliable'
+    ],
+    // What a claim measures, beside no figure, is the claim (the review of #315).
+    ['relevant_experience[0].highlights[1]', 'Improved app performance.', 'performance'],
+    [
+      'relevant_experience[0].highlights[2]',
+      'Shipped App Store releases every two weeks, for stability.',
+      'stability'
+    ],
+    // A figure before it measures something else (the second review of #315).
+    [
+      'relevant_experience[0].highlights[2]',
+      'Shipped App Store releases every two weeks for stability.',
+      'stability'
+    ]
+  ])('%s as "%s" claims what the source does not', (path, text, word) => {
+    expect(reasonsAt(reword(path, text), path)).toEqual([
+      `says "${word}", which its source does not`
+    ]);
+  });
+});
+
 // The letter (#299): addressed as the advert addresses it, arguing from the full CV, and stating only the salary and
 // the start the defaults give.
 describe('a tailored letter', () => {
@@ -893,7 +1022,7 @@ describe('what the third review of the letter found', () => {
 // A translation (#299): German capitalises its nouns, so a capital names nothing; the names, figures and dates are
 // what a translation keeps, and what it is held to.
 describe('a tailored CV translated into German', () => {
-  const translate = (edit = () => {}, { advert = '' } = {}) => {
+  const translate = (edit = () => {}, { advert = '', terms = ['Kotlin'] } = {}) => {
     const tailored = structuredClone(SOURCE);
     tailored.location = 'London';
     tailored.relevant_experience[0].period = 'Januar 2021 – Dezember 2023';
@@ -923,7 +1052,7 @@ describe('a tailored CV translated into German', () => {
       source: SOURCE,
       tailored,
       sources,
-      terms: ['Kotlin'],
+      terms,
       advert,
       language: 'de'
     });
@@ -931,6 +1060,17 @@ describe('a tailored CV translated into German', () => {
 
   test('a faithful translation holds: its nouns capitalised, its months in German, its figures in German', () => {
     expect(translate()).toEqual([]);
+  });
+
+  // The third review of #315: the dimension's clause was folded, and "zwölf" folded is no number word.
+  test('a dimension before a figure written in German words holds', () => {
+    expect(
+      ProvenanceCheck.additions(
+        'Performance der Tests: zwölf Durchläufe.',
+        'Cut the test suite over 12 runs.',
+        { vocabulary: ['performance'] }
+      )
+    ).not.toContain('says "performance", which its source does not');
   });
 
   test('a name the full CV writes holds inside a German compound (the second review of #300)', () => {

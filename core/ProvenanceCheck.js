@@ -276,7 +276,7 @@ export class ProvenanceCheck {
     // A German advert capitalises its nouns, so its capitals name nothing.
     const advertNames = new Set(
       (advertEnglish || !translated ? ProvenanceCheck.names(advert, { openers: true }) : [])
-        .filter((word) => !AdvertLexicon.isStopword(word))
+        .filter((word) => !AdvertLexicon.isStopword(word) && !AdvertLexicon.isPlainWord(word))
         .map(fold)
     );
     const reading = translated
@@ -284,12 +284,17 @@ export class ProvenanceCheck {
       : ENGLISH;
     // A translation writes the advert's plain words in its own language, so only the words a technology writes itself
     // with are held from the advert there; in English, every word the advert writes and the source never does.
+    // A stopword or a plain word the tailoring was shown as a term is the check's to let pass, as it is among the
+    // advert's words (the second review of #315); a skill the full CV lists is held whatever it is called.
+    const shown = terms.filter(
+      (term) => !AdvertLexicon.isStopword(term) && !AdvertLexicon.isPlainWord(term)
+    );
     const vocabulary = [
       // A German advert capitalises its nouns, so there a term is a technology only when it looks like one; an English
       // advert's terms are held whatever their case. What a German advert names in a plain capital is #292's.
       ...(translated && !advertEnglish
-        ? terms.filter((term) => /\p{Lu}.*\p{Lu}|\d|[+#/.]/u.test(term))
-        : terms),
+        ? shown.filter((term) => /\p{Lu}.*\p{Lu}|\d|[+#/.]/u.test(term))
+        : shown),
       ...(source.skills || []).flatMap((group) => (group.items || []).map((item) => item.name)),
       ...(translated ? [] : ProvenanceCheck.wordsOnlyIn(advert, whole))
     ].filter(Boolean);
@@ -701,9 +706,14 @@ export class ProvenanceCheck {
         candidates(name, reading.part).flatMap((part) => fold(part).split(' '))
       )
     );
-    for (const term of new Set(vocabulary)) {
+    // One term however the advert capitalised it: "performance" and "Performance" are one addition (the third review of
+    // #315).
+    const terms = new Map();
+    for (const term of vocabulary) if (!terms.has(fold(term))) terms.set(fold(term), term);
+    for (const term of terms.values()) {
       const termWords = fold(term).split(' ');
       if (termWords.some((word) => said.has(word))) continue;
+      if (AdvertLexicon.isDimension(term) && measured(term, text)) continue;
       if (AdvertMatcher.appears(term, text) && !AdvertMatcher.appears(term, against)) {
         reasons.push(`says "${term}", which its source does not`);
       }
@@ -752,9 +762,17 @@ export class ProvenanceCheck {
         words(advert)
           .map(({ word }) => word)
           .filter(
-            (word) => word.length >= 3 && /\p{L}/u.test(word) && !AdvertLexicon.isStopword(word)
+            (word) =>
+              word.length >= 3 &&
+              /\p{L}/u.test(word) &&
+              !AdvertLexicon.isStopword(word) &&
+              !AdvertLexicon.isPlainWord(word)
           )
-          .filter((word) => !AdvertMatcher.contains(folded, fold(word)))
+          // Found as written, or as the table spells it: "engineers" where the source writes "developers" (#296).
+          .filter(
+            (word) =>
+              !AdvertLexicon.formsOf(word).some((form) => AdvertMatcher.contains(folded, form))
+          )
       )
     ];
   }
@@ -799,6 +817,25 @@ function words(text) {
       word: match[0].replace(/[.'’-]+$/, ''),
       opens: before === '' || /[.!?•\n]$/.test(before)
     };
+  });
+}
+
+/**
+ * Whether a text names a dimension in a clause that states a figure after it: "test performance from 37.7 to 5.2 minutes" says
+ * what the figure measures, and the figure is held to the source; "improved app performance" is a claim of its own
+ * (#296, the review of #315). A full stop before a digit is a decimal point, and a colon introduces the measure.
+ */
+function measured(dimension, text) {
+  // Case aside, and read as written: a folded "zwölf" is no figure (the third review of #315).
+  const at = new RegExp(
+    `(?<![\\p{L}\\p{N}])${dimension.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}])`,
+    'iu'
+  );
+  return text.split(/[,;!?]|\.(?!\d)/).some((clause) => {
+    // The figure it measures follows it: "every two weeks for stability" names a figure of something else (the second
+    // review of #315).
+    const where = clause.search(at);
+    return where >= 0 && figuresOf(clause.slice(where)).length > 0;
   });
 }
 

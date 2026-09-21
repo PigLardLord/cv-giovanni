@@ -38,7 +38,7 @@ import {
   marginsClear
 } from './lib/printed-letter.mjs';
 import { manifestReader, resolveRun } from './lib/published-targets.mjs';
-import { FIXTURES, staleFixtures } from './lib/print-fixtures.mjs';
+import { FIXTURES, fixturesOf, staleFixtures } from './lib/print-fixtures.mjs';
 import { LetterContent } from '../core/LetterContent.js';
 import { CoverLetter } from '../domain/CoverLetter.js';
 import { CvDocument } from '../domain/CvDocument.js';
@@ -351,10 +351,9 @@ if (missing.length) {
 const workspace = await mkdtemp(join(tmpdir(), 'mycv-print-'));
 const rows = [];
 const letterRows = [];
-// The ATS fixtures are extractions of the public CV's print, which tests read as the current one (#234). Each run of the
-// public CV compares them with what it extracts, so a content change that forgets them fails here, naming the fixture.
-const holdsFixtures = target.dataPath === 'profiles/general/en.json';
-const stale = [];
+// The ATS fixtures are extractions of a published CV's print, which tests read as the current one (#234). Each run of a
+// published CV that has them compares them with what it extracts, so a content change that forgets them fails here,
+// naming the fixture. They are found by the CV's own name, never by a path written here (#302).
 const readFixture = (name) => {
   try {
     return readFileSync(new URL(`${FIXTURES}/${name}`, projectUrl), 'utf8');
@@ -363,6 +362,14 @@ const readFixture = (name) => {
     throw error;
   }
 };
+const holdsFixtures =
+  target.isPublicProfile &&
+  files.some(({ layout }) =>
+    fixturesOf({ profile: target.profile, locale: target.locale, layout }).some(
+      ({ name }) => readFixture(name) !== null
+    )
+  );
+const stale = [];
 
 try {
   for (const { layout, path } of files) {
@@ -381,7 +388,10 @@ try {
       margins,
       faint
     } = await measure(path, typefacesFor(layout), workspace);
-    if (holdsFixtures) stale.push(...staleFixtures({ layout, text, drawn }, readFixture));
+    if (holdsFixtures) {
+      const print = { profile: target.profile, locale: target.locale, layout, text, drawn };
+      stale.push(...staleFixtures(print, readFixture));
+    }
     const long = longProseLines(text, prose, { periods });
     const overflow = layout === 'nerd' ? overflowingPeriods(bbox, periods) : [];
     // How close each page runs to its foot, reported and never gated: the page count is the gate (#162). A page with
@@ -773,7 +783,8 @@ if (stale.length) {
   console.error('');
   console.error(
     'audit-print: the ATS fixtures are not this print. Extract them again from this build — `pdftotext` and ' +
-      '`pdftotext -raw` of each layout into tests/fixtures/ats/ — and check what the tests they feed now say. On ' +
+      '`pdftotext -raw` of each layout into tests/fixtures/ats/page-print-<profile>-<locale>-<layout>.txt and ' +
+      '.raw.txt — and check what the tests they feed now say. On ' +
       "CI, the run's audit-reports artefact holds the PDFs it printed, under printed/."
   );
   for (const { fixture, line, printed, fixed } of stale) {

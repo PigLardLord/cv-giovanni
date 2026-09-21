@@ -309,8 +309,10 @@ describe('SourceRenderer', () => {
       career_highlights: ['ezeep Blue for iOS, 2020–2023: rewrote it']
     });
 
+    // Since #237 the layout makes the range a whole part of its own, so the run is the range; no line breaks before its
+    // colon either way.
     const runs = [...code().querySelectorAll('.tok .no-break')].map((span) => span.textContent);
-    expect(runs).toContain('2020–2023:');
+    expect(runs).toContain('2020–2023');
     expect(runs).not.toContain('–');
     expect(code().textContent).toContain('ezeep Blue for iOS, 2020–2023: rewrote it');
   });
