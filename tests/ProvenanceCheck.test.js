@@ -1164,6 +1164,19 @@ describe('a tailored CV translated into German', () => {
     expect(
       at(translate((cv) => (cv.relevant_experience[0].title = 'iOS-Teamleiter'), { source: led }))
     ).toEqual([]);
+    // A Leiter manages and directs too, in German (the review of #334).
+    for (const [english, german] of [
+      ['Engineering Manager', 'Entwicklungsleiter'],
+      ['Project Manager', 'Projektleiter'],
+      ['Director of Engineering', 'Bereichsleiter Entwicklung'],
+      ['Head of iOS', 'Leitender iOS-Entwickler']
+    ]) {
+      const source = JSON.parse(JSON.stringify(SOURCE));
+      source.relevant_experience[0].title = english;
+      expect(at(translate((cv) => (cv.relevant_experience[0].title = german), { source }))).toEqual(
+        []
+      );
+    }
     expect(
       at(
         translate(
@@ -1173,7 +1186,7 @@ describe('a tailored CV translated into German', () => {
     ).toEqual([]);
   });
 
-  test.each(['Teamleiter iOS', 'Softwarearchitekt', 'Chefentwickler iOS'])(
+  test.each(['Teamleiter iOS', 'Softwarearchitekt', 'Chefentwickler iOS', 'iOS-Cloudarchitekt'])(
     'a title translated as %s claims a seniority its source does not',
     (title) => {
       expect(

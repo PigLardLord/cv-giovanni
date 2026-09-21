@@ -116,14 +116,33 @@ const RANKS = Object.freeze([
   [/^director$/, ['director']],
   [/^manager(?:in)?$/, ['manager']],
   [/^architect$/, ['architect']],
-  [/^(?:software|losungs|system|it|enterprise|mobile|app)?architekt(?:in)?$/, ['architect']],
-  [
-    /^(?:team|entwicklungs|abteilungs|projekt|bereichs|gruppen|technik|fach|it)?(?:leiter(?:in)?|leitung)$/,
-    ['lead', 'head']
-  ],
-  [/^leitende[rnms]?$/, ['lead']],
+  // No German word ends in "architekt" without being one; "Architektur" is the craft, not the rank.
+  [/^\p{L}*architekt(?:in)?$/u, ['architect']],
+  // A Leiter leads, heads, manages or directs: German writes "Engineering Manager" and "Director of Engineering" as
+  // Entwicklungsleiter too (the review of #334). The few words that only end like one are named below.
+  [/^\p{L}*(?:leiter(?:in)?|leitung)$/u, ['lead', 'head', 'manager', 'director']],
+  [/^leitende[rnms]?$/, ['lead', 'head']],
   [/^chef(?:entwickler(?:in)?|architekt(?:in)?)?$/, ['lead', 'head']],
   [/^fuhrungs\p{L}*$/u, ['lead', 'head']]
+]);
+
+/** Words that end like a rank and are none: a companion, a semiconductor, a lightning rod, a pipe. */
+const NOT_RANKS = new Set([
+  'begleiter',
+  'begleiterin',
+  'wegbegleiter',
+  'halbleiter',
+  'supraleiter',
+  'lichtleiter',
+  'wellenleiter',
+  'ableiter',
+  'blitzableiter',
+  'wasserleitung',
+  'stromleitung',
+  'gasleitung',
+  'rohrleitung',
+  'datenleitung',
+  'telefonleitung'
 ]);
 
 /** Every rank a text's words claim, each with the word that claims it, folded. */
@@ -132,7 +151,7 @@ function ranksOf(text) {
     .split(/[^\p{L}-]+/u)
     .flatMap((word) => word.split('-'))
     .map(fold)
-    .filter(Boolean)
+    .filter((word) => word && !NOT_RANKS.has(word))
     .flatMap((word) => {
       const rank = RANKS.find(([pattern]) => pattern.test(word));
       return rank ? [{ word, ranks: rank[1] }] : [];
