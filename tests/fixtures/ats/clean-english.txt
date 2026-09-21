@@ -20,7 +20,7 @@ Enterprise mobility and device management, in a mobile team of 2 since 2020.
 Owns the iOS client's architecture and its internal releases.
 Cortado MDM for iOS, built in SwiftUI from its first commit in 2020: Clean
 Architecture, TDD, Live Activities, App Intents.
-ezeep Blue for iOS, 2020–2023: rewrote it in SwiftUI with another developer.
+ezeep Blue for iOS, 2020–2023: rewrote it in SwiftUI; a team of 2.
 Cortado MDM for Android, 2025: Compose on most screens; test runtime from a
 July 2026 peak of 37.7 to 5.2 minutes.
 Earlier products, 2018–2023: moved Workplace and Teamplace to Swift and Combine;

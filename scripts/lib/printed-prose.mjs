@@ -42,7 +42,8 @@ const printedLines = (text) =>
  * @param {string} text - The text layer, from `pdftotext`
  * @param {string[]} sentences - The sentences to look for, as the profile writes them
  * @param {{ periods?: string[] }} [options] - Each role's dates as they print, for Nerd Mode's date column
- * @returns {{ text: string, found: boolean, page: number|null, lines: number|null, pages: number[] }[]} One a sentence
+ * @returns {{ text: string, found: boolean, page: number|null, lines: number|null, pages: number[], last: string|null }[]}
+ *   One a sentence, with the last line it is set over (#295)
  */
 export function proseSpans(text, sentences, { periods = [] } = {}) {
   const lines = printedLines(text);
@@ -66,12 +67,13 @@ export function proseSpans(text, sentences, { periods = [] } = {}) {
             found: true,
             page: over[0].page,
             lines: count,
-            pages: [...new Set(over.map((line) => line.page))]
+            pages: [...new Set(over.map((line) => line.page))],
+            last: over.at(-1).text
           };
         }
       }
     }
-    return { text: sentence, found: false, page: null, lines: null, pages: [] };
+    return { text: sentence, found: false, page: null, lines: null, pages: [], last: null };
   });
 }
 

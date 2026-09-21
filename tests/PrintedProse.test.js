@@ -46,15 +46,30 @@ describe('what a sentence costs on the printed page', () => {
         found: true,
         page: 1,
         lines: 2,
-        pages: [1]
+        pages: [1],
+        last: expect.any(String)
       },
-      { text: 'Giovanni Trovato', found: true, page: 1, lines: 1, pages: [1] }
+      {
+        text: 'Giovanni Trovato',
+        found: true,
+        page: 1,
+        lines: 1,
+        pages: [1],
+        last: 'Giovanni Trovato'
+      }
     ]);
   });
 
   test('a sentence the print does not hold is reported as unfound, never as fitting', () => {
     expect(proseSpans(printed, ['A bullet nobody printed.'])).toEqual([
-      { text: 'A bullet nobody printed.', found: false, page: null, lines: null, pages: [] }
+      {
+        text: 'A bullet nobody printed.',
+        found: false,
+        page: null,
+        lines: null,
+        pages: [],
+        last: null
+      }
     ]);
   });
 
@@ -71,7 +86,8 @@ describe('what a sentence costs on the printed page', () => {
         found: true,
         page: 1,
         lines: 2,
-        pages: [1]
+        pages: [1],
+        last: 'management.'
       }
     ]);
   });

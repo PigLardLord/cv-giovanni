@@ -411,9 +411,13 @@ try {
     ];
     const sections = { read: outOfOrder(text, anchors), drawn: outOfOrder(drawn, anchors) };
     // What each bullet, and the summary, cost on the paper, and whether a role's own evidence left its header's page.
-    const bullets = proseSpans(text, everyBullet, { periods }).filter(
-      (span) => !span.found || span.lines > BULLET_LINES
-    );
+    const spans = proseSpans(text, everyBullet, { periods });
+    const bullets = spans.filter((span) => !span.found || span.lines > BULLET_LINES);
+    // And whether one ends on a line of a single word, which the eye reads as a layout error before it reads the
+    // word (the product review of #262, #295).
+    const runts = spans
+      .filter((span) => span.found && span.lines > 1 && span.last.split(' ').length === 1)
+      .map(({ text: bullet, last }) => ({ bullet, last }));
     const summary = proseSpans(text, [profile.profile], { periods })[0];
     const straddling = straddlingRoles(text, roleProse, { periods });
     // And whether the masthead's lines share one left edge, which a hidden label's leftover space broke.
@@ -509,6 +513,8 @@ try {
       datesInColumn: overflow.length === 0,
       // A bullet a recruiter reads in one glance: at most two printed lines, whatever the layout (#230).
       bulletsScan: bullets.length === 0,
+      // And no bullet ends on a line of one word (#295).
+      bulletsEndWhole: runts.length === 0,
       // The summary is the first prose on the page and the last thing a skimmer gives time to: three lines.
       summaryScans: summary.found && summary.lines <= SUMMARY_LINES,
       // The page break falls between two roles. Page 2 opened on three bullets with no employer above them, which
@@ -543,6 +549,7 @@ try {
       long,
       overflow,
       bullets,
+      runts,
       summary,
       straddling,
       ragged,
@@ -706,7 +713,7 @@ const report = [
   'poppler reconstructs the page and as the PDF draws it, no image, no line of prose past',
   `${MEASURE_LIMIT} characters (WCAG 1.4.8; lists of skills, interests and contacts are scanned, not read along a`,
   "measure, and are exempt), in Nerd Mode every line of a role's dates inside its column, every bullet set over no",
-  `more than ${BULLET_LINES} printed lines and the summary over no more than ${SUMMARY_LINES}, and every role whole on one page, so no`,
+  `more than ${BULLET_LINES} printed lines and none ending on a line of one word, the summary over no more than ${SUMMARY_LINES}, and every role whole on one page, so no`,
   'page opens on a bullet whose role heading stands on the page before, and every line of the masthead on the',
   "page's left edge, none of them opening or closing on a separator.",
   '',
@@ -783,6 +790,7 @@ if (failures.length || letterFailures.length) {
             long,
             overflow,
             bullets,
+            runts,
             summary,
             straddling,
             ragged,
@@ -803,6 +811,7 @@ if (failures.length || letterFailures.length) {
             long,
             overflow,
             bullets,
+            runts,
             summary,
             straddling,
             ragged,
