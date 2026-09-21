@@ -470,7 +470,7 @@ told from an entry of the base's the branch rewrote and the parser now loses, an
 reported, in the job summary, and the step passes; it accepts nothing that was not compared, so
 entries are added or rewritten in one pull request and the parser changed in another. A change to
 one side only exits 0 and says why; a base that could not be built, read or graded exits 2. Locally
-it compares the working tree with its merge base with `origin/main` (`--base=<ref>` names another),
+it compares the working tree with its merge base with `origin/main` (`--base=<ref>` or `--base <ref>` names another),
 after `npm run build:pdf`.
 
 `build:pdf` and `audit:screen` need a Chrome or Chromium binary. They look for one on PATH, in the

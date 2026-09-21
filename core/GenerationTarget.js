@@ -1,7 +1,6 @@
 const DEFAULT_DATA_PATH = 'profiles/general/en.json';
 const PUBLISHED_OUT_DIR = 'generated';
 
-/** The options a target is made from, each of which names a path and means nothing without one. */
 /** The options that mean nothing without a value, and what the value is (#258, #272). */
 const VALUED = Object.freeze({ profile: '<path>', out: '<path>', advert: '<path>', base: '<ref>' });
 

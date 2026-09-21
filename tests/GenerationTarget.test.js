@@ -127,12 +127,16 @@ describe('GenerationTarget', () => {
       ]);
     });
 
-    test.each([[['--profile']], [['--profile=']], [['--profile', '--out=build']], [['--out']]])(
-      'with no value, %j is refused rather than read as the public CV',
-      (argv) => {
-        expect(() => GenerationTarget.fromArguments(argv)).toThrow(/needs a value/);
-      }
-    );
+    test.each([
+      [['--profile']],
+      [['--profile=']],
+      [['--profile', '--out=build']],
+      [['--out']],
+      [['--advert']],
+      [['--base=']]
+    ])('with no value, %j is refused rather than read as the public CV', (argv) => {
+      expect(() => GenerationTarget.fromArguments(argv)).toThrow(/needs a value/);
+    });
   });
 
   // A path that does not name a profile and a locale would produce filenames nobody can
