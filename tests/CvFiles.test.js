@@ -100,6 +100,13 @@ describe('CvFiles', () => {
     expect(files.downloadName({ name: 'Niccolò D’Amico', title: 'iOS Engineer' })).toBe(
       'Niccolo-D-Amico-iOS-Engineer-CV.pdf'
     );
+    // One rule for a tailored letter too, in its catalogue's word (the product review of #320).
+    expect(files.downloadName(rich, 'Cover Letter')).toBe(
+      'Giovanni-Trovato-Senior-iOS-Engineer-Cover-Letter.pdf'
+    );
+    expect(files.downloadName(rich, 'Anschreiben')).toBe(
+      'Giovanni-Trovato-Senior-iOS-Engineer-Anschreiben.pdf'
+    );
   });
 
   test('offers a download only for a combination that was actually generated', () => {

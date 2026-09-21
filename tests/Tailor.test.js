@@ -124,7 +124,11 @@ describe('a tailoring the check passes', () => {
       sources: faithful().sources,
       questions: expect.any(Array),
       attempts: 1,
-      cost: { backend: 'anthropic-api', usd: 0.42 }
+      cost: { backend: 'anthropic-api', usd: 0.42 },
+      // The answer, for a print that fails its gate to send back (#303).
+      answer: expect.objectContaining({
+        profile: expect.objectContaining({ name: 'Ada Lovelace' })
+      })
     });
     // Every required term the full CV does not evidence, then what the model says it would have needed.
     expect(result.questions).toContainEqual(
@@ -272,6 +276,47 @@ describe('a tailoring the check refuses', () => {
   });
 });
 
+// A German advert's terms are German, and the full CV is English: "Testautomatisierung" was never found, and became a
+// question the full CV already answers (#306). The synonym table carries the German forms beside the English.
+describe('a German advert against an English full CV', () => {
+  const GERMAN = [
+    'Senior iOS Entwickler (m/w/d)',
+    '',
+    'Anforderungen:',
+    '- Testautomatisierung und Barrierefreiheit',
+    '- Kotlin Multiplatform'
+  ].join('\n');
+  const evidenced = {
+    ...SOURCE,
+    relevant_experience: [
+      {
+        ...SOURCE.relevant_experience[0],
+        highlights: [
+          ...SOURCE.relevant_experience[0].highlights,
+          'Test automation and accessibility audits on every release.'
+        ]
+      }
+    ]
+  };
+
+  test('finds a term the full CV evidences in English, and asks no question about it', () => {
+    const terms = Tailor.terms(GERMAN, evidenced);
+    const of = (word) => terms.find(({ term }) => term.includes(word));
+
+    expect(of('Testautomatisierung')).toMatchObject({ evidence: 'prose' });
+    expect(of('Barrierefreiheit')).toMatchObject({ evidence: 'prose' });
+    expect(of('Kotlin')).toMatchObject({ evidence: 'absent' });
+  });
+
+  test('and the English full CV without it still lacks it', () => {
+    const terms = Tailor.terms(GERMAN, SOURCE);
+
+    expect(terms.find(({ term }) => term.includes('Barrierefreiheit'))).toMatchObject({
+      evidence: 'absent'
+    });
+  });
+});
+
 // What the review of #286 found. A required term the advert writes in lower case was not held, and came back as a
 // question while it stood in the CV.
 describe('what the review of the tailoring found', () => {
@@ -354,6 +399,27 @@ describe('what the review of the tailoring found', () => {
     const { questions } = await run();
 
     expect(questions.filter(({ from }) => from === 'letter')).toEqual([]);
+  });
+
+  // The review of #320: a print that ran past its pages went back framed as a failed check against the full CV.
+  test('a print sent back asks for less, not for other claims, and only on its own round', () => {
+    const asked = (failed) =>
+      Tailor.prompt({
+        source: { name: 'Ada Lovelace' },
+        advert: 'Senior iOS Engineer',
+        terms: [],
+        answer: { profile: { name: 'Ada Lovelace' } },
+        failures: [
+          { path: 'cv', reason: 'the CV printed 3 pages, and must fit 2: cut it until it does' }
+        ],
+        failed
+      });
+
+    expect(asked('print')).toMatch(
+      /passed the check against the full CV, and printed past its pages/
+    );
+    expect(asked('print')).not.toMatch(/failed the check/);
+    expect(asked('check')).toMatch(/failed the check against the full CV/);
   });
 
   test('the deadline is the job’s, set once, not one per attempt', async () => {

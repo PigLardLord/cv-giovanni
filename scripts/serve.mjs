@@ -6,6 +6,8 @@ import { LocalProfiles } from '../core/LocalProfiles.js';
 import { Applications } from '../core/Applications.js';
 import { Tailorings } from '../core/Tailorings.js';
 import { Tailor } from '../core/Tailor.js';
+import { TailoringJob } from '../core/TailoringJob.js';
+import { TailoringPrint } from '../core/TailoringPrint.js';
 import { ProfileStore } from '../core/ProfileStore.js';
 import { handleApi } from '../adapters/LocalApi.js';
 import { NodeProjectFiles } from '../adapters/NodeProjectFiles.js';
@@ -14,6 +16,7 @@ import { ClaudeCliInference } from '../adapters/ClaudeCliInference.js';
 import { AnthropicApiInference, keyFile } from '../adapters/AnthropicApiInference.js';
 import { FullCvFiles, fullCvFiles } from '../adapters/FullCvFiles.js';
 import { apiTokenFile, ensureApiToken } from '../adapters/ApiToken.js';
+import { QueueLock } from '../adapters/QueueLock.js';
 import { Inference } from '../core/Inference.js';
 import { extname, isAbsolute, join, normalize, relative, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -155,11 +158,16 @@ export function localServices(
     new ClaudeCliInference({ command: claude }),
     new AnthropicApiInference({ file: apiKeyFile })
   ]);
-  // What a tailoring job does: the model tailors, and the check holds the answer to the full CV (#284).
-  const tailor = new Tailor({ inference, files });
+  // What a tailoring job does: the model tailors and the check holds the answer to the full CV (#284); the scripts the
+  // command line runs print it in the job's layout, and its audits gate it (#303).
+  const scripts = new NodeScripts(root);
+  const job = new TailoringJob({
+    tailor: new Tailor({ inference, files }),
+    print: new TailoringPrint({ files, scripts })
+  });
   return {
     profile: new ProfileStore(files),
-    applications: new Applications({ files, scripts: new NodeScripts(root) }),
+    applications: new Applications({ files, scripts }),
     inference,
     // The full CV and the letter's defaults live beside the key, outside the project, and `fullCvFiles` refuses a
     // place for them inside it (#279).
@@ -167,7 +175,9 @@ export function localServices(
       files,
       inference,
       fullCv: new FullCvFiles(fullCvFiles({ env, projectRoot: root })),
-      work: (job, progress) => tailor.run(job, progress)
+      work: (tailoring, progress) => job.run(tailoring, progress),
+      // One server on this checkout runs the queue; a second leaves its jobs alone (#282).
+      lock: new QueueLock(root)
     })
   };
 }
@@ -444,7 +454,31 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   let services;
   try {
     services = localServices(projectRoot);
-    services.tailorings.start().catch((error) => console.error(error));
+    const { tailorings } = services;
+    tailorings
+      .start()
+      .then(() => {
+        const elsewhere = tailorings.heldElsewhere();
+        if (elsewhere) console.log(`  tailorings: ${elsewhere}`);
+      })
+      .catch((error) => console.error(error));
+    // The queue is let go as the server stops, so the next one on this checkout takes it at once. A server that dies
+    // without stopping leaves a lock whose process is gone, which the next one takes over (#282).
+    // A lock that cannot be let go is said, and the server still stops as the signal asks (the review of #316).
+    const stop = () => {
+      try {
+        tailorings.stop();
+      } catch (error) {
+        console.error(`  tailorings: the queue's lock could not be let go — ${error.message}`);
+      }
+    };
+    for (const signal of ['SIGINT', 'SIGTERM']) {
+      process.once(signal, () => {
+        stop();
+        process.kill(process.pid, signal);
+      });
+    }
+    process.once('exit', stop);
   } catch (error) {
     console.error(`  the local API's services cannot start: ${error.message}`);
   }
