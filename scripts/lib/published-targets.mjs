@@ -126,7 +126,12 @@ export async function resolveRun(name, script, argv, options) {
   };
 
   if (namesProfile(argv)) {
-    const target = GenerationTarget.fromArguments(argv);
+    let target;
+    try {
+      target = GenerationTarget.fromArguments(argv);
+    } catch (error) {
+      return refuse(error.message);
+    }
     if (!target.dataPath.startsWith('profiles/')) return { target, manifest };
     const { targets, error } = published();
     if (error) return refuse(error);

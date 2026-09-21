@@ -10,6 +10,7 @@ import { NodeProjectFiles } from '../adapters/NodeProjectFiles.js';
 import { NodeScripts } from '../adapters/NodeScripts.js';
 import { ClaudeCliInference } from '../adapters/ClaudeCliInference.js';
 import { AnthropicApiInference, keyFile } from '../adapters/AnthropicApiInference.js';
+import { apiTokenFile, ensureApiToken } from '../adapters/ApiToken.js';
 import { Inference } from '../core/Inference.js';
 import { extname, isAbsolute, join, normalize, relative, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -98,6 +99,12 @@ function isKey(offered, key) {
   if (typeof offered !== 'string') return false;
   const digest = (value) => createHash('sha256').update(value).digest();
   return timingSafeEqual(digest(offered), digest(key));
+}
+
+/** The credential of an `Authorization: Bearer` header, or undefined for any other scheme or none. */
+function bearerOf(header) {
+  const match = /^Bearer ([^\s]+)$/i.exec(header || '');
+  return match ? match[1] : undefined;
 }
 
 /** The value of one cookie in a Cookie header, or undefined when it is not there. */
@@ -268,12 +275,14 @@ async function localManifest(root) {
  * @param {(request: import('node:http').IncomingMessage) => boolean} [options.isLocal] - How to tell a
  *   request from this machine; tests hand in their own
  * @param {string} [options.key] - This run's key, from `previewKey`
+ * @param {string|null} [options.apiToken] - The token a program on this machine sends as `Authorization:
+ *   Bearer` to reach the local API without a browser (#270), from `ensureApiToken`; none by default
  * @param {object} [options.services] - What the local API calls; by default this project's own
  * @returns {import('node:http').Server} A server, not yet listening
  */
 export function createStaticServer(
   root = projectRoot,
-  { isLocal = isFromThisMachine, key = previewKey(), services } = {}
+  { isLocal = isFromThisMachine, key = previewKey(), apiToken = null, services } = {}
 ) {
   let api = services;
   const realRoot = realpathSync.native(root);
@@ -331,7 +340,14 @@ export function createStaticServer(
     // The local app's API (#21) writes the CV and runs scripts, so it answers exactly whom applications/
     // answers, and only from the page this server serves. Anyone else finds nothing there.
     if (address.pathname === '/api' || address.pathname.startsWith('/api/')) {
-      if (!trusted || !isSameOrigin(request)) {
+      // A program on this machine has no browser to hold the cookie, so it may send the API token instead (#270).
+      // The token stands in for the cookie and for nothing else: the request still has to come directly from this
+      // machine, and from no other origin. A page elsewhere cannot send the header without a CORS preflight, and
+      // this server grants none.
+      const holdsToken =
+        typeof apiToken === 'string' && isKey(bearerOf(request.headers.authorization), apiToken);
+      const allowed = isLocal(request) && (trusted || holdsToken);
+      if (!allowed || !isSameOrigin(request)) {
         notFound(response);
         return;
       }
@@ -395,7 +411,20 @@ export function createStaticServer(
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const { port, host, network } = listenSettings(process.argv.slice(2), process.env);
   const key = previewKey();
-  createStaticServer(projectRoot, { key }).listen(port, host, () => {
+  // The token programs on this machine send is made on the first start and kept outside the project (#270). The
+  // server says where it is and never what it is: printed, it would sit in a terminal's scrollback and in any log
+  // the output is piped to.
+  // A token that cannot be had is a reason, printed, and the page and the editor still start: the cookie needs none.
+  let tokenFile = null;
+  let apiToken = null;
+  let reason;
+  try {
+    tokenFile = apiTokenFile({ env: process.env, projectRoot });
+    ({ token: apiToken, reason } = await ensureApiToken(tokenFile));
+  } catch (error) {
+    reason = error.message;
+  }
+  createStaticServer(projectRoot, { key, apiToken }).listen(port, host, () => {
     console.log(`serving ${projectRoot} on ${host}:${port} with no-store`);
     console.log(
       network
@@ -408,6 +437,11 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     );
     console.log(
       `  edit the general CV, on this machine: http://localhost:${port}/editor.html?key=${key}`
+    );
+    console.log(
+      apiToken
+        ? `  programs on this machine reach /api/ with Authorization: Bearer <the token in ${tokenFile}>`
+        : `  programs cannot reach /api/: ${reason}`
     );
   });
 }

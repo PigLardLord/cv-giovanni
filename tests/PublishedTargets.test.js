@@ -114,8 +114,13 @@ describe('what a run is about', () => {
   const quiet = { say: () => {} };
   const reads = (value) => async () => value;
 
-  test('is the one CV --profile names, when the manifest lists it', async () => {
-    const run = await resolveRun('audit-print', 's.mjs', ['--profile=profiles/general/de.json'], {
+  // Written either way: with a space, "--profile" used to be read as naming nothing and the run built the
+  // public CV instead (#258).
+  test.each([
+    [['--profile=profiles/general/de.json']],
+    [['--profile', 'profiles/general/de.json']]
+  ])('is the one CV --profile names, when the manifest lists it: %j', async (argv) => {
+    const run = await resolveRun('audit-print', 's.mjs', argv, {
       ...quiet,
       readManifest: reads(manifest)
     });
@@ -208,6 +213,20 @@ describe('what a run is about', () => {
     expect(run).toEqual({ exit: 2 });
     expect(said.join(' ')).toMatch(/must agree/);
   });
+
+  // A malformed --profile threw from the argument parser and ended the run on a stack trace (#258).
+  test.each([[['--profile']], [['--profile=en.json']]])(
+    'is nothing, said, for a --profile that names no CV: %j',
+    async (argv) => {
+      const said = [];
+      const run = await resolveRun('generate-pdfs', 's.mjs', argv, {
+        say: (line) => said.push(line),
+        readManifest: reads(manifest)
+      });
+      expect(run).toEqual({ exit: 2 });
+      expect(said.join(' ')).toMatch(/--profile/);
+    }
+  );
 
   // --out names where one CV goes. Without --profile the combined download list was still written into
   // generated/, over what the page reads, for PDFs printed somewhere else.

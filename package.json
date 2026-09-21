@@ -27,6 +27,7 @@
     "prettier": "3.9.6"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.127.0",
     "i18next": "^26.4.2",
     "i18next-http-backend": "^4.0.2"
   }
