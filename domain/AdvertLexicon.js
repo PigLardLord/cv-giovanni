@@ -390,10 +390,6 @@ export const ADVERT = {
       'remote friendly'
     ],
     de: [
-      'm/w/d',
-      'w/m/d',
-      'm/w/x',
-      'gn',
       'chancengleichheit',
       'unabhängig von',
       'wir bieten',
@@ -551,6 +547,17 @@ export const ADVERT = {
   ],
 
   /**
+   * The gender markers a job title carries: "(m/w/d)", "(gn)", "(all genders)". Each is read as a whole token and taken
+   * out of its line, never matched inside a word — as boilerplate, "gn" dropped every line with "design", "signal" or
+   * "align" in it — and never taken for the line, which is the advert's title (#314).
+   */
+  genderMarkers: {
+    en: ['m/f/d', 'f/m/d', 'm/f/x', 'f/m/x', 'm/w/d', 'all genders', 'any gender'],
+    de: ['m/w/d', 'w/m/d', 'm/w/x', 'w/m/x', 'd/m/w', 'm/f/d', 'gn', 'alle geschlechter'],
+    it: ['m/f', 'f/m', 'm/f/x', 'uomo/donna', 'tutti i generi']
+  },
+
+  /**
    * Plain words the provenance check lets a tailoring write although the full CV does not, and the matcher still ranks:
    * each is a word of some technology's name — "New Relic", "Google Drive", "time series", "set up" — which a stopword
    * would take out of the ranking whole (the review of #315). Only the English check reads them; the other languages
@@ -579,6 +586,15 @@ const set = (group) => new Set(Object.values(group).flat().map(fold));
 const STOPWORDS = set(ADVERT.stopwords);
 const DIMENSIONS = set(ADVERT.dimensions);
 const PLAIN_WORDS = set(ADVERT.plainWords);
+const escaped = (text) => text.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
+// Longest first, so "m/w/d" is not read as the start of something longer; bracketed or bare, but only whole.
+const GENDER_MARKER = new RegExp(
+  `\\s*[([]?\\s*(?<![\\p{L}\\p{N}/])(?:${[...set(ADVERT.genderMarkers)]
+    .sort((a, b) => b.length - a.length)
+    .map(escaped)
+    .join('|')})(?![\\p{L}\\p{N}/])\\s*[)\\]]?`,
+  'giu'
+);
 const BOILERPLATE = Object.values(ADVERT.boilerplate).flat().map(fold);
 const REQUIREMENT = Object.values(ADVERT.requirementHeadings).flat().map(fold);
 const OFFER = Object.values(ADVERT.offerHeadings).flat().map(fold);
@@ -609,6 +625,18 @@ export class AdvertLexicon {
   /** A noun that names what a claim measures, beside a figure: "performance", "stability". */
   static isDimension(word) {
     return DIMENSIONS.has(fold(word));
+  }
+
+  /**
+   * A line without the gender markers its title carries: "Senior iOS Engineer (m/f/d)" is "Senior iOS Engineer".
+   * @param {string} line - One line of the advert
+   * @returns {string} The line, its markers taken out
+   */
+  static withoutGenderMarkers(line) {
+    return String(line ?? '')
+      .replace(GENDER_MARKER, ' ')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
   }
 
   /** A phrase that belongs to the posting rather than to the job. */

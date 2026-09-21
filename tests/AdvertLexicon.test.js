@@ -13,7 +13,8 @@ describe('the lexicon is multilingual by construction', () => {
       'offerHeadings',
       'structuralHeadings',
       'plainWords',
-      'dimensions'
+      'dimensions',
+      'genderMarkers'
     ]) {
       expect(Object.keys(ADVERT[group]).sort()).toEqual(languages);
     }
@@ -60,7 +61,6 @@ describe('the lexicon is multilingual by construction', () => {
 
 describe('the furniture of a posting', () => {
   test.each([
-    'm/w/d',
     'Vollzeit',
     'Wir bieten',
     'unbefristet',
@@ -150,5 +150,31 @@ describe('the language of the advert', () => {
   test('too little text is no answer rather than a guess', () => {
     expect(AdvertLexicon.languageOf('Senior iOS Engineer')).toBeNull();
     expect(AdvertLexicon.languageOf('')).toBeNull();
+  });
+});
+
+// "gn" was German boilerplate matched as a substring, so every advert line with "design", "signal" or "align" in it
+// was dropped, in every language; and "(m/w/d)" dropped the advert's own title (#314). A gender marker is a whole
+// token, taken out of its line.
+describe('a gender marker', () => {
+  test.each([
+    ['Senior iOS Engineer (m/f/d) – Berlin or remote', 'Senior iOS Engineer – Berlin or remote'],
+    ['Senior iOS Entwickler (m/w/d)', 'Senior iOS Entwickler'],
+    ['iOS-Entwickler (gn)', 'iOS-Entwickler'],
+    ['iOS Engineer (all genders)', 'iOS Engineer'],
+    ['Sviluppatore iOS (m/f)', 'Sviluppatore iOS']
+  ])('is taken out of "%s", and the title kept', (line, title) => {
+    expect(AdvertLexicon.withoutGenderMarkers(line)).toBe(title);
+    expect(AdvertLexicon.isBoilerplate(title)).toBe(false);
+  });
+
+  test.each([
+    'You will design and ship features',
+    'Signal processing',
+    'Alignment with product',
+    'Du gestaltest die Signalverarbeitung und das Design-System.'
+  ])('is never read inside a word: "%s" is kept whole, and is no boilerplate', (line) => {
+    expect(AdvertLexicon.withoutGenderMarkers(line)).toBe(line);
+    expect(AdvertLexicon.isBoilerplate(line)).toBe(false);
   });
 });

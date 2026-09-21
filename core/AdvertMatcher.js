@@ -38,7 +38,9 @@ export class AdvertMatcher {
     const counts = new Map();
     let section = null;
 
-    for (const line of lines) {
+    for (const written of lines) {
+      // A title's gender marker is no term, and no reason to drop the title (#314).
+      const line = AdvertLexicon.withoutGenderMarkers(written);
       const heading = AdvertLexicon.headingKind(line);
       if (heading) {
         // A neutral heading organises the advert without demanding anything, so it does not
