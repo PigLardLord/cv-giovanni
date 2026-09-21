@@ -661,13 +661,13 @@ const report = [
   '',
   `Room left is the space between each page's lowest line and its ${PRINTED_PAGE.bottomMargin}pt bottom margin. A page`,
   `with less than one ${PRINTED_PAGE.bodyLine.toFixed(1)}pt line of running text free is marked ⚠: on the last page the`,
-  'next line has nowhere to go; on a page before it, the next line moves the role below, whole, to the next page. It',
-  'is a warning, never a failure, since the page count is the gate.',
+  'next line has nowhere to go; on a page before it, the next line moves the block at its foot — today a role —',
+  'whole to the next page. It is a warning, never a failure, since the page count is the gate.',
   ...(tight.length ? ['', `⚠ Tight last page: ${tight.join(', ')}.`] : []),
   ...(tightBefore.length
     ? [
         '',
-        `⚠ Tight page before the last: ${tightBefore.join(', ')} — the next line added moves a role to the next page.`
+        `⚠ Tight page before the last: ${tightBefore.join(', ')} — the next line added moves the block at its foot to the next page.`
       ]
     : []),
   '',

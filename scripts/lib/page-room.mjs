@@ -57,7 +57,8 @@ export function printedRoom({ height, lines }, { bottomMargin, bodyLine }) {
 /**
  * The report's words for a layout's room: every page's room in points, each tight page marked. Neither is a failure,
  * since the page count is the gate, but they warn of different things: a tight last page is the one the next line
- * spills from, onto a page too many; a tight page before it moves the role below, whole, to the next page, and leaves
+ * spills from, onto a page too many; a tight page before it moves the block at its foot — today a role — whole to the
+ * next page, and leaves
  * its own foot blank (#294).
  * @param {({ points: number, tight: boolean }|null)[]} rooms - Each page's room, in order; null for a page with no
  *   line to measure from

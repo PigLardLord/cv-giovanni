@@ -13,10 +13,10 @@ Layouts: 3
 
 Room left is the space between each page's lowest line and its 33pt bottom margin. A page
 with less than one 15.4pt line of running text free is marked ⚠: on the last page the
-next line has nowhere to go; on a page before it, the next line moves the role below, whole, to the next page. It
-is a warning, never a failure, since the page count is the gate.
+next line has nowhere to go; on a page before it, the next line moves the block at its foot — today a role —
+whole to the next page. It is a warning, never a failure, since the page count is the gate.
 
-⚠ Tight page before the last: spotlight p1 (6.0pt), technical p1 (9.8pt) — the next line added moves a role to the next page.
+⚠ Tight page before the last: spotlight p1 (6.0pt), technical p1 (9.8pt) — the next line added moves the block at its foot to the next page.
 
 Checks: A4, at most two pages, required ATS text in the case the catalogue wrote it,
 reading order, canonical hyphenated compounds, degree beside its school, every skill
