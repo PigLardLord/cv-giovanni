@@ -391,6 +391,15 @@ describe('what the review of the check found', () => {
     expect(reasonsAt(failures, 'relevant_experience[0].highlights[1]')).toEqual([
       'names "Fastlane", which its source does not'
     ]);
+    // A plain word the advert opens a bullet with is no name.
+    expect(
+      check(
+        (cv) =>
+          (cv.relevant_experience[0].highlights[2] =
+            'Across releases: shipped App Store releases every two weeks.'),
+        { advert: 'Requirements:\n- Across teams, deliver features.' }
+      )
+    ).toEqual([]);
     // A verb at a sentence's start is a verb, whatever the advert writes.
     expect(
       check(

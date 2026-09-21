@@ -125,7 +125,12 @@ export class ProvenanceCheck {
       ...(source.skills || []).flatMap((group) => (group.items || []).map((item) => item.name)),
       ...ProvenanceCheck.wordsOnlyIn(advert, whole)
     ].filter(Boolean);
-    const advertNames = new Set(ProvenanceCheck.names(advert, { openers: true }).map(fold));
+    // Its plain words open its bullets too — "Across teams", "Strong Swift" — and are no names (the review of #286).
+    const advertNames = new Set(
+      ProvenanceCheck.names(advert, { openers: true })
+        .filter((word) => !AdvertLexicon.isStopword(word))
+        .map(fold)
+    );
     const states = (path, text, against) => {
       for (const reason of ProvenanceCheck.additions(text, against, { vocabulary, advertNames })) {
         fail(path, reason);
@@ -256,7 +261,9 @@ export class ProvenanceCheck {
     for (const written of added.values())
       reasons.push(`states ${written}, which its source does not`);
 
-    // Found as written, or through the synonym table: "Test-driven development" rewords "TDD".
+    // Found as written, or through the synonym table. The table maps whole phrases: "test-driven development" in lower
+    // case rewords "TDD" through the vocabulary below, while a capitalised "Test-driven" is read as a name of its own,
+    // and refused where the source writes "TDD" — the prompt asks for names as the CV spells them.
     const sourced = (name) =>
       candidates(name).some((candidate) => AdvertMatcher.appears(candidate, against) !== null);
     const names = [...new Set(ProvenanceCheck.names(text))].filter((name) => !sourced(name));
