@@ -332,9 +332,17 @@ export class ProvenanceCheck {
         words(advert)
           .map(({ word }) => word)
           .filter(
-            (word) => word.length >= 3 && /\p{L}/u.test(word) && !AdvertLexicon.isStopword(word)
+            (word) =>
+              word.length >= 3 &&
+              /\p{L}/u.test(word) &&
+              !AdvertLexicon.isStopword(word) &&
+              !AdvertLexicon.isDimension(word)
           )
-          .filter((word) => !AdvertMatcher.contains(folded, fold(word)))
+          // Found as written, or as the table spells it: "engineers" where the source writes "developers" (#296).
+          .filter(
+            (word) =>
+              !AdvertLexicon.formsOf(word).some((form) => AdvertMatcher.contains(folded, form))
+          )
       )
     ];
   }

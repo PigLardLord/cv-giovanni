@@ -131,7 +131,64 @@ export const ADVERT = {
       'solid',
       'hands-on',
       'closely',
-      'across'
+      'across',
+      // Function words, and the plain verbs and nouns of every advert's prose: a tailoring rewords into them, and they
+      // name no technology and no claim (#296).
+      'through',
+      'onto',
+      'within',
+      'them',
+      'then',
+      'there',
+      'here',
+      'after',
+      'before',
+      'under',
+      'between',
+      'among',
+      'via',
+      'per',
+      'like',
+      'able',
+      'make',
+      'made',
+      'take',
+      'get',
+      'keep',
+      'set',
+      'use',
+      'used',
+      'usage',
+      'part',
+      'both',
+      'each',
+      'new',
+      'well',
+      'plus',
+      'day',
+      'days',
+      'week',
+      'weeks',
+      'month',
+      'months',
+      'time',
+      'must',
+      'need',
+      'needs',
+      'ideal',
+      'knowledge',
+      'understanding',
+      'familiarity',
+      'exposure',
+      'improve',
+      'deliver',
+      'drive',
+      'ship',
+      'collaborate',
+      'integrate',
+      'integrating',
+      'optimize',
+      'optimise'
     ],
     de: [
       'der',
@@ -499,12 +556,24 @@ export const ADVERT = {
     ['spm', 'swift package manager'],
     ['tdd', 'test driven development', 'test-driven development'],
     ['api', 'apis'],
-    ['ios', 'apple platform', 'apple platforms']
-  ]
+    ['ios', 'apple platform', 'apple platforms'],
+    ['developer', 'developers', 'engineer', 'engineers']
+  ],
+
+  /**
+   * Nouns that name what a claim measures, never the claim: a tailoring may write "test performance" where its source
+   * measures the test runtime, and the figures are still its source's (#296). Still ranked as the advert's terms; only
+   * the provenance check lets them pass. An adjective that claims the quality — "scalable", "reliable" — is not one.
+   */
+  dimensions: {
+    en: ['performance', 'stability', 'quality', 'speed', 'efficiency'],
+    de: ['performance', 'leistung', 'stabilität', 'qualität', 'geschwindigkeit', 'effizienz']
+  }
 };
 
 const set = (group) => new Set(Object.values(group).flat().map(fold));
 const STOPWORDS = set(ADVERT.stopwords);
+const DIMENSIONS = set(ADVERT.dimensions);
 const BOILERPLATE = Object.values(ADVERT.boilerplate).flat().map(fold);
 const REQUIREMENT = Object.values(ADVERT.requirementHeadings).flat().map(fold);
 const OFFER = Object.values(ADVERT.offerHeadings).flat().map(fold);
@@ -525,6 +594,11 @@ export class AdvertLexicon {
   /** A word that carries no information about the role, in any supported language. */
   static isStopword(word) {
     return STOPWORDS.has(fold(word));
+  }
+
+  /** A noun that names what a claim measures, not the claim itself: "performance", "stability". */
+  static isDimension(word) {
+    return DIMENSIONS.has(fold(word));
   }
 
   /** A phrase that belongs to the posting rather than to the job. */
