@@ -48,6 +48,44 @@ These rules outlived `docs/ROADMAP.md`, which described milestones that GitHub n
 remains of that file's unfinished work is filed under the milestone _Carried over from the old
 roadmap_.
 
+## Tailoring — the owner's decisions of 2026-09-21
+
+The local app tailors the CV to one advert and writes its letter, as a job a program on this machine
+starts and polls (#260). Four decisions stand behind it, and each is held by something the suite
+checks, not by this paragraph.
+
+- **The full CV is the source, and it is never committed.** It is the CV as exhaustive as its owner
+  cares to make it — every technology left out of the published one for length — in the profile's
+  shape, at `~/.config/mycv/full-cv/en.json` (or under `$XDG_CONFIG_HOME`), with the letter's defaults
+  beside it in `full-cv/letter.json`. Both are readable only by their owner, and a place for either
+  inside the project, as written or through a link, is refused (#279, #285). A job keeps a copy of what
+  it started from in `applications/<id>/`, which git ignores. Without a full CV a job starts from the
+  published profile, and says so.
+- **A tailored CV says nothing its full CV does not say.** The model chooses, orders, shortens and
+  rewords; `core/ProvenanceCheck.js` holds every item it writes to the item of the full CV it names as its
+  source — every figure, name and technology, every role's employer, title and period, the identity,
+  the skills — before anything is printed, and a failure goes back to the model at most twice (#284). No
+  field lifts it: it is not an audit. What the advert asks for and the full CV does not evidence comes
+  back as a **question** for the owner, never as a line of the CV: the answer belongs in the full CV,
+  where it holds for every application after. The letter is held the same way, and addressed only as the
+  advert addresses its contact — a form of address only when the advert writes one (#174, #299). What
+  the check cannot see is written down, not assumed away (#292, #296).
+- **A tailored CV may be translated, and says so.** A job in `de` translates the English full CV, and its
+  report says it did; the check reads a translation by what it keeps — names, technologies, figures,
+  dates — since German capitalises every noun (#299). This is a tailored CV's licence only. **The published
+  German CV is still written in German, not translated**, as the opening of this file requires.
+- **Programs reach the API with a token, beside the browser's key.** `~/.config/mycv/api-token`, made on
+  the first start, readable only by its owner, compared in constant time, never printed or served; the
+  request must still come directly from this machine and from no other origin (#270). It is a credential,
+  not a way around the rest.
+
+A job prints in one layout and is gated by the audits — `audit:ats`'s floors, `audit:print`, two pages for
+the CV and one for the letter — and a print the copy can fix goes back to the model up to `auditRetries`
+times; `auditGate` decides what a last failure means, and an audit that did not run is never a pass
+(#303). Out of scope, and to stay so until someone decides otherwise: hosting the API anywhere but this
+machine, editing the full CV through it, deleting jobs, and sending anything anywhere — a tailored CV
+leaves the machine only as a PDF its owner attaches.
+
 ## Skills presentation
 
 The skills section must give a recruiter an immediate overview without turning an unanchored
