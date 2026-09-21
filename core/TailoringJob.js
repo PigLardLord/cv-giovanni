@@ -79,7 +79,7 @@ export class TailoringJob {
     const outcome = { ...result, attempts, cost: { ...result.cost, usd }, gate };
     // Nothing printed is nothing to deliver, whatever the gate: a ready job would list downloads that are not there
     // (the review of #320).
-    if ((!printed.passed && auditGate) || printed.printed === false) {
+    if ((!printed.passed && auditGate) || printed.printed !== true) {
       const problems = [
         ...printed.failures.map(({ document, reason }) => ({ path: document, reason })),
         ...printed.notRun.map((audit) => ({ path: audit, reason: 'did not run' }))

@@ -19,8 +19,14 @@ const LAYOUT = {
   copy: false,
   reason: 'the CV fails contrast in audit:print'
 };
-const PASSED = { passed: true, failures: [], notRun: [], files: FILES };
-const failed = (...failures) => ({ passed: false, failures, notRun: [], files: FILES });
+const PASSED = { passed: true, printed: true, failures: [], notRun: [], files: FILES };
+const failed = (...failures) => ({
+  passed: false,
+  printed: true,
+  failures,
+  notRun: [],
+  files: FILES
+});
 
 const setup = ({ prints, options = {} }) => {
   const seeds = [];
@@ -143,7 +149,13 @@ describe('a tailoring job', () => {
   });
 
   test('an audit that did not run is no pass: it fails the job with the gate on, and is reported with it off', async () => {
-    const notRun = { passed: false, failures: [], notRun: ['audit:print'], files: FILES };
+    const notRun = {
+      passed: false,
+      printed: true,
+      failures: [],
+      notRun: ['audit:print'],
+      files: FILES
+    };
     const on = setup({ prints: [notRun] });
     await expect(on.run()).rejects.toMatchObject({
       details: [{ path: 'audit:print', reason: 'did not run' }]

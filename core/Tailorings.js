@@ -249,7 +249,7 @@ export class Tailorings {
     let word = 'CV';
     if (document === 'letter') {
       const catalogue = JSON.parse(await this.files.readText(`locales/${language}/ui.json`));
-      word = 'files.letter'.split('.').reduce((node, step) => node?.[step], catalogue) ?? 'letter';
+      word = 'files.letter'.split('.').reduce((node, step) => node?.[step], catalogue) || 'letter';
     }
     return {
       file: await this.files.readBytes(path),
