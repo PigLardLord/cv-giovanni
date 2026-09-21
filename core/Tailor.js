@@ -15,8 +15,19 @@ const TIME_LIMIT = 60 * 60 * 1000;
 /** How many of the advert's terms the model is shown, and the check holds the tailoring to. */
 const TERMS = 40;
 
-/** The language the full CV is written in. Another is a translation, which is step 6 of #260. */
+/** The language the full CV is written in. A job in another is a translation, which the owner allowed (#299). */
 const SOURCE_LANGUAGE = 'en';
+
+/** The languages a job may be written in, by name, for the model. */
+const LANGUAGES = Object.freeze({ en: 'English', de: 'German' });
+
+/** What an advert says when it asks the letter for a salary or a start date, in English or German. */
+const ASKS = Object.freeze({
+  salaryExpectation:
+    /salary (expectations?|requirements?)|expected salary|desired salary|gehaltsvorstellung|gehaltswunsch|gehaltsvorstellungen/i,
+  startDate:
+    /earliest (possible )?start|start(ing)? date|availability date|eintrittstermin|frühest(möglich)?e?n? (eintritt|start)|starttermin/i
+});
 
 /**
  * A tailoring: the full CV and an advert in, a tailored profile that says nothing the full CV does not out (#260,
@@ -60,13 +71,11 @@ export class Tailor {
    */
   async run(job, { update }) {
     const { directory, advert, options, cv: source } = job;
-    if (options.language !== SOURCE_LANGUAGE) {
-      throw new Refusal(
-        501,
-        `The full CV is written in ${SOURCE_LANGUAGE}; a tailoring into ${options.language} is step 6 of #260, and has not landed.`
-      );
-    }
-    const deadline = this.clock() + this.timeLimit;
+    const translated = options.language !== SOURCE_LANGUAGE;
+    // The job dates and signs the letter: a model that wrote either would be inventing them.
+    const now = this.clock();
+    const today = new Date(now).toISOString().slice(0, 10);
+    const deadline = now + this.timeLimit;
     const system = await this.files.readText(SYSTEM_PROMPT);
     const terms = Tailor.terms(advert, source);
     // What a tailoring must not bring in: every term the advert requires and the full CV does not evidence, in any
@@ -93,6 +102,7 @@ export class Tailor {
             advert,
             terms,
             letter: options.letter,
+            language: options.language,
             answer,
             failures
           }),
@@ -109,23 +119,38 @@ export class Tailor {
       spent.push(reply);
       const read = Tailor.read(reply);
       answer = read.answer;
+      if (answer && Tailor.isLetter(answer.profile.letter)) {
+        answer.profile.letter = { ...answer.profile.letter, date: today, signature: source.name };
+      }
       failures = read.failures.length
         ? read.failures
-        : ProvenanceCheck.failures({
-            source,
-            tailored: answer.profile,
-            sources: answer.sources,
-            terms: vocabulary,
-            advert
-          });
+        : !Tailor.isLetter(answer.profile.letter)
+          ? [
+              {
+                path: 'letter',
+                reason: 'is missing: write the cover letter as the profile’s `letter`'
+              }
+            ]
+          : ProvenanceCheck.failures({
+              source,
+              tailored: answer.profile,
+              sources: answer.sources,
+              terms: vocabulary,
+              advert,
+              language: options.language,
+              defaults: options.letter ?? {}
+            });
       if (!failures.length) {
         const tailored = Tailor.tailoredPath(directory);
         await this.files.writeText(tailored, `${JSON.stringify(answer.profile, null, 2)}\n`);
         return {
           tailored,
-          report: answer.report,
+          report: { ...answer.report, language: options.language, translated },
           sources: answer.sources,
-          questions: Tailor.questions(terms, answer.questions),
+          questions: Tailor.questions(terms, answer.questions, {
+            advert,
+            letter: options.letter ?? {}
+          }),
           attempts: attempt,
           cost: Tailor.cost(spent)
         };
@@ -173,12 +198,17 @@ export class Tailor {
   }
 
   /** What the model is asked: the four things #260 names, and, on a retry, its last answer and what failed. */
-  static prompt({ source, advert, terms, letter, answer, failures }) {
+  static prompt({ source, advert, terms, letter, language = SOURCE_LANGUAGE, answer, failures }) {
     const parts = [
       `<full_cv>\n${JSON.stringify(source, null, 2)}\n</full_cv>`,
       `<advert>\n${advert}\n</advert>`,
       `<advert_terms>\n${JSON.stringify(terms, null, 2)}\n</advert_terms>`,
-      `<letter_defaults>\n${JSON.stringify(letter ?? {}, null, 2)}\n</letter_defaults>`
+      `<letter_defaults>\n${JSON.stringify(letter ?? {}, null, 2)}\n</letter_defaults>`,
+      `<language>\n${language} — ${LANGUAGES[language] ?? language}${
+        language === SOURCE_LANGUAGE
+          ? ''
+          : `, translated from the full CV's ${LANGUAGES[SOURCE_LANGUAGE]}`
+      }\n</language>`
     ];
     if (failures.length) {
       parts.push(
@@ -221,10 +251,9 @@ export class Tailor {
     if (answer.sources !== undefined && !isObject(answer.sources)) {
       return fail('has `sources` that is not an object from each tailored item to its source');
     }
-    const { letter, ...profile } = answer.profile;
     return {
       answer: {
-        profile,
+        profile: { ...answer.profile },
         sources: answer.sources ?? {},
         report: isObject(answer.report) ? answer.report : {},
         questions: Array.isArray(answer.questions)
@@ -239,7 +268,13 @@ export class Tailor {
    * The questions for the owner: every term the advert requires that the full CV does not evidence, then what the
    * model says it would have needed.
    */
-  static questions(terms, asked = []) {
+  static questions(terms, asked = [], { advert = '', letter = {} } = {}) {
+    const WORDING = {
+      salaryExpectation:
+        'The advert asks the letter for a salary expectation, and none was given. What is it?',
+      startDate:
+        'The advert asks the letter for the earliest start date, and none was given. When is it?'
+    };
     return [
       ...terms
         .filter(({ required, evidence }) => required && evidence === 'absent')
@@ -248,8 +283,22 @@ export class Tailor {
           term,
           question: `The advert requires "${term}", and the full CV does not mention it. If it is true, where and how did you use it?`
         })),
+      // Whatever the advert asks the letter to state and nothing supplied (#260).
+      ...Object.entries(ASKS)
+        .filter(([field, asks]) => asks.test(advert) && !letter[field])
+        .map(([field]) => ({ from: 'letter', field, question: WORDING[field] })),
       ...asked.map((question) => ({ from: 'model', question }))
     ];
+  }
+
+  /** Whether the answer carries a letter to check: an object, with something in it. */
+  static isLetter(letter) {
+    return (
+      Boolean(letter) &&
+      typeof letter === 'object' &&
+      !Array.isArray(letter) &&
+      Object.keys(letter).length > 0
+    );
   }
 
   /** What the attempts cost, summed: null when no backend said. */

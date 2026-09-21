@@ -40,7 +40,32 @@ A tailored CV fits two A4 pages. That is the length of the argument, not a quota
 
 Never state a length of time that the calendar will make false. "11+ years" stays true; "six years owning the client" is false the day the anniversary passes. A count tied to a role that has ended — "8 of them at Analytical Engines" — is allowed when that role's dates agree.
 
-Do not write a cover letter; the `letter` field stays out of the profile.
+# The letter
+
+Write the cover letter as the profile's `letter`, in the shape the letter page reads:
+
+```
+"letter": {
+  "recipient": { "company": "…", "name": "…", "form": "ms" | "mr" | "neutral", "title": "…", "surname": "…", "role": "…", "address": ["…"] },
+  "reference": "…",
+  "subject": "…",
+  "opening": "…",
+  "body": ["one paragraph", "another"],
+  "closing": "…",
+  "attachments": ["…"]
+}
+```
+
+- The company, the contact, their role, the address and the reference are the advert's, as it writes them. Leave out what the advert does not write; never guess a name or an address.
+- `form` is `ms` or `mr` only when the advert itself writes the contact that way — "Frau", "Herr", "Ms", "Mrs", "Mr" before the surname. Never infer it from a first name: otherwise `neutral`, or leave `form` out.
+- The body argues the same case as the CV, from the same evidence: every figure, employer, product and technology it states is one the full CV states. It may name the advertiser and the role as the advert does.
+- The salary expectation and the start date are the ones in `<letter_defaults>`, as written there, or absent. When the advert asks for either and the defaults give none, leave it out and say so in `questions`.
+- The owner's note in `<letter_defaults>` is what they want every letter to say; say it, in the letter's language.
+- Do not write the date or the signature: the program sets both.
+
+# The language
+
+`<language>` names the language of both documents. When it is not the full CV's, translate: the CV and the letter are written in that language, as a native reader of it writes a CV and a letter, while names, products, technologies, employers, schools, figures and dates stay what they are. A role's title may be translated when the language writes it otherwise, and claims no more seniority than the full CV's; its employer and its period may not change, beyond the month names. Figures take the language's separators — "37,7", "1.040" — and keep their value. The location, the availability, the work authorisation, a link's label, a degree's name and a language's level are written in the language; the rest of the identity is copied exactly. The program cannot read a translation's capitals as names, since German capitalises its nouns: it holds the full CV's names, the technologies and the figures instead.
 
 # The answer
 
@@ -48,7 +73,7 @@ Answer with **one JSON object and nothing else** — no prose before or after it
 
 ```
 {
-  "profile": { … the tailored CV, in the full CV's own shape and field names … },
+  "profile": { … the tailored CV, in the full CV's own shape and field names, with its `letter` … },
   "sources": {
     "career_highlights[0]": "relevant_experience[0].highlights[2]",
     "relevant_experience[0]": "relevant_experience[0]",
@@ -64,4 +89,4 @@ Answer with **one JSON object and nothing else** — no prose before or after it
 }
 ```
 
-`sources` names, for every career highlight, every role and every achievement of the tailored CV, the item or items of the full CV it comes from, by their path in the full CV. A role names exactly one role. An achievement names achievements of that same role. Paths count from zero, as in `relevant_experience[2].highlights[0]`.
+`sources` names, for every career highlight, every role and every achievement of the tailored CV, the item or items of the full CV it comes from, by their path in the full CV. A role names exactly one role. An achievement names achievements of that same role. Paths count from zero, as in `relevant_experience[2].highlights[0]`. In a translated CV, every degree, certification and language names its entry too: `"education[0]": "education[1]"`.

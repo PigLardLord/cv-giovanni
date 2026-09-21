@@ -165,9 +165,13 @@ figure, a date, a name or a technology its source item does not state, a role wh
 changed, an identity field rewritten, a skill the CV does not list — each fails, and goes back to the model with what
 failed, at most twice. A job still failing after that ends failed, with every failure. What the advert requires and
 the CV does not evidence comes back as a question, for the full CV, never as a line of the tailored one. A ready job
-writes `applications/<id>/tailored.json`; the letter, another language and the PDFs are the next steps of #260 — a
-job asking for `de` is accepted, and fails at once saying so. The system prompt is `prompts/tailor-cv.md`, sent byte
-for byte. The check holds the tailored CV, never the report or the questions: those are the model's own words, shown
+writes `applications/<id>/tailored.json`, the CV with its cover letter: the model writes the letter from the same
+evidence, addressed as the advert addresses its contact — a form of address only when the advert writes one — and
+stating only the salary and the start the defaults give; the job dates and signs it. A job in `de` is translated from
+the English full CV, and the check reads it as a translation: German capitalises its nouns, so it holds the full CV's
+names, the technologies and the figures rather than capitals. What the advert asks the letter for and nothing gave —
+a salary expectation, a start date — comes back as a question. The PDFs are the next step of #260. The system prompt is
+`prompts/tailor-cv.md`, sent byte for byte. The check holds the tailored CV, never the report or the questions: those are the model's own words, shown
 to the owner on this machine, and are read as such.
 
 A tailoring subtracts from a CV that lists everything, so a job starts from the **full CV** its owner keeps in

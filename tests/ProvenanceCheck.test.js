@@ -517,6 +517,235 @@ describe('what the review of the check found', () => {
   });
 });
 
+// The letter (#299): addressed as the advert addresses it, arguing from the full CV, and stating only the salary and
+// the start the defaults give.
+describe('a tailored letter', () => {
+  const ADVERT = [
+    'Senior iOS Engineer at Engine Works, Berlin',
+    'Reference: EW-2026-117',
+    'Your contact: Frau Dr. Grace Hopper, Head of Mobile',
+    'Engine Works GmbH, Hauptstraße 1, 10115 Berlin',
+    'Our 40,000 technicians rely on the app.'
+  ].join('\n');
+  const LETTER = {
+    recipient: {
+      company: 'Engine Works GmbH',
+      name: 'Grace Hopper',
+      form: 'ms',
+      title: 'Dr.',
+      surname: 'Hopper',
+      role: 'Head of Mobile',
+      address: ['Hauptstraße 1', '10115 Berlin']
+    },
+    reference: 'EW-2026-117',
+    subject: 'Senior iOS Engineer',
+    opening: 'Dear Dr. Hopper,',
+    body: ['At Analytical Engines I cut the test suite from 37.7 to 5.2 minutes.'],
+    closing: 'Kind regards'
+  };
+  const letterCheck = (edit = () => {}, { advert = ADVERT, defaults = {} } = {}) => {
+    const tailored = structuredClone(SOURCE);
+    tailored.letter = structuredClone(LETTER);
+    edit(tailored.letter);
+    return ProvenanceCheck.failures({
+      source: SOURCE,
+      tailored,
+      sources: itself(SOURCE),
+      terms: [],
+      advert,
+      defaults
+    });
+  };
+
+  test('addressed as the advert addresses it, arguing from the full CV, holds', () => {
+    expect(letterCheck()).toEqual([]);
+  });
+
+  test('a company, a contact, an address or a reference the advert does not write is refused', () => {
+    const failures = letterCheck((letter) => {
+      letter.recipient.company = 'Engine Works Ltd';
+      letter.recipient.name = 'Ada Byron';
+      letter.recipient.address = ['Friedrichstraße 9'];
+      letter.reference = 'EW-2025-001';
+    });
+    expect(failures.map(({ path }) => path)).toEqual([
+      'letter.recipient.company',
+      'letter.recipient.name',
+      'letter.recipient.address[0]',
+      'letter.reference'
+    ]);
+  });
+
+  test('a form of address is taken only when the advert writes it before the contact’s name', () => {
+    expect(letterCheck((letter) => (letter.recipient.form = 'mr'))).toEqual([
+      expect.objectContaining({ path: 'letter.recipient.form' })
+    ]);
+    // An advert that names the contact without a form of address: "Grace" says nothing about how to greet her.
+    const unwritten = ADVERT.replace('Frau Dr. Grace Hopper', 'Grace Hopper');
+    const plain = (form) => (letter) => {
+      letter.recipient.form = form;
+      delete letter.recipient.title;
+      letter.opening = 'Dear Grace Hopper,';
+    };
+    expect(letterCheck(plain('ms'), { advert: unwritten })).toEqual([
+      expect.objectContaining({ path: 'letter.recipient.form' })
+    ]);
+    expect(letterCheck(plain('neutral'), { advert: unwritten })).toEqual([]);
+  });
+
+  test('a figure the full CV does not state is refused, the advert’s included; the salary and start given are not', () => {
+    const failures = letterCheck((letter) => {
+      letter.body.push('Your 40,000 technicians will get an app I rewrote with 7 engineers.');
+    });
+    expect(failures.map(({ reason }) => reason)).toEqual([
+      'states 40,000, which its source does not',
+      'states 7, which its source does not'
+    ]);
+    expect(
+      letterCheck(
+        (letter) => letter.body.push('I would expect €85,000 a year, and could start in 2026-12.'),
+        { defaults: { salaryExpectation: '€85,000 a year', startDate: '2026-12' } }
+      )
+    ).toEqual([]);
+    expect(
+      letterCheck((letter) => letter.body.push('I would expect €95,000 a year.'), {
+        defaults: { salaryExpectation: '€85,000 a year' }
+      })
+    ).toEqual([expect.objectContaining({ reason: 'states 95,000, which its source does not' })]);
+  });
+
+  test('an employer neither the full CV nor the advert names is refused', () => {
+    expect(
+      letterCheck((letter) => letter.body.push('Before that I built apps at Jacquard Looms.'))
+    ).toEqual([
+      expect.objectContaining({ reason: 'names "Jacquard", which its source does not' }),
+      expect.objectContaining({ reason: 'names "Looms", which its source does not' })
+    ]);
+  });
+});
+
+// A translation (#299): German capitalises its nouns, so a capital names nothing; the names, figures and dates are
+// what a translation keeps, and what it is held to.
+describe('a tailored CV translated into German', () => {
+  const translate = (edit = () => {}, { advert = '' } = {}) => {
+    const tailored = structuredClone(SOURCE);
+    tailored.location = 'London';
+    tailored.relevant_experience[0].period = 'Januar 2021 – Dezember 2023';
+    tailored.relevant_experience[0].title = 'iOS-Entwickler';
+    tailored.relevant_experience[0].location = 'London (remote)';
+    tailored.relevant_experience[0].summary = 'Verantwortete den iOS-Client in einem Team von 2.';
+    tailored.relevant_experience[0].highlights = [
+      'Engine Notes für iOS, in SwiftUI gebaut seit dem ersten Commit 2021: Clean Architecture, TDD.',
+      'Testlaufzeit von 37,7 auf 5,2 Minuten gesenkt.',
+      'App-Store-Releases alle zwei Wochen.'
+    ];
+    tailored.languages = [{ name: 'Englisch', level: 'Muttersprache' }];
+    tailored.education = [
+      { degree: 'B.Sc. Mathematik', school: 'University of London', period: '2010–2013' }
+    ];
+    tailored.certifications = [
+      { name: 'Certified Engine Operator', issuer: 'Babbage Institute', year: 2020 }
+    ];
+    const sources = {
+      ...itself(SOURCE),
+      'education[0]': 'education[0]',
+      'certifications[0]': 'certifications[0]',
+      'languages[0]': 'languages[0]'
+    };
+    edit(tailored, sources);
+    return ProvenanceCheck.failures({
+      source: SOURCE,
+      tailored,
+      sources,
+      terms: ['Kotlin'],
+      advert,
+      language: 'de'
+    });
+  };
+
+  test('a faithful translation holds: its nouns capitalised, its months in German, its figures in German', () => {
+    expect(translate()).toEqual([]);
+  });
+
+  test('a figure changed, or a period that is other dates, is refused', () => {
+    const failures = translate((cv) => {
+      cv.relevant_experience[0].highlights[1] = 'Testlaufzeit von 37,7 auf 4 Minuten gesenkt.';
+      cv.relevant_experience[0].period = 'Januar 2021 – Januar 2024';
+    });
+    expect(failures).toEqual([
+      { path: 'relevant_experience[0].period', reason: "is not relevant_experience[0]'s period" },
+      {
+        path: 'relevant_experience[0].highlights[1]',
+        reason: 'states 4, which its source does not'
+      }
+    ]);
+  });
+
+  test('a name the source writes, or a technology, is held; a German noun is not', () => {
+    const failures = translate(
+      (cv) => {
+        cv.relevant_experience[0].highlights[2] =
+          'App-Store-Releases alle zwei Wochen, mit Kotlin und Bitrise.';
+      },
+      {
+        advert: `${'We build mobile apps for field technicians in Berlin and Munich. '.repeat(3)}Requirements: Kotlin and Bitrise.`
+      }
+    );
+    expect(failures.map(({ reason }) => reason)).toEqual([
+      'names "Kotlin", which its source does not',
+      'names "Bitrise", which its source does not'
+    ]);
+  });
+
+  test('a title may be worded in German, but claims no seniority its source does not', () => {
+    expect(
+      translate((cv) => (cv.relevant_experience[0].title = 'Leitender iOS-Entwickler'))
+    ).toEqual([
+      {
+        path: 'relevant_experience[0].title',
+        reason: 'claims "leitender", which its source does not'
+      }
+    ]);
+  });
+
+  test('the identity it copies is copied; an entry names its source, and keeps its school and dates', () => {
+    const failures = translate((cv, sources) => {
+      cv.email = 'ada@beispiel.de';
+      cv.education[0].school = 'Universität London';
+      delete sources['languages[0]'];
+    });
+    expect(failures).toEqual([
+      { path: 'email', reason: "is the source's identity, and changed" },
+      { path: 'education[0].school', reason: "is not education[0]'s school" },
+      { path: 'languages[0]', reason: 'names no source item' }
+    ]);
+  });
+
+  // The German profile, written in German by a native speaker from the English one (#26), read as a translation of
+  // it: what it adds is "KI" — "AI" — where the English writes "agentic development". Nothing else is refused. This
+  // test changes when either profile does, which is the point: it is a translation's check on a real translation.
+  test('the repository’s German profile, as a translation of the English, adds only "KI"', () => {
+    const read = (path) => JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));
+    const en = read('profiles/general/en.json');
+    const de = read('profiles/general/de.json');
+    const sources = itself(en);
+    for (const key of ['education', 'certifications', 'languages']) {
+      (en[key] || []).forEach((_, index) => (sources[`${key}[${index}]`] = `${key}[${index}]`));
+    }
+
+    const failures = ProvenanceCheck.failures({
+      source: en,
+      tailored: de,
+      sources,
+      language: 'de'
+    });
+
+    expect(new Set(failures.map(({ reason }) => reason))).toEqual(
+      new Set(['names "KI-Agenten", which its source does not'])
+    );
+  });
+});
+
 describe('the names a text writes', () => {
   // A sentence begins at the start and after a full stop; after a colon, a semicolon or a dash it goes on, and a
   // capital there is a name (the review of #286).

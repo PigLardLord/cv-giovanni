@@ -27,7 +27,7 @@ const SOURCE = Object.freeze({
   skills: [{ category: 'iOS', items: [{ name: 'Swift' }, { name: 'SwiftUI' }] }]
 });
 const ADVERT = [
-  'Senior iOS Engineer',
+  'Senior iOS Engineer at Engine Works',
   '',
   'Requirements:',
   '- SwiftUI in production',
@@ -40,6 +40,13 @@ const PROMPT = 'You tailor a CV. (the prompt, as the repository holds it)\n';
 const faithful = () => {
   const profile = structuredClone(SOURCE);
   profile.relevant_experience[0].highlights = ['Cut the test suite from 37.7 to 5.2 minutes.'];
+  profile.letter = {
+    recipient: { company: 'Engine Works' },
+    subject: 'Senior iOS Engineer',
+    opening: 'Dear hiring team,',
+    body: ['At Analytical Engines I cut the test suite from 37.7 to 5.2 minutes.'],
+    closing: 'Kind regards'
+  };
   return {
     profile,
     sources: {
@@ -66,7 +73,10 @@ const reply = (answer, usd = 0.5) => ({
   truncated: false
 });
 
-const setup = (replies, { language = 'en', advert = ADVERT, clock } = {}) => {
+const setup = (
+  replies,
+  { language = 'en', advert = ADVERT, clock, letter = { note: 'Remote.' } } = {}
+) => {
   const asked = [];
   const written = new Map();
   const inference = {
@@ -95,7 +105,7 @@ const setup = (replies, { language = 'en', advert = ADVERT, clock } = {}) => {
     id: '20260921-143205-a1b2c3',
     directory: 'applications/20260921-143205-a1b2c3',
     advert,
-    options: { ...DEFAULTS, language, letter: { note: 'Remote.' } },
+    options: { ...DEFAULTS, language, letter },
     cv: SOURCE
   };
   const run = () => tailor.run(job, { update: async (fields) => updates.push(fields) });
@@ -110,7 +120,7 @@ describe('a tailoring the check passes', () => {
 
     expect(result).toEqual({
       tailored: 'applications/20260921-143205-a1b2c3/tailored.json',
-      report: faithful().report,
+      report: { ...faithful().report, language: 'en', translated: false },
       sources: faithful().sources,
       questions: expect.any(Array),
       attempts: 1,
@@ -124,7 +134,12 @@ describe('a tailoring the check passes', () => {
       from: 'model',
       question: 'How many releases a year did the faster suite allow?'
     });
-    expect(JSON.parse(written.get(result.tailored))).toEqual(faithful().profile);
+    const { letter, ...profile } = faithful().profile;
+    expect(JSON.parse(written.get(result.tailored))).toEqual({
+      ...profile,
+      // The job dates and signs the letter; the model does neither (#299).
+      letter: { ...letter, date: '1970-01-01', signature: 'Ada Lovelace' }
+    });
     expect(updates).toEqual([{ attempts: 1 }]);
   });
 
@@ -161,14 +176,26 @@ describe('a tailoring the check passes', () => {
     );
   });
 
-  test('a letter the model wrote anyway is left out of the profile: the letter is step 6', async () => {
+  test('a letter the model dates or signs is dated and signed by the job', async () => {
     const answer = faithful();
-    answer.profile.letter = { opening: 'Dear hiring team' };
-    const { written, run } = setup([reply(answer)]);
+    answer.profile.letter = { ...answer.profile.letter, date: '2020-01-01', signature: 'Someone' };
+    const { written, run } = setup([reply(answer)], { clock: () => Date.UTC(2026, 8, 21, 14) });
 
     const { tailored } = await run();
 
-    expect(JSON.parse(written.get(tailored))).not.toHaveProperty('letter');
+    expect(JSON.parse(written.get(tailored)).letter).toMatchObject({
+      date: '2026-09-21',
+      signature: 'Ada Lovelace'
+    });
+  });
+
+  test('an answer with no letter is a failure, and goes back', async () => {
+    const bare = faithful();
+    delete bare.profile.letter;
+    const { asked, run } = setup([reply(bare), reply(faithful())]);
+
+    await expect(run()).resolves.toMatchObject({ attempts: 2 });
+    expect(asked[1].prompt).toMatch(/- letter: is missing/);
   });
 });
 
@@ -249,7 +276,7 @@ describe('a tailoring the check refuses', () => {
 // question while it stood in the CV.
 describe('what the review of the tailoring found', () => {
   const LOWER = [
-    'Senior iOS Engineer',
+    'Senior iOS Engineer at Engine Works',
     '',
     'Requirements:',
     '- kotlin multiplatform',
@@ -270,12 +297,42 @@ describe('what the review of the tailoring found', () => {
   });
 
   test('a term the advert does not require is no question', async () => {
-    const nice = ['Senior iOS Engineer', '', 'Nice to have:', '- Flutter'].join('\n');
+    const nice = ['Senior iOS Engineer at Engine Works', '', 'Nice to have:', '- Flutter'].join(
+      '\n'
+    );
     const { run } = setup([reply(faithful())], { advert: nice });
 
     const { questions } = await run();
 
     expect(questions.filter(({ from }) => from === 'advert')).toEqual([]);
+  });
+
+  test('a salary or a start the advert asks the letter for, and nothing gave, is a question', async () => {
+    const asking = [
+      'Senior iOS Engineer at Engine Works',
+      '',
+      'Please send your CV with your salary expectations and your earliest start date.'
+    ].join('\n');
+    const { run } = setup([reply(faithful())], { advert: asking });
+
+    const { questions } = await run();
+
+    expect(questions.filter(({ from }) => from === 'letter').map(({ field }) => field)).toEqual([
+      'salaryExpectation',
+      'startDate'
+    ]);
+  });
+
+  test('one the defaults gave is no question', async () => {
+    const asking = 'Senior iOS Engineer at Engine Works\n\nWith your Gehaltsvorstellung, please.';
+    const { run } = setup([reply(faithful())], {
+      advert: asking,
+      letter: { salaryExpectation: '€85,000' }
+    });
+
+    const { questions } = await run();
+
+    expect(questions.filter(({ from }) => from === 'letter')).toEqual([]);
   });
 
   test('the deadline is the job’s, set once, not one per attempt', async () => {
@@ -318,14 +375,15 @@ describe('a tailoring that cannot run', () => {
     expect(refusal.cost).toEqual({ backend: 'anthropic-api', usd: 0.6 });
   });
 
-  test('a language other than the full CV’s is step 6, and nothing is asked', async () => {
+  test('a job in another language is asked in it, and its report says it translated', async () => {
     const { asked, run } = setup([reply(faithful())], { language: 'de' });
 
-    await expect(run()).rejects.toMatchObject({
-      status: 501,
-      message: expect.stringMatching(/step 6 of #260/)
-    });
-    expect(asked).toHaveLength(0);
+    const { report } = await run();
+
+    expect(asked[0].prompt).toContain(
+      "<language>\nde — German, translated from the full CV's English\n</language>"
+    );
+    expect(report).toMatchObject({ language: 'de', translated: true });
   });
 });
 
