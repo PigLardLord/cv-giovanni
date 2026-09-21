@@ -69,7 +69,8 @@ checks, not by this paragraph.
   back as a **question** for the owner, never as a line of the CV: the answer belongs in the full CV,
   where it holds for every application after. The letter is held the same way, and addressed only as the
   advert addresses its contact — a form of address only when the advert writes one (#174, #299). What
-  the check cannot see is written down, not assumed away (#292, #296).
+  the check cannot see (#292), and what it once refused that it should not have (#296), are written down, not
+  assumed away.
 - **A tailored CV may be translated, and says so.** A job in `de` translates the English full CV, and its
   report says it did; the check reads a translation by what it keeps — names, technologies, figures,
   dates — since German capitalises every noun (#299). This is a tailored CV's licence only. **The published
@@ -84,7 +85,7 @@ the CV and one for the letter — and a print the copy can fix goes back to the 
 times; `auditGate` decides what a last failure means, and an audit that did not run is never a pass
 (#303); a build that printed nothing fails the job whatever the gate. A ready job's documents download
 under the name the public CV's download has — the candidate, the role, the document — so a recruiter
-never saves two shapes (#320). One server on a checkout runs the queue, and a second leaves its jobs alone
+never saves two shapes (#303, the review of pull request #320). One server on a checkout runs the queue, and a second leaves its jobs alone
 (#282). Out of scope, and to stay so until someone decides otherwise: hosting the API anywhere but this
 machine, editing the full CV through it, deleting jobs, and sending anything anywhere — a tailored CV
 leaves the machine only as a PDF its owner attaches.
