@@ -1,6 +1,9 @@
 const DEFAULT_DATA_PATH = 'profiles/general/en.json';
 const PUBLISHED_OUT_DIR = 'generated';
 
+/** The options a target is made from, each of which names a path and means nothing without one. */
+const VALUED = Object.freeze(['profile', 'out']);
+
 /**
  * Which CV is being generated, and where its files go.
  *
@@ -49,6 +52,38 @@ export class GenerationTarget {
   }
 
   /**
+   * The options a run names, written either way: `--profile=<path>` or `--profile <path>` (#258).
+   *
+   * The second form used to be read as `--profile` with no value, and a profile with no value fell back to the
+   * public CV: "--profile profiles/general/de.json" built the English CV and said nothing. So an option this
+   * reads — `--profile`, `--out` — must carry a value one way or the other, and one that does not is refused
+   * rather than defaulted. Anything else is left as it was written, for the script that reads it.
+   * @param {string[]} argv - Arguments after the script name
+   * @returns {Map<string, string>} Each option's value
+   * @throws {Error} For `--profile` or `--out` with no value
+   */
+  static options(argv = []) {
+    const options = new Map();
+    argv.forEach((argument, at) => {
+      if (!argument.startsWith('--')) return;
+      const separator = argument.indexOf('=');
+      const name = argument.slice(2, separator < 0 ? undefined : separator);
+      const next = argv[at + 1];
+      const value =
+        separator >= 0
+          ? argument.slice(separator + 1)
+          : next !== undefined && !next.startsWith('--')
+            ? next
+            : '';
+      if (VALUED.includes(name) && !value) {
+        throw new Error(`--${name} needs a value: --${name}=<path>, or --${name} <path>.`);
+      }
+      options.set(name, value);
+    });
+    return options;
+  }
+
+  /**
    * Every CV the manifest publishes, each printed into the directory CI publishes (#248).
    *
    * Published because the manifest lists it, not because its path matches one written into the code: a
@@ -77,7 +112,7 @@ export class GenerationTarget {
   }
 
   /**
-   * Read `--profile=<path>` and `--out=<dir>` from an argument list.
+   * Read `--profile` and `--out` from an argument list, written either way (see `options`).
    *
    * With no arguments this is the public CV into `generated/`, exactly as before. With a
    * profile and no output directory the files land **beside that profile**, not in
@@ -88,20 +123,11 @@ export class GenerationTarget {
    * @returns {GenerationTarget} The resolved target
    */
   static fromArguments(argv = []) {
-    const options = new Map(
-      argv
-        .filter((argument) => argument.startsWith('--'))
-        .map((argument) => {
-          const separator = argument.indexOf('=');
-          return separator < 0
-            ? [argument.slice(2), '']
-            : [argument.slice(2, separator), argument.slice(separator + 1)];
-        })
-    );
+    const options = GenerationTarget.options(argv);
 
     // "./profiles/general/de.json" is the same file as "profiles/general/de.json", and read as a different one it
     // walked past every rule that asks whether a path is under profiles/ (the review of #248).
-    const dataPath = (options.get('profile') || DEFAULT_DATA_PATH).replace(/^(\.\/)+/, '');
+    const dataPath = (options.get('profile') ?? DEFAULT_DATA_PATH).replace(/^(\.\/)+/, '');
     const match = /^(.*\/)?([^/]+)\/([^/]+)\.json$/.exec(dataPath);
     if (!match) {
       throw new Error(
@@ -120,7 +146,7 @@ export class GenerationTarget {
       dataPath,
       profile,
       locale,
-      outDir: (options.get('out') || defaultOut).replace(/\/+$/, '')
+      outDir: (options.get('out') ?? defaultOut).replace(/\/+$/, '')
     });
   }
 }
