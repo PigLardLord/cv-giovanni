@@ -551,6 +551,8 @@ try {
     rows.push({
       layout,
       pages: pageCount,
+      // Whether Chrome wrote a structure tree: reported, never scored — a tree is not accessibility (#333).
+      tagged: /^Tagged:\s+yes\b/m.test(info),
       score: `${passed}/${Object.keys(checks).length}`,
       checks,
       faint: faint.slice(0, 8),
@@ -704,6 +706,13 @@ const report = [
   `with less than one ${PRINTED_PAGE.bodyLine.toFixed(1)}pt line of running text free is marked ⚠: on the last page the`,
   'next line has nowhere to go; on a page before it, the next line moves the block at its foot — today a role —',
   'whole to the next page. It is a warning, never a failure, since the page count is the gate.',
+  '',
+  rows.every(({ tagged }) => tagged)
+    ? 'Every print is a tagged PDF (`pdfinfo`: `Tagged: yes`): Chrome wrote a structure tree. A tree is not accessibility, and no screen reader has read it (AGENTS.md).'
+    : `⚠ Not a tagged PDF: ${rows
+        .filter(({ tagged }) => !tagged)
+        .map(({ layout }) => layout)
+        .join(', ')} — Chrome wrote no structure tree, which AGENTS.md says it does.`,
   ...(tight.length ? ['', `⚠ Tight last page: ${tight.join(', ')}.`] : []),
   ...(tightBefore.length
     ? [
