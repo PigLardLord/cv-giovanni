@@ -9,3 +9,9 @@ node_modules/
 # others. The public CV is profiles/; everything per-application lives here and leaves the
 # machine only as an attached PDF. tests/ApplicationsStayLocal.test.js enforces it.
 applications/
+# A profile other than the published one builds beside its own file (core/GenerationTarget.js), so a build of
+# profiles/general/de.json writes its PDFs and audit reports into profiles/general/out/. Nothing a build writes is
+# committed, for the reason generated/.gitignore gives: Chrome stamps each print with its date, and a copy nobody
+# rebuilt offers a CV older than the page (#250). applications/ is ignored whole, above. This covers where a build
+# writes by default; an explicit --out is the caller's to keep out of the tree.
+profiles/*/out/

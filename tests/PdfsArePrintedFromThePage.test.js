@@ -4,6 +4,7 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { GenerationTarget } from '../core/GenerationTarget.js';
 
 // One CV, printed from the page (#144). pdfmake composed a second one until #149, and went with its audit in
 // #153. The audits that gate a publish have to read the files that are published: the print audit printing a
@@ -72,6 +73,33 @@ describe('the PDFs are printed from the page', () => {
 
     expect(tracked.split('\n').filter(Boolean)).toEqual(['generated/.gitignore']);
   });
+
+  // The published CV builds into generated/, which ignores itself. Any other profile builds beside its own file,
+  // and one under profiles/ writes into a tracked directory: a German build left three PDFs and the audit reports
+  // in profiles/general/out/, one `git add -A` from being committed (#250). The path is asked of the rule that
+  // decides it, and its shape is pinned: if the rule ever moves the output elsewhere, this fails, so the ignore
+  // line moves with it rather than quietly covering a directory nothing writes to any more.
+  test.each(['profiles/general/de.json', 'profiles/someone/en.json'])(
+    'nothing a build of %s writes can be committed',
+    (profile) => {
+      const { outDir } = GenerationTarget.fromArguments([`--profile=${profile}`]);
+      const ignored = (path) => {
+        try {
+          execFileSync('git', ['check-ignore', '-q', '--no-index', path], {
+            cwd: fileURLToPath(new URL('..', import.meta.url))
+          });
+          return true;
+        } catch {
+          return false;
+        }
+      };
+
+      expect(outDir).toMatch(/^profiles\/[^/]+\/out$/);
+      expect(
+        [`${outDir}/cv.pdf`, `${outDir}/PRINT_AUDIT.md`].filter((path) => !ignored(path))
+      ).toEqual([]);
+    }
+  );
 
   test('CI builds with Chrome, then audits what it built', () => {
     const build = step('Print the CV from the page');
