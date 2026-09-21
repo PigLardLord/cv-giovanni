@@ -22,11 +22,12 @@ export class EducationRenderer extends BaseRenderer {
     const description = typeof edu.description === 'string' ? edu.description.trim() : '';
 
     // Every string from the data is text (#157), a degree with no period writes no brackets (#169), and one that
-    // states its credits writes them after its name, held to their unit (#48).
+    // states its credits writes them after its name, held to their unit (#48). The degree is a heading, as a role is
+    // (#265).
     return this.appendPieces(root, this.createElement(root, 'div', 'edu-entry'), [
       this.appendPieces(
         root,
-        this.createElement(root, 'div', 'edu-degree'),
+        this.createElement(root, 'h4', 'edu-degree'),
         this.fieldPieces(root, degreeLine(edu, this.creditWords()), {
           credits: 'edu-credits no-break'
         })
