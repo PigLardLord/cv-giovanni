@@ -116,12 +116,15 @@ jobs:
         with:
           path: ${{ runner.temp }}/site/
 
-      - name: Collect the reports this run wrote
+      # And the PDFs it printed: the print a run audited is the one Pages publishes, and when it differs from a
+      # developer's — an unpinned Chrome breaking a line otherwise — it is the only place to see how (#301).
+      - name: Collect the reports and the print this run wrote
         if: always()
         run: |
-          mkdir -p "$RUNNER_TEMP/audit-reports"
+          mkdir -p "$RUNNER_TEMP/audit-reports/printed"
           find docs -maxdepth 1 -name '*_AUDIT*.md' -newer "$RUNNER_TEMP/run-started" -exec cp {} "$RUNNER_TEMP/audit-reports/" \;
-          ls "$RUNNER_TEMP/audit-reports"
+          find generated -maxdepth 1 -name '*.pdf' -newer "$RUNNER_TEMP/run-started" -exec cp {} "$RUNNER_TEMP/audit-reports/printed/" \;
+          ls -R "$RUNNER_TEMP/audit-reports"
 
       - name: Keep them
         if: always()
