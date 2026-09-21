@@ -3,7 +3,8 @@
  *
  * `status` says what kind of refusal it is, in the numbers HTTP already gives those kinds, because the local
  * API is where a refusal surfaces: 404 nothing by that name, 409 already there, 422 not a valid input, 501
- * not built yet. The core never sees a request; the adapter in front of it maps the status to its transport.
+ * not built yet, 503 a valid request this machine cannot serve as it is set up — no backend, or a file of the
+ * owner's that cannot be used. The core never sees a request; the adapter in front of it maps the status to its transport.
  */
 export class Refusal extends Error {
   /**
