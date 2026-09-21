@@ -1,6 +1,16 @@
 import { Refusal } from './Refusal.js';
 
 /**
+ * The models a run may ask for, and the efforts, named once (#266). #260 runs a tailoring job with the model and the
+ * effort it names; a value outside these is refused here, naming them, before any backend runs.
+ */
+export const MODELS = Object.freeze(['claude-opus-5', 'claude-sonnet-5', 'claude-fable-5-1']);
+export const EFFORTS = Object.freeze(['low', 'medium', 'high', 'xhigh', 'max']);
+
+/** The longest a timer waits before it overflows, in milliseconds: about 24.8 days. */
+const LONGEST_WAIT = 2 ** 31 - 1;
+
+/**
  * The model the local app asks for help, through whichever backend this machine has (#22).
  *
  * The backends are tried in the order given. The local claude CLI comes first: it runs on the subscription
@@ -8,16 +18,9 @@ import { Refusal } from './Refusal.js';
  * backend available answers, and which one that is, with how it charges, is known before a run rather than
  * found on a bill after it. With none available, a run is refused, with the reason each backend gave.
  *
- * A backend is `{ name, cost, availability(), complete({ system, prompt }) }`. The service never sees a
- * credential: a backend that needs one reads it where it is kept, outside the repository.
+ * A backend is `{ name, cost, availability(), complete({ system, prompt, model?, effort?, deadline? }) }`. The
+ * service never sees a credential: a backend that needs one reads it where it is kept, outside the repository.
  */
-/**
- * The models a run may ask for, and the efforts, named once (#266). #260 runs a tailoring job with the model and the
- * effort it names; a value outside these is refused here, naming them, before any backend runs.
- */
-export const MODELS = Object.freeze(['claude-opus-5', 'claude-sonnet-5', 'claude-fable-5-1']);
-export const EFFORTS = Object.freeze(['low', 'medium', 'high', 'xhigh', 'max']);
-
 export class Inference {
   /** @param {object[]} backends - In order of preference */
   constructor(backends = []) {
@@ -65,6 +68,10 @@ export class Inference {
     }
     if (deadline !== undefined && !Number.isFinite(deadline)) {
       throw new Refusal(422, "A run's deadline is a time, in milliseconds since the epoch.");
+    }
+    // A timer longer than 2**31 - 1 ms overflows and fires after one: the longest window would give the shortest run.
+    if (deadline !== undefined && deadline - Date.now() > LONGEST_WAIT) {
+      throw new Refusal(422, "A run's deadline is at most 24 days ahead.");
     }
     const { backend, unavailable } = await this.status();
     if (!backend) {

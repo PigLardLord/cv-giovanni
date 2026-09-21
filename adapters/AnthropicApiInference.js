@@ -154,19 +154,41 @@ export class AnthropicApiInference {
     const key = await this.key();
     const hidden = (text) => String(text).split(key).join('[the key]');
 
-    const client = new Anthropic({ apiKey: key, fetch: this.fetch, maxRetries: 0, timeout });
+    // The destination and the credential are this adapter's, whatever the shell says: the SDK would otherwise take
+    // ANTHROPIC_BASE_URL and ANTHROPIC_AUTH_TOKEN from the environment, and a shell that routes Claude Code through
+    // a gateway would send this file's key to it. ANTHROPIC_CUSTOM_HEADERS has no off switch, but with the
+    // destination pinned it only adds headers bound for api.anthropic.com. ANTHROPIC_LOG=debug in the shell makes
+    // the SDK print each request's body — the CV and the advert — to the server's console, headers redacted.
+    const client = new Anthropic({
+      apiKey: key,
+      authToken: null,
+      baseURL: 'https://api.anthropic.com',
+      fetch: this.fetch,
+      maxRetries: 0,
+      timeout
+    });
+    // The SDK's timeout ends when the answer's headers arrive; a run at max effort spends its minutes after that, in
+    // the stream. The deadline holds for the whole run, stream included.
+    const signal = AbortSignal.timeout(timeout);
     let message;
     try {
       message = await client.messages
-        .stream({
-          model,
-          max_tokens: this.maxTokens,
-          ...(effort !== undefined && { output_config: { effort } }),
-          system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
-          messages: [{ role: 'user', content: prompt }]
-        })
+        .stream(
+          {
+            model,
+            max_tokens: this.maxTokens,
+            ...(effort !== undefined && { output_config: { effort } }),
+            system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
+            messages: [{ role: 'user', content: prompt }]
+          },
+          { signal }
+        )
         .finalMessage();
     } catch (error) {
+      // Before the APIError branch: an aborted stream is an APIError too, and would read as the API refusing.
+      if (error instanceof Anthropic.APIUserAbortError || signal.aborted) {
+        throw new Refusal(502, `The Anthropic API did not answer in time (${timeout} ms).`);
+      }
       if (error instanceof Anthropic.APIConnectionTimeoutError) {
         throw new Refusal(502, `The Anthropic API did not answer in time (${timeout} ms).`);
       }
@@ -184,12 +206,17 @@ export class AnthropicApiInference {
 
     // A refusal is a stop, not an empty answer, and ends the run with what the model said about it. There is no
     // fallback to another model: the job named the model, and stated its cost, before it ran.
+    // A refusal is billed — the system prompt was read, and whatever was written before the stop — and a job sums
+    // its cost over its attempts, so the refusal carries its price.
     if (message.stop_reason === 'refusal') {
       const { category, explanation } = message.stop_details || {};
-      throw new Refusal(
-        422,
-        `The model declined the run${category ? ` (${category})` : ''}: ` +
-          `${hidden(explanation || 'it gave no reason')}.`
+      throw Object.assign(
+        new Refusal(
+          422,
+          `The model declined the run${category ? ` (${category})` : ''}: ` +
+            `${hidden(explanation || 'it gave no reason')}.`
+        ),
+        { usd: priced(message.usage, prices) }
       );
     }
     return {

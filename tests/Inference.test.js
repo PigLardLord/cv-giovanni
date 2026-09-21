@@ -141,7 +141,10 @@ describe('a run with a model, an effort and a deadline', () => {
   test.each([
     [{ model: 'claude-opus-4-8' }, /claude-opus-5, claude-sonnet-5, claude-fable-5-1/],
     [{ effort: 'extreme' }, /low, medium, high, xhigh, max/],
-    [{ deadline: 'soon' }, /deadline/]
+    [{ deadline: 'soon' }, /deadline/],
+    // A timer longer than 2**31 - 1 ms overflows and fires after 1 ms: the longest window would give the shortest
+    // run (the review of #268).
+    [{ deadline: Date.now() + 30 * 24 * 60 * 60 * 1000 }, /24 days/]
   ])('refuses %j before any backend runs, naming what it accepts', async (extra, accepted) => {
     const { runs, backend } = recording();
 

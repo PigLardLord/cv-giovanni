@@ -300,6 +300,143 @@ describe('the Anthropic API as an inference backend', () => {
     expect(requests).toEqual([]);
   });
 
+  // The SDK reads ANTHROPIC_BASE_URL, ANTHROPIC_AUTH_TOKEN and ANTHROPIC_CUSTOM_HEADERS from the environment. A
+  // shell that routes Claude Code through a gateway would have sent this file's key to that gateway (the review of
+  // #268). The destination and the credential are this adapter's, whatever the shell says.
+  test('sends the key to api.anthropic.com and nowhere else, whatever the environment names', async () => {
+    withKey();
+    const fetch = answering(streamed());
+    const saved = { ...process.env };
+    process.env.ANTHROPIC_BASE_URL = 'https://gateway.example.test/proxy';
+    process.env.ANTHROPIC_AUTH_TOKEN = 'a-token-from-the-shell';
+    try {
+      await new AnthropicApiInference({ file, fetch }).complete(REQUEST);
+    } finally {
+      for (const name of ['ANTHROPIC_BASE_URL', 'ANTHROPIC_AUTH_TOKEN']) {
+        if (name in saved) process.env[name] = saved[name];
+        else delete process.env[name];
+      }
+    }
+
+    expect(requests[0].url).toBe('https://api.anthropic.com/v1/messages');
+    expect(requests[0].headers.get('authorization')).toBeNull();
+    expect(requests[0].headers.get('x-api-key')).toBe(KEY);
+  });
+
+  // The SDK's timeout ends when the answer's headers arrive, and a run at max effort spends its minutes after
+  // that, in the stream. A deadline that stopped only the handshake would let a stalled stream hold a job's queue
+  // for ever (the review of #268).
+  test('a stream still running at the deadline is stopped there', async () => {
+    withKey();
+    const fetch = async (url, init) => {
+      recorded(url, init);
+      const opening = new TextEncoder().encode(streamed().split('event: content_block_start')[0]);
+      // As a real fetch does: the body opens, never ends, and a read in progress fails when the signal aborts.
+      const body = new ReadableStream({
+        start(controller) {
+          controller.enqueue(opening);
+          init.signal?.addEventListener('abort', () =>
+            controller.error(new DOMException('The operation was aborted.', 'AbortError'))
+          );
+        }
+      });
+      return new Response(body, { status: 200, headers: { 'content-type': 'text/event-stream' } });
+    };
+    const started = Date.now();
+
+    const refusal = await new AnthropicApiInference({ file, fetch })
+      .complete({ ...REQUEST, deadline: Date.now() + 300 })
+      .catch((error) => error);
+
+    expect(refusal).toMatchObject({ name: 'Refusal', status: 502 });
+    expect(refusal.message).toMatch(/in time/);
+    expect(Date.now() - started).toBeLessThan(3000);
+  });
+
+  // A refusal is billed — the system prompt was read, and whatever was written before the stop — and a job sums
+  // its cost over its attempts, so the refusal carries its price (the review of #268).
+  test('a refused run still says what it cost', async () => {
+    withKey();
+    const fetch = answering(
+      streamed({
+        text: '',
+        model: 'claude-opus-5',
+        stop: 'refusal',
+        details: { type: 'refusal', category: null },
+        output: 0
+      })
+    );
+
+    const refusal = await new AnthropicApiInference({ file, fetch })
+      .complete({ ...REQUEST, model: 'claude-opus-5' })
+      .catch((error) => error);
+
+    // 1,000 × $5 + 10,000 × $6.25, per million tokens, and no output.
+    expect(refusal).toMatchObject({ status: 422, usd: 0.0675 });
+    expect(refusal.message).toMatch(/gave no reason/);
+  });
+
+  // How the stream can fail, pinned so that a new version of the SDK cannot change it unnoticed: each ends the run,
+  // and none carries the key or passes a partial answer off as a whole one.
+  describe('a stream that fails', () => {
+    const cut = (text) => async (url, init) => {
+      recorded(url, init);
+      return new Response(text, { status: 200, headers: { 'content-type': 'text/event-stream' } });
+    };
+
+    test('before its end is a refusal, not the half it sent', async () => {
+      withKey();
+      const halfway = streamed().split('event: message_delta')[0];
+
+      await expect(
+        new AnthropicApiInference({ file, fetch: cut(halfway) }).complete(REQUEST)
+      ).rejects.toMatchObject({ name: 'Refusal', status: 502 });
+    });
+
+    test('with an error event is a refusal with what it said, never the key', async () => {
+      withKey();
+      const opening = streamed().split('event: content_block_start')[0];
+      const error = `event: error\ndata: ${JSON.stringify({
+        type: 'error',
+        error: { type: 'overloaded_error', message: `Overloaded, near ${KEY}` }
+      })}\n\n`;
+
+      const refusal = await new AnthropicApiInference({ file, fetch: cut(opening + error) })
+        .complete(REQUEST)
+        .catch((failure) => failure);
+
+      expect(refusal).toMatchObject({ name: 'Refusal', status: 502 });
+      expect(refusal.message).toMatch(/Overloaded/);
+      expect(refusal.message).not.toContain(KEY);
+    });
+
+    test('with its connection reset is a refusal that names no key', async () => {
+      withKey();
+      const fetch = async (url, init) => {
+        recorded(url, init);
+        const body = new ReadableStream({
+          start(controller) {
+            controller.enqueue(
+              new TextEncoder().encode(streamed().split('event: content_block_start')[0])
+            );
+            controller.error(new Error(`socket hang up, with ${KEY}`));
+          }
+        });
+        return new Response(body, {
+          status: 200,
+          headers: { 'content-type': 'text/event-stream' }
+        });
+      };
+
+      const refusal = await new AnthropicApiInference({ file, fetch })
+        .complete(REQUEST)
+        .catch((failure) => failure);
+
+      expect(refusal).toMatchObject({ name: 'Refusal', status: 502 });
+      expect(refusal.message).not.toContain(KEY);
+    });
+  });
+
   // Prices as platform.claude.com lists them, per million tokens: base input, a five-minute cache write
   // (1.25× input), a cache read (0.1× input, 0.025× on Fable 5.1) and output.
   test('says how a run is charged before any run, with the prices of every model it runs', () => {
