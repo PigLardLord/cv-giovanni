@@ -538,7 +538,9 @@ export const ADVERT = {
    */
   // A German advert names what an English full CV evidences in German words: "Testautomatisierung" is test automation
   // (#306). The German forms stand beside the English in the same group, so evidence is found across the two, and a
-  // match through them is reported as `synonym`, as any other.
+  // match through them is reported as `synonym`, as any other. Whole words only: a compound built on one with a
+  // linking "s" — "Testautomatisierungs-Framework", "Barrierefreiheitsprüfung" — is out of reach, as is any compound
+  // the table does not list.
   synonyms: [
     ['mdm', 'mobile device management', 'mobilgeräteverwaltung'],
     [
@@ -554,7 +556,16 @@ export const ADVERT = {
     ['qa', 'quality assurance', 'qualitätssicherung'],
     ['spm', 'swift package manager'],
     ['tdd', 'test driven development', 'test-driven development', 'testgetriebene entwicklung'],
-    ['api', 'apis', 'schnittstelle', 'schnittstellen'],
+    // Not the bare singular: "die Schnittstelle zwischen Produkt und Entwicklung" is a liaison, not an API.
+    [
+      'api',
+      'apis',
+      'schnittstellen',
+      'rest-schnittstelle',
+      'rest-schnittstellen',
+      'programmierschnittstelle',
+      'programmierschnittstellen'
+    ],
     ['ios', 'apple platform', 'apple platforms'],
     ['developer', 'developers', 'engineer', 'engineers', 'entwickler', 'entwicklerin'],
     [
