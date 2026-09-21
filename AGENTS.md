@@ -619,7 +619,7 @@ reports built from the committed profile. That commit is listed in `.git-blame-i
 Chrome writes a tagged PDF: `Tagged: yes`, over a real tree, and `audit:print` says so for every print
 it reads (#333). Measured with `pdfinfo -struct` on the three printed layouts, poppler 26.01.0, on
 2026-09-21 (#149, #265): `H1` for the name, `H2` for the title, seven `H3` section heads, six `H4` —
-each role and each degree, one level below its section —, seven `P`, five lists with seventeen `LI`
+each role and each degree, one level below its section — then seven `P`, five lists with seventeen `LI`
 and twelve `Lbl`, and five `Link`s tied to their annotations. Most of the page — 191 to 213 elements a
 layout — is `NonStruct`, Chrome's element for a `div` or `span` with no role, and poppler reports
 `StructElem object is wrong type (Strong)` in every layout, most likely Chrome's tagging of

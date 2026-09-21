@@ -16,7 +16,7 @@ with less than one 15.4pt line of running text free is marked ⚠: on the last p
 next line has nowhere to go; on a page before it, the next line moves the block at its foot — today a role —
 whole to the next page. It is a warning, never a failure, since the page count is the gate.
 
-Every print is a tagged PDF (`pdfinfo`: `Tagged: yes`): Chrome wrote a structure tree. A tree is not accessibility, and no screen reader has read it (AGENTS.md).
+Every CV print is a tagged PDF (`pdfinfo`: `Tagged: yes`): Chrome wrote a structure tree. A tree is not accessibility, and no screen reader has read it (AGENTS.md).
 
 The ATS fixtures in `tests/fixtures/ats/` are this print, word for word and line for line as `pdftotext` and `pdftotext -raw` extract it, allowing for the spaces poppler infers.
 
