@@ -52,6 +52,33 @@ describe('ExperienceRenderer', () => {
     ]);
   });
 
+  // German writes compounds with letters an ASCII class does not know: "Menü-Leiste" split at the ü, so the
+  // rule held "Men" and nothing it should, and a line was free to break at the hyphen — which a text
+  // extractor then reads as "MenüLeiste" (#251). A compound is letters and digits in any script.
+  test('holds a compound whose letters are not ASCII, as it holds offline-first', () => {
+    renderer.render(document, {
+      relevant_experience: [
+        {
+          title: 'Mobile Developer',
+          company: 'Apparound',
+          period: 'September 2015 – July 2018',
+          summary: 'Die Menü-Leiste im Groß-Projekt.',
+          highlights: ['Die App-Übersicht und die Über-Sicht, offline-first.']
+        }
+      ]
+    });
+
+    const summary = document.querySelector('.job-summary');
+    expect(summary.textContent).toBe('Die Menü-Leiste im Groß-Projekt.');
+    expect([...summary.querySelectorAll('.no-break')].map((held) => held.textContent)).toEqual([
+      'Menü-Leiste',
+      'Groß-Projekt'
+    ]);
+    expect(
+      [...document.querySelectorAll('.job-highlights .no-break')].map((held) => held.textContent)
+    ).toEqual(['App-Übersicht', 'Über-Sicht', 'offline-first']);
+  });
+
   // A closed range is one word too: "ezeep Blue for iOS, 2020–" ended a line at Technical Profile's 320px,
   // with "2023" opening the next (#230). The rule against a line ending on a separator is the same rule.
   test('holds a closed range whole, as it holds a hyphenated compound', () => {
