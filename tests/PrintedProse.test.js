@@ -6,6 +6,7 @@ import {
   proseSpans,
   raggedMasthead,
   rolePages,
+  runtSpans,
   straddlingRoles,
   strandedSeparators
 } from '../scripts/lib/printed-prose.mjs';
@@ -89,6 +90,26 @@ describe('what a sentence costs on the printed page', () => {
         pages: [1],
         last: 'management.'
       }
+    ]);
+  });
+
+  test('a sentence whose last line is one word is a runt; two words, or one line, is not (#295)', () => {
+    const print = [
+      'Enterprise mobility and device',
+      'management.',
+      'Rewrote the app in SwiftUI in a',
+      'team of 2.',
+      'One line, whole.'
+    ].join('\n');
+    const spans = proseSpans(print, [
+      'Enterprise mobility and device management.',
+      'Rewrote the app in SwiftUI in a team of 2.',
+      'One line, whole.',
+      'A bullet nobody printed.'
+    ]);
+
+    expect(runtSpans(spans)).toEqual([
+      { bullet: 'Enterprise mobility and device management.', last: 'management.' }
     ]);
   });
 

@@ -78,6 +78,18 @@ export function proseSpans(text, sentences, { periods = [] } = {}) {
 }
 
 /**
+ * The sentences that end on a line of a single word, which the eye reads as a layout error before it reads the word
+ * (the product review of #262, #295). A sentence set on one line has no last line of its own.
+ * @param {{ text: string, found: boolean, lines: number|null, last: string|null }[]} spans - From `proseSpans`
+ * @returns {{ bullet: string, last: string }[]} One a runt, with the word it strands
+ */
+export function runtSpans(spans) {
+  return spans
+    .filter((span) => span.found && span.lines > 1 && span.last.trim().split(/\s+/).length === 1)
+    .map(({ text, last }) => ({ bullet: text, last }));
+}
+
+/**
  * The pages a role is printed across: the page its header stands on, and every page its own sentences reach.
  *
  * A role is found by its header, the one line that names both the title and the employer, so a title said again in

@@ -25,6 +25,7 @@ import { PRINTED_PAGE, bboxPages, printedRoom, roomReport } from './lib/page-roo
 import { MEASURE_LIMIT, longProseLines, overflowingPeriods, proseOf } from './lib/line-length.mjs';
 import {
   proseSpans,
+  runtSpans,
   raggedMasthead,
   straddlingRoles,
   strandedSeparators
@@ -413,11 +414,8 @@ try {
     // What each bullet, and the summary, cost on the paper, and whether a role's own evidence left its header's page.
     const spans = proseSpans(text, everyBullet, { periods });
     const bullets = spans.filter((span) => !span.found || span.lines > BULLET_LINES);
-    // And whether one ends on a line of a single word, which the eye reads as a layout error before it reads the
-    // word (the product review of #262, #295).
-    const runts = spans
-      .filter((span) => span.found && span.lines > 1 && span.last.split(' ').length === 1)
-      .map(({ text: bullet, last }) => ({ bullet, last }));
+    // And whether one ends on a line of a single word (#295).
+    const runts = runtSpans(spans);
     const summary = proseSpans(text, [profile.profile], { periods })[0];
     const straddling = straddlingRoles(text, roleProse, { periods });
     // And whether the masthead's lines share one left edge, which a hidden label's leftover space broke.
