@@ -111,6 +111,13 @@ export async function resolveRun(name, script, argv, options) {
     return { exit: 2 };
   };
 
+  // An option with no value is refused once, here, rather than once by each CV a run over all of them starts.
+  try {
+    GenerationTarget.options(argv);
+  } catch (error) {
+    return refuse(error.message);
+  }
+
   let manifest;
   try {
     manifest = await readManifest();

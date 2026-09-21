@@ -92,14 +92,17 @@ const git = (args, options = {}) =>
     ...options
   });
 
-// The base: --base=<ref>, else the pull request's base branch as the workflow names it, else origin/main. What is built
-// and read is the merge base, the commit `base...HEAD` diffs against, so a base branch that moved on since does not
-// bring changes this branch never saw into the comparison.
+// The base: --base=<ref> or --base <ref> (#272), else the pull request's base branch as the workflow names it, else
+// origin/main. What is built and read is the merge base, the commit `base...HEAD` diffs against, so a base branch that
+// moved on since does not bring changes this branch never saw into the comparison.
+let options;
+try {
+  options = GenerationTarget.options(process.argv.slice(2));
+} catch (error) {
+  cannotCheck(error.message);
+}
 const ref =
-  process.argv
-    .slice(2)
-    .find((argument) => argument.startsWith('--base='))
-    ?.slice(7) ||
+  options.get('base') ||
   (process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_REF}` : 'origin/main');
 let commit;
 try {

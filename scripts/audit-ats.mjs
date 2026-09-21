@@ -10,6 +10,7 @@ import { AtsScore } from '../core/AtsScore.js';
 import { AtsReport } from '../core/AtsReport.js';
 import { AtsFloors } from '../core/AtsFloors.js';
 import { AdvertMatcher } from '../core/AdvertMatcher.js';
+import { GenerationTarget } from '../core/GenerationTarget.js';
 import { manifestReader, resolveRun } from './lib/published-targets.mjs';
 import { catalogueTranslator } from './lib/printed-letter.mjs';
 import { auditedFiles } from './lib/printed-cv.mjs';
@@ -66,11 +67,8 @@ try {
 
 // An advert that cannot be read is not the same as no advert: the first is a mistake to
 // report, the second a deliberate run without one. Silently treating them alike would let a
-// typo in a path look like a decision.
-const advertPath = process.argv
-  .slice(2)
-  .find((argument) => argument.startsWith('--advert='))
-  ?.slice(9);
+// typo in a path look like a decision. `--advert <path>` is read as `--advert=<path>` (#272).
+const advertPath = GenerationTarget.options(argv).get('advert');
 let advertText = null;
 if (advertPath) {
   try {
