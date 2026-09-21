@@ -539,9 +539,9 @@ describe('a tailored letter', () => {
     },
     reference: 'EW-2026-117',
     subject: 'Senior iOS Engineer',
-    opening: 'Dear Dr. Hopper,',
+    opening: 'I am writing about the Senior iOS Engineer role.',
     body: ['At Analytical Engines I cut the test suite from 37.7 to 5.2 minutes.'],
-    closing: 'Kind regards'
+    closing: 'I look forward to hearing from you.'
   };
   const letterCheck = (edit = () => {}, { advert = ADVERT, defaults = {} } = {}) => {
     const tailored = structuredClone(SOURCE);
@@ -585,7 +585,7 @@ describe('a tailored letter', () => {
     const plain = (form) => (letter) => {
       letter.recipient.form = form;
       delete letter.recipient.title;
-      letter.opening = 'Dear Grace Hopper,';
+      letter.opening = 'I am writing about the role Grace Hopper leads.';
     };
     expect(letterCheck(plain('ms'), { advert: unwritten })).toEqual([
       expect.objectContaining({ path: 'letter.recipient.form' })
@@ -597,9 +597,11 @@ describe('a tailored letter', () => {
     const failures = letterCheck((letter) => {
       letter.body.push('Your 40,000 technicians will get an app I rewrote with 7 engineers.');
     });
+    // The advert's facts are its own: its figure, and its technicians, are not the candidate's to state.
     expect(failures.map(({ reason }) => reason)).toEqual([
       'states 40,000, which its source does not',
-      'states 7, which its source does not'
+      'states 7, which its source does not',
+      'says "technicians", which its source does not'
     ]);
     expect(
       letterCheck(
@@ -621,6 +623,96 @@ describe('a tailored letter', () => {
       expect.objectContaining({ reason: 'names "Jacquard", which its source does not' }),
       expect.objectContaining({ reason: 'names "Looms", which its source does not' })
     ]);
+  });
+});
+
+// What the review of #300 found passing, or refused, that should not have been.
+describe('what the review of the letter found', () => {
+  const ADVERT = [
+    'Senior iOS Engineer at Engine Works, Berlin',
+    'Requirements: Kotlin Multiplatform in production.',
+    'Ihre Bewerbung richten Sie bitte an Herrn Max Müller, Leiter Mobile.',
+    'Or write to MS GRACE HOPPER, or to Herr John von Neumann, or to Dr Ada Byron.'
+  ].join('\n');
+  const letter = (edit) => {
+    const tailored = structuredClone(SOURCE);
+    tailored.letter = {
+      recipient: { company: 'Engine Works' },
+      subject: 'Senior iOS Engineer',
+      opening: 'I am writing about the Senior iOS Engineer role.',
+      body: ['At Analytical Engines I cut the test suite from 37.7 to 5.2 minutes.'],
+      closing: 'I look forward to hearing from you.'
+    };
+    edit(tailored.letter);
+    return ProvenanceCheck.failures({
+      source: SOURCE,
+      tailored,
+      sources: itself(SOURCE),
+      terms: ['Kotlin Multiplatform'],
+      advert: ADVERT,
+      defaults: { startDate: '2026-12-01' }
+    });
+  };
+
+  test('the advert names the addressee, and backs none of the letter’s claims', () => {
+    expect(
+      letter((l) => l.body.push('I have shipped Kotlin Multiplatform apps to production.'))
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ reason: 'names "Kotlin", which its source does not' })
+      ])
+    );
+  });
+
+  test.each([
+    ['opening', 'Dear Dr. Hopper,'],
+    ['opening', 'Sehr geehrte Frau Dr. Hopper,'],
+    ['closing', 'Kind regards'],
+    ['closing', 'Mit freundlichen Grüßen']
+  ])('a salutation or a valediction in its %s is refused: %s', (field, text) => {
+    expect(letter((l) => (l[field] = text)).map(({ path }) => path)).toContain(`letter.${field}`);
+  });
+
+  test.each([
+    ['mr', 'Max Müller', 'Müller'],
+    ['ms', 'Grace Hopper', 'Hopper'],
+    ['mr', 'John von Neumann', 'Neumann']
+  ])('the form %s is taken as the advert writes it before %s', (form, name, surname) => {
+    expect(letter((l) => (l.recipient = { company: 'Engine Works', name, surname, form }))).toEqual(
+      []
+    );
+  });
+
+  test('a title is the advert’s with or without its dot', () => {
+    expect(
+      letter((l) => (l.recipient = { company: 'Engine Works', name: 'Ada Byron', title: 'Dr.' }))
+    ).toEqual([]);
+  });
+
+  test.each([
+    'I could start on 1 December 2026.',
+    'Ich könnte zum 1. Dezember 2026 beginnen.',
+    'Ich könnte zum 01.12.2026 beginnen.'
+  ])('the start the defaults give may be written as a reader writes it: %s', (sentence) => {
+    expect(letter((l) => l.body.push(sentence))).toEqual([]);
+  });
+
+  test('a start other than the one given is refused', () => {
+    expect(letter((l) => l.body.push('I could start on 1 January 2027.'))).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ reason: 'states 2027, which its source does not' })
+      ])
+    );
+  });
+
+  test('a letter that says nothing is refused', () => {
+    expect(
+      letter((l) => {
+        delete l.subject;
+        delete l.opening;
+        l.body = [];
+      }).map(({ path }) => path)
+    ).toEqual(['letter.subject', 'letter.opening', 'letter.body']);
   });
 });
 
@@ -720,6 +812,30 @@ describe('a tailored CV translated into German', () => {
       { path: 'languages[0]', reason: 'names no source item' }
     ]);
   });
+
+  test('a technology an English advert names is held in a German compound too', () => {
+    const failures = translate(
+      (cv) => {
+        cv.relevant_experience[0].highlights[2] =
+          'App-Store-Releases alle zwei Wochen, mit Flutter-Kenntnissen.';
+      },
+      {
+        advert: `${'We build mobile apps for field technicians in Berlin and Munich. '.repeat(3)}Requirements: Flutter.`
+      }
+    );
+    expect(failures.map(({ reason }) => reason)).toEqual([
+      'names "Flutter-Kenntnissen", which its source does not'
+    ]);
+  });
+
+  test.each(['Teamleiter iOS', 'Softwarearchitekt', 'Chefentwickler iOS'])(
+    'a title translated as %s claims a seniority its source does not',
+    (title) => {
+      expect(
+        translate((cv) => (cv.relevant_experience[0].title = title)).map(({ path }) => path)
+      ).toContain('relevant_experience[0].title');
+    }
+  );
 
   // The German profile, written in German by a native speaker from the English one (#26), read as a translation of
   // it: what it adds is "KI" — "AI" — where the English writes "agentic development". Nothing else is refused. This

@@ -43,9 +43,9 @@ const faithful = () => {
   profile.letter = {
     recipient: { company: 'Engine Works' },
     subject: 'Senior iOS Engineer',
-    opening: 'Dear hiring team,',
+    opening: 'I am writing about the Senior iOS Engineer role.',
     body: ['At Analytical Engines I cut the test suite from 37.7 to 5.2 minutes.'],
-    closing: 'Kind regards'
+    closing: 'I look forward to hearing from you.'
   };
   return {
     profile,
@@ -373,6 +373,23 @@ describe('a tailoring that cannot run', () => {
     expect(asked).toHaveLength(2);
     expect(refusal).toBe(declined);
     expect(refusal.cost).toEqual({ backend: 'anthropic-api', usd: 0.6 });
+  });
+
+  // The job's language and the letter's defaults reach the check: a German answer, its period in German months and
+  // its letter stating the salary the defaults give, holds only if both do (the review of #300).
+  test('a German answer is checked as a translation, and its letter against the defaults it was given', async () => {
+    const german = faithful();
+    german.profile.relevant_experience[0].period = 'Januar 2021 – Dezember 2023';
+    german.profile.relevant_experience[0].highlights = [
+      'Testlaufzeit von 37,7 auf 5,2 Minuten gesenkt.'
+    ];
+    german.profile.letter.body = ['Meine Gehaltsvorstellung liegt bei 85.000 € im Jahr.'];
+    const { run } = setup([reply(german)], {
+      language: 'de',
+      letter: { salaryExpectation: '€85,000 a year' }
+    });
+
+    await expect(run()).resolves.toMatchObject({ attempts: 1, report: { translated: true } });
   });
 
   test('a job in another language is asked in it, and its report says it translated', async () => {

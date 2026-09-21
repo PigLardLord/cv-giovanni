@@ -61,6 +61,8 @@ Write the cover letter as the profile's `letter`, in the shape the letter page r
 - The body argues the same case as the CV, from the same evidence: every figure, employer, product and technology it states is one the full CV states. It may name the advertiser and the role as the advert does.
 - The salary expectation and the start date are the ones in `<letter_defaults>`, as written there, or absent. When the advert asks for either and the defaults give none, leave it out and say so in `questions`.
 - The owner's note in `<letter_defaults>` is what they want every letter to say; say it, in the letter's language.
+- `opening` is the letter's first paragraph and `closing` its last sentence. The page greets the recipient from `recipient` and signs off in its own words, so never write a salutation ("Dear …", "Sehr geehrte …") or a valediction ("Kind regards", "Mit freundlichen Grüßen") in them, or anywhere in the body.
+- The advert's own facts — its customers, its numbers, its technologies — are its claims, not the candidate's: state only what the full CV states.
 - Do not write the date or the signature: the program sets both.
 
 # The language

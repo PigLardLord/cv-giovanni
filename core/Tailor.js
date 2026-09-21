@@ -23,10 +23,11 @@ const LANGUAGES = Object.freeze({ en: 'English', de: 'German' });
 
 /** What an advert says when it asks the letter for a salary or a start date, in English or German. */
 const ASKS = Object.freeze({
+  // Asked of the candidate — "your salary expectation", "Ihre Gehaltsvorstellung" — not the advert's own terms.
   salaryExpectation:
-    /salary (expectations?|requirements?)|expected salary|desired salary|gehaltsvorstellung|gehaltswunsch|gehaltsvorstellungen/i,
+    /(your|ihre[nrs]?)\s+(salary\s+(expectations?|requirements?)|expected\s+salary|desired\s+salary|gehaltsvorstellung(en)?|gehaltswunsch|gehaltsvorstellungen)/i,
   startDate:
-    /earliest (possible )?start|start(ing)? date|availability date|eintrittstermin|frühest(möglich)?e?n? (eintritt|start)|starttermin/i
+    /(your|ihre[nrs]?)\s+(earliest\s+(possible\s+)?(start(ing)?\s+date|start|availability)|availability\s+date|notice\s+period|frühestmöglichen\s+eintritt(stermin)?|eintrittstermin|eintrittsdatum|kündigungsfrist|starttermin)|when\s+you\s+could\s+start/i
 });
 
 /**
@@ -74,7 +75,12 @@ export class Tailor {
     const translated = options.language !== SOURCE_LANGUAGE;
     // The job dates and signs the letter: a model that wrote either would be inventing them.
     const now = this.clock();
-    const today = new Date(now).toISOString().slice(0, 10);
+    // The day where the owner is, not in Greenwich: Intl owns dates, and en-CA writes them as the letter page reads them.
+    const today = new Intl.DateTimeFormat('en-CA', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(now);
     const deadline = now + this.timeLimit;
     const system = await this.files.readText(SYSTEM_PROMPT);
     const terms = Tailor.terms(advert, source);
