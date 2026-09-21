@@ -50,12 +50,9 @@ const NO_FULL_CV = Object.freeze({
   readLetter: async () => ({ letter: null, where: null })
 });
 
-/** Until step 5 of #260 lands, a job has nothing to run. */
+/** A service given no work: the server hands it a `Tailor` (#284), and a test hands it what it checks. */
 const NOTHING_TO_RUN = async () => {
-  throw new Refusal(
-    501,
-    'Nothing tailors yet: step 5 of #260 builds the tailoring itself, and this job has nothing to run until it lands.'
-  );
+  throw new Refusal(501, 'This service was built without its work: nothing runs a tailoring.');
 };
 
 /**
@@ -67,7 +64,7 @@ const NOTHING_TO_RUN = async () => {
  * the job's state while the client polls.
  *
  * A job lives in `applications/<id>/`, which git ignores: the advert, the request's options, and its state, which
- * is what lets it survive the server stopping. What the job does is the `work` port; steps 5 to 7 of #260 fill it.
+ * is what lets it survive the server stopping. What the job does is the `work` port: a `Tailor` (#284).
  */
 export class Tailorings {
   /**
@@ -309,7 +306,7 @@ export class Tailorings {
   /**
    * How long a job with these options should take, in seconds: the median of the last ten ready jobs with the same
    * model, effort and backend, attempts included, or the seed until ten exist. Ready ones only: a job that failed at
-   * once — as every job does until step 5 of #260 lands — would drag the median towards nothing.
+   * once — a refused model, a backend that cannot be reached — would drag the median towards nothing.
    */
   estimate({ model, effort }, backend) {
     const alike = this.history
@@ -390,7 +387,10 @@ export class Tailorings {
         reason:
           error instanceof Refusal
             ? error.message
-            : 'The job failed: the terminal running the server says why.'
+            : 'The job failed: the terminal running the server says why.',
+        // What failed, item by item, and what the attempts cost, when the work says (#284).
+        ...(error instanceof Refusal && error.details && { problems: error.details }),
+        ...(error instanceof Refusal && error.cost && { cost: error.cost })
       };
     }
     const finished = this.clock();

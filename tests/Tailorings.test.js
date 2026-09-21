@@ -617,7 +617,7 @@ describe('running the queue', () => {
     expect((await tailorings.status(id)).attempts).toBe(2);
   });
 
-  test('until step 5 of #260 lands, a job fails at once, saying what is missing', async () => {
+  test('a service given no work fails a job at once, saying so', async () => {
     const { tailorings } = setup();
 
     const { id } = await tailorings.create({ advert: 'Senior iOS Engineer' });
@@ -625,7 +625,7 @@ describe('running the queue', () => {
 
     expect(await tailorings.status(id)).toMatchObject({
       status: 'failed',
-      reason: expect.stringMatching(/#260/)
+      reason: expect.stringMatching(/built without its work/)
     });
   });
 });
