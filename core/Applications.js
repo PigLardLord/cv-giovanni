@@ -5,7 +5,7 @@ import { Refusal } from './Refusal.js';
  * A name an application can have. It becomes a directory under `applications/` and a word in every
  * filename generated for it, so: lowercase letters and digits, hyphens inside, at most 40.
  */
-const NAME = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/;
+export const APPLICATION_NAME = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/;
 
 /**
  * The applications on this machine: an advert, and a CV tailored to it (#21).
@@ -13,8 +13,8 @@ const NAME = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/;
  * Each lives in `applications/<name>/`, which git ignores, because a CV written for a named employer names
  * that employer and this repository is public. It starts as a copy of the general profile, so matching and
  * building work on the application's own CV and write into its own `out/`, never over `generated/` or the
- * reports in `docs/`. Matching and building run the scripts the command line runs; tailoring is
- * #24's, on the inference #22 connects.
+ * reports in `docs/`. Matching and building run the scripts the command line runs; tailoring is a job of
+ * its own, in `Tailorings` (#260).
  */
 export class Applications {
   /**
@@ -44,7 +44,7 @@ export class Applications {
   async create(request) {
     const { name, advert } =
       request && typeof request === 'object' && !Array.isArray(request) ? request : {};
-    if (typeof name !== 'string' || !NAME.test(name)) {
+    if (typeof name !== 'string' || !APPLICATION_NAME.test(name)) {
       throw new Refusal(
         422,
         "An application's name is lowercase letters and digits, with hyphens inside, at most 40 characters: it becomes a directory and a word in every filename."
@@ -83,22 +83,13 @@ export class Applications {
     return this.scripts.run('generate-pdfs', [`--profile=${profile}`]);
   }
 
-  /** Not built yet: #24 builds tailoring on the inference #22 connects. */
-  async tailor(name) {
-    await this.existing(name);
-    throw new Refusal(
-      501,
-      'Nothing can be tailored yet: #24 builds tailoring on the inference #22 connects.'
-    );
-  }
-
   /**
    * An application's paths, once its name is one an application can have and its advert and CV exist.
    * @throws {Refusal} 404 otherwise
    */
   async existing(name) {
     const missing = new Refusal(404, `No application named ${JSON.stringify(String(name))}.`);
-    if (typeof name !== 'string' || !NAME.test(name)) throw missing;
+    if (typeof name !== 'string' || !APPLICATION_NAME.test(name)) throw missing;
     const paths = Applications.paths(name);
     const found = await Promise.all([
       this.files.exists(paths.profile),

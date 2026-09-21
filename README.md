@@ -136,18 +136,27 @@ letter. A tailored CV leaves the machine only as an attached PDF.
 endpoint hands its request to one service in `core/` and answers with what that service returns, so the browser and
 the command line run the same code:
 
-| Endpoint                               | What it does                                                                           |
-| -------------------------------------- | -------------------------------------------------------------------------------------- |
-| `GET /api/profile`                     | Reads `profiles/general/en.json`                                                       |
-| `PUT /api/profile`                     | Writes it, refusing a profile without the shape the renderers read, with every problem |
-| `GET /api/inference`                   | Says which backend a run would use, and how it is charged, before any run              |
-| `POST /api/applications`               | Creates an application: the advert, and a copy of the general profile to tailor        |
-| `POST /api/applications/<name>/match`  | Runs `npm run audit:ats` with the application's profile and advert                     |
-| `POST /api/applications/<name>/build`  | Runs `npm run build:pdf` with the application's profile                                |
-| `POST /api/applications/<name>/tailor` | Answers 501 until the application flow is built                                        |
+| Endpoint                              | What it does                                                                                   |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `GET /api/profile`                    | Reads `profiles/general/en.json`                                                               |
+| `PUT /api/profile`                    | Writes it, refusing a profile without the shape the renderers read, with every problem         |
+| `GET /api/inference`                  | Says which backend a run would use, and how it is charged, before any run                      |
+| `POST /api/applications`              | Creates an application: the advert, and a copy of the general profile to tailor                |
+| `POST /api/applications/<name>/match` | Runs `npm run audit:ats` with the application's profile and advert                             |
+| `POST /api/applications/<name>/build` | Runs `npm run build:pdf` with the application's profile                                        |
+| `POST /api/tailorings`                | Queues a tailoring of the CV to an advert, and answers 202 at once with its id and an estimate |
+| `GET /api/tailorings/<id>`            | Answers the job's state — queued, running, ready or failed — and the seconds left              |
 
-It answers only this machine's browser holding the run's key, as `applications/` does, and only requests from the page
-the server serves. `adapters/LocalApi.js` holds the routes, and `tests/LocalApi.test.js` fails when a route does more
+It answers only this machine: its browser holding the run's key, as `applications/` does, or a program sending
+`Authorization: Bearer` with the token the server keeps in `~/.config/mycv/api-token` and names on start. Either
+way, only requests made directly from this machine and from the page the server serves.
+
+A tailoring takes minutes, so it is a job. Jobs run one at a time, in order of arrival, and each lives in
+`applications/<id>/` — the advert, the options and the job's state — so it survives the server stopping; a job that
+was running when it stopped is marked failed, as interrupted. A request takes `advert` and, optionally, `language`,
+`model`, `effort`, `layout`, `auditRetries` and `auditGate`; anything else is refused, naming what is accepted. The
+estimate is the median of the last ten jobs like it, or a seed until there are ten, and the answer says which. What a
+job does is being built in the steps of #260: until the tailoring itself lands, a job fails at once, saying so. `adapters/LocalApi.js` holds the routes, and `tests/LocalApi.test.js` fails when a route does more
 than pass its request through.
 
 The app asks a model through the claude CLI when this machine has it, on whatever the CLI is signed in to, which

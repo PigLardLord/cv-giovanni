@@ -1,4 +1,4 @@
-import { lstat, mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, readFile, readdir, realpath, writeFile } from 'node:fs/promises';
 import { realpathSync } from 'node:fs';
 import { dirname, isAbsolute, join, sep } from 'node:path';
 
@@ -64,6 +64,18 @@ export class NodeProjectFiles {
     const existing = await lstat(file).catch(() => null);
     if (existing?.isSymbolicLink()) await this.inside(file, path);
     await writeFile(file, text);
+  }
+
+  /** @returns {Promise<string[]>} The names in a directory inside the project; none when it does not exist */
+  async list(path) {
+    let directory;
+    try {
+      directory = await this.inside(this.place(path), path);
+    } catch (error) {
+      if (error.code === 'ENOENT') return [];
+      throw error;
+    }
+    return readdir(directory);
   }
 
   /** @returns {Promise<boolean>} Whether the file exists, inside the project */

@@ -35,6 +35,15 @@ describe('the project files, on disk', () => {
     expect(await files.exists('applications/acme/en.json')).toBe(false);
   });
 
+  test('lists a directory, and a directory that does not exist as empty', async () => {
+    const files = new NodeProjectFiles(root);
+    await files.writeText('applications/acme/advert.txt', 'x');
+    await files.writeText('applications/20260921-143205-a1b2c3/state.json', '{}');
+
+    expect((await files.list('applications')).sort()).toEqual(['20260921-143205-a1b2c3', 'acme']);
+    expect(await files.list('locales')).toEqual([]);
+  });
+
   test.each([
     '../outside.txt',
     'applications/../../outside.txt',
@@ -48,6 +57,7 @@ describe('the project files, on disk', () => {
     await expect(files.writeText(path, 'x')).rejects.toThrow(/outside|hidden|not a path/);
     await expect(files.readText(path)).rejects.toThrow(/outside|hidden|not a path/);
     await expect(files.exists(path)).rejects.toThrow(/outside|hidden|not a path/);
+    await expect(files.list(path)).rejects.toThrow(/outside|hidden|not a path/);
   });
 
   test('refuses a link inside the project that leads out of it, and makes nothing out there', async () => {
@@ -61,5 +71,6 @@ describe('the project files, on disk', () => {
     await expect(files.writeText('applications/acme/advert.txt', 'x')).rejects.toThrow(/outside/);
     expect(existsSync(join(outside, 'new'))).toBe(false);
     expect(existsSync(join(outside, 'advert.txt'))).toBe(false);
+    await expect(files.list('applications/acme')).rejects.toThrow(/outside/);
   });
 });
