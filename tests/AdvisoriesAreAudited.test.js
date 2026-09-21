@@ -15,14 +15,17 @@ const workflow = readFileSync(
 const problems = (text) => {
   const found = [];
   if (!/^ {2}pull_request:/m.test(text)) found.push('it does not run on pull requests');
-  if (!/^ {2}schedule:\n {4}- cron: '[^']+'$/m.test(text))
-    found.push('it does not run on a schedule');
+  if (!/^ {2}schedule:\n {4}- cron: '\d+ \d+ \* \* [0-6]'$/m.test(text)) {
+    found.push('it does not run weekly');
+  }
   if (!/^ {8}run: npm audit --package-lock-only --audit-level=high$/m.test(text)) {
     found.push('it does not fail on a high or critical advisory');
   }
   if (/continue-on-error/.test(text)) found.push('a finding can pass without failing its job');
-  if (/^ {2}gates:$/m.test(text))
+  // A job reports as its `name` when it has one, so either would take the one check the ruleset requires.
+  if (/^ {2}gates:$/m.test(text) || /^ {4}name: gates$/m.test(text)) {
     found.push('its job is named gates, the check the ruleset requires');
+  }
   return found;
 };
 
@@ -36,7 +39,11 @@ describe('the dependency tree’s advisories', () => {
       'it does not fail on a high or critical advisory'
     ]);
     expect(problems(workflow.replace(/^ {2}schedule:\n.*\n/m, ''))).toEqual([
-      'it does not run on a schedule'
+      'it does not run weekly'
+    ]);
+    expect(problems(workflow.replace("* * 1'", "* * *'"))).toEqual(['it does not run weekly']);
+    expect(problems(workflow.replace(/^( {2}advisories:)$/m, '$1\n    name: gates'))).toEqual([
+      'its job is named gates, the check the ruleset requires'
     ]);
     expect(problems(workflow.replace(/^ {2}advisories:$/m, '  gates:'))).toEqual([
       'its job is named gates, the check the ruleset requires'
