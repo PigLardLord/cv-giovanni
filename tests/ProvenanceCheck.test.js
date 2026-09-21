@@ -1042,7 +1042,8 @@ describe('a greeting or a closing in the letter', () => {
   test.each([
     ['opening', 'Hi-fi audio was the first product I shipped.'],
     ['opening', 'Lieber als Rezepte schreibe ich Code.'],
-    ['closing', 'Sincerely, I believe the role fits what I have done.']
+    ['closing', 'Sincerely, I believe the role fits what I have done.'],
+    ['opening', 'Hi there are two reasons I am writing.']
   ])('that opens prose holds: %s "%s"', (field, text) => {
     expect(read(field, text)).toEqual([]);
   });
@@ -1057,7 +1058,20 @@ describe('a greeting or a closing in the letter', () => {
     ['closing', 'Kind regards'],
     ['closing', 'I look forward to hearing from you. Kind regards'],
     ['closing', 'Kind regards, Ada Lovelace'],
-    ['closing', 'Mit freundlichen Grüßen']
+    ['closing', 'Mit freundlichen Grüßen'],
+    // The review of #331.
+    ['opening', 'Sehr geehrte Damen und Herren,'],
+    ['opening', 'Hi, Grace'],
+    ['opening', 'Dear recruiting team,'],
+    ['opening', 'Dear engineering team,'],
+    ['opening', 'Hello there,'],
+    ['opening', 'Hello!'],
+    ['opening', 'Liebes Team,'],
+    ['closing', 'Kind regards\nAda Lovelace'],
+    ['closing', 'Sincerely yours,'],
+    ['closing', 'Liebe Grüße'],
+    ['closing', 'Yours truly,'],
+    ['closing', 'Mit besten Grüßen']
   ])('is refused: %s "%s"', (field, text) => {
     expect(read(field, text)).toEqual([expect.objectContaining({ path: field })]);
   });

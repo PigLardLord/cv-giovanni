@@ -570,9 +570,11 @@ export class ProvenanceCheck {
     // line's end; "Hi-fi audio", "Lieber als …" open prose. A closing stands as its own sentence, with at most the
     // name it signs; "Sincerely, I believe …" goes on (#312).
     const GREETING =
-      /^\s*(?:dear|hello|hi|sehr geehrte[rn]?|liebe[rn]?|hallo|guten tag)(?![\p{L}-])/iu;
+      /^\s*(?:dear|hello|hi|sehr geehrte[rns]?|liebe[rns]?(?!\s+grüße)|hallo|guten tag)(?![\p{L}-])/iu;
+    // An addressee may carry up to two words before its noun: "Dear recruiting team", "Dear hiring manager" (the review
+    // of #331).
     const WHOM =
-      /^(?:\s*,|\s*$|\s+(?:\p{Lu}|(?:frau|herrn?|ms|mrs|mr|dr|prof|hiring|team|sir|madam|all|everyone|recruiters?|colleagues|zusammen|damen|kolleg\p{L}*)(?![\p{L}])))/u;
+      /^(?:\s*[,:!]|\s*$|\s+there\s*(?:[,!]|$)|\s+(?:\p{Lu}|(?:[\p{L}-]+\s+){0,2}(?:team|manager|committee|department)(?![\p{L}])|(?:frau|herrn?|ms|mrs|mr|dr|prof|sir|madam|all|everyone|friends|recruiters?|colleagues|zusammen|damen|kolleg\p{L}*)(?![\p{L}])))/u;
     const SALUTATION = {
       test: (text) => {
         if (/^\s*to whom it may concern(?![\p{L}])/iu.test(text)) return true;
@@ -581,7 +583,7 @@ export class ProvenanceCheck {
       }
     };
     const CLOSING =
-      /^\s*(?:(?:kind|best|warm|warmest)\s+regards|yours\s+(?:sincerely|faithfully)|sincerely|mit freundlichen grüßen|viele grüße|beste grüße|herzliche grüße)(?![\p{L}])/iu;
+      /^\s*(?:(?:with\s+)?(?:kind|best|warm|warmest)\s+regards|best\s+wishes|yours\s+(?:sincerely|faithfully|truly)|sincerely(?:\s+yours)?|mit\s+(?:freundlichen|besten|herzlichen|lieben)\s+grüßen|(?:viele|beste|herzliche|freundliche|liebe|schöne)\s+grüße)(?![\p{L}])/iu;
     const SIGNED = /^\s*,?(?:\s+\p{Lu}[\p{L}.'’-]*){0,3}\s*[.!]?\s*$/u;
     const VALEDICTION = {
       test: (sentence) => {
