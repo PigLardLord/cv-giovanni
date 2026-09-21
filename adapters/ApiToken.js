@@ -34,8 +34,9 @@ export async function ensureApiToken(file, { retried = false } = {}) {
     if (error.code !== 'ENOENT') {
       return { token: null, reason: `the API token's file ${file} cannot be read` };
     }
-    // A link that leads nowhere reads as absent, and the exclusive write refuses it as present: retried as a race, the
-    // two disagreed for ever and the server never started (#291). Nothing is made through a link.
+    // A link that leads nowhere reads as absent, and the exclusive write refuses it as present: at the file, retried as a
+    // race, the two disagreed for ever and the server never started (#291); at the directory, making it failed with a
+    // reason that did not say why. Either is named now, and nothing is made through a link.
     const link = await linkToNothing(file);
     if (link) {
       return {
