@@ -44,6 +44,13 @@ describe('the project files, on disk', () => {
     expect(await files.list('locales')).toEqual([]);
   });
 
+  test('a path under a file, rather than a directory, does not exist', async () => {
+    const files = new NodeProjectFiles(root);
+    await files.writeText('applications/notes', 'a stray file');
+
+    expect(await files.exists('applications/notes/state.json')).toBe(false);
+  });
+
   test.each([
     '../outside.txt',
     'applications/../../outside.txt',

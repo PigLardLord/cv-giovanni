@@ -155,9 +155,12 @@ A tailoring takes minutes, so it is a job. Jobs run one at a time, in order of a
 `applications/<id>/` — the advert, the options and the job's state — so it survives the server stopping; a job that
 was running when it stopped is marked failed, as interrupted. A request takes `advert` and, optionally, `language`,
 `model`, `effort`, `layout`, `auditRetries` and `auditGate`; anything else is refused, naming what is accepted. The
-estimate is the median of the last ten jobs like it, or a seed until there are ten, and the answer says which. What a
-job does is being built in the steps of #260: until the tailoring itself lands, a job fails at once, saying so. `adapters/LocalApi.js` holds the routes, and `tests/LocalApi.test.js` fails when a route does more
-than pass its request through.
+estimate is the median of the last ten jobs like it that ended ready, or a seed until there are ten, and the answer
+says which. What a job does is being built in the steps of #260: until the tailoring itself lands, a job fails at
+once, saying so.
+
+`adapters/LocalApi.js` holds the routes, and `tests/LocalApi.test.js` fails when a route does more than pass its
+request through.
 
 The app asks a model through the claude CLI when this machine has it, on whatever the CLI is signed in to, which
 for a Claude subscription means no charge per run. Otherwise it uses an API key, paid per run: put the key in

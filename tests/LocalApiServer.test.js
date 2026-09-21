@@ -262,7 +262,8 @@ describe('who the local API answers', () => {
       );
       expect(posted.status).toBe(202);
       const { id, status, backend, estimateSeconds } = JSON.parse(posted.body);
-      expect({ status, backend }).toEqual({ status: 'queued', backend: 'claude-cli' });
+      // Nothing was ahead of it: it is running by the time the answer is written.
+      expect({ status, backend }).toEqual({ status: 'running', backend: 'claude-cli' });
       expect(estimateSeconds).toBeGreaterThan(0);
 
       await services.tailorings.idle();

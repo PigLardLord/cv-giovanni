@@ -88,9 +88,10 @@ describe('creating a tailoring', () => {
     const { work } = controlled();
     const { tailorings } = setup({ work });
 
+    // Nothing was ahead of it, so it is running by the time the answer is written, and the answer says so.
     expect(await tailorings.create({ advert: 'Senior iOS Engineer\n' })).toEqual({
       id: '20260921-143205-a1b2c0',
-      status: 'queued',
+      status: 'running',
       estimateSeconds: SEED_SECONDS.max,
       estimateBasis: 'seed',
       backend: 'anthropic-api',
@@ -121,6 +122,14 @@ describe('creating a tailoring', () => {
     expect(
       [...disk.stored.keys()].filter((path) => !/^(config|locales|applications)\//.test(path))
     ).toEqual([]);
+  });
+
+  test('behind another job, it is queued', async () => {
+    const { tailorings } = setup({ work: controlled().work });
+
+    await tailorings.create({ advert: 'first' });
+
+    expect((await tailorings.create({ advert: 'second' })).status).toBe('queued');
   });
 
   test('the defaults are the ones #260 names', () => {
@@ -186,6 +195,7 @@ describe('creating a tailoring', () => {
     expect(refusal).toBeInstanceOf(Refusal);
     expect(refusal.status).toBe(422);
     expect(refusal.details).toEqual([{ path: field, reason: expect.stringMatching(accepted) }]);
+    expect(refusal.message).toMatch(new RegExp(`^The tailoring cannot run as asked: ${field} `));
   });
 
   test('every problem is listed at once', async () => {
@@ -323,6 +333,54 @@ describe('running the queue', () => {
     log.mockRestore();
   });
 
+  // A job marked running whose files then could not be read was left running for ever (the review of #276).
+  test('a job whose files cannot be read ends failed, and the work never runs', async () => {
+    const { work } = controlled();
+    const log = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const { tailorings } = setup({
+      work,
+      files: {
+        'applications/20260921-100001-aaaaaa/state.json': JSON.stringify({
+          status: 'queued',
+          createdAt: '2026-09-21T10:00:01.000Z',
+          effort: 'max'
+        })
+      }
+    });
+
+    await tailorings.start();
+    await tailorings.idle();
+
+    expect(await tailorings.status('20260921-100001-aaaaaa')).toMatchObject({
+      status: 'failed',
+      reason: expect.not.stringMatching(/advert\.txt|applications/)
+    });
+    expect(work).not.toHaveBeenCalled();
+    log.mockRestore();
+  });
+
+  test('a progress update that lands late never leaves a finished job running on disk', async () => {
+    const { disk, tailorings } = setup({
+      work: async (job, { update }) => {
+        update({ attempts: 1 }); // not awaited, as a callback from a child process would not be
+        return { done: true };
+      }
+    });
+    const write = disk.writeText;
+    disk.writeText = async (path, text) => {
+      if (text.includes('"attempts": 1') && text.includes('"running"')) {
+        await new Promise((resolve) => setTimeout(resolve, 30));
+      }
+      return write(path, text);
+    };
+
+    const { id } = await tailorings.create({ advert: 'Senior iOS Engineer' });
+    await tailorings.idle();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    expect(stateOf(disk, id)).toMatchObject({ status: 'ready', attempts: 1 });
+  });
+
   test('the work reports its attempts as it makes them', async () => {
     const { tailorings } = setup({
       work: async (job, { update }) => {
@@ -380,7 +438,8 @@ describe('the estimate', () => {
 
   test('is the median of the last ten ready jobs with the same model, effort and backend', async () => {
     const files = {};
-    const durations = [100, 900, 200, 300, 400, 500, 600, 700, 800, 1000, 50];
+    // The first, 5000, is the eleventh from the end: counted, it would move the median.
+    const durations = [5000, 900, 200, 300, 400, 500, 600, 700, 800, 1000, 50];
     durations.forEach((seconds, index) => {
       const id = `20260920-0000${String(index).padStart(2, '0')}-aaaaaa`;
       files[`applications/${id}/state.json`] = JSON.stringify({
@@ -394,6 +453,14 @@ describe('the estimate', () => {
       });
     });
     // Another effort, a failed job and another backend never count.
+    files['applications/20260920-000102-bbbbbb/state.json'] = JSON.stringify({
+      status: 'ready',
+      model: 'claude-opus-5',
+      effort: 'max',
+      backend: 'claude-cli',
+      finishedAt: '2026-09-20T01:00:02.000Z',
+      seconds: 5
+    });
     files['applications/20260920-000100-bbbbbb/state.json'] = JSON.stringify({
       status: 'ready',
       model: 'claude-opus-5',
@@ -414,8 +481,27 @@ describe('the estimate', () => {
 
     const answer = await tailorings.create({ advert: 'Senior iOS Engineer' });
 
-    // The last ten: 900 … 50, without the first 100. Sorted: 50 200 300 400 500 600 700 800 900 1000.
+    // The last ten: 900 … 50, without the first 5000. Sorted: 50 200 300 400 500 600 700 800 900 1000.
     expect(answer).toMatchObject({ estimateSeconds: 550, estimateBasis: 'measured' });
+  });
+
+  test('the jobs this server finishes count towards the next estimate', async () => {
+    const { tailorings, now } = setup({
+      work: async () => {
+        now.at += 300_000;
+        return {};
+      }
+    });
+
+    for (let job = 0; job < 10; job += 1) {
+      await tailorings.create({ advert: `advert ${job}` });
+      await tailorings.idle();
+    }
+
+    expect(await tailorings.create({ advert: 'the eleventh' })).toMatchObject({
+      estimateSeconds: 300,
+      estimateBasis: 'measured'
+    });
   });
 
   test('with fewer than ten, the seed stands, and says so', async () => {
@@ -482,7 +568,65 @@ describe('a restart of the server', () => {
     ]);
   });
 
+  test('a waiting job whose state carries no estimate is still answered, with the seed', async () => {
+    const { tailorings } = setup({
+      work: controlled().work,
+      files: {
+        ...saved('20260921-100001-aaaaaa', {
+          status: 'running',
+          createdAt: '2026-09-21T10:00:00.000Z'
+        }),
+        ...saved('20260921-100002-bbbbbb', {
+          status: 'queued',
+          effort: 'low',
+          createdAt: '2026-09-21T10:00:02.000Z'
+        }),
+        ...saved('20260921-100003-cccccc', {
+          status: 'queued',
+          createdAt: '2026-09-21T10:00:03.000Z'
+        })
+      }
+    });
+
+    await tailorings.start();
+
+    expect((await tailorings.status('20260921-100003-cccccc')).secondsLeft).toBe(
+      SEED_SECONDS.low + SEED_SECONDS.max
+    );
+  });
+
+  test('a file where a job’s directory would be is passed over, and the service still answers', async () => {
+    const log = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const { disk, tailorings } = setup({ work: controlled().work });
+    disk.exists = async (path) => {
+      if (path === 'applications/notes/state.json') {
+        throw Object.assign(new Error('ENOTDIR'), { code: 'ENOTDIR' });
+      }
+      return [...disk.stored.keys()].some((key) => key === path || key.startsWith(`${path}/`));
+    };
+    disk.stored.set('applications/notes', 'a stray file');
+
+    await expect(tailorings.start()).resolves.toBeUndefined();
+    await expect(tailorings.create({ advert: 'x' })).resolves.toMatchObject({ status: 'running' });
+    log.mockRestore();
+  });
+
+  test('a recovery that failed is tried again, rather than failing every call after it', async () => {
+    const { disk, tailorings } = setup({ work: controlled().work });
+    const list = disk.list;
+    let calls = 0;
+    disk.list = async (path) => {
+      calls += 1;
+      if (calls === 1) throw new Error('EIO');
+      return list(path);
+    };
+
+    await expect(tailorings.start()).rejects.toThrow('EIO');
+    await expect(tailorings.create({ advert: 'x' })).resolves.toMatchObject({ status: 'running' });
+  });
+
   test('leaves an application that is not a job alone, and a state it cannot read', async () => {
+    const log = jest.spyOn(console, 'error').mockImplementation(() => {});
     const { tailorings } = setup({
       work: controlled().work,
       files: {
@@ -494,6 +638,8 @@ describe('a restart of the server', () => {
 
     await expect(tailorings.start()).resolves.toBeUndefined();
     await expect(tailorings.status('acme')).rejects.toMatchObject({ status: 404 });
+    expect(log).toHaveBeenCalledWith(expect.stringMatching(/20260921-100000-aaaaaa.*names no job/));
+    log.mockRestore();
   });
 });
 

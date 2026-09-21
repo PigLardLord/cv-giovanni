@@ -72,6 +72,9 @@ export class Tailorings {
     this.history = [];
     this.current = null;
     this.running = null;
+    // Every write of a job's state goes through this, in order: two saves in flight on one file land in any order,
+    // and a progress update landing after the final state would leave a finished job running on disk.
+    this.writes = Promise.resolve();
   }
 
   /** Where a job's files are, relative to the project. */
@@ -91,7 +94,11 @@ export class Tailorings {
    * @returns {Promise<void>}
    */
   start() {
-    this.started ??= this.recover();
+    // A recovery that failed is tried again on the next call, rather than answering every call after it with its error.
+    this.started ??= this.recover().catch((error) => {
+      this.started = null;
+      throw error;
+    });
     return this.started;
   }
 
@@ -99,7 +106,8 @@ export class Tailorings {
    * @param {object} request - The advert's text, and the options #260 names
    * @returns {Promise<object>} The job's id, its status, the estimate and its basis, the backend and its cost, and
    *   the CV the job starts from
-   * @throws {Refusal} 422 for a request it cannot take, 503 when no backend could run it
+   * @throws {Refusal} 422 for a request it cannot take, 503 when no backend could run it. A job whose files were
+   *   only partly written stays as it is: nothing under `applications/` is deleted automatically.
    */
   async create(request) {
     await this.start();
@@ -110,12 +118,13 @@ export class Tailorings {
       throw new Refusal(503, `No inference is available on this machine — ${reasons}.`);
     }
 
-    const id = await this.newId();
+    const now = this.clock();
+    const id = await this.newId(now);
     const paths = Tailorings.paths(id);
     const state = {
       id,
       status: 'queued',
-      createdAt: new Date(this.clock()).toISOString(),
+      createdAt: new Date(now).toISOString(),
       model: options.model,
       effort: options.effort,
       backend,
@@ -129,9 +138,10 @@ export class Tailorings {
     await this.save(state);
     this.queue.push(id);
     this.drain();
+    // The job may be running already, when nothing was ahead of it: the answer says what it is now.
     return {
       id,
-      status: state.status,
+      status: this.jobs.get(id).status,
       estimateSeconds: this.secondsLeft(id),
       estimateBasis: state.estimate.basis,
       backend,
@@ -195,21 +205,16 @@ export class Tailorings {
     };
     const problems = Object.entries(rules)
       .map(([path, rule]) => ({ path, reason: rule(options[path]) }))
-      .filter(({ reason }) => reason)
-      .map(({ path, reason }) => ({ path, reason: `${path} ${reason}` }));
+      .filter(({ reason }) => reason);
     if (problems.length) {
-      throw new Refusal(422, 'The tailoring cannot run as asked.', problems);
+      throw new Refusal(422, `The tailoring cannot run as asked: ${summary(problems)}.`, problems);
     }
     return { advert, options };
   }
 
   /** An id no job or application has: when the job arrived, to the second, and six random hex digits. */
-  async newId() {
-    const stamp = new Date(this.clock())
-      .toISOString()
-      .replace(/[-:]/g, '')
-      .replace('T', '-')
-      .slice(0, 15);
+  async newId(now) {
+    const stamp = new Date(now).toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15);
     for (let tries = 0; tries < 5; tries += 1) {
       const id = `${stamp}-${this.random()}`;
       const taken = this.jobs.has(id) || (await this.files.exists(Tailorings.paths(id).directory));
@@ -220,7 +225,8 @@ export class Tailorings {
 
   /**
    * How long a job with these options should take, in seconds: the median of the last ten ready jobs with the same
-   * model, effort and backend, attempts included, or the seed until ten exist.
+   * model, effort and backend, attempts included, or the seed until ten exist. Ready ones only: a job that failed at
+   * once — as every job does until step 5 of #260 lands — would drag the median towards nothing.
    */
   estimate({ model, effort }, backend) {
     const alike = this.history
@@ -234,16 +240,15 @@ export class Tailorings {
   /** What is left of a job's estimate and of every job ahead of it, in seconds. */
   secondsLeft(id) {
     const state = this.jobs.get(id);
-    const left = (job) =>
-      job.status === 'running'
-        ? Math.max(
-            0,
-            job.estimate.seconds - Math.round((this.clock() - Date.parse(job.startedAt)) / 1000)
-          )
-        : job.estimate.seconds;
-    if (state.status === 'running') return left(state);
-    if (state.status !== 'queued') return 0;
-    const ahead = [this.current, ...this.queue.slice(0, this.queue.indexOf(id))].filter(Boolean);
+    const left = (job) => {
+      if (job.status === 'queued') return job.estimate.seconds;
+      if (job.status !== 'running') return 0;
+      const elapsed = Math.round((this.clock() - Date.parse(job.startedAt)) / 1000);
+      return Math.max(0, job.estimate.seconds - elapsed);
+    };
+    if (state.status !== 'queued') return left(state);
+    const place = this.queue.indexOf(id);
+    const ahead = [this.current, ...(place < 0 ? [] : this.queue.slice(0, place))].filter(Boolean);
     return ahead.reduce((sum, other) => sum + left(this.jobs.get(other)), left(state));
   }
 
@@ -257,7 +262,7 @@ export class Tailorings {
         try {
           await this.run(id);
         } catch (error) {
-          // The job's state could not be written. Nothing can answer for it but the terminal.
+          // The job's state could not be written to disk. It ended in memory, and the terminal says why.
           console.error(error);
         } finally {
           this.current = null;
@@ -270,26 +275,29 @@ export class Tailorings {
     });
   }
 
-  /** Runs one job and records how it ended. */
+  /**
+   * Runs one job and records how it ended. Whatever fails after the job is marked running — its files, the work, a
+   * write of its state — the job ends failed or ready in memory, never left running with no one to finish it.
+   */
   async run(id) {
     const started = this.clock();
-    await this.save({
-      ...this.jobs.get(id),
-      status: 'running',
-      startedAt: new Date(started).toISOString()
-    });
     const paths = Tailorings.paths(id);
-    const job = {
-      id,
-      directory: paths.directory,
-      advert: await this.files.readText(paths.advert),
-      options: JSON.parse(await this.files.readText(paths.request)),
-      backend: this.jobs.get(id).backend
-    };
     const update = (fields) => this.save({ ...this.jobs.get(id), ...fields });
 
     let ending;
     try {
+      await this.save({
+        ...this.jobs.get(id),
+        status: 'running',
+        startedAt: new Date(started).toISOString()
+      });
+      const job = {
+        id,
+        directory: paths.directory,
+        advert: await this.files.readText(paths.advert),
+        options: JSON.parse(await this.files.readText(paths.request)),
+        backend: this.jobs.get(id).backend
+      };
       ending = { status: 'ready', result: (await this.work(job, { update })) ?? {} };
     } catch (error) {
       if (!(error instanceof Refusal)) console.error(error);
@@ -308,17 +316,17 @@ export class Tailorings {
       finishedAt: new Date(finished).toISOString(),
       seconds: Math.round((finished - started) / 1000)
     };
-    await this.save(state);
     if (state.status === 'ready') this.history.push(state);
+    await this.save(state);
   }
 
-  /** Writes a job's state, and keeps it as the one this server answers with. */
-  async save(state) {
+  /** Keeps a job's state as the one this server answers with, and writes it after every write before it. */
+  save(state) {
     this.jobs.set(state.id, state);
-    await this.files.writeText(
-      Tailorings.paths(state.id).state,
-      `${JSON.stringify(state, null, 2)}\n`
-    );
+    const text = `${JSON.stringify(state, null, 2)}\n`;
+    const write = () => this.files.writeText(Tailorings.paths(state.id).state, text);
+    this.writes = this.writes.then(write, write);
+    return this.writes;
   }
 
   /** Reads what an earlier run left in `applications/`. */
@@ -327,11 +335,16 @@ export class Tailorings {
     for (const name of await this.files.list('applications')) {
       if (!APPLICATION_NAME.test(name)) continue;
       const path = Tailorings.paths(name).state;
-      if (!(await this.files.exists(path))) continue;
       try {
-        found.push({ ...JSON.parse(await this.files.readText(path)), id: name });
-      } catch {
-        // A state torn by a crash names no job this server can answer for; the directory stays as it is.
+        if (!(await this.files.exists(path))) continue;
+        const job = { ...JSON.parse(await this.files.readText(path)), id: name };
+        // A state written without an estimate still gets one, so asking after it never fails.
+        job.estimate ??= { seconds: SEED_SECONDS[job.effort] ?? SEED_SECONDS.max, basis: 'seed' };
+        found.push(job);
+      } catch (error) {
+        // A state torn by a crash, or an entry that is no directory, names no job this server can answer for. It
+        // stays as it is, and the terminal says so.
+        console.error(`tailorings: ${path} names no job — ${error.message}`);
       }
     }
     for (const job of found) {
@@ -358,6 +371,13 @@ export class Tailorings {
       .sort((a, b) => String(a.finishedAt).localeCompare(String(b.finishedAt)));
     if (this.queue.length) this.drain();
   }
+}
+
+/** The first problem, and how many more, as `ProfileStore` words a refused save. */
+function summary(problems) {
+  const [first] = problems;
+  const more = problems.length > 1 ? `, and ${problems.length - 1} more` : '';
+  return `${first.path || 'it'} ${first.reason}${more}`;
 }
 
 /** The middle value, or the mean of the two middle ones. */
