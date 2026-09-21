@@ -190,6 +190,35 @@ describe('who the local API answers', () => {
       expect((await send('GET', '/api/profile', { cookie: await cookieFor() })).status).toBe(200);
     });
 
+    // What keeps a page on another site from sending the header is the CORS preflight, and that holds only while the
+    // server grants none. A "helpful" CORS header added later would pass every other test here (the review of #271).
+    test('a preflight from another site finds nothing, and no response grants CORS', async () => {
+      await start({ key: KEY, apiToken: TOKEN });
+
+      const preflight = await send('OPTIONS', '/api/profile', {
+        origin: 'http://evil.example',
+        'access-control-request-method': 'GET',
+        'access-control-request-headers': 'authorization'
+      });
+      const answered = await send('GET', '/api/profile', bearer());
+
+      expect(preflight.status).toBe(404);
+      for (const { headers } of [preflight, answered]) {
+        expect(Object.keys(headers).filter((name) => name.startsWith('access-control'))).toEqual(
+          []
+        );
+      }
+    });
+
+    // RFC 9110 makes an authentication scheme case-insensitive: a client that writes "bearer" is sending the token.
+    test('the scheme is read whatever its case', async () => {
+      await start({ key: KEY, apiToken: TOKEN });
+
+      expect((await send('GET', '/api/profile', { authorization: `bearer ${TOKEN}` })).status).toBe(
+        200
+      );
+    });
+
     // The token opens the API, not applications/ served as files: those stay the cookie's.
     test('opens the API and nothing the cookie alone opens', async () => {
       mkdirSync(join(root, 'applications', 'acme'), { recursive: true });

@@ -33,11 +33,13 @@ export async function ensureApiToken(file) {
     if (error.code !== 'ENOENT') {
       return { token: null, reason: `the API token's file ${file} cannot be read` };
     }
-    const token = randomBytes(32).toString('base64url');
-    await mkdir(dirname(file), { recursive: true, mode: 0o700 });
-    await writeFile(file, `${token}\n`, { mode: 0o600, flag: 'wx' });
-    await chmod(file, 0o600);
-    return { token };
+    const made = await make(file);
+    if (made !== 'taken') return made;
+    // Another server started at the same moment and made the file first: read what it made, so both hold one token.
+    return ensureApiToken(file);
+  }
+  if (!info.isFile()) {
+    return { token: null, reason: `the API token's file ${file} cannot be read: it is not a file` };
   }
   if (info.mode & 0o077) {
     return {
@@ -45,7 +47,29 @@ export async function ensureApiToken(file) {
       reason: `the API token's file ${file} can be read by other users: set its mode to 600`
     };
   }
-  const token = (await readFile(file, 'utf8')).trim();
+  let token;
+  try {
+    token = (await readFile(file, 'utf8')).trim();
+  } catch {
+    return { token: null, reason: `the API token's file ${file} cannot be read` };
+  }
   if (!token) return { token: null, reason: `the API token's file ${file} is empty` };
+  return { token };
+}
+
+/**
+ * Makes the token's file, or says why it could not; 'taken' when another process made it first. The file never
+ * exists wider than 600: it is created with that mode and exclusively, so nothing can be written through a link.
+ */
+async function make(file) {
+  const token = randomBytes(32).toString('base64url');
+  try {
+    await mkdir(dirname(file), { recursive: true, mode: 0o700 });
+    await writeFile(file, `${token}\n`, { mode: 0o600, flag: 'wx' });
+    await chmod(file, 0o600);
+  } catch (error) {
+    if (error.code === 'EEXIST') return 'taken';
+    return { token: null, reason: `the API token's file ${file} cannot be made (${error.code})` };
+  }
   return { token };
 }

@@ -1,5 +1,4 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
-import { apiTokenFile, ensureApiToken } from '../adapters/ApiToken.js';
 import { createServer } from 'node:http';
 import { createReadStream, realpath, realpathSync } from 'node:fs';
 import { readdir, readFile, stat } from 'node:fs/promises';
@@ -11,6 +10,7 @@ import { NodeProjectFiles } from '../adapters/NodeProjectFiles.js';
 import { NodeScripts } from '../adapters/NodeScripts.js';
 import { ClaudeCliInference } from '../adapters/ClaudeCliInference.js';
 import { AnthropicApiInference, keyFile } from '../adapters/AnthropicApiInference.js';
+import { apiTokenFile, ensureApiToken } from '../adapters/ApiToken.js';
 import { Inference } from '../core/Inference.js';
 import { extname, isAbsolute, join, normalize, relative, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -103,7 +103,7 @@ function isKey(offered, key) {
 
 /** The credential of an `Authorization: Bearer` header, or undefined for any other scheme or none. */
 function bearerOf(header) {
-  const match = /^Bearer ([^\s]+)$/.exec(header || '');
+  const match = /^Bearer ([^\s]+)$/i.exec(header || '');
   return match ? match[1] : undefined;
 }
 
@@ -414,8 +414,16 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   // The token programs on this machine send is made on the first start and kept outside the project (#270). The
   // server says where it is and never what it is: printed, it would sit in a terminal's scrollback and in any log
   // the output is piped to.
-  const tokenFile = apiTokenFile({ env: process.env, projectRoot });
-  const { token: apiToken, reason } = await ensureApiToken(tokenFile);
+  // A token that cannot be had is a reason, printed, and the page and the editor still start: the cookie needs none.
+  let tokenFile = null;
+  let apiToken = null;
+  let reason;
+  try {
+    tokenFile = apiTokenFile({ env: process.env, projectRoot });
+    ({ token: apiToken, reason } = await ensureApiToken(tokenFile));
+  } catch (error) {
+    reason = error.message;
+  }
   createStaticServer(projectRoot, { key, apiToken }).listen(port, host, () => {
     console.log(`serving ${projectRoot} on ${host}:${port} with no-store`);
     console.log(

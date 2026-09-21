@@ -86,4 +86,41 @@ describe('the API token', () => {
       if (content) expect(answer.reason).not.toContain(content);
     }
   );
+
+  // The server starts without a token when it cannot have one, and says why: a token file it cannot make or read is
+  // a reason, never a crash that takes the page and the editor down with it (the review of #271).
+  test.each([
+    [
+      'a directory where the file should be',
+      () => mkdirSync(file, { recursive: true, mode: 0o700 }),
+      /cannot be read/
+    ],
+    [
+      'a configuration directory it cannot write',
+      () => {
+        mkdirSync(join(config, 'mycv'), { recursive: true });
+        chmodSync(join(config, 'mycv'), 0o500);
+      },
+      /cannot be made/
+    ]
+  ])('is none, with a reason, given %s', async (what, arrange, reason) => {
+    arrange();
+    try {
+      expect(await ensureApiToken(file)).toEqual({
+        token: null,
+        reason: expect.stringMatching(reason)
+      });
+    } finally {
+      chmodSync(join(config, 'mycv'), 0o700);
+    }
+  });
+
+  // Two servers on the very first start both try to make the file; the one that loses reads what the other made,
+  // so both hold the same token rather than one of them crashing.
+  test('is one token for two servers starting at once', async () => {
+    const [first, second] = await Promise.all([ensureApiToken(file), ensureApiToken(file)]);
+
+    expect(first.token).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(second).toEqual(first);
+  });
 });
