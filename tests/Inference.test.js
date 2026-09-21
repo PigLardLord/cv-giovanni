@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-import { Inference } from '../core/Inference.js';
+import { EFFORTS, Inference, MODELS } from '../core/Inference.js';
 
 // The local app asks a model for help through whichever backend this machine has (#22): the claude CLI,
 // on the subscription already paid for, and failing that an API key, paid per run. Which one, and what a
@@ -87,5 +87,73 @@ describe('which backend the local app asks', () => {
 
     await expect(new Inference([cli]).complete(request)).rejects.toMatchObject({ status: 422 });
     expect(cli.runs).toEqual([]);
+  });
+});
+
+// #260 runs a job with the model and the effort it asks for, and a job has a deadline, not a request: the port
+// passes all three to the backend, and refuses a value no backend is asked to understand, naming the ones it
+// accepts (#266).
+describe('a run with a model, an effort and a deadline', () => {
+  const REQUEST = { system: 'You tailor CVs.', prompt: 'The advert, then the CV.' };
+  const recording = () => {
+    const runs = [];
+    return {
+      runs,
+      backend: {
+        name: 'fake',
+        cost: {},
+        availability: async () => ({ available: true }),
+        complete: async (request) => {
+          runs.push(request);
+          return { text: 'ok', usd: 0 };
+        }
+      }
+    };
+  };
+
+  test('reaches the backend with all three', async () => {
+    const { runs, backend } = recording();
+    const deadline = Date.now() + 60_000;
+
+    await new Inference([backend]).complete({
+      ...REQUEST,
+      model: 'claude-opus-5',
+      effort: 'max',
+      deadline
+    });
+
+    expect(runs).toEqual([{ ...REQUEST, model: 'claude-opus-5', effort: 'max', deadline }]);
+  });
+
+  test('reaches it with none of them when the run names none, so the backend keeps its own defaults', async () => {
+    const { runs, backend } = recording();
+
+    await new Inference([backend]).complete(REQUEST);
+
+    expect(runs).toEqual([REQUEST]);
+  });
+
+  test('names the accepted models and efforts', () => {
+    expect(MODELS).toEqual(['claude-opus-5', 'claude-sonnet-5', 'claude-fable-5-1']);
+    expect(EFFORTS).toEqual(['low', 'medium', 'high', 'xhigh', 'max']);
+  });
+
+  test.each([
+    [{ model: 'claude-opus-4-8' }, /claude-opus-5, claude-sonnet-5, claude-fable-5-1/],
+    [{ effort: 'extreme' }, /low, medium, high, xhigh, max/],
+    [{ deadline: 'soon' }, /deadline/],
+    // A timer longer than 2**31 - 1 ms overflows and fires after 1 ms: the longest window would give the shortest
+    // run (the review of #268).
+    [{ deadline: Date.now() + 30 * 24 * 60 * 60 * 1000 }, /24 days/]
+  ])('refuses %j before any backend runs, naming what it accepts', async (extra, accepted) => {
+    const { runs, backend } = recording();
+
+    const refusal = await new Inference([backend])
+      .complete({ ...REQUEST, ...extra })
+      .catch((error) => error);
+
+    expect(refusal).toMatchObject({ name: 'Refusal', status: 422 });
+    expect(refusal.message).toMatch(accepted);
+    expect(runs).toEqual([]);
   });
 });
