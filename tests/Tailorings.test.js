@@ -15,12 +15,14 @@ const MANIFEST = JSON.stringify({
   layouts: ['nerd', 'spotlight', 'technical']
 });
 const API = { backend: 'anthropic-api', cost: { kind: 'per-run' }, unavailable: [] };
+const PUBLISHED = '{\n  "name": "Ada Lovelace"\n}\n';
 
 /** The project's files, in memory; a directory exists when a file under it does, and lists what is under it. */
 const project = (files = {}) => {
   const stored = new Map(
     Object.entries({
       'config/cv-manifest.json': MANIFEST,
+      'profiles/general/en.json': PUBLISHED,
       'locales/en/cv.json': '{}',
       'locales/de/cv.json': '{}',
       ...files
@@ -62,6 +64,7 @@ const controlled = () => {
 const setup = ({
   files = {},
   work,
+  fullCv,
   status = API,
   now = { at: Date.UTC(2026, 8, 21, 14, 32, 5) },
   ids
@@ -71,6 +74,7 @@ const setup = ({
   const tailorings = new Tailorings({
     files: disk,
     inference: { status: async () => status },
+    fullCv,
     work,
     clock: () => now.at,
     random: () => (ids ? ids.shift() : `a1b2c${serial++}`)
@@ -109,18 +113,21 @@ describe('creating a tailoring', () => {
     expect(disk.stored.get(`applications/${id}/advert.txt`)).toBe('Senior iOS Engineer\n');
     expect(JSON.parse(disk.stored.get(`applications/${id}/request.json`))).toEqual({
       ...DEFAULTS,
-      effort: 'high'
+      effort: 'high',
+      letter: {}
     });
     expect(stateOf(disk, id)).toMatchObject({
       id,
       createdAt: '2026-09-21T14:32:05.000Z',
       backend: 'anthropic-api'
     });
-    expect([...disk.stored.keys()].filter((path) => !/^(config|locales)\//.test(path))).toEqual(
-      expect.arrayContaining([expect.stringMatching(/^applications\//)])
-    );
     expect(
-      [...disk.stored.keys()].filter((path) => !/^(config|locales|applications)\//.test(path))
+      [...disk.stored.keys()].filter((path) => !/^(config|locales|profiles)\//.test(path))
+    ).toEqual(expect.arrayContaining([expect.stringMatching(/^applications\//)]));
+    expect(
+      [...disk.stored.keys()].filter(
+        (path) => !/^(config|locales|profiles|applications)\//.test(path)
+      )
     ).toEqual([]);
   });
 
@@ -216,7 +223,9 @@ describe('creating a tailoring', () => {
       tailorings.create({ advert: 'Senior iOS Engineer', auditgate: false })
     ).rejects.toMatchObject({
       status: 422,
-      message: expect.stringMatching(/auditgate.*advert, language, model, effort, layout/s)
+      message: expect.stringMatching(
+        /auditgate.*advert, cv, letter, language, model, effort, layout/s
+      )
     });
   });
 
@@ -239,6 +248,196 @@ describe('creating a tailoring', () => {
       message: expect.stringMatching(/claude-cli: not installed; anthropic-api: no key/)
     });
     expect(disk.stored.size).toBe(before);
+  });
+});
+
+// A tailoring subtracts from a CV that lists everything, so it starts from the full CV its owner keeps outside the
+// repository; a request can hand it another; with neither, the published one (#279).
+describe('what a job starts from', () => {
+  const FULL = {
+    name: 'Ada Lovelace',
+    relevant_experience: [
+      {
+        title: 'iOS Engineer',
+        company: 'Analytical Engines',
+        period: 'January 2020 – March 2024',
+        highlights: ['Moved the app to SwiftData.']
+      }
+    ]
+  };
+  const keeps = ({ cv = null, letter = null } = {}) => ({
+    readCv: async () => ({ cv, where: '~/.config/mycv/full-cv/en.json' }),
+    readLetter: async () => ({ letter, where: '~/.config/mycv/full-cv/letter.json' })
+  });
+
+  test('the full CV its owner keeps, which the job keeps a copy of and reads when it runs', async () => {
+    const { work, pending } = controlled();
+    const { disk, tailorings } = setup({ work, fullCv: keeps({ cv: FULL }) });
+
+    const answer = await tailorings.create({ advert: 'Senior iOS Engineer' });
+    await flush();
+
+    expect(answer.source).toBe('~/.config/mycv/full-cv/en.json');
+    expect(JSON.parse(disk.stored.get(`applications/${answer.id}/source.json`))).toEqual(FULL);
+    expect(pending[0].job.cv).toEqual(FULL);
+  });
+
+  test('without one, the published CV, and the answer says so', async () => {
+    const { work, pending } = controlled();
+    const { tailorings } = setup({ work, fullCv: keeps() });
+
+    expect((await tailorings.create({ advert: 'Senior iOS Engineer' })).source).toBe(
+      'profiles/general/en.json'
+    );
+    await flush();
+    expect(pending[0].job.cv).toEqual({ name: 'Ada Lovelace' });
+  });
+
+  test('a CV in the request replaces both, for that job only', async () => {
+    const { work, pending } = controlled();
+    const { tailorings } = setup({ work, fullCv: keeps({ cv: FULL }) });
+    const given = { name: 'Ada Lovelace', title: 'iOS Engineer' };
+
+    expect((await tailorings.create({ advert: 'x', cv: given })).source).toBe('request');
+    expect((await tailorings.create({ advert: 'x' })).source).toBe(
+      '~/.config/mycv/full-cv/en.json'
+    );
+    await flush();
+    expect(pending[0].job.cv).toEqual(given);
+  });
+
+  test('a CV in the request is not read from a full CV that could not be', async () => {
+    const { tailorings } = setup({
+      work: controlled().work,
+      fullCv: {
+        readCv: async () => {
+          throw new Refusal(
+            503,
+            'The full CV at ~/x can be read by other users: set its mode to 600.'
+          );
+        },
+        readLetter: async () => ({ letter: null, where: '~/y' })
+      }
+    });
+
+    expect((await tailorings.create({ advert: 'x', cv: { name: 'Ada' } })).source).toBe('request');
+    await expect(tailorings.create({ advert: 'x' })).rejects.toMatchObject({
+      status: 503,
+      message: expect.stringMatching(/set its mode to 600/)
+    });
+  });
+
+  test('a CV in the request without the profile’s shape is refused with every problem, as PUT /api/profile is', async () => {
+    const { disk, tailorings } = setup({ work: controlled().work });
+    const before = disk.stored.size;
+
+    const refusal = await tailorings
+      .create({
+        advert: 'x',
+        cv: {
+          title: 'iOS Engineer',
+          relevant_experience: [{ company: 'Analytical Engines' }],
+          hobby: 1
+        }
+      })
+      .catch((error) => error);
+
+    expect(refusal.status).toBe(422);
+    expect(refusal.details.map(({ path }) => path)).toEqual(
+      expect.arrayContaining(['cv.name', 'cv.relevant_experience[0].title', 'cv.hobby'])
+    );
+    expect(refusal.message).toMatch(
+      /^The tailoring cannot run as asked: cv\.name .*, and \d+ more\.$/
+    );
+    expect(disk.stored.size).toBe(before);
+  });
+
+  test('a full CV without the profile’s shape refuses the job, naming its file', async () => {
+    const { tailorings } = setup({
+      work: controlled().work,
+      fullCv: keeps({ cv: { title: 'x' } })
+    });
+
+    await expect(tailorings.create({ advert: 'x' })).rejects.toMatchObject({
+      status: 503,
+      message: expect.stringMatching(
+        /^The full CV at ~\/\.config\/mycv\/full-cv\/en\.json cannot be tailored: name/
+      ),
+      details: [expect.objectContaining({ path: 'name' })]
+    });
+  });
+});
+
+describe('what a letter is told', () => {
+  const keeps = (letter) => ({
+    readCv: async () => ({ cv: null, where: '~/.config/mycv/full-cv/en.json' }),
+    readLetter: async () => ({ letter, where: '~/.config/mycv/full-cv/letter.json' })
+  });
+  const DEFAULTS_OF_THE_OWNER = {
+    salaryExpectation: '€85,000 a year',
+    startDate: '2026-12',
+    note: 'Say that I work remotely from Catania.'
+  };
+  const letterOf = (disk, id) =>
+    JSON.parse(disk.stored.get(`applications/${id}/request.json`)).letter;
+
+  test('the defaults its owner keeps', async () => {
+    const { disk, tailorings } = setup({
+      work: controlled().work,
+      fullCv: keeps(DEFAULTS_OF_THE_OWNER)
+    });
+
+    const { id } = await tailorings.create({ advert: 'x' });
+
+    expect(letterOf(disk, id)).toEqual(DEFAULTS_OF_THE_OWNER);
+  });
+
+  test('with the request’s fields over them, field by field', async () => {
+    const { disk, tailorings } = setup({
+      work: controlled().work,
+      fullCv: keeps(DEFAULTS_OF_THE_OWNER)
+    });
+
+    const { id } = await tailorings.create({
+      advert: 'x',
+      letter: { salaryExpectation: '€90,000 a year', startDate: '2027-01-15' }
+    });
+
+    expect(letterOf(disk, id)).toEqual({
+      salaryExpectation: '€90,000 a year',
+      startDate: '2027-01-15',
+      note: 'Say that I work remotely from Catania.'
+    });
+  });
+
+  test.each([
+    [{ salary: '€90,000' }, 'letter.salary', /not a field a letter takes/],
+    [{ startDate: 'December' }, 'letter.startDate', /YYYY-MM/],
+    [{ startDate: '2026-13' }, 'letter.startDate', /YYYY-MM/],
+    [{ note: '   ' }, 'letter.note', /text/],
+    [{ note: 42 }, 'letter.note', /text/],
+    ['send it', 'letter', /JSON object/]
+  ])('a letter of %j is refused with 422 at %s', async (letter, path, reason) => {
+    const { tailorings } = setup({ work: controlled().work });
+
+    await expect(tailorings.create({ advert: 'x', letter })).rejects.toMatchObject({
+      status: 422,
+      details: [{ path, reason: expect.stringMatching(reason) }]
+    });
+  });
+
+  test('defaults that hold something a letter does not take refuse the job, naming their file', async () => {
+    const { tailorings } = setup({
+      work: controlled().work,
+      fullCv: keeps({ ...DEFAULTS_OF_THE_OWNER, startDate: 'soon' })
+    });
+
+    await expect(tailorings.create({ advert: 'x' })).rejects.toMatchObject({
+      status: 503,
+      message: expect.stringMatching(
+        /^The letter's defaults at ~\/\.config\/mycv\/full-cv\/letter\.json cannot be used: startDate/
+      )
+    });
   });
 });
 
@@ -274,7 +473,8 @@ describe('running the queue', () => {
       id,
       directory: `applications/${id}`,
       advert: 'Senior iOS Engineer',
-      options: { ...DEFAULTS, language: 'de' },
+      options: { ...DEFAULTS, language: 'de', letter: {} },
+      cv: { name: 'Ada Lovelace' },
       backend: 'anthropic-api'
     });
   });
@@ -518,7 +718,8 @@ describe('a restart of the server', () => {
   const saved = (id, state) => ({
     [`applications/${id}/state.json`]: JSON.stringify({ id, ...state }),
     [`applications/${id}/advert.txt`]: `advert of ${id}`,
-    [`applications/${id}/request.json`]: JSON.stringify(DEFAULTS)
+    [`applications/${id}/request.json`]: JSON.stringify(DEFAULTS),
+    [`applications/${id}/source.json`]: PUBLISHED
   });
 
   test('marks a job that was running failed, as interrupted', async () => {

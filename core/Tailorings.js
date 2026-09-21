@@ -1,5 +1,6 @@
 import { APPLICATION_NAME } from './Applications.js';
 import { EFFORTS, MODELS } from './Inference.js';
+import { ProfileShape } from './ProfileShape.js';
 import { ProfileStore } from './ProfileStore.js';
 import { Refusal } from './Refusal.js';
 
@@ -13,7 +14,7 @@ export const DEFAULTS = Object.freeze({
   auditRetries: 2,
   auditGate: true
 });
-const FIELDS = Object.freeze(['advert', ...Object.keys(DEFAULTS)]);
+const FIELDS = Object.freeze(['advert', 'cv', 'letter', ...Object.keys(DEFAULTS)]);
 const MOST_RETRIES = 5;
 
 /**
@@ -31,6 +32,23 @@ const MEASURED = 10;
 
 /** A language has catalogues when `locales/<language>/` exists: `en` and `de` today. */
 const LANGUAGE = /^[a-z]{2}$/;
+
+/**
+ * What a letter's defaults hold, and what each must be (#279): the salary expectation as the letter should state it,
+ * the earliest start as a date `Intl` can word in the letter's language, and what the owner wants every letter to say.
+ */
+const LETTER_FIELDS = Object.freeze({
+  salaryExpectation: 'text',
+  startDate: 'a date, YYYY-MM or YYYY-MM-DD',
+  note: 'text'
+});
+const DATE = /^\d{4}-(0[1-9]|1[0-2])(-(0[1-9]|[12]\d|3[01]))?$/;
+
+/** A machine with no full CV and no letter defaults: every job starts from the published CV. */
+const NO_FULL_CV = Object.freeze({
+  readCv: async () => ({ cv: null, where: null }),
+  readLetter: async () => ({ letter: null, where: null })
+});
 
 /** Until step 5 of #260 lands, a job has nothing to run. */
 const NOTHING_TO_RUN = async () => {
@@ -57,13 +75,23 @@ export class Tailorings {
    * @param {{ readText: Function, writeText: Function, exists: Function, list: Function }} ports.files - The
    *   project's files
    * @param {{ status: Function }} ports.inference - Which backend a run would use, and how it charges
+   * @param {{ readCv: Function, readLetter: Function }} [ports.fullCv] - The full CV and the letter's defaults its
+   *   owner keeps outside the project (#279)
    * @param {(job: object, progress: { update: Function }) => Promise<object>} [ports.work] - What a job does
    * @param {() => number} [ports.clock] - The time, in milliseconds since the epoch
    * @param {() => string} [ports.random] - Six random hex digits, to make an id no one can guess or collide with
    */
-  constructor({ files, inference, work = NOTHING_TO_RUN, clock = Date.now, random = hex }) {
+  constructor({
+    files,
+    inference,
+    fullCv = NO_FULL_CV,
+    work = NOTHING_TO_RUN,
+    clock = Date.now,
+    random = hex
+  }) {
     this.files = files;
     this.inference = inference;
+    this.fullCv = fullCv;
     this.work = work;
     this.clock = clock;
     this.random = random;
@@ -84,6 +112,7 @@ export class Tailorings {
       directory,
       advert: `${directory}/advert.txt`,
       request: `${directory}/request.json`,
+      source: `${directory}/source.json`,
       state: `${directory}/state.json`
     };
   }
@@ -106,12 +135,15 @@ export class Tailorings {
    * @param {object} request - The advert's text, and the options #260 names
    * @returns {Promise<object>} The job's id, its status, the estimate and its basis, the backend and its cost, and
    *   the CV the job starts from
-   * @throws {Refusal} 422 for a request it cannot take, 503 when no backend could run it. A job whose files were
-   *   only partly written stays as it is: nothing under `applications/` is deleted automatically.
+   * @throws {Refusal} 422 for a request it cannot take, 503 when this machine's full CV or letter defaults cannot be
+   *   used, or no backend could run it. A job whose files were only partly written stays as it is: nothing under
+   *   `applications/` is deleted automatically.
    */
   async create(request) {
     await this.start();
-    const { advert, options } = await this.accepted(request);
+    const { advert, cv: given, letter: overrides, options } = await this.accepted(request);
+    const { cv, source } = await this.startingCv(given);
+    const letter = await this.letterFor(overrides);
     const { backend, cost, unavailable } = await this.inference.status();
     if (!backend) {
       const reasons = unavailable.map((entry) => `${entry.backend}: ${entry.reason}`).join('; ');
@@ -129,12 +161,16 @@ export class Tailorings {
       effort: options.effort,
       backend,
       cost,
-      source: ProfileStore.path,
+      source,
       estimate: this.estimate(options, backend),
       attempts: 0
     };
     await this.files.writeText(paths.advert, advert);
-    await this.files.writeText(paths.request, `${JSON.stringify(options, null, 2)}\n`);
+    await this.files.writeText(
+      paths.request,
+      `${JSON.stringify({ ...options, letter }, null, 2)}\n`
+    );
+    await this.files.writeText(paths.source, `${JSON.stringify(cv, null, 2)}\n`);
     await this.save(state);
     this.queue.push(id);
     this.drain();
@@ -179,7 +215,7 @@ export class Tailorings {
         `A tailoring does not take ${unknown.join(', ')}: it takes ${FIELDS.join(', ')}.`
       );
     }
-    const { advert, ...given } = request;
+    const { advert, cv, letter, ...given } = request;
     if (typeof advert !== 'string' || !advert.trim()) {
       throw new Refusal(422, "A tailoring needs the advert's text.");
     }
@@ -203,13 +239,60 @@ export class Tailorings {
       auditGate: (value) =>
         typeof value === 'boolean' ? null : `is true or false; not ${JSON.stringify(value)}`
     };
-    const problems = Object.entries(rules)
-      .map(([path, rule]) => ({ path, reason: rule(options[path]) }))
-      .filter(({ reason }) => reason);
+    const problems = [
+      ...Object.entries(rules)
+        .map(([path, rule]) => ({ path, reason: rule(options[path]) }))
+        .filter(({ reason }) => reason),
+      ...(cv === undefined ? [] : within('cv', ProfileShape.problems(cv))),
+      ...(letter === undefined ? [] : within('letter', letterProblems(letter)))
+    ];
     if (problems.length) {
       throw new Refusal(422, `The tailoring cannot run as asked: ${summary(problems)}.`, problems);
     }
-    return { advert, options };
+    return { advert, cv, letter, options };
+  }
+
+  /**
+   * The CV a job starts from: the request's, else the full CV its owner keeps, else the published one (#279).
+   * @throws {Refusal} 503 when the full CV cannot be read, or does not have the profile's shape
+   */
+  async startingCv(given) {
+    if (given !== undefined) return { cv: given, source: 'request' };
+    const { cv, where } = await this.fullCv.readCv();
+    if (cv) {
+      const problems = ProfileShape.problems(cv);
+      if (problems.length) {
+        throw new Refusal(
+          503,
+          `The full CV at ${where} cannot be tailored: ${summary(problems)}.`,
+          problems
+        );
+      }
+      return { cv, source: where };
+    }
+    return {
+      cv: JSON.parse(await this.files.readText(ProfileStore.path)),
+      source: ProfileStore.path
+    };
+  }
+
+  /**
+   * The letter's defaults, with the request's fields over them, field by field (#279).
+   * @throws {Refusal} 503 when the defaults cannot be read, or hold something a letter does not take
+   */
+  async letterFor(overrides = {}) {
+    const { letter: defaults, where } = await this.fullCv.readLetter();
+    if (defaults !== null) {
+      const problems = letterProblems(defaults);
+      if (problems.length) {
+        throw new Refusal(
+          503,
+          `The letter's defaults at ${where} cannot be used: ${summary(problems)}.`,
+          problems
+        );
+      }
+    }
+    return { ...(defaults ?? {}), ...overrides };
   }
 
   /** An id no job or application has: when the job arrived, to the second, and six random hex digits. */
@@ -296,6 +379,7 @@ export class Tailorings {
         directory: paths.directory,
         advert: await this.files.readText(paths.advert),
         options: JSON.parse(await this.files.readText(paths.request)),
+        cv: JSON.parse(await this.files.readText(paths.source)),
         backend: this.jobs.get(id).backend
       };
       ending = { status: 'ready', result: (await this.work(job, { update })) ?? {} };
@@ -371,6 +455,36 @@ export class Tailorings {
       .sort((a, b) => String(a.finishedAt).localeCompare(String(b.finishedAt)));
     if (this.queue.length) this.drain();
   }
+}
+
+/** What is wrong with a letter's defaults, each problem in `ProfileShape`'s form. */
+function letterProblems(letter) {
+  if (!letter || typeof letter !== 'object' || Array.isArray(letter)) {
+    return [
+      { path: '', reason: `must be a JSON object with ${Object.keys(LETTER_FIELDS).join(', ')}` }
+    ];
+  }
+  return Object.entries(letter).flatMap(([key, value]) => {
+    if (!Object.hasOwn(LETTER_FIELDS, key)) {
+      return [
+        {
+          path: key,
+          reason: `is not a field a letter takes: ${Object.keys(LETTER_FIELDS).join(', ')}`
+        }
+      ];
+    }
+    const ok =
+      typeof value === 'string' && value.trim() && (key !== 'startDate' || DATE.test(value));
+    return ok ? [] : [{ path: key, reason: `must be ${LETTER_FIELDS[key]}` }];
+  });
+}
+
+/** The problems of a part of the request, each with its path in the request. */
+function within(field, problems) {
+  return problems.map(({ path, reason }) => ({
+    path: path ? (path.startsWith('[') ? `${field}${path}` : `${field}.${path}`) : field,
+    reason
+  }));
 }
 
 /** The first problem, and how many more, as `ProfileStore` words a refused save. */

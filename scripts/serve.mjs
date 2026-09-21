@@ -11,6 +11,7 @@ import { NodeProjectFiles } from '../adapters/NodeProjectFiles.js';
 import { NodeScripts } from '../adapters/NodeScripts.js';
 import { ClaudeCliInference } from '../adapters/ClaudeCliInference.js';
 import { AnthropicApiInference, keyFile } from '../adapters/AnthropicApiInference.js';
+import { FullCvFiles, fullCvFiles } from '../adapters/FullCvFiles.js';
 import { apiTokenFile, ensureApiToken } from '../adapters/ApiToken.js';
 import { Inference } from '../core/Inference.js';
 import { extname, isAbsolute, join, normalize, relative, sep } from 'node:path';
@@ -157,7 +158,13 @@ export function localServices(
     profile: new ProfileStore(files),
     applications: new Applications({ files, scripts: new NodeScripts(root) }),
     inference,
-    tailorings: new Tailorings({ files, inference })
+    // The full CV and the letter's defaults live beside the key, outside the project, and `fullCvFiles` refuses a
+    // place for them inside it (#279).
+    tailorings: new Tailorings({
+      files,
+      inference,
+      fullCv: new FullCvFiles(fullCvFiles({ env, projectRoot: root }))
+    })
   };
 }
 
