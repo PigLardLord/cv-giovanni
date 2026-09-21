@@ -431,7 +431,10 @@ try {
     // And whether one ends on a line of a single word (#295).
     const runts = runtSpans(spans);
     // And whether each Selected Impact line sets its figures in Bold, where #230 put them (#261).
-    const light = lightFigures(highlights, bold, figuresIn);
+    const light = lightFigures(highlights, bold, figuresIn, {
+      from: labels.selectedImpact,
+      to: labels.experience
+    });
     const summary = proseSpans(text, [profile.profile], { periods })[0];
     const straddling = straddlingRoles(text, roleProse, { periods });
     // And whether the masthead's lines share one left edge, which a hidden label's leftover space broke.

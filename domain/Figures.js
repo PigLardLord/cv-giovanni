@@ -3,14 +3,15 @@
  *
  * - A figure is a numeral as the CV writes it: with its sign of approximation or bound (`~30k`, `<0.1%`), its
  *   separators in either language (`1,040`, `30.000`, `37.7`, `5,2`), its scale (`k`, `M`) and its unit symbol
- *   (`%`, `+`).
+ *   (`%`, `14 %` as DIN 5008 spaces it, `+`).
  * - A change is two figures and the arrow between them, `1040 → 5308`, `14% → 83%`: one figure, read whole.
  * - A year standing alone is a date, not a figure: "since 2021" states when, not how much.
  *
  * A figure is never part of a name: "iOS17", "v2.0" and "B2B" hold none.
  */
 
-const NUMERAL = String.raw`[~≈<>]?\d+(?:[.,]\d+)*(?:[kKM](?![\p{L}]))?%?\+?`;
+// A percent sign may stand after a space, as DIN 5008 sets it: "14 % → 83 %" is one change (the review of #328).
+const NUMERAL = String.raw`[~≈<>]?\d+(?:[.,]\d+)*(?:[kKM](?![\p{L}]))?(?:[ \u00A0\u202F]?%)?\+?`;
 const FIGURE = new RegExp(
   String.raw`(?<![\p{L}\p{N}.,])${NUMERAL}(?:\s*→\s*${NUMERAL})?(?![\p{L}\p{N}])`,
   'gu'

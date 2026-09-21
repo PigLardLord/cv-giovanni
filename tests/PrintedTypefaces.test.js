@@ -159,19 +159,50 @@ describe('the figures of Selected Impact', () => {
   const xml = (...runs) => runs.map((text) => run(7, text)).join('\n');
 
   test('printed in Bold pass', () => {
-    const bold = boldRuns(xml('<b>~30k</b>', 'downloads,', '<b>1040 → 5308</b>'));
+    const bold = boldRuns(
+      xml('<b>~30k</b>', 'downloads,', '<b>4</b>', '<b>1040 → 5308</b>', '<b>14% → 83%</b>')
+    );
 
-    expect(bold).toEqual(['~30k', '1040 → 5308']);
+    expect(bold).toEqual(['~30k', '4', '1040 → 5308', '14% → 83%']);
     expect(lightFigures(lines, bold, figuresIn)).toEqual([]);
   });
 
   test('printed in the body’s weight are named, line by line', () => {
-    const bold = boldRuns(xml('<b>Selected Impact</b>', '<b>~30k</b>', '1040 → 5308 tests'));
+    const bold = boldRuns(
+      xml(
+        '<b>Selected Impact</b>',
+        '<b>~30k</b>',
+        '<b>4</b>',
+        '1040 → 5308 tests',
+        '<b>14% → 83%</b>'
+      )
+    );
 
     expect(lightFigures(lines, bold, figuresIn)).toEqual([lines[1]]);
   });
 
   test('a line with no figure has none to set', () => {
     expect(lightFigures(['Owned the iOS client'], [], figuresIn)).toEqual([]);
+  });
+
+  // The review of #328: one bold figure anywhere on the page passed a line whose figures were Regular.
+  test('are looked for in the section alone, and every one of them', () => {
+    const section = { from: 'Selected Impact', to: 'Professional Experience' };
+    const outside = boldRuns(
+      xml(
+        '<b>Selected Impact</b>',
+        '<b>~30k</b>',
+        '<b>1040 → 5308</b>',
+        '<b>14% → 83%</b>',
+        '<b>Professional Experience</b>',
+        '<b>4</b>'
+      )
+    );
+
+    expect(lightFigures(lines, outside, figuresIn, section)).toEqual([lines[0]]);
+    const half = boldRuns(
+      xml('<b>Selected Impact</b>', '<b>~30k</b>', '<b>4</b>', '<b>1040 → 5308</b>')
+    );
+    expect(lightFigures(lines, half, figuresIn, section)).toEqual([lines[1]]);
   });
 });

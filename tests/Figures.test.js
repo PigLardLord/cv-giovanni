@@ -15,7 +15,9 @@ describe('a figure', () => {
     ],
     ['Cortado MDM für iOS: rund 30.000 Downloads, 4 Absturzberichte seit 2021', ['30.000', '4']],
     ['Cortado MDM für Android: 1.040 → 5.308 Tests', ['1.040 → 5.308']],
-    ['<0.1% crashes, 11+ years, from 37.7 to 5,2 minutes', ['<0.1%', '11+', '37.7', '5,2']]
+    ['<0.1% crashes, 11+ years, from 37.7 to 5,2 minutes', ['<0.1%', '11+', '37.7', '5,2']],
+    // DIN 5008 spaces the percent sign (the review of #328).
+    ['Branch-Coverage 14 % → 83 %', ['14 % → 83 %']]
   ])('in "%s" is %j', (line, figures) => {
     expect(figuresIn(line)).toEqual(figures);
   });
