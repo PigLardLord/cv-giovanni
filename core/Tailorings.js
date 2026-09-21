@@ -160,6 +160,9 @@ export class Tailorings {
   heldElsewhere() {
     if (!this.holder) return null;
     const { holder, file } = this.holder;
+    if (!holder.pid) {
+      return 'Another server on this checkout is taking the tailoring queue as this one asks: try again in a moment.';
+    }
     const since = holder.since ? `, since ${holder.since}` : '';
     return (
       `Another server on this checkout runs the tailoring queue — process ${holder.pid}${since}: send the job to ` +

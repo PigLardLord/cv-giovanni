@@ -457,13 +457,21 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       .catch((error) => console.error(error));
     // The queue is let go as the server stops, so the next one on this checkout takes it at once. A server that dies
     // without stopping leaves a lock whose process is gone, which the next one takes over (#282).
+    // A lock that cannot be let go is said, and the server still stops as the signal asks (the review of #316).
+    const stop = () => {
+      try {
+        tailorings.stop();
+      } catch (error) {
+        console.error(`  tailorings: the queue's lock could not be let go — ${error.message}`);
+      }
+    };
     for (const signal of ['SIGINT', 'SIGTERM']) {
       process.once(signal, () => {
-        tailorings.stop();
+        stop();
         process.kill(process.pid, signal);
       });
     }
-    process.once('exit', () => tailorings.stop());
+    process.once('exit', stop);
   } catch (error) {
     console.error(`  the local API's services cannot start: ${error.message}`);
   }

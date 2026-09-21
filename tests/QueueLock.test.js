@@ -66,6 +66,42 @@ describe('the queue’s lock', () => {
     expect([202, 303]).toContain(lockOf().pid);
   });
 
+  // The review of #316: a rename moves whatever is there now. A server that read the dead lock, then moved aside the
+  // lock another server had just taken over, led beside it.
+  test('left by a dead server, is not taken from the one that took it over first', async () => {
+    await serverWith(101).take();
+    const alive = (pid) => pid !== 101;
+    const first = serverWith(303, alive);
+    const late = serverWith(202, alive);
+    const read = late.read.bind(late);
+    let firstTook = null;
+    late.read = async (path) => {
+      const found = await read(path);
+      firstTook ??= await first.take();
+      return found;
+    };
+
+    const lateTook = await late.take();
+
+    expect(firstTook).toEqual({ taken: true });
+    expect(lateTook).toMatchObject({ taken: false, holder: { pid: 303 } });
+    expect(lockOf().pid).toBe(303);
+  });
+
+  test('is written in place on a file system that makes no hard links', async () => {
+    const linkless = {
+      link: async () => {
+        throw Object.assign(new Error('operation not permitted'), { code: 'EPERM' });
+      }
+    };
+    const server = (pid) =>
+      new QueueLock(root, { pid, alive: () => true, clock: () => 0, fs: linkless });
+
+    expect(await server(101).take()).toEqual({ taken: true });
+    expect(await server(202).take()).toMatchObject({ taken: false, holder: { pid: 101 } });
+    expect(lockOf().pid).toBe(101);
+  });
+
   test('is its own holder’s to take again', async () => {
     const server = serverWith(101);
     await server.take();

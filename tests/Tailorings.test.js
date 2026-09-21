@@ -983,6 +983,23 @@ describe('a second server on the same checkout', () => {
     expect(pending.map(({ job }) => job.id)).toEqual(['20260921-100001-bbbbbb']);
   });
 
+  test('says so when the lock kept changing hands, rather than naming no process', async () => {
+    const lock = {
+      take: async () => ({
+        taken: false,
+        holder: { pid: null, since: null },
+        file: 'applications/.queue-lock.json'
+      }),
+      release: () => {}
+    };
+    const { tailorings } = setup({ work: controlled().work, lock });
+
+    await tailorings.start();
+
+    expect(tailorings.heldElsewhere()).toMatch(/try again in a moment/);
+    expect(tailorings.heldElsewhere()).not.toMatch(/null/);
+  });
+
   test('lets the queue go when it stops', () => {
     const lock = heldLock();
     const { tailorings } = setup({ work: controlled().work, lock });
