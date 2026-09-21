@@ -14,6 +14,7 @@ import { ClaudeCliInference } from '../adapters/ClaudeCliInference.js';
 import { AnthropicApiInference, keyFile } from '../adapters/AnthropicApiInference.js';
 import { FullCvFiles, fullCvFiles } from '../adapters/FullCvFiles.js';
 import { apiTokenFile, ensureApiToken } from '../adapters/ApiToken.js';
+import { QueueLock } from '../adapters/QueueLock.js';
 import { Inference } from '../core/Inference.js';
 import { extname, isAbsolute, join, normalize, relative, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -167,7 +168,9 @@ export function localServices(
       files,
       inference,
       fullCv: new FullCvFiles(fullCvFiles({ env, projectRoot: root })),
-      work: (job, progress) => tailor.run(job, progress)
+      work: (job, progress) => tailor.run(job, progress),
+      // One server on this checkout runs the queue; a second leaves its jobs alone (#282).
+      lock: new QueueLock(root)
     })
   };
 }
@@ -444,7 +447,23 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   let services;
   try {
     services = localServices(projectRoot);
-    services.tailorings.start().catch((error) => console.error(error));
+    const { tailorings } = services;
+    tailorings
+      .start()
+      .then(() => {
+        const elsewhere = tailorings.heldElsewhere();
+        if (elsewhere) console.log(`  tailorings: ${elsewhere}`);
+      })
+      .catch((error) => console.error(error));
+    // The queue is let go as the server stops, so the next one on this checkout takes it at once. A server that dies
+    // without stopping leaves a lock whose process is gone, which the next one takes over (#282).
+    for (const signal of ['SIGINT', 'SIGTERM']) {
+      process.once(signal, () => {
+        tailorings.stop();
+        process.kill(process.pid, signal);
+      });
+    }
+    process.once('exit', () => tailorings.stop());
   } catch (error) {
     console.error(`  the local API's services cannot start: ${error.message}`);
   }

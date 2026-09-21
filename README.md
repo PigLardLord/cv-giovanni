@@ -154,7 +154,10 @@ way, only requests made directly from this machine and from the page the server 
 
 A tailoring takes minutes, so it is a job. Jobs run one at a time, in order of arrival, and each lives in
 `applications/<id>/` — the advert, the options and the job's state — so it survives the server stopping; a job that
-was running when it stopped is marked failed, as interrupted. A request takes `advert` and, optionally, `cv`, `letter`,
+was running when it stopped is marked failed, as interrupted. One server on a checkout runs the queue, and says so
+in `applications/.queue-lock.json`: a second one started on the same tree answers the jobs' state from disk, refuses
+new ones naming the process that runs them, and takes the queue over once that process has stopped — or died, since a
+lock whose process is gone is taken over. A request takes `advert` and, optionally, `cv`, `letter`,
 `language`, `model`, `effort`, `layout`, `auditRetries` and `auditGate`; anything else is refused, naming what is
 accepted. The estimate is the median of the last ten jobs like it that ended ready, or a seed until there are ten,
 and the answer says which.
