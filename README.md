@@ -155,10 +155,9 @@ A tailoring takes minutes, so it is a job. Jobs run one at a time, in order of a
 `applications/<id>/` — the advert, the options and the job's state — so it survives the server stopping; a job that
 was running when it stopped is marked failed, as interrupted. A request takes `advert` and, optionally, `cv`, `letter`,
 `language`, `model`, `effort`, `layout`, `auditRetries` and `auditGate`; anything else is refused, naming what is
-accepted. The
-estimate is the median of the last ten jobs like it that ended ready, or a seed until there are ten, and the answer
-says which. What a job does is being built in the steps of #260: until the tailoring itself lands, a job fails at
-once, saying so.
+accepted. The estimate is the median of the last ten jobs like it that ended ready, or a seed until there are ten,
+and the answer says which. What a job does is being built in the steps of #260: until the tailoring itself lands, a
+job fails at once, saying so.
 
 A tailoring subtracts from a CV that lists everything, so a job starts from the **full CV** its owner keeps in
 `~/.config/mycv/full-cv/en.json` (or under `$XDG_CONFIG_HOME`), in the profile's shape; with none there, from the

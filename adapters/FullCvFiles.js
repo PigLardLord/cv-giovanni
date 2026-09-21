@@ -16,6 +16,8 @@ import { configFile } from './ConfigDirectory.js';
 export function fullCvFiles(where = {}) {
   return {
     cv: configFile('full-cv/en.json', { ...where, what: 'full CV' }),
+    // Both files share full-cv/, so a place inside the project is refused on the CV first, and this `what` is only
+    // ever read if the two stop sharing a directory.
     letter: configFile('full-cv/letter.json', { ...where, what: "letter defaults' file" })
   };
 }

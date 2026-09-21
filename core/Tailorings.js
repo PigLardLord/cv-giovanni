@@ -473,10 +473,20 @@ function letterProblems(letter) {
         }
       ];
     }
-    const ok =
-      typeof value === 'string' && value.trim() && (key !== 'startDate' || DATE.test(value));
+    const ok = typeof value === 'string' && value.trim() && (key !== 'startDate' || isDate(value));
     return ok ? [] : [{ path: key, reason: `must be ${LETTER_FIELDS[key]}` }];
   });
+}
+
+/**
+ * Whether a start date is a day the calendar has. The pattern alone takes 2026-02-31, which `Date` then moves to the
+ * 3rd of March, and a letter would name a day the owner never wrote (the review of #283).
+ */
+function isDate(text) {
+  if (!DATE.test(text)) return false;
+  const [year, month, day = 1] = text.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
 }
 
 /** The problems of a part of the request, each with its path in the request. */

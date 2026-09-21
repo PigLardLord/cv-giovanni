@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { FullCvFiles, fullCvFiles } from '../adapters/FullCvFiles.js';
@@ -92,15 +92,40 @@ describe('reading them', () => {
   });
 
   test('a file that is not JSON is refused, without its content', async () => {
-    put(files.letter, 'salary: a secret figure');
+    put(files.letter, 'secret: 85000');
 
-    const refusal = await reader.readLetter().catch((error) => error);
-
-    expect(refusal).toMatchObject({
+    await expect(reader.readLetter()).rejects.toMatchObject({
       status: 503,
-      message: expect.stringMatching(/not valid JSON/)
+      message: "The letter's defaults at ~/.config/mycv/full-cv/letter.json is not valid JSON."
     });
-    expect(refusal.message).not.toMatch(/secret/);
+  });
+
+  // A link is followed: what counts is the file it leads to, readable by others or not.
+  test('a link to a file others can read is refused, and a link to a private one is read', async () => {
+    const elsewhere = join(home, 'elsewhere.json');
+    put(elsewhere, '{"name":"Ada Lovelace"}', 0o644);
+    symlinkSync(elsewhere, files.cv);
+
+    await expect(reader.readCv()).rejects.toMatchObject({
+      status: 503,
+      message: expect.stringMatching(/can be read by other users/)
+    });
+    chmodSync(elsewhere, 0o600);
+    expect((await reader.readCv()).cv).toEqual({ name: 'Ada Lovelace' });
+  });
+
+  // Anything but "not there" is refused: a file that cannot be looked at must not become the published CV in silence.
+  test('a file that cannot be looked at is refused, not read as none', async () => {
+    put(files.cv, '{"name":"Ada Lovelace"}');
+    chmodSync(join(home, '.config', 'mycv', 'full-cv'), 0o000);
+    try {
+      await expect(reader.readCv()).rejects.toMatchObject({
+        status: 503,
+        message: expect.stringMatching(/^The full CV at .* cannot be read \(EACCES\)\.$/)
+      });
+    } finally {
+      chmodSync(join(home, '.config', 'mycv', 'full-cv'), 0o700);
+    }
   });
 
   test('a directory where the file should be is refused', async () => {
@@ -110,6 +135,12 @@ describe('reading them', () => {
       status: 503,
       message: expect.stringMatching(/not a file/)
     });
+  });
+
+  test('a file in another home that shares a prefix is shown by its whole path', () => {
+    expect(new FullCvFiles({ ...files, home: '/home/ada' }).shown('/home/ada2/mycv/en.json')).toBe(
+      '/home/ada2/mycv/en.json'
+    );
   });
 
   test('a file outside the home directory is shown by its whole path', () => {

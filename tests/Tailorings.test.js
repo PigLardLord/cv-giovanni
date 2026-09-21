@@ -352,6 +352,15 @@ describe('what a job starts from', () => {
     expect(disk.stored.size).toBe(before);
   });
 
+  test('a CV of null is refused, not read as no CV', async () => {
+    const { tailorings } = setup({ work: controlled().work });
+
+    await expect(tailorings.create({ advert: 'x', cv: null })).rejects.toMatchObject({
+      status: 422,
+      details: [{ path: 'cv', reason: 'must be a JSON object' }]
+    });
+  });
+
   test('a full CV without the profile’s shape refuses the job, naming its file', async () => {
     const { tailorings } = setup({
       work: controlled().work,
@@ -380,6 +389,14 @@ describe('what a letter is told', () => {
   };
   const letterOf = (disk, id) =>
     JSON.parse(disk.stored.get(`applications/${id}/request.json`)).letter;
+
+  test('a leap day is a day', async () => {
+    const { disk, tailorings } = setup({ work: controlled().work });
+
+    const { id } = await tailorings.create({ advert: 'x', letter: { startDate: '2028-02-29' } });
+
+    expect(letterOf(disk, id)).toEqual({ startDate: '2028-02-29' });
+  });
 
   test('the defaults its owner keeps', async () => {
     const { disk, tailorings } = setup({
@@ -414,9 +431,13 @@ describe('what a letter is told', () => {
     [{ salary: '€90,000' }, 'letter.salary', /not a field a letter takes/],
     [{ startDate: 'December' }, 'letter.startDate', /YYYY-MM/],
     [{ startDate: '2026-13' }, 'letter.startDate', /YYYY-MM/],
+    [{ startDate: '2026-02-31' }, 'letter.startDate', /YYYY-MM/],
+    [{ startDate: '2027-02-29' }, 'letter.startDate', /YYYY-MM/],
     [{ note: '   ' }, 'letter.note', /text/],
     [{ note: 42 }, 'letter.note', /text/],
-    ['send it', 'letter', /JSON object/]
+    ['send it', 'letter', /JSON object/],
+    // Optional means left out: a null is not "no letter", and a later tidy-up must not make it one silently.
+    [null, 'letter', /JSON object/]
   ])('a letter of %j is refused with 422 at %s', async (letter, path, reason) => {
     const { tailorings } = setup({ work: controlled().work });
 
