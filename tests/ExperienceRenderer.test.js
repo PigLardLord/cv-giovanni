@@ -106,6 +106,35 @@ describe('ExperienceRenderer', () => {
     ]);
   });
 
+  // On a German screen `.no-break.compound` may wrap (#249). That is safe only while nothing but a hyphenated
+  // compound carries the class: a separator or a range that gained it would be free to strand its glyph at a
+  // line's edge, which #180 forbids. So every other held run is exactly `no-break`.
+  test('gives the compound class to nothing but a hyphenated compound', () => {
+    renderer.render(document, {
+      relevant_experience: [
+        {
+          title: 'Mobile Developer',
+          company: 'Apparound',
+          period: 'September 2015 – July 2018',
+          summary: 'Berlin · Munich, 2014—2016, 14%→83%, offline-first.',
+          highlights: ['From its first commit — owned the architecture, 2020–2023.']
+        }
+      ]
+    });
+
+    const kinds = [
+      ...document.querySelectorAll('.job-summary .no-break, .job-highlights .no-break')
+    ].map((span) => [span.textContent, span.className]);
+    expect(kinds).toEqual([
+      [' · ', 'no-break'],
+      ['2014—2016,', 'no-break'],
+      ['14%→83%,', 'no-break'],
+      ['offline-first', 'no-break compound'],
+      [' — ', 'no-break'],
+      ['2020–2023', 'no-break']
+    ]);
+  });
+
   // A closed range is one word too: "ezeep Blue for iOS, 2020–" ended a line at Technical Profile's 320px,
   // with "2023" opening the next (#230). The rule against a line ending on a separator is the same rule.
   test('holds a closed range whole, as it holds a hyphenated compound', () => {
