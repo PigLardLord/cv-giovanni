@@ -117,6 +117,14 @@ if (options.has('profile')) {
     );
   }
 }
+// The print is read from generated/, where build:pdf writes the public CV. A --out naming another place was taken and
+// ignored in the same silence (the review of #281).
+if (options.has('out')) {
+  cannotCheck(
+    'reads the print in generated/ only; --out is not read',
+    'Run it without --out, after `npm run build:pdf`.'
+  );
+}
 const ref =
   options.get('base') ||
   (process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_REF}` : 'origin/main');

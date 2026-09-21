@@ -54,13 +54,23 @@ describe('the audits read their options written either way', () => {
     expect(status).toBe(2);
   });
 
-  test('audit-ats-base takes the public CV named by its path', () => {
-    const { status, stderr } = run('audit-ats-base.mjs', [
-      '--profile=profiles/general/en.json',
-      '--base=no-such-ref-281'
-    ]);
+  test.each([['profiles/general/en.json'], ['./profiles/general/en.json']])(
+    'audit-ats-base takes the public CV named as %s',
+    (path) => {
+      const { status, stderr } = run('audit-ats-base.mjs', [
+        `--profile=${path}`,
+        '--base=no-such-ref-281'
+      ]);
 
-    expect(stderr).toMatch(/cannot find where HEAD left no-such-ref-281/);
+      expect(stderr).toMatch(/cannot find where HEAD left no-such-ref-281/);
+      expect(status).toBe(2);
+    }
+  );
+
+  test('audit-ats-base refuses --out rather than read generated/ in its place', () => {
+    const { status, stderr } = run('audit-ats-base.mjs', ['--out=build']);
+
+    expect(stderr).toMatch(/reads the print in generated\/ only; --out is not read/);
     expect(status).toBe(2);
   });
 
