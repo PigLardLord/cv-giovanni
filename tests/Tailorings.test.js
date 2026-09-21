@@ -67,7 +67,8 @@ const setup = ({
   fullCv,
   status = API,
   now = { at: Date.UTC(2026, 8, 21, 14, 32, 5) },
-  ids
+  ids,
+  lock
 } = {}) => {
   const disk = project(files);
   let serial = 0;
@@ -77,7 +78,8 @@ const setup = ({
     fullCv,
     work,
     clock: () => now.at,
-    random: () => (ids ? ids.shift() : `a1b2c${serial++}`)
+    random: () => (ids ? ids.shift() : `a1b2c${serial++}`),
+    lock
   });
   return { disk, tailorings, now };
 };
@@ -976,4 +978,136 @@ describe('asking after a job', () => {
       await expect(tailorings.status(id)).rejects.toMatchObject({ status: 404 });
     }
   );
+});
+
+// Two servers on one checkout ran every job twice (#282): the second one leaves the first's jobs alone.
+describe('a second server on the same checkout', () => {
+  const HOLDER = { pid: 4242, since: '2026-09-21T09:00:00.000Z' };
+  /** A lock another server holds until the test lets it go. */
+  const heldLock = () => {
+    const lock = {
+      held: true,
+      released: 0,
+      take: async () =>
+        lock.held
+          ? { taken: false, holder: HOLDER, file: 'applications/.queue-lock.json' }
+          : { taken: true },
+      release: () => {
+        lock.released += 1;
+      }
+    };
+    return lock;
+  };
+  const running = {
+    'applications/20260921-100000-aaaaaa/state.json': JSON.stringify({
+      id: '20260921-100000-aaaaaa',
+      status: 'running',
+      createdAt: '2026-09-21T10:00:00.000Z',
+      startedAt: '2026-09-21T14:30:00.000Z',
+      estimate: { seconds: 600, basis: 'seed' }
+    }),
+    'applications/20260921-100001-bbbbbb/state.json': JSON.stringify({
+      id: '20260921-100001-bbbbbb',
+      status: 'queued',
+      createdAt: '2026-09-21T10:00:01.000Z',
+      estimate: { seconds: 900, basis: 'seed' }
+    }),
+    'applications/20260921-100001-bbbbbb/advert.txt': 'advert',
+    'applications/20260921-100001-bbbbbb/request.json': JSON.stringify(DEFAULTS),
+    'applications/20260921-100001-bbbbbb/source.json': PUBLISHED
+  };
+
+  test('marks none of the first server’s jobs interrupted, and runs none of them', async () => {
+    const { work } = controlled();
+    const { disk, tailorings } = setup({ work, files: running, lock: heldLock() });
+
+    await tailorings.start();
+    await flush();
+
+    expect(stateOf(disk, '20260921-100000-aaaaaa').status).toBe('running');
+    expect(stateOf(disk, '20260921-100001-bbbbbb').status).toBe('queued');
+    expect(work).not.toHaveBeenCalled();
+  });
+
+  test('refuses a new job, naming the process that runs the queue and its lock', async () => {
+    const { work } = controlled();
+    const { tailorings } = setup({ work, files: running, lock: heldLock() });
+
+    const refused = await tailorings.create({ advert: 'x' }).catch((error) => error);
+
+    expect(refused).toBeInstanceOf(Refusal);
+    expect(refused.status).toBe(409);
+    expect(refused.message).toMatch(/process 4242, since 2026-09-21T09:00:00.000Z/);
+    expect(refused.message).toMatch(/applications\/\.queue-lock\.json/);
+    expect(tailorings.heldElsewhere()).toBe(refused.message);
+    expect(work).not.toHaveBeenCalled();
+  });
+
+  test('answers a job’s state as the first server last wrote it', async () => {
+    const { disk, tailorings } = setup({
+      work: controlled().work,
+      files: running,
+      lock: heldLock()
+    });
+
+    expect(await tailorings.status('20260921-100000-aaaaaa')).toMatchObject({
+      status: 'running',
+      secondsLeft: 600 - 125
+    });
+    disk.stored.set(
+      'applications/20260921-100000-aaaaaa/state.json',
+      JSON.stringify({ id: '20260921-100000-aaaaaa', status: 'ready', seconds: 200 })
+    );
+    expect(await tailorings.status('20260921-100000-aaaaaa')).toMatchObject({
+      status: 'ready',
+      secondsLeft: 0
+    });
+    await expect(tailorings.status('20260921-999999-ffffff')).rejects.toMatchObject({
+      status: 404
+    });
+  });
+
+  test('takes the queue over once the first has stopped, and recovers it then', async () => {
+    const { work, pending } = controlled();
+    const lock = heldLock();
+    const { disk, tailorings } = setup({ work, files: running, lock });
+    await tailorings.start();
+
+    lock.held = false;
+    expect(await tailorings.status('20260921-100000-aaaaaa')).toMatchObject({
+      status: 'failed',
+      reason: expect.stringMatching(/interrupted/)
+    });
+    await flush();
+
+    expect(tailorings.heldElsewhere()).toBeNull();
+    expect(stateOf(disk, '20260921-100000-aaaaaa').status).toBe('failed');
+    expect(pending.map(({ job }) => job.id)).toEqual(['20260921-100001-bbbbbb']);
+  });
+
+  test('says so when the lock kept changing hands, rather than naming no process', async () => {
+    const lock = {
+      take: async () => ({
+        taken: false,
+        holder: { pid: null, since: null },
+        file: 'applications/.queue-lock.json'
+      }),
+      release: () => {}
+    };
+    const { tailorings } = setup({ work: controlled().work, lock });
+
+    await tailorings.start();
+
+    expect(tailorings.heldElsewhere()).toMatch(/try again in a moment/);
+    expect(tailorings.heldElsewhere()).not.toMatch(/null/);
+  });
+
+  test('lets the queue go when it stops', () => {
+    const lock = heldLock();
+    const { tailorings } = setup({ work: controlled().work, lock });
+
+    tailorings.stop();
+
+    expect(lock.released).toBe(1);
+  });
 });
