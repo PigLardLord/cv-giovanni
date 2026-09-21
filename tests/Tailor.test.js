@@ -66,7 +66,7 @@ const reply = (answer, usd = 0.5) => ({
   truncated: false
 });
 
-const setup = (replies, { language = 'en' } = {}) => {
+const setup = (replies, { language = 'en', advert = ADVERT, clock } = {}) => {
   const asked = [];
   const written = new Map();
   const inference = {
@@ -85,11 +85,16 @@ const setup = (replies, { language = 'en' } = {}) => {
     writeText: async (path, text) => written.set(path, text)
   };
   const updates = [];
-  const tailor = new Tailor({ inference, files, clock: () => 1_000_000, timeLimit: 60_000 });
+  const tailor = new Tailor({
+    inference,
+    files,
+    clock: clock ?? (() => 1_000_000),
+    timeLimit: 60_000
+  });
   const job = {
     id: '20260921-143205-a1b2c3',
     directory: 'applications/20260921-143205-a1b2c3',
-    advert: ADVERT,
+    advert,
     options: { ...DEFAULTS, language, letter: { note: 'Remote.' } },
     cv: SOURCE
   };
@@ -240,6 +245,62 @@ describe('a tailoring the check refuses', () => {
   });
 });
 
+// What the review of #286 found. A required term the advert writes in lower case was not held, and came back as a
+// question while it stood in the CV.
+describe('what the review of the tailoring found', () => {
+  const LOWER = [
+    'Senior iOS Engineer',
+    '',
+    'Requirements:',
+    '- kotlin multiplatform',
+    '- SwiftUI'
+  ].join('\n');
+
+  test('a required term in lower case, written into the CV, fails; left out, it is a question', async () => {
+    const lower = faithful();
+    lower.profile.relevant_experience[0].highlights = [
+      'Cut the test suite from 37.7 to 5.2 minutes with kotlin multiplatform.'
+    ];
+    const { asked, run } = setup([reply(lower), reply(faithful())], { advert: LOWER });
+
+    const { questions } = await run();
+
+    expect(asked[1].prompt).toMatch(/says "kotlin[^"]*", which its source does not/);
+    expect(questions.map(({ term }) => term)).toContainEqual(expect.stringMatching(/kotlin/));
+  });
+
+  test('a term the advert does not require is no question', async () => {
+    const nice = ['Senior iOS Engineer', '', 'Nice to have:', '- Flutter'].join('\n');
+    const { run } = setup([reply(faithful())], { advert: nice });
+
+    const { questions } = await run();
+
+    expect(questions.filter(({ from }) => from === 'advert')).toEqual([]);
+  });
+
+  test('the deadline is the job’s, set once, not one per attempt', async () => {
+    let now = 1_000_000;
+    const { asked, run } = setup([reply(inventive()), reply(faithful())], {
+      clock: () => (now += 5_000)
+    });
+
+    await run();
+
+    expect(asked.map(({ deadline }) => deadline)).toEqual([1_005_000 + 60_000, 1_005_000 + 60_000]);
+  });
+
+  test('sources that are not an object are one failure, and go back', async () => {
+    const listed = { ...faithful(), sources: ['relevant_experience[0]'] };
+    const { asked, run } = setup([reply(listed), reply(faithful())]);
+
+    await run();
+
+    expect(asked[1].prompt).toMatch(
+      /<what_failed>\n- answer: has `sources` that is not an object from each tailored item to its source\n<\/what_failed>/
+    );
+  });
+});
+
 describe('a tailoring that cannot run', () => {
   test('a refusal of the model ends the job at once, with what the attempts cost', async () => {
     const declined = Object.assign(
@@ -254,7 +315,7 @@ describe('a tailoring that cannot run', () => {
 
     expect(asked).toHaveLength(2);
     expect(refusal).toBe(declined);
-    expect(refusal.cost).toEqual({ backend: null, usd: 0.6 });
+    expect(refusal.cost).toEqual({ backend: 'anthropic-api', usd: 0.6 });
   });
 
   test('a language other than the full CV’s is step 6, and nothing is asked', async () => {

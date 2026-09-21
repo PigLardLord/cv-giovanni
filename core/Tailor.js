@@ -69,11 +69,15 @@ export class Tailor {
     const deadline = this.clock() + this.timeLimit;
     const system = await this.files.readText(SYSTEM_PROMPT);
     const terms = Tailor.terms(advert, source);
-    // The advert's names and technologies, which a tailoring must not bring in. Its plain words — "team",
-    // "experience" — are the vocabulary a rewording is for.
+    // What a tailoring must not bring in: every term the advert requires and the full CV does not evidence, in any
+    // case it is written in, and the advert's names and technologies. The advert's words the CV never writes are held
+    // by the check itself, from the advert.
     const vocabulary = terms
-      .map(({ term }) => term)
-      .filter((term) => /\p{Lu}|\d|[+#/.]/u.test(term));
+      .filter(
+        ({ term, required, evidence }) =>
+          (required && evidence === 'absent') || /\p{Lu}|\d|[+#/.]/u.test(term)
+      )
+      .map(({ term }) => term);
 
     let failures = [];
     let answer = null;
@@ -111,7 +115,8 @@ export class Tailor {
             source,
             tailored: answer.profile,
             sources: answer.sources,
-            terms: vocabulary
+            terms: vocabulary,
+            advert
           });
       if (!failures.length) {
         const tailored = Tailor.tailoredPath(directory);
@@ -211,12 +216,17 @@ export class Tailor {
     if (!answer.profile || typeof answer.profile !== 'object' || Array.isArray(answer.profile)) {
       return fail('has no `profile` object');
     }
+    const isObject = (value) =>
+      Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+    if (answer.sources !== undefined && !isObject(answer.sources)) {
+      return fail('has `sources` that is not an object from each tailored item to its source');
+    }
     const { letter, ...profile } = answer.profile;
     return {
       answer: {
         profile,
-        sources: answer.sources && typeof answer.sources === 'object' ? answer.sources : {},
-        report: answer.report && typeof answer.report === 'object' ? answer.report : {},
+        sources: answer.sources ?? {},
+        report: isObject(answer.report) ? answer.report : {},
         questions: Array.isArray(answer.questions)
           ? answer.questions.filter((question) => typeof question === 'string' && question.trim())
           : []
@@ -246,7 +256,7 @@ export class Tailor {
   static cost(replies) {
     const priced = replies.map(({ usd }) => usd).filter((usd) => typeof usd === 'number');
     return {
-      backend: replies.at(-1)?.backend ?? null,
+      backend: replies.findLast((reply) => reply.backend)?.backend ?? null,
       usd: priced.length ? Math.round(priced.reduce((sum, usd) => sum + usd, 0) * 1e6) / 1e6 : null
     };
   }

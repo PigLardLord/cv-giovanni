@@ -62,11 +62,14 @@ const itself = (source) => {
   return sources;
 };
 
-const check = (edit = () => {}, { sources, terms = ['Kotlin', 'Jetpack Compose'] } = {}) => {
+const check = (
+  edit = () => {},
+  { sources, terms = ['Kotlin', 'Jetpack Compose'], advert = '' } = {}
+) => {
   const tailored = structuredClone(SOURCE);
   const mapped = sources ?? itself(SOURCE);
   edit(tailored, mapped);
-  return ProvenanceCheck.failures({ source: SOURCE, tailored, sources: mapped, terms });
+  return ProvenanceCheck.failures({ source: SOURCE, tailored, sources: mapped, terms, advert });
 };
 const reasonsAt = (failures, path) =>
   failures.filter((failure) => failure.path === path).map(({ reason }) => reason);
@@ -307,7 +310,9 @@ describe('what the whole profile must still be', () => {
     const failures = check((cv) => {
       cv.relevant_experience[0].summary = 'Owned the iOS client for three years in a team of 2.';
     });
+    // A figure in words the source does not state, and a span the calendar will overtake: two failures, one text.
     expect(failures).toEqual([
+      { path: 'relevant_experience[0].summary', reason: 'states three, which its source does not' },
       expect.objectContaining({
         path: 'relevant_experience[0].summary',
         reason: expect.stringMatching(/^"three years": /)
@@ -316,13 +321,202 @@ describe('what the whole profile must still be', () => {
   });
 });
 
+// What the review of #286 found passing, or refused, that should not have been. Each case is one it reproduced.
+describe('what the review of the check found', () => {
+  test('a decimal point dropped is another figure: 5.2 is not 52, and 37.7 is not 377', () => {
+    for (const text of [
+      'Cut the test suite from 37.7 to 52 minutes.',
+      'Cut the test suite from 377 to 5.2 minutes.'
+    ]) {
+      const failures = check((cv) => (cv.relevant_experience[0].highlights[1] = text));
+      expect(reasonsAt(failures, 'relevant_experience[0].highlights[1]')).toHaveLength(1);
+    }
+  });
+
+  test('a comma for the decimal point, and a thousands separator, are the same figure', () => {
+    expect(
+      check(
+        (cv) =>
+          (cv.relevant_experience[0].highlights[1] = 'Cut the test suite from 37,7 to 5.2 minutes.')
+      )
+    ).toEqual([]);
+  });
+
+  test('a figure in words is a figure', () => {
+    const failures = check((cv) => {
+      cv.profile =
+        'Senior iOS engineer with 11+ years, leading a team of twelve at Analytical Engines.';
+      cv.relevant_experience[0].highlights[2] =
+        'Shipped App Store releases every two weeks across twenty-five screens.';
+    });
+    expect(reasonsAt(failures, 'profile')).toEqual(['states twelve, which its source does not']);
+    expect(reasonsAt(failures, 'relevant_experience[0].highlights[2]')).toEqual([
+      'states twenty-five, which its source does not'
+    ]);
+  });
+
+  test('a possessive and a compound of a name the source writes are that name', () => {
+    for (const text of [
+      'Engine Notes for iOS, built on SwiftUI’s declarative views from 2021.',
+      "Engine Notes for iOS, built on SwiftUI's layout system from 2021.",
+      'A SwiftUI-based Engine Notes for iOS, from 2021.',
+      'TDD-driven Engine Notes for iOS in SwiftUI, from 2021.'
+    ]) {
+      expect(check((cv) => (cv.relevant_experience[0].highlights[0] = text))).toEqual([]);
+    }
+    expect(
+      reasonsAt(
+        check(
+          (cv) =>
+            (cv.relevant_experience[0].highlights[0] = 'A Kotlin-based Engine Notes, from 2021.')
+        ),
+        'relevant_experience[0].highlights[0]'
+      )
+    ).toEqual(['names "Kotlin-based", which its source does not']);
+  });
+
+  test('a name after a semicolon or a dash is a name, and one the advert writes is a name at a sentence’s start', () => {
+    const failures = check(
+      (cv) => {
+        cv.relevant_experience[0].highlights[2] =
+          'Shipped App Store releases every two weeks; Bitrise.';
+        cv.relevant_experience[0].highlights[1] =
+          'Fastlane cut the test suite from 37.7 to 5.2 minutes.';
+      },
+      { advert: 'Requirements:\n- Fastlane and Bitrise' }
+    );
+    expect(reasonsAt(failures, 'relevant_experience[0].highlights[2]')).toEqual([
+      'names "Bitrise", which its source does not'
+    ]);
+    expect(reasonsAt(failures, 'relevant_experience[0].highlights[1]')).toEqual([
+      'names "Fastlane", which its source does not'
+    ]);
+    // A verb at a sentence's start is a verb, whatever the advert writes.
+    expect(
+      check(
+        (cv) =>
+          (cv.relevant_experience[0].highlights[2] =
+            'Delivered App Store releases every two weeks.'),
+        {
+          advert: 'Deliver features.'
+        }
+      )
+    ).toEqual([]);
+  });
+
+  test('a word the advert writes and the source never does is held, in any case', () => {
+    const failures = check(
+      (cv) => {
+        cv.relevant_experience[0].highlights[1] =
+          'Cut the test suite from 37.7 to 5.2 minutes through test automation, with accessibility.';
+      },
+      {
+        advert: 'Requirements:\n- kotlin multiplatform\n- test automation\n- accessibility',
+        terms: []
+      }
+    );
+    expect(reasonsAt(failures, 'relevant_experience[0].highlights[1]')).toEqual([
+      'says "automation", which its source does not',
+      'says "accessibility", which its source does not'
+    ]);
+  });
+
+  test('an achievement comes from achievements: not a summary, a period or a whole list', () => {
+    for (const named of [
+      'relevant_experience[0].summary',
+      'relevant_experience[0].period',
+      'relevant_experience[0].highlights'
+    ]) {
+      const failures = check((cv, sources) => {
+        sources['relevant_experience[0].highlights[0]'] = [named];
+      });
+      expect(failures).toEqual([
+        {
+          path: 'relevant_experience[0].highlights[0]',
+          reason: `names ${named} as its source, which is not an achievement`
+        }
+      ]);
+    }
+  });
+
+  test('a career highlight comes from an achievement or a highlight, not the summary', () => {
+    expect(check((cv, sources) => (sources['career_highlights[0]'] = 'profile'))).toEqual([
+      {
+        path: 'career_highlights[0]',
+        reason: 'names profile as its source, which is not an achievement or a highlight'
+      }
+    ]);
+  });
+
+  test('a path only walks the source’s own fields and indexes', () => {
+    for (const named of ['__proto__', 'constructor', 'relevant_experience[0].highlights.length']) {
+      const failures = check((cv, sources) => (sources['career_highlights[0]'] = named));
+      expect(failures).toEqual([
+        { path: 'career_highlights[0]', reason: `names ${named}, which the source does not have` }
+      ]);
+    }
+  });
+
+  test('one source role is named by one tailored role', () => {
+    const failures = check((cv, sources) => {
+      cv.relevant_experience[1] = structuredClone(cv.relevant_experience[0]);
+      sources['relevant_experience[1]'] = 'relevant_experience[0]';
+      sources['relevant_experience[1].highlights[0]'] = 'relevant_experience[0].highlights[0]';
+      sources['relevant_experience[1].highlights[1]'] = 'relevant_experience[0].highlights[1]';
+      sources['relevant_experience[1].highlights[2]'] = 'relevant_experience[0].highlights[2]';
+    });
+    expect(failures).toContainEqual({
+      path: 'relevant_experience[1]',
+      reason: 'names relevant_experience[0], which relevant_experience[0] already names'
+    });
+  });
+
+  test('inside a role, its title goes without saying, as its employer does', () => {
+    expect(
+      check(
+        (cv) =>
+          (cv.relevant_experience[0].highlights[2] =
+            'Shipped iOS releases to the App Store every two weeks.')
+      )
+    ).toEqual([]);
+  });
+
+  test('a role’s location, a skill category and the subtitle are held too', () => {
+    const failures = check((cv) => {
+      cv.relevant_experience[0].location = 'Berlin';
+      cv.skills[0].category = 'iOS and Kotlin';
+      cv.subtitle = 'Swift · Jetpack';
+    });
+    expect(failures).toEqual([
+      { path: 'subtitle', reason: 'names "Jetpack", which its source does not' },
+      {
+        path: 'relevant_experience[0].location',
+        reason: "is not relevant_experience[0]'s location"
+      },
+      { path: 'skills[0].category', reason: 'names "Kotlin", which its source does not' }
+    ]);
+  });
+
+  test('a degree is the one the source lists whatever order its fields come in', () => {
+    expect(
+      check((cv) => {
+        cv.education = [
+          { period: '2010–2013', school: 'University of London', degree: 'B.Sc. Mathematics' }
+        ];
+      })
+    ).toEqual([]);
+  });
+});
+
 describe('the names a text writes', () => {
-  test('a word with a capital is a name, except where a sentence or a clause after a colon begins', () => {
+  // A sentence begins at the start and after a full stop; after a colon, a semicolon or a dash it goes on, and a
+  // capital there is a name (the review of #286).
+  test('a word with a capital is a name, except where a sentence begins', () => {
     expect(
       ProvenanceCheck.names(
-        'Moved the app to SwiftUI. Cut tests: Clean Architecture, TDD, iOS, 5G.'
+        'Moved the app to SwiftUI. Cut tests: Clean Architecture, TDD, iOS, 5G; Fastlane – Docker.'
       )
-    ).toEqual(['SwiftUI', 'Architecture', 'TDD', 'iOS', '5G']);
+    ).toEqual(['SwiftUI', 'Clean', 'Architecture', 'TDD', 'iOS', '5G', 'Fastlane', 'Docker']);
   });
 });
 

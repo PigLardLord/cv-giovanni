@@ -165,8 +165,10 @@ figure, a date, a name or a technology its source item does not state, a role wh
 changed, an identity field rewritten, a skill the CV does not list — each fails, and goes back to the model with what
 failed, at most twice. A job still failing after that ends failed, with every failure. What the advert requires and
 the CV does not evidence comes back as a question, for the full CV, never as a line of the tailored one. A ready job
-writes `applications/<id>/tailored.json`; the letter, another language and the PDFs are the next steps of #260. The
-system prompt is `prompts/tailor-cv.md`, sent byte for byte.
+writes `applications/<id>/tailored.json`; the letter, another language and the PDFs are the next steps of #260 — a
+job asking for `de` is accepted, and fails at once saying so. The system prompt is `prompts/tailor-cv.md`, sent byte
+for byte. The check holds the tailored CV, never the report or the questions: those are the model's own words, shown
+to the owner on this machine, and are read as such.
 
 A tailoring subtracts from a CV that lists everything, so a job starts from the **full CV** its owner keeps in
 `~/.config/mycv/full-cv/en.json` (or under `$XDG_CONFIG_HOME`), in the profile's shape; with none there, from the
