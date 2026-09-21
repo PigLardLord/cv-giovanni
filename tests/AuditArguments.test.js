@@ -40,6 +40,40 @@ describe('the audits read their options written either way', () => {
     }
   );
 
+  // The comparison is of the public CV. A --profile naming another was ignored, and the public CV compared in its
+  // place, without a word (#281): now it is refused, and the public CV's own path is still taken.
+  test.each([
+    [['--profile=profiles/general/de.json']],
+    [['--profile', 'profiles/general/de.json']]
+  ])('audit-ats-base refuses %j rather than compare the public CV in its place', (profile) => {
+    const { status, stderr } = run('audit-ats-base.mjs', profile);
+
+    expect(stderr).toMatch(
+      /compares the public CV only, profiles\/general\/en\.json; --profile names profiles\/general\/de\.json/
+    );
+    expect(status).toBe(2);
+  });
+
+  test.each([['profiles/general/en.json'], ['./profiles/general/en.json']])(
+    'audit-ats-base takes the public CV named as %s',
+    (path) => {
+      const { status, stderr } = run('audit-ats-base.mjs', [
+        `--profile=${path}`,
+        '--base=no-such-ref-281'
+      ]);
+
+      expect(stderr).toMatch(/cannot find where HEAD left no-such-ref-281/);
+      expect(status).toBe(2);
+    }
+  );
+
+  test('audit-ats-base refuses --out rather than read generated/ in its place', () => {
+    const { status, stderr } = run('audit-ats-base.mjs', ['--out=build']);
+
+    expect(stderr).toMatch(/reads the print in generated\/ only; --out is not read/);
+    expect(status).toBe(2);
+  });
+
   test.each([
     ['audit-ats.mjs', ['--profile=profiles/general/en.json', '--advert'], /--advert=<path>/],
     ['audit-ats.mjs', ['--advert'], /--advert=<path>/],

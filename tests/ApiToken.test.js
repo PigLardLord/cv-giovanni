@@ -7,7 +7,9 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
+  existsSync,
   statSync,
+  symlinkSync,
   writeFileSync
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -113,6 +115,31 @@ describe('the API token', () => {
     } finally {
       chmodSync(join(config, 'mycv'), 0o700);
     }
+  });
+
+  // A link to nothing at the token's path: stat says the file is absent, the exclusive write says something is there,
+  // and the server used to retry that as a race for ever (#291). A link to nothing as its directory already failed at
+  // once, with a reason that did not say why. Both say "a link to nothing" now, and nothing is made through either.
+  test.each([
+    [
+      'the file',
+      () => {
+        mkdirSync(join(config, 'mycv'));
+        symlinkSync(join(config, 'nowhere', 'token'), file);
+      }
+    ],
+    ['its directory', () => symlinkSync(join(config, 'nowhere'), join(config, 'mycv'))]
+  ])('is none, with a reason, when %s is a link to nothing', async (_, arrange) => {
+    arrange();
+
+    let timer;
+    const answer = await Promise.race([
+      ensureApiToken(file),
+      new Promise((resolve) => (timer = setTimeout(() => resolve('still running'), 2000)))
+    ]).finally(() => clearTimeout(timer));
+
+    expect(answer).toEqual({ token: null, reason: expect.stringMatching(/link/) });
+    expect(existsSync(join(config, 'nowhere'))).toBe(false);
   });
 
   // Two servers on the very first start both try to make the file; the one that loses reads what the other made,
