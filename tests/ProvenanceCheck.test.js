@@ -1080,8 +1080,11 @@ describe('a greeting or a closing in the letter', () => {
 // A translation (#299): German capitalises its nouns, so a capital names nothing; the names, figures and dates are
 // what a translation keeps, and what it is held to.
 describe('a tailored CV translated into German', () => {
-  const translate = (edit = () => {}, { advert = '', terms = ['Kotlin'] } = {}) => {
-    const tailored = structuredClone(SOURCE);
+  const translate = (
+    edit = () => {},
+    { advert = '', terms = ['Kotlin'], source = SOURCE } = {}
+  ) => {
+    const tailored = structuredClone(source);
     tailored.location = 'London';
     tailored.relevant_experience[0].period = 'Januar 2021 – Dezember 2023';
     tailored.relevant_experience[0].title = 'iOS-Entwickler';
@@ -1100,14 +1103,14 @@ describe('a tailored CV translated into German', () => {
       { name: 'Certified Engine Operator', issuer: 'Babbage Institute', year: 2020 }
     ];
     const sources = {
-      ...itself(SOURCE),
+      ...itself(source),
       'education[0]': 'education[0]',
       'certifications[0]': 'certifications[0]',
       'languages[0]': 'languages[0]'
     };
     edit(tailored, sources);
     return ProvenanceCheck.failures({
-      source: SOURCE,
+      source,
       tailored,
       sources,
       terms,
@@ -1209,7 +1212,39 @@ describe('a tailored CV translated into German', () => {
     ]);
   });
 
-  test.each(['Teamleiter iOS', 'Softwarearchitekt', 'Chefentwickler iOS'])(
+  // Ranks, not words (#313): a lead is a Leiter, and a companion — "Begleiter" — is no rank.
+  test('a title translated in the rank its source claims holds, and a word that only ends like one claims none', () => {
+    // Parsed, not cloned: the check walks plain objects of this realm only.
+    const led = JSON.parse(JSON.stringify(SOURCE));
+    led.relevant_experience[0].title = 'iOS Team Lead';
+    const at = (failures) => failures.filter(({ path }) => path === 'relevant_experience[0].title');
+
+    expect(
+      at(translate((cv) => (cv.relevant_experience[0].title = 'iOS-Teamleiter'), { source: led }))
+    ).toEqual([]);
+    // A Leiter manages and directs too, in German (the review of #334).
+    for (const [english, german] of [
+      ['Engineering Manager', 'Entwicklungsleiter'],
+      ['Project Manager', 'Projektleiter'],
+      ['Director of Engineering', 'Bereichsleiter Entwicklung'],
+      ['Head of iOS', 'Leitender iOS-Entwickler']
+    ]) {
+      const source = JSON.parse(JSON.stringify(SOURCE));
+      source.relevant_experience[0].title = english;
+      expect(at(translate((cv) => (cv.relevant_experience[0].title = german), { source }))).toEqual(
+        []
+      );
+    }
+    expect(
+      at(
+        translate(
+          (cv) => (cv.relevant_experience[0].title = 'iOS-Entwickler und Begleiter im Team')
+        )
+      )
+    ).toEqual([]);
+  });
+
+  test.each(['Teamleiter iOS', 'Softwarearchitekt', 'Chefentwickler iOS', 'iOS-Cloudarchitekt'])(
     'a title translated as %s claims a seniority its source does not',
     (title) => {
       expect(

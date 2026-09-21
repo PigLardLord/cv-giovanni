@@ -102,9 +102,61 @@ const ROLE = /^relevant_experience\[\d+\]$/;
 const COPIED = Object.freeze(['name', 'email', 'phone', 'portfolio', 'asOf']);
 const WORDED = Object.freeze(['location', 'availability', 'workAuthorisation']);
 
-/** The words a title adds when it claims more seniority, in either language. */
-const SENIORITY =
-  /(?<![\p{L}])(senior|lead|leading|principal|staff|head|chief|director|manager|architect|leitend\p{L}*|\p{L}*(?:leiter|leitung|architekt)\p{L}*|chef\p{L}*|führungs\p{L}*)(?![\p{L}])/giu;
+/**
+ * The ranks a title claims, by what its words mean in either language, not by the words: "Team Lead" and
+ * "Teamleiter" claim one rank, and "Begleiter" claims none (#313). German writes a lead and a head alike, as Leiter;
+ * each word names every rank it may mean, and a translation may write any rank its source claims.
+ */
+const RANKS = Object.freeze([
+  [/^senior$/, ['senior']],
+  [/^(?:lead|leading)$/, ['lead']],
+  [/^principal$/, ['principal']],
+  [/^staff$/, ['staff']],
+  [/^(?:head|chief)$/, ['head']],
+  [/^director$/, ['director']],
+  [/^manager(?:in)?$/, ['manager']],
+  [/^architect$/, ['architect']],
+  // No German word ends in "architekt" without being one; "Architektur" is the craft, not the rank.
+  [/^\p{L}*architekt(?:in)?$/u, ['architect']],
+  // A Leiter leads, heads, manages or directs: German writes "Engineering Manager" and "Director of Engineering" as
+  // Entwicklungsleiter too (the review of #334). The few words that only end like one are named below.
+  [/^\p{L}*(?:leiter(?:in)?|leitung)$/u, ['lead', 'head', 'manager', 'director']],
+  [/^leitende[rnms]?$/, ['lead', 'head']],
+  [/^chef(?:entwickler(?:in)?|architekt(?:in)?)?$/, ['lead', 'head']],
+  [/^fuhrungs\p{L}*$/u, ['lead', 'head']]
+]);
+
+/** Words that end like a rank and are none: a companion, a semiconductor, a lightning rod, a pipe. */
+const NOT_RANKS = new Set([
+  'begleiter',
+  'begleiterin',
+  'wegbegleiter',
+  'halbleiter',
+  'supraleiter',
+  'lichtleiter',
+  'wellenleiter',
+  'ableiter',
+  'blitzableiter',
+  'wasserleitung',
+  'stromleitung',
+  'gasleitung',
+  'rohrleitung',
+  'datenleitung',
+  'telefonleitung'
+]);
+
+/** Every rank a text's words claim, each with the word that claims it, folded. */
+function ranksOf(text) {
+  return String(text ?? '')
+    .split(/[^\p{L}-]+/u)
+    .flatMap((word) => word.split('-'))
+    .map(fold)
+    .filter((word) => word && !NOT_RANKS.has(word))
+    .flatMap((word) => {
+      const rank = RANKS.find(([pattern]) => pattern.test(word));
+      return rank ? [{ word, ranks: rank[1] }] : [];
+    });
+}
 
 /** The words German writes as its own nouns that an English CV writes as names: "die App" is no name in German. */
 const SHARED_NOUNS = new Set(
@@ -311,9 +363,12 @@ export class ProvenanceCheck {
     // A title a translation words its own way claims no more than its source: no seniority it does not write.
     const worded = (path, text, against) => {
       states(path, text, against);
-      const claimed = new Set((String(against).match(SENIORITY) || []).map(fold));
-      for (const word of new Set((String(text).match(SENIORITY) || []).map(fold))) {
-        if (!claimed.has(word)) fail(path, `claims "${word}", which its source does not`);
+      const claimed = new Set(ranksOf(against).flatMap(({ ranks }) => ranks));
+      const said = new Set();
+      for (const { word, ranks } of ranksOf(text)) {
+        if (said.has(word) || ranks.some((rank) => claimed.has(rank))) continue;
+        said.add(word);
+        fail(path, `claims "${word}", which its source does not`);
       }
     };
 
