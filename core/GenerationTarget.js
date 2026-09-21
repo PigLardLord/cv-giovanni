@@ -45,6 +45,15 @@ export class GenerationTarget {
   }
 
   /**
+   * True for a published profile wherever this run prints it: a profile under `profiles/`, which the manifest lists,
+   * since a run refuses any other there (#248). `isPublished` says where the print goes; this says which CV it is —
+   * what the print fixtures are named for (#302).
+   */
+  get isPublicProfile() {
+    return this.dataPath.startsWith('profiles/');
+  }
+
+  /**
    * Where an audit's markdown belongs. The public CV keeps the names its reports always had; every other
    * published CV names its own after itself, so two of them never write over each other's (#248).
    * @param {string} name - Report filename, e.g. `PRINT_AUDIT.md`
