@@ -80,6 +80,34 @@ const plain = (markup) =>
     .trim();
 
 /**
+ * The runs the document sets in Bold, as `pdftohtml -xml` marks them: each `<b>` of it, as a reader sees it.
+ * @param {string} xml - What `pdftohtml -xml` wrote for the printed document
+ * @returns {string[]} The bold runs, in order
+ */
+export function boldRuns(xml) {
+  return [...xml.matchAll(/<b>([\s\S]*?)<\/b>/g)]
+    .map(([, markup]) => plain(markup))
+    .filter(Boolean);
+}
+
+/**
+ * Selected Impact lines whose figures print in no Bold run (#261): the figures of each line, by the domain's rule,
+ * and whether one of them reaches the paper in Bold. A line with no figure has none to set.
+ * @param {string[]} highlights - The profile's career highlights
+ * @param {string[]} bold - The document's bold runs, from `boldRuns`
+ * @param {(text: string) => string[]} figuresOf - The figures of a line
+ * @returns {string[]} The lines whose figures print in the body's weight
+ */
+export function lightFigures(highlights, bold, figuresOf) {
+  const bare = (text) => text.replace(/\s+/g, '');
+  const printed = bold.map(bare);
+  return highlights.filter((line) => {
+    const figures = figuresOf(line);
+    return figures.length > 0 && !figures.some((figure) => printed.includes(bare(figure)));
+  });
+}
+
+/**
  * @param {string} xml - What `pdftohtml -xml` wrote for the printed document
  * @param {string[]} intended - The faces its layout prints in, from `typefacesFor`
  * @returns {{ face: string, text: string }[]} Every visible run set in another face, in order

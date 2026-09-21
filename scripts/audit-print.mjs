@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { writeReport } from './lib/write-report.mjs';
-import { fallbackRuns, typefacesFor } from './lib/printed-typefaces.mjs';
+import { boldRuns, fallbackRuns, lightFigures, typefacesFor } from './lib/printed-typefaces.mjs';
 import {
   brokenCompound,
   gluedPhrases,
@@ -43,6 +43,7 @@ import { LetterContent } from '../core/LetterContent.js';
 import { CoverLetter } from '../domain/CoverLetter.js';
 import { CvDocument } from '../domain/CvDocument.js';
 import { periodText } from '../domain/Tenure.js';
+import { figuresIn } from '../domain/Figures.js';
 
 /**
  * What the browser prints, checked on the paper rather than on the stylesheet.
@@ -280,6 +281,7 @@ async function measure(path, faces, directory) {
     encoding: 'utf8'
   });
   const fallback = fallbackRuns(html, faces);
+  const bold = boldRuns(html);
   // The same file through a reader that trusts the `/ToUnicode` map, against one that goes behind it to the
   // font's own cmap. They disagree where Skia mapped a glyph Chrome reached through an OpenType feature (#244).
   const cmaps = toUnicodeCmaps(readFileSync(pdf));
@@ -319,6 +321,7 @@ async function measure(path, faces, directory) {
     drawn,
     bbox,
     fallback,
+    bold,
     type3,
     privateUse,
     unreadMaps,
@@ -379,6 +382,7 @@ try {
       drawn,
       bbox,
       fallback,
+      bold,
       type3,
       privateUse,
       unreadMaps,
@@ -426,6 +430,8 @@ try {
     const bullets = spans.filter((span) => !span.found || span.lines > BULLET_LINES);
     // And whether one ends on a line of a single word (#295).
     const runts = runtSpans(spans);
+    // And whether each Selected Impact line sets its figures in Bold, where #230 put them (#261).
+    const light = lightFigures(highlights, bold, figuresIn);
     const summary = proseSpans(text, [profile.profile], { periods })[0];
     const straddling = straddlingRoles(text, roleProse, { periods });
     // And whether the masthead's lines share one left edge, which a hidden label's leftover space broke.
@@ -523,6 +529,8 @@ try {
       bulletsScan: bullets.length === 0,
       // And no bullet ends on a line of one word (#295).
       bulletsEndWhole: runts.length === 0,
+      // Every Selected Impact line prints a figure in Bold (#230, #261).
+      impactFiguresBold: light.length === 0,
       // The summary is the first prose on the page and the last thing a skimmer gives time to: three lines.
       summaryScans: summary.found && summary.lines <= SUMMARY_LINES,
       // The page break falls between two roles. Page 2 opened on three bullets with no employer above them, which
@@ -558,6 +566,7 @@ try {
       overflow,
       bullets,
       runts,
+      light,
       summary,
       straddling,
       ragged,
@@ -721,7 +730,7 @@ const report = [
   'poppler reconstructs the page and as the PDF draws it, no image, no line of prose past',
   `${MEASURE_LIMIT} characters (WCAG 1.4.8; lists of skills, interests and contacts are scanned, not read along a`,
   "measure, and are exempt), in Nerd Mode every line of a role's dates inside its column, every bullet set over no",
-  `more than ${BULLET_LINES} printed lines and none ending on a line of one word, the summary over no more than ${SUMMARY_LINES}, and every role whole on one page, so no`,
+  `more than ${BULLET_LINES} printed lines and none ending on a line of one word, a figure of every Selected Impact line in Bold, the summary over no more than ${SUMMARY_LINES}, and every role whole on one page, so no`,
   'page opens on a bullet whose role heading stands on the page before, and every line of the masthead on the',
   "page's left edge, none of them opening or closing on a separator.",
   '',
@@ -801,6 +810,7 @@ if (failures.length || letterFailures.length) {
             overflow,
             bullets,
             runts,
+            light,
             summary,
             straddling,
             ragged,
@@ -822,6 +832,7 @@ if (failures.length || letterFailures.length) {
             overflow,
             bullets,
             runts,
+            light,
             summary,
             straddling,
             ragged,
