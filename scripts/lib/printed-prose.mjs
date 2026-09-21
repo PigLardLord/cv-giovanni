@@ -42,7 +42,8 @@ const printedLines = (text) =>
  * @param {string} text - The text layer, from `pdftotext`
  * @param {string[]} sentences - The sentences to look for, as the profile writes them
  * @param {{ periods?: string[] }} [options] - Each role's dates as they print, for Nerd Mode's date column
- * @returns {{ text: string, found: boolean, page: number|null, lines: number|null, pages: number[] }[]} One a sentence
+ * @returns {{ text: string, found: boolean, page: number|null, lines: number|null, pages: number[], last: string|null }[]}
+ *   One a sentence, with the last line it is set over (#295)
  */
 export function proseSpans(text, sentences, { periods = [] } = {}) {
   const lines = printedLines(text);
@@ -66,13 +67,26 @@ export function proseSpans(text, sentences, { periods = [] } = {}) {
             found: true,
             page: over[0].page,
             lines: count,
-            pages: [...new Set(over.map((line) => line.page))]
+            pages: [...new Set(over.map((line) => line.page))],
+            last: over.at(-1).text
           };
         }
       }
     }
-    return { text: sentence, found: false, page: null, lines: null, pages: [] };
+    return { text: sentence, found: false, page: null, lines: null, pages: [], last: null };
   });
+}
+
+/**
+ * The sentences that end on a line of a single word, which the eye reads as a layout error before it reads the word
+ * (the product review of #262, #295). A sentence set on one line has no last line of its own.
+ * @param {{ text: string, found: boolean, lines: number|null, last: string|null }[]} spans - From `proseSpans`
+ * @returns {{ bullet: string, last: string }[]} One a runt, with the word it strands
+ */
+export function runtSpans(spans) {
+  return spans
+    .filter((span) => span.found && span.lines > 1 && span.last.trim().split(/\s+/).length === 1)
+    .map(({ text, last }) => ({ bullet: text, last }));
 }
 
 /**
