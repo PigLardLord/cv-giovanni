@@ -266,7 +266,9 @@ describe('what a run is about', () => {
     [['--profile=applications/x/en.json', '--layout=modern'], /not a layout the manifest lists/],
     [['--layout=technical'], /one layout of a tailored CV/],
     [['--profile=profiles/general/en.json', '--layout=technical'], /one layout of a tailored CV/],
-    [['--profile=applications/x/en.json', '--layout'], /--layout needs a value/]
+    [['--profile=applications/x/en.json', '--layout'], /--layout needs a value/],
+    // A --profile that names no CV is refused for itself, not for its layout.
+    [['--profile=en.json', '--layout=technical'], /--profile must name a file/]
   ])('%j is refused', async (argv, reason) => {
     const said = [];
     const started = [];

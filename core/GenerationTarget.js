@@ -62,12 +62,12 @@ export class GenerationTarget {
    *
    * The second form used to be read as `--profile` with no value, and a profile with no value fell back to the
    * public CV: "--profile profiles/general/de.json" built the English CV and said nothing. So an option this
-   * reads — `--profile`, `--out`, and the audits' `--advert` and `--base` — must carry a value one way or the other,
+   * reads — `--profile`, `--out`, `--layout`, and the audits' `--advert` and `--base` — must carry a value one way or the other,
    * and one that does not is refused rather than defaulted. Anything else is left as it was written, for the script
    * that reads it.
    * @param {string[]} argv - Arguments after the script name
    * @returns {Map<string, string>} Each option's value
-   * @throws {Error} For `--profile`, `--out`, `--advert` or `--base` with no value
+   * @throws {Error} For `--profile`, `--out`, `--layout`, `--advert` or `--base` with no value
    */
   static options(argv = []) {
     const options = new Map();
