@@ -1243,6 +1243,15 @@ describe('a tailored CV translated into German', () => {
   });
 });
 
+// Across languages (#306): a German term of the advert is held in an English tailoring through its English forms.
+test('an English claim of a German advert term the source does not make is refused', () => {
+  expect(
+    ProvenanceCheck.additions('Automated tests on every release.', 'Manual QA on every release.', {
+      vocabulary: ['Testautomatisierung']
+    })
+  ).toEqual(['says "Testautomatisierung", which its source does not']);
+});
+
 describe('the names a text writes', () => {
   // A sentence begins at the start and after a full stop; after a colon, a semicolon or a dash it goes on, and a
   // capital there is a name (the review of #286).

@@ -114,7 +114,13 @@ describe('synonyms are curated, and say so', () => {
     ['TDD', 'test-driven development'],
     ['SPM', 'Swift Package Manager'],
     ['engineers', 'developers'],
-    ['engineer', 'developer']
+    ['engineer', 'developer'],
+    // Across languages (#306).
+    ['Testautomatisierung', 'test automation'],
+    ['Barrierefreiheit', 'accessibility'],
+    ['Qualitätssicherung', 'QA'],
+    ['code reviews', 'code review'],
+    ['unit tests', 'unit testing']
   ])('%s and %s are the same thing', (a, b) => {
     expect(AdvertLexicon.areSynonyms(a, b)).toBe(true);
   });
@@ -151,4 +157,12 @@ describe('the language of the advert', () => {
     expect(AdvertLexicon.languageOf('Senior iOS Engineer')).toBeNull();
     expect(AdvertLexicon.languageOf('')).toBeNull();
   });
+});
+
+// A liaison is no API: "die Schnittstelle zwischen Produkt und Entwicklung" is how German writes a bridging role (the
+// review of #327).
+test('a bare "Schnittstelle" is no API, and its plural and compounds are', () => {
+  expect(AdvertLexicon.areSynonyms('Schnittstelle', 'API')).toBe(false);
+  expect(AdvertLexicon.areSynonyms('Schnittstellen', 'API')).toBe(true);
+  expect(AdvertLexicon.areSynonyms('REST-Schnittstelle', 'API')).toBe(true);
 });
