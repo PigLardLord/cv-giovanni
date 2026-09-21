@@ -21,13 +21,16 @@ const SOURCE_LANGUAGE = 'en';
 /** The languages a job may be written in, by name, for the model. */
 const LANGUAGES = Object.freeze({ en: 'English', de: 'German' });
 
-/** What an advert says when it asks the letter for a salary or a start date, in English or German. */
+/**
+ * What an advert says when it asks the letter for a salary or a start date, in English or German — not where it states
+ * its own: "Gehaltsvorstellung: 80.000 €" and "Start date: 1 January 2027" are its terms, and ask nothing (the reviews
+ * of #300).
+ */
 const ASKS = Object.freeze({
-  // Asked of the candidate — "your salary expectation", "Ihre Gehaltsvorstellung" — not the advert's own terms.
   salaryExpectation:
-    /(your|ihre[nrs]?)\s+(salary\s+(expectations?|requirements?)|expected\s+salary|desired\s+salary|gehaltsvorstellung(en)?|gehaltswunsch|gehaltsvorstellungen)/i,
+    /(?:salary\s+(?:expectations?|requirements?)|expected\s+salary|desired\s+salary|gehaltsvorstellung(?:en)?|gehaltswunsch(?:es)?)(?![\p{L}])(?!\s*:)/iu,
   startDate:
-    /(your|ihre[nrs]?)\s+(earliest\s+(possible\s+)?(start(ing)?\s+date|start|availability)|availability\s+date|notice\s+period|frühestmöglichen\s+eintritt(stermin)?|eintrittstermin|eintrittsdatum|kündigungsfrist|starttermin)|when\s+you\s+could\s+start/i
+    /(?:earliest\s+(?:possible\s+)?(?:start(?:ing)?\s+date|start(?!(?:ing)?\s+date)|availability)|start(?:ing)?\s+date|availability\s+date|notice\s+period|when\s+you\s+could\s+start|frühest(?:möglich)?e?[nrs]?\s+(?:eintritt|start)\p{L}*|eintrittstermin\p{L}*|eintrittsdatum|kündigungsfrist|starttermin)(?![\p{L}])(?!\s*:)/iu
 });
 
 /**

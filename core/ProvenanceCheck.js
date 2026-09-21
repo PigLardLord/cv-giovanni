@@ -18,8 +18,11 @@ const IDENTITY = Object.freeze([
   'asOf'
 ]);
 
-/** A figure written in numerals: "37.7", "1,040", "~30k", and each end of "2020–2023". */
-const FIGURE = /(?<![\p{L}])\d+(?:[.,]\d+)*(?:[kKM](?![\p{L}]))?/gu;
+/**
+ * A figure written in numerals: "37.7", "1,040", "~30k", and each end of "2020–2023". Not a version a name carries:
+ * "iOS17" and "v2.0" state no 17 and no 0 (the review of #300).
+ */
+const FIGURE = /(?<![\p{L}\p{N}.])\d+(?:[.,]\d+)*(?:[kKM](?![\p{L}]))?/gu;
 
 /**
  * The figures English writes in words, as a CV writes them. "One" is left out: it is a pronoun as often as a number,
@@ -149,7 +152,10 @@ const technicalPart = (part) =>
   /\p{Lu}/u.test(part.slice(1)) ||
   (/\p{N}/u.test(part) && /\p{L}/u.test(part)) ||
   /[+#]/.test(part);
-const technical = (word) => word.split('-').some(technicalPart);
+
+/** The legal form a company's name ends in, which its prose leaves out. */
+const LEGAL_FORM =
+  /[\s,]+(?:gmbh\s*&\s*co\.?\s*kg|gmbh|ag|se|kg|ug|e\.\s?v\.|ltd\.?|limited|inc\.?|llc|plc)\s*$/iu;
 
 /** Abbreviations German writes its own way, and the English one a source writes: "KI" is "AI", "GER" is "CEFR". */
 const GERMAN_ABBREVIATIONS = Object.freeze({ ki: 'AI', ger: 'CEFR', eu: 'EU' });
@@ -169,22 +175,23 @@ const ENGLISH = Object.freeze({
  * @param {Set<string>} known - The names the full CV and an English advert write, folded
  */
 function translatedReading(known) {
+  // One rule for a word and for the parts a source may write it as: "Flutter-Kenntnisse" names Flutter as much as
+  // "Flutter" does, and "Engine-Notes-App" is found as "Engine Notes" (the reviews of #300).
+  const namePart = (part) =>
+    technicalPart(part) || (known.has(fold(part)) && !SHARED_NOUNS.has(fold(part)));
   return Object.freeze({
     translated: true,
     names: (text) =>
       words(text)
         .map(({ word }) => word)
-        .filter(
-          (word) =>
-            technical(word) ||
-            // Part by part: "Flutter-Kenntnisse" names Flutter as much as "Flutter" does (the review of #300).
-            word
-              .replace(/['’]s$/, '')
-              .split('-')
-              .some((part) => known.has(fold(part)) && !SHARED_NOUNS.has(fold(part)))
+        .filter((word) =>
+          word
+            .replace(/['’]s$/, '')
+            .split('-')
+            .some(namePart)
         ),
     openers: () => [],
-    part: technicalPart,
+    part: namePart,
     also: (name) => GERMAN_ABBREVIATIONS[fold(name)] ?? null
   });
 }
@@ -518,12 +525,12 @@ export class ProvenanceCheck {
         });
       }
     });
-    if (
-      typeof letter.reference === 'string' &&
-      letter.reference.trim() &&
-      !inAdvert(letter.reference)
-    ) {
-      found.push({ path: 'reference', reason: `"${letter.reference}" is not in the advert` });
+    // The role applied for is named as the advert names it, and only there (the review of #300).
+    for (const field of ['reference', 'position']) {
+      const value = letter[field];
+      if (typeof value === 'string' && value.trim() && !inAdvert(value)) {
+        found.push({ path: field, reason: `"${value}" is not in the advert` });
+      }
     }
     const form = String(recipient.form ?? '').toLowerCase();
     if (form === 'ms' || form === 'mr') {
@@ -535,10 +542,12 @@ export class ProvenanceCheck {
           ''
       );
       // "Frau Dr. Grace Hopper", "Herrn Max Müller", "Herr John von Neumann", "MS GRACE HOPPER": the form, a title or
-      // two, up to three given names and particles, then the surname — read case and accents aside.
+      // two, up to three given names and particles, then the surname — read case and accents aside. A given name is
+      // no form and no conjunction: "Frau Müller und Herr Hopper" writes no "Frau" before Hopper (the review of #300).
       const words = form === 'ms' ? 'frau|ms|mrs' : 'herrn?|mr';
+      const given = `(?:(?!(?:frau|ms|mrs|miss|herrn?|mr|und|and|oder|or|sowie)(?![\\p{L}]))\\p{L}+\\s+)`;
       const written = new RegExp(
-        `(?<![\\p{L}])(?:${words})\\s+(?:(?:dr|prof)\\s+)*(?:\\p{L}+\\s+){0,3}${surname.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}])`,
+        `(?<![\\p{L}])(?:${words})\\s+(?:(?:dr|prof)\\s+)*${given}{0,3}${surname.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}])`,
         'u'
       );
       if (!surname || !written.test(bare(advert))) {
@@ -551,15 +560,19 @@ export class ProvenanceCheck {
     // The page greets the recipient from `recipient` and signs off itself, in the catalogue's words: a salutation or a
     // valediction the model writes is printed twice, and a form of address it writes there escapes the rule above.
     const SALUTATION =
-      /^\s*(dear|hello|hi|sehr geehrte[rn]?|liebe[rn]?|hallo|guten tag)(?![\p{L}])/iu;
+      /^\s*(dear|hello|hi|to whom it may concern|sehr geehrte[rn]?|liebe[rn]?|hallo|guten tag)(?![\p{L}])/iu;
     const VALEDICTION =
       /^\s*((kind|best|warm|warmest)\s+regards|yours\s+(sincerely|faithfully)|sincerely|mit freundlichen grüßen|viele grüße|beste grüße|herzliche grüße)(?![\p{L}])/iu;
+    // Read in every paragraph, and a valediction at any sentence of the letter's end: "… from you. Kind regards" prints
+    // twice as surely as "Kind regards" does (the review of #300).
     const body = Array.isArray(letter.body) ? letter.body : [letter.body];
-    for (const [path, text] of [
+    const paragraphs = [
       ['opening', letter.opening],
-      ['body[0]', body[0]]
-    ]) {
-      if (typeof text === 'string' && SALUTATION.test(text)) {
+      ...body.map((text, index) => [Array.isArray(letter.body) ? `body[${index}]` : 'body', text]),
+      ['closing', letter.closing]
+    ].filter(([, text]) => typeof text === 'string');
+    for (const [path, text] of paragraphs) {
+      if (SALUTATION.test(text)) {
         found.push({
           path,
           reason:
@@ -567,11 +580,14 @@ export class ProvenanceCheck {
         });
       }
     }
-    if (typeof letter.closing === 'string' && VALEDICTION.test(letter.closing)) {
-      found.push({
-        path: 'closing',
-        reason: 'is a valediction: the page signs off itself, in its own words'
-      });
+    const end = paragraphs.filter(([path]) => path !== 'opening').slice(-2);
+    for (const [path, text] of end) {
+      if (text.split(/(?<=[.!?])\s+/).some((sentence) => VALEDICTION.test(sentence))) {
+        found.push({
+          path,
+          reason: 'is a valediction: the page signs off itself, in its own words'
+        });
+      }
     }
     // A letter says something: its subject, its opening paragraph and a body (the review of #300).
     for (const field of new CoverLetter(letter).missing) {
@@ -590,19 +606,24 @@ export class ProvenanceCheck {
       .filter(Boolean)
       .join('\n');
     const against = [textOf(source), told].join('\n');
-    // Only the addressee's own words: the advert's other words are its claims, not the candidate's.
-    const addressee = [
+    // Only the addressee's own phrases, written whole: the advert's other words are its claims, not the candidate's, and
+    // a contact titled "Flutter Lead" frees "Flutter Lead", never "Flutter" (the review of #300).
+    const address = Array.isArray(recipient.address) ? recipient.address : [];
+    const allowed = [
       recipient.company,
+      unincorporated(recipient.company),
       recipient.name,
       recipient.surname,
       recipient.title,
       recipient.role,
-      ...(Array.isArray(recipient.address) ? recipient.address : []),
-      letter.reference
-    ]
-      .filter((value) => typeof value === 'string' && inAdvert(value))
-      .join(' ');
-    const allowed = new Set(words(addressee).map(({ word }) => fold(word)));
+      ...address,
+      ...address.map(city),
+      letter.reference,
+      letter.position
+    ].filter(
+      (value, index, all) =>
+        typeof value === 'string' && value.trim() && inAdvert(value) && all.indexOf(value) === index
+    );
     for (const field of ['subject', 'opening', 'closing']) {
       if (typeof letter[field] === 'string' && letter[field].trim())
         states(field, letter[field], against, allowed);
@@ -627,15 +648,16 @@ export class ProvenanceCheck {
    * What a tailored text states that its source does not: a figure, a name, or a term of the vocabulary.
    * @param {string} text - The tailored text
    * @param {string} against - Everything its sources say
-   * @param {{ vocabulary?: string[], advertNames?: Set<string> }} [words] - Terms that must not appear without a
-   *   source, and the names the advert writes, folded
+   * @param {{ vocabulary?: string[], advertNames?: Set<string>, allowed?: string[] }} [words] - Terms that must not
+   *   appear without a source, the names the advert writes, folded, and the phrases the text may write whole
    * @returns {string[]} A reason for each addition
    */
   static additions(
-    text,
+    written,
     against,
-    { vocabulary = [], advertNames = new Set(), reading = ENGLISH, allowed = new Set() } = {}
+    { vocabulary = [], advertNames = new Set(), reading = ENGLISH, allowed = [] } = {}
   ) {
+    const text = allowed.reduce((rest, phrase) => rest.replace(wholePhrase(phrase), ' '), written);
     const reasons = [];
     const figures = new Set(figuresOf(against).map(({ value }) => value));
     const added = new Map();
@@ -648,15 +670,11 @@ export class ProvenanceCheck {
     // Found as written, or through the synonym table. The table maps whole phrases: "test-driven development" in lower
     // case rewords "TDD" through the vocabulary below, while a capitalised "Test-driven" is read as a name of its own,
     // and refused where the source writes "TDD" — the prompt asks for names as the CV spells them.
-    // A name `allowed` passes as a name; what it says is still held to the vocabulary below (the review of #300).
     const sourced = (name) =>
       candidates(name, reading.part)
         .flatMap((candidate) => [candidate, reading.also(candidate)])
         .filter(Boolean)
-        .some(
-          (candidate) =>
-            allowed.has(fold(candidate)) || AdvertMatcher.appears(candidate, against) !== null
-        );
+        .some((candidate) => AdvertMatcher.appears(candidate, against) !== null);
     const names = [...new Set(reading.names(text))].filter((name) => !sourced(name));
     for (const name of names) reasons.push(`names "${name}", which its source does not`);
     const openers = [...new Set(reading.openers(text))].filter(
@@ -664,8 +682,7 @@ export class ProvenanceCheck {
     );
     for (const word of openers) reasons.push(`names "${word}", which its source does not`);
 
-    // A term whose words were named above is one addition, already said; and the addressee's words are the letter's to
-    // write.
+    // A term whose words were named above is one addition, already said.
     const said = new Set(
       [...names, ...openers].flatMap((name) =>
         candidates(name, reading.part).flatMap((part) => fold(part).split(' '))
@@ -673,8 +690,7 @@ export class ProvenanceCheck {
     );
     for (const term of new Set(vocabulary)) {
       const termWords = fold(term).split(' ');
-      if (termWords.some((word) => said.has(word)) || termWords.every((word) => allowed.has(word)))
-        continue;
+      if (termWords.some((word) => said.has(word))) continue;
       if (AdvertMatcher.appears(term, text) && !AdvertMatcher.appears(term, against)) {
         reasons.push(`says "${term}", which its source does not`);
       }
@@ -779,6 +795,27 @@ function candidates(name, isName = ENGLISH.part) {
   const parts = stem.split('-').filter((part) => isName(part));
   const compound = stem.includes('-') && parts.length ? [parts.join(' ')] : [];
   return [...new Set([name, stem, ...compound])];
+}
+
+/** A phrase wherever a text writes it whole, case and spacing aside. */
+function wholePhrase(phrase) {
+  const pattern = phrase
+    .trim()
+    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    .replace(/\s+/g, '\\s+');
+  return new RegExp(`(?<![\\p{L}\\p{N}])${pattern}(?![\\p{L}\\p{N}])`, 'giu');
+}
+
+/** A company as a letter writes it in its prose: "Engine Works" for "Engine Works GmbH". */
+function unincorporated(company) {
+  if (typeof company !== 'string') return null;
+  const name = company.replace(LEGAL_FORM, '').trim();
+  return name && name !== company.trim() ? name : null;
+}
+
+/** The city an address line ends in after its postcode: "Berlin" in "10115 Berlin". */
+function city(line) {
+  return typeof line === 'string' ? (/^\s*\d{4,5}\s+(\p{L}.*)$/u.exec(line)?.[1] ?? null) : null;
 }
 
 /**

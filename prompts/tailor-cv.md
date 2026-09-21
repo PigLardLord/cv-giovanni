@@ -48,6 +48,7 @@ Write the cover letter as the profile's `letter`, in the shape the letter page r
 "letter": {
   "recipient": { "company": "…", "name": "…", "form": "ms" | "mr" | "neutral", "title": "…", "surname": "…", "role": "…", "address": ["…"] },
   "reference": "…",
+  "position": "…",
   "subject": "…",
   "opening": "…",
   "body": ["one paragraph", "another"],
@@ -58,7 +59,8 @@ Write the cover letter as the profile's `letter`, in the shape the letter page r
 
 - The company, the contact, their role, the address and the reference are the advert's, as it writes them. Leave out what the advert does not write; never guess a name or an address.
 - `form` is `ms` or `mr` only when the advert itself writes the contact that way — "Frau", "Herr", "Ms", "Mrs", "Mr" before the surname. Never infer it from a first name: otherwise `neutral`, or leave `form` out.
-- The body argues the same case as the CV, from the same evidence: every figure, employer, product and technology it states is one the full CV states. It may name the advertiser and the role as the advert does.
+- `position` is the role applied for, exactly as the advert writes it. The subject and the letter may name the role only in those words, and the advertiser and the contact only as `recipient` writes them: these phrases are the advert's, and every other word of the letter is the candidate's.
+- The body argues the same case as the CV, from the same evidence: every figure, employer, product and technology it states is one the full CV states — a technology in the role's title or the contact's is not one the candidate has.
 - The salary expectation and the start date are the ones in `<letter_defaults>`, as written there, or absent. When the advert asks for either and the defaults give none, leave it out and say so in `questions`.
 - The owner's note in `<letter_defaults>` is what they want every letter to say; say it, in the letter's language.
 - `opening` is the letter's first paragraph and `closing` its last sentence. The page greets the recipient from `recipient` and signs off in its own words, so never write a salutation ("Dear …", "Sehr geehrte …") or a valediction ("Kind regards", "Mit freundlichen Grüßen") in them, or anywhere in the body.

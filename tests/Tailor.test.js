@@ -323,6 +323,24 @@ describe('what the review of the tailoring found', () => {
     ]);
   });
 
+  // The second review of #300: a question names its second noun without "your", and an advert states its own terms.
+  test.each([
+    ['Bitte unter Angabe Ihrer Gehaltsvorstellung und des frühestmöglichen Eintrittstermins.', 2],
+    ['Please include your expected salary and earliest start date.', 2],
+    ['Ihr Gehaltswunsch und Ihr frühestmöglicher Eintrittstermin', 2],
+    ['Bitte mit Gehaltsvorstellung und Eintrittstermin.', 2],
+    ['Gehaltsvorstellung: 80.000–90.000 €', 0],
+    ['Earliest start date: 1 January 2027', 0]
+  ])('"%s" asks the letter %i questions', async (line, count) => {
+    const { run } = setup([reply(faithful())], {
+      advert: `Senior iOS Engineer at Engine Works\n\n${line}`
+    });
+
+    const { questions } = await run();
+
+    expect(questions.filter(({ from }) => from === 'letter')).toHaveLength(count);
+  });
+
   test('one the defaults gave is no question', async () => {
     const asking = 'Senior iOS Engineer at Engine Works\n\nWith your Gehaltsvorstellung, please.';
     const { run } = setup([reply(faithful())], {

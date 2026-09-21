@@ -538,6 +538,7 @@ describe('a tailored letter', () => {
       address: ['Hauptstraße 1', '10115 Berlin']
     },
     reference: 'EW-2026-117',
+    position: 'Senior iOS Engineer',
     subject: 'Senior iOS Engineer',
     opening: 'I am writing about the Senior iOS Engineer role.',
     body: ['At Analytical Engines I cut the test suite from 37.7 to 5.2 minutes.'],
@@ -716,6 +717,90 @@ describe('what the review of the letter found', () => {
   });
 });
 
+// What the second review of #300 found: the advert's phrases passed its words, and the letter's end went unread.
+describe('what the second review of the letter found', () => {
+  const ADVERT = [
+    'Senior Flutter Engineer at Engine Works GmbH',
+    'Your contact: Ms Grace Hopper, Flutter Lead',
+    'Engine Works GmbH, Hauptstraße 1, 10115 Berlin'
+  ].join('\n');
+  const letter = (edit, advert = ADVERT) => {
+    const tailored = structuredClone(SOURCE);
+    tailored.letter = {
+      recipient: {
+        company: 'Engine Works GmbH',
+        name: 'Grace Hopper',
+        surname: 'Hopper',
+        role: 'Flutter Lead',
+        address: ['Hauptstraße 1', '10115 Berlin']
+      },
+      position: 'Senior Flutter Engineer',
+      subject: 'Senior Flutter Engineer',
+      opening: 'I am writing about the Senior Flutter Engineer role.',
+      body: ['At Analytical Engines I cut the test suite from 37.7 to 5.2 minutes.'],
+      closing: 'I look forward to hearing from you.'
+    };
+    edit(tailored.letter);
+    return ProvenanceCheck.failures({
+      source: SOURCE,
+      tailored,
+      sources: itself(SOURCE),
+      terms: ['Flutter'],
+      advert
+    });
+  };
+
+  test('the role, the contact and the advertiser are named in the advert’s words, and hold', () => {
+    expect(
+      letter((l) =>
+        l.body.push(
+          'I would be glad to talk to Grace Hopper, Flutter Lead, about joining Engine Works in Berlin.'
+        )
+      )
+    ).toEqual([]);
+  });
+
+  test('a technology in the contact’s title or the role’s is not the candidate’s', () => {
+    expect(
+      letter((l) => l.body.push('I have shipped Flutter apps to production.')).map(
+        ({ reason }) => reason
+      )
+    ).toEqual(['names "Flutter", which its source does not']);
+  });
+
+  test('a role the advert does not write is refused', () => {
+    expect(letter((l) => (l.position = 'Staff Flutter Engineer')).map(({ path }) => path)).toEqual(
+      expect.arrayContaining(['letter.position'])
+    );
+  });
+
+  test('a form of address written before another contact is not hers', () => {
+    const two =
+      'Senior Flutter Engineer at Engine Works GmbH\nWrite to Frau Müller und Grace Hopper.';
+    expect(
+      letter((l) => {
+        l.recipient = { company: 'Engine Works GmbH', name: 'Grace Hopper', form: 'ms' };
+      }, two).map(({ path }) => path)
+    ).toContain('letter.recipient.form');
+  });
+
+  test.each([
+    ['closing', 'I look forward to hearing from you. Kind regards'],
+    ['body[1]', 'Dear Dr. Hopper,'],
+    ['body[1]', 'Kind regards'],
+    ['body[1]', 'Mit freundlichen Grüßen'],
+    ['opening', 'To whom it may concern,']
+  ])('a salutation or a valediction anywhere it prints is refused: %s "%s"', (path, text) => {
+    const edit = (l) => {
+      if (path === 'body[1]') {
+        l.body.push(text);
+        delete l.closing;
+      } else l[path] = text;
+    };
+    expect(letter(edit).map(({ path: at }) => at)).toContain(`letter.${path}`);
+  });
+});
+
 // A translation (#299): German capitalises its nouns, so a capital names nothing; the names, figures and dates are
 // what a translation keeps, and what it is held to.
 describe('a tailored CV translated into German', () => {
@@ -757,6 +842,15 @@ describe('a tailored CV translated into German', () => {
 
   test('a faithful translation holds: its nouns capitalised, its months in German, its figures in German', () => {
     expect(translate()).toEqual([]);
+  });
+
+  test('a name the full CV writes holds inside a German compound (the second review of #300)', () => {
+    expect(
+      translate((cv) => {
+        cv.relevant_experience[0].highlights[0] =
+          'Engine-Notes-App für iOS, in SwiftUI gebaut seit dem ersten Commit 2021: Clean Architecture, TDD.';
+      })
+    ).toEqual([]);
   });
 
   test('a figure changed, or a period that is other dates, is refused', () => {
