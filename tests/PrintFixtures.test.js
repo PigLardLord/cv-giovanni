@@ -1,7 +1,8 @@
 /**
  * @jest-environment node
  */
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
+import { GenerationTarget } from '../core/GenerationTarget.js';
 import { fixturesOf, staleFixtures } from '../scripts/lib/print-fixtures.mjs';
 
 // The print fixtures are extractions of the printed CV that tests read as the current one. Nothing checked they still
@@ -146,6 +147,27 @@ describe('the print fixtures', () => {
     expect(staleFixtures(german, fixtures)).toEqual([
       expect.objectContaining({ fixture: 'tests/fixtures/ats/page-print-general-de-nerd.txt' })
     ]);
+  });
+
+  // A fixture named for no published CV and layout is held by nobody, and the audit would say nothing (the review of
+  // #317).
+  test('on disk are each named for a published CV and a layout', () => {
+    const manifest = JSON.parse(
+      readFileSync(new URL('../config/cv-manifest.json', import.meta.url), 'utf8')
+    );
+    const named = new Set(
+      GenerationTarget.published(manifest).flatMap(({ profile, locale }) =>
+        manifest.layouts.flatMap((layout) =>
+          fixturesOf({ profile, locale, layout }).map(({ name }) => name)
+        )
+      )
+    );
+    const onDisk = readdirSync(new URL('../tests/fixtures/ats/', import.meta.url)).filter((name) =>
+      name.startsWith('page-print-')
+    );
+
+    expect(onDisk.length).toBeGreaterThan(0);
+    expect(onDisk.filter((name) => !named.has(name))).toEqual([]);
   });
 
   test('are found by the CV the audit prints, never by a profile’s path written into it', () => {

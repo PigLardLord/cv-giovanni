@@ -363,7 +363,7 @@ const readFixture = (name) => {
   }
 };
 const holdsFixtures =
-  target.isPublished &&
+  target.isPublicProfile &&
   files.some(({ layout }) =>
     fixturesOf({ profile: target.profile, locale: target.locale, layout }).some(
       ({ name }) => readFixture(name) !== null
@@ -767,7 +767,8 @@ if (stale.length) {
   console.error('');
   console.error(
     'audit-print: the ATS fixtures are not this print. Extract them again from this build — `pdftotext` and ' +
-      '`pdftotext -raw` of each layout into tests/fixtures/ats/ — and check what the tests they feed now say. On ' +
+      '`pdftotext -raw` of each layout into tests/fixtures/ats/page-print-<profile>-<locale>-<layout>.txt and ' +
+      '.raw.txt — and check what the tests they feed now say. On ' +
       "CI, the run's audit-reports artefact holds the PDFs it printed, under printed/."
   );
   for (const { fixture, line, printed, fixed } of stale) {
