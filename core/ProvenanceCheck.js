@@ -844,10 +844,13 @@ export class ProvenanceCheck {
               !AdvertLexicon.isStopword(word) &&
               !AdvertLexicon.isPlainWord(word)
           )
-          // Found as written, or as the table spells it: "engineers" where the source writes "developers" (#296).
+          // Found as written, as the table spells it — "engineers" where the source writes "developers" (#296) — or in
+          // its other number: "code reviews" where the source writes "code review" (#319).
           .filter(
             (word) =>
-              !AdvertLexicon.formsOf(word).some((form) => AdvertMatcher.contains(folded, form))
+              !AdvertLexicon.formsOf(word)
+                .flatMap(numbers)
+                .some((form) => AdvertMatcher.contains(folded, form))
           )
       )
     ];
@@ -913,6 +916,20 @@ function measured(dimension, text) {
     const where = clause.search(at);
     return where >= 0 && figuresOf(clause.slice(where)).length > 0;
   });
+}
+
+/**
+ * A word in both its numbers, as English regularly writes them: "review" and "reviews", "process" and "processes",
+ * "library" and "libraries". No stemmer: three rules anyone can read, and a word they would get wrong is only a word
+ * the check goes on holding (#319).
+ */
+function numbers(word) {
+  const forms = [word, `${word}s`, `${word}es`];
+  if (/ies$/.test(word)) forms.push(word.replace(/ies$/, 'y'));
+  else if (/[^aeiou]y$/.test(word)) forms.push(word.replace(/y$/, 'ies'));
+  if (/(?:s|x|z|ch|sh)es$/.test(word)) forms.push(word.replace(/es$/, ''));
+  else if (/[^s]s$/.test(word)) forms.push(word.replace(/s$/, ''));
+  return forms;
 }
 
 /** What a name may be found in its source as: itself, without a possessive, or the parts of it that are names. */
