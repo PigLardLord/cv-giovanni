@@ -55,7 +55,7 @@ describe('the print fixtures', () => {
         fixture: 'tests/fixtures/ats/page-print-nerd.raw.txt',
         line: 2,
         printed: 'Senior iOS Engineer',
-        fixed: ''
+        fixed: '(end)'
       }
     ]);
   });
@@ -83,6 +83,19 @@ describe('the print fixtures', () => {
         reading({
           'page-print-nerd.txt': PRINT.text,
           'page-print-nerd.raw.txt': 'Swift–SwiftUI|iOS\n'
+        })
+      )
+    ).toEqual([]);
+  });
+
+  // Where poppler writes the page break differs by version: this machine's joins the next page's first line to it.
+  test('a page break written on its own line or joined to the next is not a difference', () => {
+    expect(
+      staleFixtures(
+        { ...PRINT, drawn: 'last line of page one.\n\fFirst line of page two\n' },
+        reading({
+          'page-print-nerd.txt': PRINT.text,
+          'page-print-nerd.raw.txt': 'last line of page one.\fFirst line of page two\n'
         })
       )
     ).toEqual([]);

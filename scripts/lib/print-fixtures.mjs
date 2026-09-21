@@ -17,6 +17,17 @@ export const FIXTURES = 'tests/fixtures/ats';
  */
 const comparable = (line) => line.replace(/\s+/g, '');
 
+/**
+ * A reading's lines, as the comparison counts them. Where poppler writes the page break differs by its version too:
+ * this machine's joins the next page's first line to the break, "…new screens.\fMay 2015 – …", where CI's starts it on
+ * a line of its own (the second run of #297 on CI). A break is a line's end, and a line that holds nothing is none.
+ */
+const linesOf = (reading) =>
+  reading
+    .split(/[\n\f]/)
+    .map((line) => ({ line, compared: comparable(line) }))
+    .filter(({ compared }) => compared !== '');
+
 /** The fixtures a layout's print stands behind, each with the extraction it is. */
 export const fixturesOf = (layout) => [
   { name: `page-print-${layout}.txt`, reading: 'text' },
@@ -34,10 +45,9 @@ export function staleFixtures({ layout, text, drawn }, read) {
   return fixturesOf(layout).flatMap(({ name, reading }) => {
     const fixed = read(name);
     if (fixed === null) return [];
-    const printedLines = extractions[reading].split('\n');
-    const fixedLines = fixed.split('\n');
-    const same = (line, index) =>
-      index < fixedLines.length && comparable(line) === comparable(fixedLines[index]);
+    const printedLines = linesOf(extractions[reading]);
+    const fixedLines = linesOf(fixed);
+    const same = ({ compared }, index) => compared === fixedLines[index]?.compared;
     if (printedLines.length === fixedLines.length && printedLines.every(same)) return [];
     const at = printedLines.findIndex((line, index) => !same(line, index));
     const line = at < 0 ? printedLines.length : at;
@@ -45,8 +55,8 @@ export function staleFixtures({ layout, text, drawn }, read) {
       {
         fixture: `${FIXTURES}/${name}`,
         line: line + 1,
-        printed: printedLines[line] ?? '(end)',
-        fixed: fixedLines[line] ?? '(end)'
+        printed: printedLines[line]?.line ?? '(end)',
+        fixed: fixedLines[line]?.line ?? '(end)'
       }
     ];
   });
