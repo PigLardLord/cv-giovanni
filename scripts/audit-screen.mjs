@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -22,6 +23,12 @@ import { currentLayoutMarked, forcedBoundaries } from './lib/forced-colours.mjs'
 import { decodePng } from './lib/png.mjs';
 import { ringOnPixels, ringsReport } from './lib/ring-pixels.mjs';
 import { GenerationTarget } from '../core/GenerationTarget.js';
+import {
+  eachPublished,
+  namesProfile,
+  publishedTargets,
+  unlistedProfile
+} from './lib/published-targets.mjs';
 
 /**
  * What a reader copies off the screen, checked in a browser that lays the page out.
@@ -36,7 +43,17 @@ import { GenerationTarget } from '../core/GenerationTarget.js';
  * read from the screen's pixels (#111).
  */
 const projectUrl = new URL('..', import.meta.url);
-const target = GenerationTarget.fromArguments(process.argv.slice(2));
+// With no --profile this is a run over every CV the manifest publishes, each re-run naming itself (#248).
+const argv = process.argv.slice(2);
+const published = await publishedTargets(projectUrl);
+if (!namesProfile(argv))
+  process.exit(eachPublished(fileURLToPath(import.meta.url), published, argv));
+const unlisted = unlistedProfile(argv, published);
+if (unlisted) {
+  console.error(`audit-screen: ${unlisted}`);
+  process.exit(2);
+}
+const target = GenerationTarget.fromArguments(argv);
 
 /** Read a file the audit cannot run without. Missing means unchecked, which is exit 2. */
 async function readJson(path) {

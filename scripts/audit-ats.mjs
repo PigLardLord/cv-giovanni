@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readdir, readFile, writeFile } from 'node:fs/promises';
@@ -9,6 +10,7 @@ import { AtsReport } from '../core/AtsReport.js';
 import { AtsFloors } from '../core/AtsFloors.js';
 import { AdvertMatcher } from '../core/AdvertMatcher.js';
 import { GenerationTarget } from '../core/GenerationTarget.js';
+import { eachPublished, namesProfile, publishedTargets } from './lib/published-targets.mjs';
 import { catalogueTranslator } from './lib/printed-letter.mjs';
 
 /**
@@ -23,7 +25,12 @@ import { catalogueTranslator } from './lib/printed-letter.mjs';
  * this file only fetches text and reports.
  */
 const projectRoot = new URL('../', import.meta.url);
-const target = GenerationTarget.fromArguments(process.argv.slice(2));
+// With no --profile this is a run over every CV the manifest publishes, each re-run naming itself (#248).
+const argv = process.argv.slice(2);
+const published = await publishedTargets(projectRoot);
+if (!namesProfile(argv))
+  process.exit(eachPublished(fileURLToPath(import.meta.url), published, argv));
+const target = GenerationTarget.fromArguments(argv);
 
 /** Stop, having said what was not checked. An audit that did not run must not read as a pass. */
 function cannotCheck(reason, hint) {

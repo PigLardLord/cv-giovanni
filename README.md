@@ -110,6 +110,16 @@ CI builds, audits and publishes its own.
   or when `npm run build:pdf` has not written the manifest that offers the download.
   Report: `docs/SCREEN_AUDIT.md`.
 
+## Every published CV
+
+What is published is what `config/cv-manifest.json` lists: every profile and locale in it. With no `--profile`,
+`npm run build:pdf` prints each of them in every layout into `generated/`, writes one `generated/manifest.json`
+naming all their files — which is what lets the page offer a download in each language — and the three audits
+score each of them, failing the run if any fails. The public CV keeps its reports' names in `docs/`; every other
+published CV writes its own beside them, with its profile and locale in the name. A profile
+under `profiles/` that the manifest does not list is refused with a sentence saying so: the page loads no such
+profile, so there would be nothing to print.
+
 ## Applications
 
 A CV tailored to a named employer lives in `applications/`, which git ignores: this repository is public, and a

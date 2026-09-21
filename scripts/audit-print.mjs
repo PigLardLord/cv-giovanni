@@ -35,6 +35,7 @@ import {
   marginsClear
 } from './lib/printed-letter.mjs';
 import { GenerationTarget } from '../core/GenerationTarget.js';
+import { eachPublished, namesProfile, publishedTargets } from './lib/published-targets.mjs';
 import { LetterContent } from '../core/LetterContent.js';
 import { CoverLetter } from '../domain/CoverLetter.js';
 import { CvDocument } from '../domain/CvDocument.js';
@@ -58,7 +59,12 @@ import { periodText } from '../domain/Tenure.js';
 const projectUrl = new URL('..', import.meta.url);
 // The expectations come from the CV under test. Auditing a tailored profile against the
 // published one would check strings it never contained and report a clean pass.
-const target = GenerationTarget.fromArguments(process.argv.slice(2));
+// With no --profile this is a run over every CV the manifest publishes, each re-run naming itself (#248).
+const argv = process.argv.slice(2);
+const published = await publishedTargets(projectUrl);
+if (!namesProfile(argv))
+  process.exit(eachPublished(fileURLToPath(import.meta.url), published, argv));
+const target = GenerationTarget.fromArguments(argv);
 const profile = await readJson(target.dataPath);
 const catalogue = await readJson(`locales/${target.locale}/cv.json`);
 const labels = catalogue.sections;

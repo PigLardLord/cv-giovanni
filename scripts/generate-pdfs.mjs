@@ -1,9 +1,17 @@
+import { fileURLToPath } from 'node:url';
 import { readFile, writeFile } from 'node:fs/promises';
 import { NodeDirectoryWriter } from '../adapters/NodeDirectoryWriter.js';
 import { GenerationTarget } from '../core/GenerationTarget.js';
 import { CvDocument } from '../domain/CvDocument.js';
 import { countedPast } from '../domain/Tenure.js';
 import { findBrowser } from './lib/find-browser.mjs';
+import {
+  eachPublished,
+  namesProfile,
+  publishedTargets,
+  releasedAcross,
+  unlistedProfile
+} from './lib/published-targets.mjs';
 import {
   builtCv,
   builtLetters,
@@ -23,8 +31,40 @@ import {
  * `npm run audit:print` and `npm run audit:ats` read the files written here.
  */
 const projectRoot = new URL('../', import.meta.url);
-const target = GenerationTarget.fromArguments(process.argv.slice(2));
 const { layouts } = JSON.parse(await readFile(new URL('config/cv-manifest.json', projectRoot)));
+
+// With no --profile this is a run over every CV the manifest publishes, each re-run naming itself (#248). Each
+// run writes generated/manifest.json for its own files over the last one's, so the list the page reads is
+// written here once they have all printed: every file of every published CV, or none of it rewritten if one
+// of them failed.
+const argv = process.argv.slice(2);
+const published = await publishedTargets(projectRoot);
+if (!namesProfile(argv)) {
+  const exit = eachPublished(fileURLToPath(import.meta.url), published, argv);
+  if (exit === 0) {
+    const profiles = new Map(
+      await Promise.all(
+        published.map(async ({ dataPath }) => [
+          dataPath,
+          JSON.parse(await readFile(new URL(dataPath, projectRoot)))
+        ])
+      )
+    );
+    const released = releasedAcross(published, ({ dataPath }) => profiles.get(dataPath), layouts);
+    await writeFile(
+      new URL(published[0].manifestPath, projectRoot),
+      `${JSON.stringify({ released }, null, 2)}\n`
+    );
+    console.log(`${published[0].manifestPath} — ${released.length} downloads, every published CV`);
+  }
+  process.exit(exit);
+}
+const unlisted = unlistedProfile(argv, published);
+if (unlisted) {
+  console.error(`generate-pdfs: ${unlisted}`);
+  process.exit(2);
+}
+const target = GenerationTarget.fromArguments(argv);
 // Lengths are counted to the profile's asOf, and the CV says so (#55). Today is only the limit: a month after
 // it gives lengths nobody can check yet.
 const today = new Date();
