@@ -1,4 +1,4 @@
-const SAFE_NAME = /^[a-z][a-z0-9-]*$/;
+import { PROFILE_NAME } from './ProfileName.js';
 
 export class ProfileResolver {
   constructor(manifestUrl = 'config/cv-manifest.json') {
@@ -7,7 +7,7 @@ export class ProfileResolver {
 
   requestedProfile(search = '') {
     const name = new URLSearchParams(search).get('profile');
-    return name && SAFE_NAME.test(name) ? name : null;
+    return name && PROFILE_NAME.test(name) ? name : null;
   }
 
   /**

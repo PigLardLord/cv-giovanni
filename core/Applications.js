@@ -1,11 +1,9 @@
+import { PROFILE_NAME } from './ProfileName.js';
 import { ProfileStore } from './ProfileStore.js';
 import { Refusal } from './Refusal.js';
 
-/**
- * A name an application can have. It becomes a directory under `applications/` and a word in every
- * filename generated for it, so: lowercase letters and digits, hyphens inside, at most 40.
- */
-export const APPLICATION_NAME = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/;
+/** A name an application can have: a profile's name, since it becomes one (`ProfileName`). */
+export const APPLICATION_NAME = PROFILE_NAME;
 
 /**
  * The applications on this machine: an advert, and a CV tailored to it (#21).

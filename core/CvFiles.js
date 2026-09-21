@@ -39,9 +39,16 @@ export class CvFiles {
     return `${name}-${profile}-${locale}-${layout}-cover.pdf`;
   }
 
-  /** The name the recruiter's inbox receives: the person and the role, no build vocabulary. */
-  downloadName({ name = '', title = '' } = {}) {
-    return `${[...fileWords(name), ...fileWords(title), 'CV'].join('-')}.pdf`;
+  /**
+   * The name the recruiter's inbox receives: the person, the role and the document, no build vocabulary. One rule for
+   * the public CV and a tailored one and its letter, so the same recruiter never saves two shapes (the product review
+   * of #320).
+   * @param {{ name?: string, title?: string }} profile - Who, and for which role
+   * @param {string} [document] - The document's word: the CV's in every language, a letter's in its catalogue's
+   * @returns {string} The filename
+   */
+  downloadName({ name = '', title = '' } = {}, document = 'CV') {
+    return `${[...fileWords(name), ...fileWords(title), ...fileWords(document)].join('-')}.pdf`;
   }
 
   /**
