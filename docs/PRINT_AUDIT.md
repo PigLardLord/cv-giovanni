@@ -18,6 +18,8 @@ whole to the next page. It is a warning, never a failure, since the page count i
 
 ⚠ Tight page before the last: spotlight p1 (6.0pt), technical p1 (9.8pt) — the next line added moves the block at its foot to the next page.
 
+The ATS fixtures in `tests/fixtures/ats/` are this print, word for word and line for line as `pdftotext` and `pdftotext -raw` extract it, allowing for the spaces poppler infers.
+
 Checks: A4, at most two pages, required ATS text in the case the catalogue wrote it,
 reading order, canonical hyphenated compounds, degree beside its school, every skill
 attached to its category, every role present, every word at 4.5:1 on paper, margins

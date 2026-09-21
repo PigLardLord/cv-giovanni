@@ -125,7 +125,8 @@ CV's files alone, so the page offers only it until the next run with no `--profi
 
 A CV tailored to a named employer lives in `applications/`, which git ignores: this repository is public, and a
 committed application would publish where the candidate applied. `npm run build:pdf -- --profile=<path>` builds
-from that profile into a folder beside it, the audits take the same `--profile`, and a `letter` in the profile
+from that profile into a folder beside it, the audits take the same `--profile`, `--layout <name>` prints and audits
+one layout the manifest lists — a published CV is always every layout — and a `letter` in the profile
 adds a cover letter, printed from `letter.html` and checked by `npm run audit:print` too. CI never prints one, since
 the published profile has none, and the site leaves `letter.html` out: published, it could only say there is no
 letter. A tailored CV leaves the machine only as an attached PDF.
@@ -156,8 +157,19 @@ A tailoring takes minutes, so it is a job. Jobs run one at a time, in order of a
 was running when it stopped is marked failed, as interrupted. A request takes `advert` and, optionally, `cv`, `letter`,
 `language`, `model`, `effort`, `layout`, `auditRetries` and `auditGate`; anything else is refused, naming what is
 accepted. The estimate is the median of the last ten jobs like it that ended ready, or a seed until there are ten,
-and the answer says which. What a job does is being built in the steps of #260: until the tailoring itself lands, a
-job fails at once, saying so.
+and the answer says which.
+
+A job asks the model, with the job's model and effort, to tailor the CV it starts from to the advert — choosing,
+ordering and rewording, never adding — and to name, for every role, achievement and career highlight, the item of
+that CV it comes from. `core/ProvenanceCheck.js` then holds the answer to its sources before anything else happens: a
+figure, a date, a name or a technology its source item does not state, a role whose employer, title or period
+changed, an identity field rewritten, a skill the CV does not list — each fails, and goes back to the model with what
+failed, at most twice. A job still failing after that ends failed, with every failure. What the advert requires and
+the CV does not evidence comes back as a question, for the full CV, never as a line of the tailored one. A ready job
+writes `applications/<id>/tailored.json`; the letter, another language and the PDFs are the next steps of #260 — a
+job asking for `de` is accepted, and fails at once saying so. The system prompt is `prompts/tailor-cv.md`, sent byte
+for byte. The check holds the tailored CV, never the report or the questions: those are the model's own words, shown
+to the owner on this machine, and are read as such.
 
 A tailoring subtracts from a CV that lists everything, so a job starts from the **full CV** its owner keeps in
 `~/.config/mycv/full-cv/en.json` (or under `$XDG_CONFIG_HOME`), in the profile's shape; with none there, from the

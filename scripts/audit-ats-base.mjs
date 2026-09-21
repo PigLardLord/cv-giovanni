@@ -101,6 +101,37 @@ try {
 } catch (error) {
   cannotCheck(error.message);
 }
+// The comparison is of the public CV. A --profile naming another used to be ignored and the public CV compared in its
+// place, without a word (#281); it is refused instead, until comparing another CV is built.
+if (options.has('profile')) {
+  let named;
+  try {
+    named = GenerationTarget.fromArguments(process.argv.slice(2));
+  } catch (error) {
+    cannotCheck(error.message);
+  }
+  if (named.dataPath !== target.dataPath) {
+    cannotCheck(
+      `compares the public CV only, ${target.dataPath}; --profile names ${named.dataPath}`,
+      'Run it without --profile. Comparing another published CV against its base is not built (#281).'
+    );
+  }
+}
+// The print is read from generated/, where build:pdf writes the public CV. A --out naming another place was taken and
+// ignored in the same silence (the review of #281).
+if (options.has('out')) {
+  cannotCheck(
+    'reads the print in generated/ only; --out is not read',
+    'Run it without --out, after `npm run build:pdf`.'
+  );
+}
+// It compares every layout the public CV prints in; a --layout, taken and ignored, would say otherwise (#303).
+if (options.has('layout')) {
+  cannotCheck(
+    'compares the public CV in every layout it prints; --layout is not read',
+    'Run it without --layout.'
+  );
+}
 const ref =
   options.get('base') ||
   (process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_REF}` : 'origin/main');

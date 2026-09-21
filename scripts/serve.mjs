@@ -5,6 +5,7 @@ import { readdir, readFile, stat } from 'node:fs/promises';
 import { LocalProfiles } from '../core/LocalProfiles.js';
 import { Applications } from '../core/Applications.js';
 import { Tailorings } from '../core/Tailorings.js';
+import { Tailor } from '../core/Tailor.js';
 import { ProfileStore } from '../core/ProfileStore.js';
 import { handleApi } from '../adapters/LocalApi.js';
 import { NodeProjectFiles } from '../adapters/NodeProjectFiles.js';
@@ -154,6 +155,8 @@ export function localServices(
     new ClaudeCliInference({ command: claude }),
     new AnthropicApiInference({ file: apiKeyFile })
   ]);
+  // What a tailoring job does: the model tailors, and the check holds the answer to the full CV (#284).
+  const tailor = new Tailor({ inference, files });
   return {
     profile: new ProfileStore(files),
     applications: new Applications({ files, scripts: new NodeScripts(root) }),
@@ -163,7 +166,8 @@ export function localServices(
     tailorings: new Tailorings({
       files,
       inference,
-      fullCv: new FullCvFiles(fullCvFiles({ env, projectRoot: root }))
+      fullCv: new FullCvFiles(fullCvFiles({ env, projectRoot: root })),
+      work: (job, progress) => tailor.run(job, progress)
     })
   };
 }
