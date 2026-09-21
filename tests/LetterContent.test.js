@@ -402,6 +402,18 @@ describe('in the catalogues the page loads', () => {
     return (key, values) => instance.t(key, values);
   };
 
+  // The document's word is the catalogue's, in the letter's language, on the page and in the audit (the review of #338).
+  test.each([
+    ['en', 'Giovanni Trovato – Cover Letter – Application'],
+    ['de', 'Giovanni Trovato – Anschreiben – Bewerbung']
+  ])('a letter in %s is titled "%s"', async (locale, title) => {
+    const letter = profile({ subject: '' });
+    const options = { locale };
+
+    expect(LetterContent.of(letter, { ...options, t: catalogue(locale) }).title).toBe(title);
+    expect(LetterContent.of(letter, { ...options, t: await page(locale) }).title).toBe(title);
+  });
+
   test('a German letter opens, closes and lists its attachments in German', () => {
     const content = LetterContent.of(
       profile(
