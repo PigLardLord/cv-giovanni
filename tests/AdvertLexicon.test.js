@@ -162,7 +162,13 @@ describe('a gender marker', () => {
     ['Senior iOS Entwickler (m/w/d)', 'Senior iOS Entwickler'],
     ['iOS-Entwickler (gn)', 'iOS-Entwickler'],
     ['iOS Engineer (all genders)', 'iOS Engineer'],
-    ['Sviluppatore iOS (m/f)', 'Sviluppatore iOS']
+    ['Sviluppatore iOS (m/f)', 'Sviluppatore iOS'],
+    // Spellings the list did not hold (the review of #329).
+    ['Senior iOS Engineer (m / w / d)', 'Senior iOS Engineer'],
+    ['iOS Engineer (m|w|d)', 'iOS Engineer'],
+    ['iOS Engineer (m/w/d/x)', 'iOS Engineer'],
+    ['iOS Entwickler m/w/d', 'iOS Entwickler'],
+    ['Entwickler (männlich/weiblich/divers)', 'Entwickler']
   ])('is taken out of "%s", and the title kept', (line, title) => {
     expect(AdvertLexicon.withoutGenderMarkers(line)).toBe(title);
     expect(AdvertLexicon.isBoilerplate(title)).toBe(false);
@@ -172,7 +178,12 @@ describe('a gender marker', () => {
     'You will design and ship features',
     'Signal processing',
     'Alignment with product',
-    'Du gestaltest die Signalverarbeitung und das Design-System.'
+    'Du gestaltest die Signalverarbeitung und das Design-System.',
+    // A short marker counts only in its brackets (the review of #329).
+    'GN Audio (Jabra)',
+    'Visit gn.example.com',
+    'm/f ratio',
+    'B2B/B2C apps'
   ])('is never read inside a word: "%s" is kept whole, and is no boilerplate', (line) => {
     expect(AdvertLexicon.withoutGenderMarkers(line)).toBe(line);
     expect(AdvertLexicon.isBoilerplate(line)).toBe(false);

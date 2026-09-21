@@ -360,7 +360,7 @@ export const ADVERT = {
   },
 
   /**
-   * The furniture of a job posting: legal notices, benefits, gender markers, calls to apply.
+   * The furniture of a job posting: legal notices, benefits, calls to apply.
    * Ranked highly by frequency and worth nothing, which is why they are named rather than
    * filtered by a threshold.
    */
@@ -547,14 +547,16 @@ export const ADVERT = {
   ],
 
   /**
-   * The gender markers a job title carries: "(m/w/d)", "(gn)", "(all genders)". Each is read as a whole token and taken
-   * out of its line, never matched inside a word — as boilerplate, "gn" dropped every line with "design", "signal" or
-   * "align" in it — and never taken for the line, which is the advert's title (#314).
+   * The gender markers a job title carries in words: "(gn)", "(all genders)". The letters joined by slashes — "m/w/d",
+   * "f/m/d/x", "m | w | d" — are one shape, read by the pattern below whatever their order. Each is read as a whole
+   * token and taken out of its line, never matched inside a word — as boilerplate, "gn" dropped every line with
+   * "design", "signal" or "align" in it — and never taken for the line, which is the advert's title (#314). A short
+   * marker counts only in its brackets: "GN Audio" is an employer (the review of #329).
    */
   genderMarkers: {
-    en: ['m/f/d', 'f/m/d', 'm/f/x', 'f/m/x', 'm/w/d', 'all genders', 'any gender'],
-    de: ['m/w/d', 'w/m/d', 'm/w/x', 'w/m/x', 'd/m/w', 'm/f/d', 'gn', 'alle geschlechter'],
-    it: ['m/f', 'f/m', 'm/f/x', 'uomo/donna', 'tutti i generi']
+    en: ['all genders', 'any gender'],
+    de: ['gn', 'alle geschlechter', 'männlich/weiblich/divers'],
+    it: ['uomo/donna', 'tutti i generi']
   },
 
   /**
@@ -588,11 +590,23 @@ const DIMENSIONS = set(ADVERT.dimensions);
 const PLAIN_WORDS = set(ADVERT.plainWords);
 const escaped = (text) => text.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
 // Longest first, so "m/w/d" is not read as the start of something longer; bracketed or bare, but only whole.
+// Letters of gender joined by slashes or bars, two to four of them: "m/w/d", "f/m/d/x", "m | w | d".
+const SLASHED = String.raw`[mwfd](?:\s*[/|]\s*[mwfdxi]){1,3}`;
+// The markers in words, lowercased as written — folding would strip the "ä" of "männlich" the line still carries.
+const WORDED = Object.values(ADVERT.genderMarkers)
+  .flat()
+  .map((entry) => entry.toLowerCase())
+  .sort((a, b) => b.length - a.length);
+const whole = (pattern) => String.raw`(?<![\p{L}\p{N}/])(?:${pattern})(?![\p{L}\p{N}/])`;
+// Bare, three letters or more: "m/f ratio" is a ratio.
+const LONG = [
+  String.raw`[mwfd](?:\s*[/|]\s*[mwfdxi]){2,3}`,
+  ...WORDED.filter((entry) => entry.length >= 5).map(escaped)
+].join('|');
+const ANY = [SLASHED, ...WORDED.map(escaped)].join('|');
+// Bracketed, any marker; bare, only one too long to be a word of its own.
 const GENDER_MARKER = new RegExp(
-  `\\s*[([]?\\s*(?<![\\p{L}\\p{N}/])(?:${[...set(ADVERT.genderMarkers)]
-    .sort((a, b) => b.length - a.length)
-    .map(escaped)
-    .join('|')})(?![\\p{L}\\p{N}/])\\s*[)\\]]?`,
+  String.raw`\s*(?:[([]\s*${whole(ANY)}\s*[)\]]|${whole(LONG)})`,
   'giu'
 );
 const BOILERPLATE = Object.values(ADVERT.boilerplate).flat().map(fold);
