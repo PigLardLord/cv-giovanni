@@ -7,9 +7,9 @@ Layouts: 3
 
 | Layout | Pages | Score | Worst side margin | Room left |
 |---|---:|---:|---:|---|
-| nerd | 2 | 26/26 | 13.7mm | p1 65.3pt · p2 198.3pt |
-| spotlight | 2 | 26/26 | 33.5mm | p1 26.3pt · p2 189.3pt |
-| technical | 2 | 26/26 | 33.5mm | p1 30.8pt · p2 188.5pt |
+| nerd | 2 | 26/26 | 13.7mm | p1 45.0pt · p2 198.3pt |
+| spotlight | 2 | 26/26 | 33.5mm | p1 6.0pt · p2 185.5pt |
+| technical | 2 | 26/26 | 33.5mm | p1 9.8pt · p2 188.5pt |
 
 Room left is the space between each page's lowest line and its 33pt bottom margin. A last
 page with less than one 15.4pt line of running text free is marked ⚠: the next line
