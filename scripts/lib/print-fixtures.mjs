@@ -44,12 +44,14 @@ export const fixturesOf = ({ profile, locale, layout }) => [
  * `.raw.txt`, or the reverse, is the likely mistake of extracting by hand, and would pass unread (#321).
  * @param {{ profile: string, locale: string, layout: string }} print - Which CV, and which layout
  * @param {(name: string) => string | null} read - A fixture's text, or null when there is none
- * @returns {{ held: string[], missing: string[] }} The fixtures there are, and each one missing beside its other half
+ * @returns {{ held: string[], missing: string[] }} The fixtures there are, by name, and each one missing beside its
+ *   other half, by path, as a stale fixture is named
  */
 export function fixturePair(print, read) {
   const names = fixturesOf(print).map(({ name }) => name);
   const held = names.filter((name) => read(name) !== null);
-  return { held, missing: held.length ? names.filter((name) => !held.includes(name)) : [] };
+  const missing = held.length ? names.filter((name) => !held.includes(name)) : [];
+  return { held, missing: missing.map((name) => `${FIXTURES}/${name}`) };
 }
 
 /**

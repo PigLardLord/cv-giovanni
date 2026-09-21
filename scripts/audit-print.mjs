@@ -38,7 +38,7 @@ import {
   marginsClear
 } from './lib/printed-letter.mjs';
 import { manifestReader, resolveRun } from './lib/published-targets.mjs';
-import { FIXTURES, fixturePair, fixturesOf, staleFixtures } from './lib/print-fixtures.mjs';
+import { FIXTURES, fixturePair, staleFixtures } from './lib/print-fixtures.mjs';
 import { LetterContent } from '../core/LetterContent.js';
 import { CoverLetter } from '../domain/CoverLetter.js';
 import { CvDocument } from '../domain/CvDocument.js';
@@ -365,13 +365,6 @@ const readFixture = (name) => {
     throw error;
   }
 };
-const holdsFixtures =
-  target.isPublicProfile &&
-  files.some(({ layout }) =>
-    fixturesOf({ profile: target.profile, locale: target.locale, layout }).some(
-      ({ name }) => readFixture(name) !== null
-    )
-  );
 const stale = [];
 // Which fixtures were compared, named in the report, and each half of a pair the other half lacks (#321).
 const heldFixtures = [];
@@ -395,11 +388,12 @@ try {
       margins,
       faint
     } = await measure(path, typefacesFor(layout), workspace);
-    if (holdsFixtures) {
+    // Only a published CV's print is held to fixtures, and only where it has some: both return nothing otherwise.
+    if (target.isPublicProfile) {
       const print = { profile: target.profile, locale: target.locale, layout, text, drawn };
       const { held, missing } = fixturePair(print, readFixture);
       heldFixtures.push(...held);
-      halfFixtures.push(...missing.map((name) => `${FIXTURES}/${name}`));
+      halfFixtures.push(...missing);
       stale.push(...staleFixtures(print, readFixture));
     }
     const long = longProseLines(text, prose, { periods });
@@ -689,6 +683,8 @@ const tightBefore = rows.flatMap((row) =>
 const scoredChecks = (rowsOf) =>
   rowsOf.length ? `The checks the score counts: ${Object.keys(rowsOf[0].checks).join(', ')}.` : '';
 
+// Whether the report speaks of fixtures at all: a published CV that has some (#302, #321).
+const holdsFixtures = heldFixtures.length > 0;
 const report = [
   '# Print quality matrix',
   '',

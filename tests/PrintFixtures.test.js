@@ -190,7 +190,7 @@ describe('the print fixtures', () => {
     });
     expect(fixturePair(print, reading({ 'page-print-general-en-nerd.txt': PRINT.text }))).toEqual({
       held: ['page-print-general-en-nerd.txt'],
-      missing: ['page-print-general-en-nerd.raw.txt']
+      missing: ['tests/fixtures/ats/page-print-general-en-nerd.raw.txt']
     });
     expect(fixturePair({ ...print, layout: 'technical' }, reading(pair))).toEqual({
       held: [],
