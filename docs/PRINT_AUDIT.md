@@ -8,12 +8,15 @@ Layouts: 3
 | Layout | Pages | Score | Worst side margin | Room left |
 |---|---:|---:|---:|---|
 | nerd | 2 | 26/26 | 13.7mm | p1 45.0pt · p2 198.3pt |
-| spotlight | 2 | 26/26 | 33.5mm | p1 6.0pt · p2 185.5pt |
-| technical | 2 | 26/26 | 33.5mm | p1 9.8pt · p2 188.5pt |
+| spotlight | 2 | 26/26 | 33.5mm | p1 6.0pt ⚠ · p2 185.5pt |
+| technical | 2 | 26/26 | 33.5mm | p1 9.8pt ⚠ · p2 188.5pt |
 
-Room left is the space between each page's lowest line and its 33pt bottom margin. A last
-page with less than one 15.4pt line of running text free is marked ⚠: the next line
-added to it has nowhere to go. It is a warning, never a failure, since the page count is the gate.
+Room left is the space between each page's lowest line and its 33pt bottom margin. A page
+with less than one 15.4pt line of running text free is marked ⚠: on the last page the
+next line has nowhere to go; on a page before it, the next line moves the block at its foot — today a role —
+whole to the next page. It is a warning, never a failure, since the page count is the gate.
+
+⚠ Tight page before the last: spotlight p1 (6.0pt), technical p1 (9.8pt) — the next line added moves the block at its foot to the next page.
 
 The ATS fixtures in `tests/fixtures/ats/` are this print, word for word and line for line as `pdftotext` and `pdftotext -raw` extract it, allowing for the spaces poppler infers.
 

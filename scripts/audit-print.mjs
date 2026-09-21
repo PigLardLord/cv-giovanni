@@ -645,6 +645,11 @@ const letterFailures = letterRows.filter(failed);
 const tight = rows
   .filter((row) => roomReport(row.room).lastPageTight)
   .map((row) => `${row.layout} (${row.room[row.room.length - 1].points.toFixed(1)}pt)`);
+const tightBefore = rows.flatMap((row) =>
+  roomReport(row.room).tightBefore.map(
+    (page) => `${row.layout} p${page} (${row.room[page - 1].points.toFixed(1)}pt)`
+  )
+);
 // The score is `passed/Object.keys(checks).length`, so it cannot miscount; the prose describing the checks can,
 // and did — 25 described under a 26/26 score (#252). So each description ends on the list the score counts,
 // derived the same way, and a check added without a sentence still appears here by name.
@@ -668,10 +673,17 @@ const report = [
     return `| ${row.layout} | ${row.pages} | ${row.score} | ${worst}mm | ${roomReport(row.room).column} |`;
   }),
   '',
-  `Room left is the space between each page's lowest line and its ${PRINTED_PAGE.bottomMargin}pt bottom margin. A last`,
-  `page with less than one ${PRINTED_PAGE.bodyLine.toFixed(1)}pt line of running text free is marked ⚠: the next line`,
-  'added to it has nowhere to go. It is a warning, never a failure, since the page count is the gate.',
+  `Room left is the space between each page's lowest line and its ${PRINTED_PAGE.bottomMargin}pt bottom margin. A page`,
+  `with less than one ${PRINTED_PAGE.bodyLine.toFixed(1)}pt line of running text free is marked ⚠: on the last page the`,
+  'next line has nowhere to go; on a page before it, the next line moves the block at its foot — today a role —',
+  'whole to the next page. It is a warning, never a failure, since the page count is the gate.',
   ...(tight.length ? ['', `⚠ Tight last page: ${tight.join(', ')}.`] : []),
+  ...(tightBefore.length
+    ? [
+        '',
+        `⚠ Tight page before the last: ${tightBefore.join(', ')} — the next line added moves the block at its foot to the next page.`
+      ]
+    : []),
   ...(holdsFixtures
     ? [
         '',
