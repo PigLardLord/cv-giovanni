@@ -4,7 +4,12 @@ import { NodeDirectoryWriter } from '../adapters/NodeDirectoryWriter.js';
 import { CvDocument } from '../domain/CvDocument.js';
 import { countedPast } from '../domain/Tenure.js';
 import { findBrowser } from './lib/find-browser.mjs';
-import { manifestReader, releasedAcross, resolveRun } from './lib/published-targets.mjs';
+import {
+  manifestReader,
+  printedDownloadList,
+  releasedAcross,
+  resolveRun
+} from './lib/published-targets.mjs';
 import {
   builtCv,
   builtLetters,
@@ -24,7 +29,6 @@ import {
  * `npm run audit:print` and `npm run audit:ats` read the files written here.
  */
 const projectRoot = new URL('../', import.meta.url);
-const { layouts } = JSON.parse(await readFile(new URL('config/cv-manifest.json', projectRoot)));
 
 // One CV, or a run over every CV the manifest publishes, each re-run naming itself (#248). Each run writes
 // generated/manifest.json for its own files over the last one's, so the list the page reads is written here once
@@ -33,31 +37,36 @@ const { layouts } = JSON.parse(await readFile(new URL('config/cv-manifest.json',
 const argv = process.argv.slice(2);
 const run = await resolveRun('generate-pdfs', fileURLToPath(import.meta.url), argv, {
   readManifest: manifestReader(projectRoot),
-  around: async (printAll, published) => {
+  around: async (printAll, published, { layouts }) => {
     const list = new URL(published[0].manifestPath, projectRoot);
-    const before = await readFile(list, 'utf8').catch(() => null);
-    const exit = printAll();
-    if (exit !== 0) {
-      if (before === null) await rm(list, { force: true });
-      else await writeFile(list, before);
-      return exit;
+    const exit = await printedDownloadList(printAll, {
+      read: () => readFile(list, 'utf8').catch(() => null),
+      write: (text) => writeFile(list, text),
+      remove: () => rm(list, { force: true }),
+      union: async () => {
+        const profiles = new Map(
+          await Promise.all(
+            published.map(async ({ dataPath }) => [
+              dataPath,
+              JSON.parse(await readFile(new URL(dataPath, projectRoot)))
+            ])
+          )
+        );
+        return releasedAcross(published, ({ dataPath }) => profiles.get(dataPath), layouts);
+      }
+    });
+    if (exit === 0) {
+      const { released } = JSON.parse(await readFile(list, 'utf8'));
+      console.log(
+        `${published[0].manifestPath} — ${released.length} downloads, every published CV`
+      );
     }
-    const profiles = new Map(
-      await Promise.all(
-        published.map(async ({ dataPath }) => [
-          dataPath,
-          JSON.parse(await readFile(new URL(dataPath, projectRoot)))
-        ])
-      )
-    );
-    const released = releasedAcross(published, ({ dataPath }) => profiles.get(dataPath), layouts);
-    await writeFile(list, `${JSON.stringify({ released }, null, 2)}\n`);
-    console.log(`${published[0].manifestPath} — ${released.length} downloads, every published CV`);
     return exit;
   }
 });
 if ('exit' in run) process.exit(run.exit);
 const { target } = run;
+const { layouts } = run.manifest;
 // Lengths are counted to the profile's asOf, and the CV says so (#55). Today is only the limit: a month after
 // it gives lengths nobody can check yet.
 const today = new Date();

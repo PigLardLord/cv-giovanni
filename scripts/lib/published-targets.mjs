@@ -18,18 +18,6 @@ export const namesProfile = (argv) =>
   argv.some((argument) => argument === '--profile' || argument.startsWith('--profile='));
 
 /**
- * The CVs the manifest publishes.
- * @param {URL} projectRoot - The repository root
- * @returns {Promise<GenerationTarget[]>} One per published profile and locale
- */
-export async function publishedTargets(projectRoot) {
-  const manifest = JSON.parse(
-    await readFile(new URL('config/cv-manifest.json', projectRoot), 'utf8')
-  );
-  return GenerationTarget.published(manifest);
-}
-
-/**
  * Run a script once per published CV, in turn, and end on the worst exit any run had.
  *
  * One CV failing fails the run, and a run that checked nothing must never read as a pass, so 2 — "nothing was
@@ -98,19 +86,23 @@ export function unlistedProfile(argv, targets) {
  * What a run is about: one CV to read, or an exit code to end on (#248).
  *
  * Every script opened with the same few lines, and the copies had already drifted — two refused a profile the
- * manifest does not list and two did not. So the decision is made once:
+ * manifest does not list and two did not. So the decision is made once, and the manifest is read once:
  *
+ * - Every run needs the manifest for its layouts, so one that does not parse ends every run, with a sentence
+ *   naming the file and exit 2 rather than the stack trace a second read of it used to end on.
  * - `--profile` under `profiles/` names a published CV, and one the manifest does not list is refused, since the
- *   page loads no such profile; a tailored profile never reads the manifest, so a mistake there cannot stop it.
- * - No `--profile` is a run over every published CV, each re-run naming itself. `--out` without `--profile` is
- *   refused: it names where one CV is printed, and the download list would still be written over generated/.
- * - A manifest that cannot be read ends the run with a sentence and exit 2, not a stack trace: nothing was checked.
+ *   page loads no such profile. A tailored profile is not published, so a mistake in the published list cannot
+ *   stop it.
+ * - No `--profile` is a run over every published CV, each re-run naming itself; a manifest that publishes none is
+ *   refused before anything around the run starts. `--out` without `--profile` is refused: it names where one CV
+ *   is printed, and the download list would still be written over generated/.
  * @param {string} name - The script's name, for what it says
  * @param {string} script - The script's own path, to re-run it
  * @param {string[]} argv - The run's arguments
  * @param {object} options - How to read the manifest, and optionally how to run a script, how to speak, and a
- *   wrapper `around(runAll, published)` for work before and after the whole run
- * @returns {Promise<{ target: GenerationTarget } | { exit: number }>} The CV to read, or how the run ends
+ *   wrapper `around(runAll, published, manifest)` for work before and after the whole run
+ * @returns {Promise<{ target: GenerationTarget, manifest: object } | { exit: number }>} The CV to read and the
+ *   manifest it was read against, or how the run ends
  */
 export async function resolveRun(name, script, argv, options) {
   const { readManifest, run = spawnSync, around, say = console.error } = options;
@@ -118,9 +110,16 @@ export async function resolveRun(name, script, argv, options) {
     say(`${name}: ${sentence}`);
     return { exit: 2 };
   };
-  const published = async () => {
+
+  let manifest;
+  try {
+    manifest = await readManifest();
+  } catch (error) {
+    return refuse(`config/cv-manifest.json cannot be read — ${error.message}`);
+  }
+  const published = () => {
     try {
-      return { targets: GenerationTarget.published(await readManifest()) };
+      return { targets: GenerationTarget.published(manifest) };
     } catch (error) {
       return { error: error.message };
     }
@@ -128,11 +127,11 @@ export async function resolveRun(name, script, argv, options) {
 
   if (namesProfile(argv)) {
     const target = GenerationTarget.fromArguments(argv);
-    if (!target.dataPath.startsWith('profiles/')) return { target };
-    const { targets, error } = await published();
+    if (!target.dataPath.startsWith('profiles/')) return { target, manifest };
+    const { targets, error } = published();
     if (error) return refuse(error);
     const unlisted = unlistedProfile(argv, targets);
-    return unlisted ? refuse(unlisted) : { target };
+    return unlisted ? refuse(unlisted) : { target, manifest };
   }
 
   if (argv.some((argument) => argument === '--out' || argument.startsWith('--out='))) {
@@ -141,10 +140,35 @@ export async function resolveRun(name, script, argv, options) {
         'into generated/, which is what the page reads.'
     );
   }
-  const { targets, error } = await published();
+  const { targets, error } = published();
   if (error) return refuse(error);
+  if (!targets.length)
+    return refuse('config/cv-manifest.json publishes no CV, so nothing was checked.');
   const runAll = () => eachPublished(script, targets, argv, run);
-  return { exit: around ? await around(runAll, targets) : runAll() };
+  return { exit: around ? await around(runAll, targets, manifest) : runAll() };
+}
+
+/**
+ * Print every published CV, and leave the page's download list true to what printed (#248).
+ *
+ * Each CV's build writes the list for its own files over the last one's. So the list is written here once, after
+ * every CV has printed: all their files. If one failed it is put back exactly as it was before the run — or left
+ * absent, if there was none — so the page never offers whichever CV happened to print last.
+ * @param {() => number | Promise<number>} printAll - Print every published CV, and say how the run ended
+ * @param {{ read: Function, write: Function, remove: Function, union: Function }} list - The list on disk, and
+ *   every file every CV printed
+ * @returns {Promise<number>} How the run ended
+ */
+export async function printedDownloadList(printAll, { read, write, remove, union }) {
+  const before = await read();
+  const exit = await printAll();
+  if (exit !== 0) {
+    if (before === null) await remove();
+    else await write(before);
+    return exit;
+  }
+  await write(`${JSON.stringify({ released: await union() }, null, 2)}\n`);
+  return exit;
 }
 
 /** Read `config/cv-manifest.json` under a project root. */

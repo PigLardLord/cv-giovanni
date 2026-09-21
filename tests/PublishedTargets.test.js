@@ -6,10 +6,12 @@ import { GenerationTarget } from '../core/GenerationTarget.js';
 import {
   eachPublished,
   namesProfile,
+  printedDownloadList,
   releasedAcross,
   resolveRun,
   unlistedProfile
 } from '../scripts/lib/published-targets.mjs';
+import { auditedFiles } from '../scripts/lib/printed-cv.mjs';
 
 // CI ran `npm run build:pdf` and the audits with no --profile, which meant the one CV whose path was written into
 // the code. A second locale listed in the manifest was printed by nobody and audited by nobody, and its page hid
@@ -118,6 +120,7 @@ describe('what a run is about', () => {
       readManifest: reads(manifest)
     });
     expect(run.target.dataPath).toBe('profiles/general/de.json');
+    expect(run.manifest).toBe(manifest);
   });
 
   test('is nothing, said, for a profile under profiles/ the manifest does not list', async () => {
@@ -145,20 +148,53 @@ describe('what a run is about', () => {
     expect(run).toEqual({ exit: 2 });
   });
 
-  // A tailored build has nothing to do with the manifest, and a manifest mistake must not stop it.
-  test('does not read the manifest for a tailored profile', async () => {
+  // A tailored build reads the manifest for its layouts, like any other, but it is not published: a mistake in
+  // the list of published CVs must not stop it.
+  test('lets a tailored profile through a manifest whose published list is wrong', async () => {
     const run = await resolveRun(
       'generate-pdfs',
       's.mjs',
       ['--profile=applications/acme/en.json'],
       {
         ...quiet,
-        readManifest: async () => {
-          throw new Error('read');
-        }
+        readManifest: reads({
+          layouts: ['nerd'],
+          profiles: { general: { locales: { de: 'profiles/general/en.json' } } }
+        })
       }
     );
     expect(run.target.dataPath).toBe('applications/acme/en.json');
+    expect(run.manifest.layouts).toEqual(['nerd']);
+  });
+
+  // Every script needs the layouts, so a manifest that does not parse stops every run — with a sentence naming
+  // the file and exit 2, never the stack trace a second read of it used to end on.
+  test.each([[[]], [['--profile=applications/acme/en.json']]])(
+    'is nothing, said, naming the file, when the manifest does not parse (%j)',
+    async (argv) => {
+      const said = [];
+      const run = await resolveRun('generate-pdfs', 's.mjs', argv, {
+        say: (line) => said.push(line),
+        readManifest: async () => JSON.parse('{ not json')
+      });
+      expect(run).toEqual({ exit: 2 });
+      expect(said.join(' ')).toMatch(/config\/cv-manifest\.json cannot be read/);
+    }
+  );
+
+  // With nothing published, the build's wrapper used to run anyway and crash on the first CV that was not there.
+  test('is nothing, said, when the manifest publishes no CV, and nothing around the run is started', async () => {
+    let started = false;
+    const run = await resolveRun('generate-pdfs', 's.mjs', [], {
+      ...quiet,
+      readManifest: reads({ profiles: {} }),
+      around: async () => {
+        started = true;
+        return 0;
+      }
+    });
+    expect(run).toEqual({ exit: 2 });
+    expect(started).toBe(false);
   });
 
   test('is nothing, said, when the manifest cannot be read, rather than a stack trace', async () => {
@@ -193,8 +229,8 @@ describe('what a run is about', () => {
         calls.push(args[1]);
         return { status: 0 };
       },
-      around: async (printAll, published) => {
-        wrapped = published.length;
+      around: async (printAll, published, read) => {
+        wrapped = [published.length, read === manifest];
         return printAll();
       }
     });
@@ -203,26 +239,91 @@ describe('what a run is about', () => {
       '--profile=profiles/general/en.json',
       '--profile=profiles/general/de.json'
     ]);
-    expect(wrapped).toBe(2);
+    expect(wrapped).toEqual([2, true]);
   });
 });
 
 // Every published CV prints into generated/, so an audit that picks its PDFs by listing that directory grades every
 // locale against one profile. audit-ats did: with German listed, the English report fell from 80/80 to 63.2 and
 // graded "Bad Liebenstein, Thüringen, Deutschland" as a wrong location for a CV nothing had changed (the review of
-// #248). An audit asks the naming rule which files are its CV's, and lists a directory only for its own scratch
-// files — audit-print reads the page images it rasterised itself.
-describe('an audit reads only the CV it is about', () => {
-  const source = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
+// #248). The files an audit reads are the ones the naming rule gives its own CV.
+describe('the files an audit reads', () => {
+  const data = { name: 'Ada Lovelace' };
+  const [en, de] = targets;
+  const everythingIsThere = () => true;
 
-  test.each(['scripts/audit-print.mjs', 'scripts/audit-ats.mjs'])(
-    '%s chooses its PDFs by the CV, not by listing a directory',
-    (path) => {
-      const script = source(path);
-      expect(script).toMatch(/builtCv\(target,/);
-      // The one directory an audit may list is its own scratch space, which audit-print calls `directory`.
-      const listed = [...script.matchAll(/readdir\(([^)]*)\)/g)].map(([, what]) => what.trim());
-      expect(listed.filter((what) => what !== 'directory')).toEqual([]);
-    }
-  );
+  test("are the CV's own, however many other CVs share the directory", () => {
+    expect(auditedFiles(en, data, ['nerd', 'technical'], everythingIsThere)).toEqual([
+      { path: 'generated/ada-lovelace-general-en-nerd.pdf', isCover: false },
+      { path: 'generated/ada-lovelace-general-en-technical.pdf', isCover: false }
+    ]);
+    expect(auditedFiles(de, data, ['nerd'], everythingIsThere)).toEqual([
+      { path: 'generated/ada-lovelace-general-de-nerd.pdf', isCover: false }
+    ]);
+  });
+
+  test('are only the ones on disk, with a letter beside each CV when the profile carries one', () => {
+    const letter = { ...data, letter: { recipient: { company: 'Acme' } } };
+    const onDisk = (path) =>
+      !path.endsWith('technical.pdf') && !path.endsWith('technical-cover.pdf');
+    expect(auditedFiles(en, letter, ['nerd', 'technical'], onDisk)).toEqual([
+      { path: 'generated/ada-lovelace-general-en-nerd-cover.pdf', isCover: true },
+      { path: 'generated/ada-lovelace-general-en-nerd.pdf', isCover: false }
+    ]);
+  });
+
+  test('are the ones audit-ats reads', () => {
+    expect(readFileSync(new URL('../scripts/audit-ats.mjs', import.meta.url), 'utf8')).toMatch(
+      /auditedFiles\(target,/
+    );
+  });
+});
+
+// Each CV's build writes the download list for its own files over the last one's. The list the page reads is
+// written once, after every CV has printed; if one failed, the list is put back exactly as it was, or left absent
+// if there was none — otherwise the page would offer whichever CV happened to print last. The first version of
+// #248 claimed this and did not do it, so it is held here and not only in a sentence.
+describe('the download list a run over every published CV leaves', () => {
+  const store = (initial) => {
+    const state = { text: initial, removed: false };
+    return {
+      state,
+      read: async () => state.text,
+      write: async (text) => {
+        state.text = text;
+      },
+      remove: async () => {
+        state.text = null;
+        state.removed = true;
+      }
+    };
+  };
+  const union = async () => ['a.pdf', 'b.pdf'];
+
+  test('is every file every CV printed, when they all printed', async () => {
+    const list = store('{"released":["old.pdf"]}\n');
+    expect(await printedDownloadList(() => 0, { ...list, union })).toBe(0);
+    expect(JSON.parse(list.state.text)).toEqual({ released: ['a.pdf', 'b.pdf'] });
+  });
+
+  test('is the list as it was before the run, byte for byte, when one CV failed', async () => {
+    const before = '{\n  "released": ["kept.pdf"]\n}\n';
+    const list = store(before);
+    const printAll = async () => {
+      await list.write('{"released":["half.pdf"]}\n');
+      return 1;
+    };
+    expect(await printedDownloadList(printAll, { ...list, union })).toBe(1);
+    expect(list.state.text).toBe(before);
+  });
+
+  test('is no list at all, when there was none and one CV failed', async () => {
+    const list = store(null);
+    const printAll = async () => {
+      await list.write('{"released":["half.pdf"]}\n');
+      return 2;
+    };
+    expect(await printedDownloadList(printAll, { ...list, union })).toBe(2);
+    expect(list.state).toEqual({ text: null, removed: true });
+  });
 });

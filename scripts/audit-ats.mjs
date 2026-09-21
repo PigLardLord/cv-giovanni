@@ -12,7 +12,7 @@ import { AtsFloors } from '../core/AtsFloors.js';
 import { AdvertMatcher } from '../core/AdvertMatcher.js';
 import { manifestReader, resolveRun } from './lib/published-targets.mjs';
 import { catalogueTranslator } from './lib/printed-letter.mjs';
-import { builtCv, builtLetters } from './lib/printed-cv.mjs';
+import { auditedFiles } from './lib/printed-cv.mjs';
 
 /**
  * The third audit: what a stranger's parser recovers.
@@ -91,25 +91,14 @@ try {
 // CV prints into generated/, so a run that read the directory graded the German PDFs against the English profile
 // and the English against the German, and the English report fell from 80/80 to 63.2 for a CV nothing had
 // changed (#248). A directory beside them, such as the qa/ an older build wrote, is not read either.
-const { layouts } = JSON.parse(await readFile(new URL('config/cv-manifest.json', projectRoot)));
 const onDisk = (path) => existsSync(new URL(path, projectRoot));
-const files = [
-  ...builtCv(target, authored, layouts, onDisk).files.map(({ path }) => ({ path, isCover: false })),
-  // A cover letter is not a CV and must not be parsed as one: it has no headings, no chronology and no skills,
-  // so this audit would report a failed segmentation and trip two floors on a perfectly good letter. A false
-  // failure is worse than no check — it teaches whoever sees it to ignore the exit code.
-  ...builtLetters(target, authored, layouts, onDisk).files.map(({ path }) => ({
-    path,
-    isCover: true
-  }))
-]
-  .filter(({ path }) => onDisk(path))
-  .sort((one, other) => one.path.localeCompare(other.path))
-  .map(({ path, isCover }) => ({
+const files = auditedFiles(target, authored, run.manifest.layouts, onDisk).map(
+  ({ path, isCover }) => ({
     artefact: path,
     path: new URL(path, projectRoot).pathname,
     isCover
-  }));
+  })
+);
 
 if (!files.filter((file) => !file.isCover).length) {
   cannotCheck(

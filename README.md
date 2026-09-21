@@ -118,7 +118,8 @@ naming all their files — which is what lets the page offer a download in each 
 score each of them, failing the run if any fails. The public CV keeps its reports' names in `docs/`; every other
 published CV writes its own beside them, with its profile and locale in the name. A profile
 under `profiles/` that the manifest does not list is refused with a sentence saying so: the page loads no such
-profile, so there would be nothing to print.
+profile, so there would be nothing to print. Building one published CV by name rewrites the download list with that
+CV's files alone, so the page offers only it until the next run with no `--profile`.
 
 ## Applications
 

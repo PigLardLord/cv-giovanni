@@ -44,6 +44,30 @@ export function builtCv(target, data, layouts, exists = existsSync) {
 }
 
 /**
+ * The files an audit of one CV reads: that CV in each layout, and the letter beside each when the profile carries
+ * one — the ones on disk, sorted by path (#248).
+ *
+ * Chosen by the naming rule, never by listing the directory: every published CV prints into generated/, and an
+ * audit that listed it graded every locale's PDFs against one profile.
+ * @param {{ profile: string, locale: string, outDir: string }} target - The CV and where its files go
+ * @param {object} data - The profile, its letter included
+ * @param {string[]} layouts - The layouts the manifest declares
+ * @param {(path: string) => boolean} [exists] - Whether a file is on disk
+ * @returns {{ path: string, isCover: boolean }[]} Each file an audit of the CV reads, and whether it is a letter
+ */
+export function auditedFiles(target, data, layouts, exists = existsSync) {
+  return [
+    ...builtCv(target, data, layouts, exists).files.map(({ path }) => ({ path, isCover: false })),
+    ...builtLetters(target, data, layouts, exists).files.map(({ path }) => ({
+      path,
+      isCover: true
+    }))
+  ]
+    .filter(({ path }) => exists(path))
+    .sort((one, other) => one.path.localeCompare(other.path));
+}
+
+/**
  * The cover letter each layout is printed to, beside its CV, and the ones not there. None for a profile that
  * carries no letter, which is every profile the repository publishes.
  * @param {{ profile: string, locale: string, outDir: string }} target - The CV and where its files go

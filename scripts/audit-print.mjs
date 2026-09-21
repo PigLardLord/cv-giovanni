@@ -66,7 +66,7 @@ const run = await resolveRun('audit-print', fileURLToPath(import.meta.url), argv
   readManifest: manifestReader(projectUrl)
 });
 if ('exit' in run) process.exit(run.exit);
-const { target } = run;
+const { target, manifest } = run;
 const profile = await readJson(target.dataPath);
 const catalogue = await readJson(`locales/${target.locale}/cv.json`);
 const labels = catalogue.sections;
@@ -95,7 +95,6 @@ async function readJson(path) {
     process.exit(2);
   }
 }
-const manifest = JSON.parse(await readFile(new URL('config/cv-manifest.json', projectUrl)));
 // A layout with no printed typefaces declared cannot have its text checked: exit 2, as for a file never built.
 try {
   manifest.layouts.forEach((layout) => typefacesFor(layout));
