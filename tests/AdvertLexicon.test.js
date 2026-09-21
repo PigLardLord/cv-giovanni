@@ -34,6 +34,14 @@ describe('the lexicon is multilingual by construction', () => {
     }
   });
 
+  test('no word is both a stopword and a plain word, in any language', () => {
+    for (const language of AdvertLexicon.languages()) {
+      expect(ADVERT.plainWords[language].filter((word) => AdvertLexicon.isStopword(word))).toEqual(
+        []
+      );
+    }
+  });
+
   test('a dimension is what a claim measures, and no stopword', () => {
     for (const word of ['performance', 'Stability', 'qualità']) {
       expect(AdvertLexicon.isDimension(word)).toBe(true);

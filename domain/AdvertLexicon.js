@@ -170,6 +170,7 @@ export const ADVERT = {
       'ideal',
       'understanding',
       'familiarity',
+      'exposure',
       'improve',
       'deliver',
       'ship',
@@ -556,20 +557,8 @@ export const ADVERT = {
    * carry theirs for the shape.
    */
   plainWords: {
-    en: [
-      'new',
-      'time',
-      'set',
-      'use',
-      'get',
-      'make',
-      'keep',
-      'drive',
-      'after',
-      'knowledge',
-      'exposure'
-    ],
-    de: ['neu', 'neue', 'neuen', 'zeit', 'kenntnisse', 'nutzen'],
+    en: ['new', 'time', 'set', 'use', 'get', 'make', 'keep', 'drive', 'after', 'knowledge'],
+    de: ['neu', 'neue', 'neuen', 'zeit', 'nutzen'],
     it: ['nuovo', 'nuova', 'tempo', 'conoscenza', 'conoscenze', 'usare']
   },
 

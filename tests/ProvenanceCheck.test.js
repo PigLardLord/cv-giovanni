@@ -557,6 +557,34 @@ describe('a rewording into the advert’s plain words', () => {
       { terms: [], advert: ADVERT }
     );
 
+  // The second review of #315: a plain word the tailoring was shown as a required term, and one that opens an advert's
+  // bullet, came back as additions.
+  test('a plain word passes when it is one of the advert’s terms, or opens one of its bullets', () => {
+    const advert = `${ADVERT}\n- Set up Gradle build caching`;
+    const shown = (edit) => check(edit, { terms: ['knowledge', 'Exposure'], advert });
+
+    expect(
+      shown(
+        (cv) =>
+          (cv.relevant_experience[0].highlights[0] =
+            'Brought SwiftUI knowledge to Engine Notes for iOS from its first commit in 2021: Clean Architecture, TDD.')
+      )
+    ).toEqual([]);
+    expect(
+      shown(
+        (cv) =>
+          (cv.relevant_experience[1].highlights[0] =
+            'Gained exposure to Swift while moving the app from Objective-C.')
+      )
+    ).toEqual([]);
+    expect(
+      shown(
+        (cv) =>
+          (cv.relevant_experience[0].highlights[2] = 'Set up App Store releases every two weeks.')
+      )
+    ).toEqual([]);
+  });
+
   test.each([
     ['relevant_experience[0].summary', 'Owned the iOS client in a team of 2 engineers.'],
     ['relevant_experience[0].highlights[1]', 'Cut test performance from 37.7 to 5.2 minutes.'],
@@ -581,6 +609,12 @@ describe('a rewording into the advert’s plain words', () => {
     [
       'relevant_experience[0].highlights[2]',
       'Shipped App Store releases every two weeks, for stability.',
+      'stability'
+    ],
+    // A figure before it measures something else (the second review of #315).
+    [
+      'relevant_experience[0].highlights[2]',
+      'Shipped App Store releases every two weeks for stability.',
       'stability'
     ]
   ])('%s as "%s" claims what the source does not', (path, text, word) => {

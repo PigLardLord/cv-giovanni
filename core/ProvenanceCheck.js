@@ -276,7 +276,7 @@ export class ProvenanceCheck {
     // A German advert capitalises its nouns, so its capitals name nothing.
     const advertNames = new Set(
       (advertEnglish || !translated ? ProvenanceCheck.names(advert, { openers: true }) : [])
-        .filter((word) => !AdvertLexicon.isStopword(word))
+        .filter((word) => !AdvertLexicon.isStopword(word) && !AdvertLexicon.isPlainWord(word))
         .map(fold)
     );
     const reading = translated
@@ -704,6 +704,9 @@ export class ProvenanceCheck {
     for (const term of new Set(vocabulary)) {
       const termWords = fold(term).split(' ');
       if (termWords.some((word) => said.has(word))) continue;
+      // A stopword or a plain word is the check's to let pass wherever it comes from — the advert's words or the terms
+      // a tailoring was shown (the second review of #315).
+      if (AdvertLexicon.isStopword(term) || AdvertLexicon.isPlainWord(term)) continue;
       if (AdvertLexicon.isDimension(term) && measured(term, text)) continue;
       if (AdvertMatcher.appears(term, text) && !AdvertMatcher.appears(term, against)) {
         reasons.push(`says "${term}", which its source does not`);
@@ -812,14 +815,22 @@ function words(text) {
 }
 
 /**
- * Whether a text names a dimension in a clause that states a figure: "test performance from 37.7 to 5.2 minutes" says
+ * Whether a text names a dimension in a clause that states a figure after it: "test performance from 37.7 to 5.2 minutes" says
  * what the figure measures, and the figure is held to the source; "improved app performance" is a claim of its own
  * (#296, the review of #315). A full stop before a digit is a decimal point, and a colon introduces the measure.
  */
 function measured(dimension, text) {
-  return text
-    .split(/[,;!?]|\.(?!\d)/)
-    .some((clause) => AdvertMatcher.appears(dimension, clause) && figuresOf(clause).length > 0);
+  const at = new RegExp(
+    `(?<![\\p{L}\\p{N}])${fold(dimension).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}])`,
+    'u'
+  );
+  return text.split(/[,;!?]|\.(?!\d)/).some((clause) => {
+    // The figure it measures follows it: "every two weeks for stability" names a figure of something else (the second
+    // review of #315).
+    const folded = fold(clause);
+    const where = folded.search(at);
+    return where >= 0 && figuresOf(folded.slice(where)).length > 0;
+  });
 }
 
 /** What a name may be found in its source as: itself, without a possessive, or the parts of it that are names. */
