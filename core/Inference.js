@@ -11,6 +11,13 @@ import { Refusal } from './Refusal.js';
  * A backend is `{ name, cost, availability(), complete({ system, prompt }) }`. The service never sees a
  * credential: a backend that needs one reads it where it is kept, outside the repository.
  */
+/**
+ * The models a run may ask for, and the efforts, named once (#266). #260 runs a tailoring job with the model and the
+ * effort it names; a value outside these is refused here, naming them, before any backend runs.
+ */
+export const MODELS = Object.freeze(['claude-opus-5', 'claude-sonnet-5', 'claude-fable-5-1']);
+export const EFFORTS = Object.freeze(['low', 'medium', 'high', 'xhigh', 'max']);
+
 export class Inference {
   /** @param {object[]} backends - In order of preference */
   constructor(backends = []) {
@@ -32,12 +39,16 @@ export class Inference {
   }
 
   /**
-   * @param {{ system: string, prompt: string }} request - What the model is told, and asked
+   * @param {{ system: string, prompt: string, model?: string, effort?: string, deadline?: number }} request - What
+   *   the model is told and asked, and optionally which model, how hard it thinks, and by when it must have answered
+   *   (milliseconds since the epoch). Whatever the run leaves out, the backend chooses.
    * @returns {Promise<{ backend: string, text: string, usd: number|null }>} The answer, who gave it, and its cost
-   * @throws {Refusal} 422 for a request with nothing to ask, 503 when no backend is available
+   * @throws {Refusal} 422 for a request with nothing to ask or a value no backend takes, 503 when no backend is
+   *   available
    */
   async complete(request) {
-    const { system, prompt } = request && typeof request === 'object' ? request : {};
+    const { system, prompt, model, effort, deadline } =
+      request && typeof request === 'object' ? request : {};
     if (
       typeof system !== 'string' ||
       !system.trim() ||
@@ -45,6 +56,15 @@ export class Inference {
       !prompt.trim()
     ) {
       throw new Refusal(422, 'A run needs a system prompt and a prompt.');
+    }
+    if (model !== undefined && !MODELS.includes(model)) {
+      throw new Refusal(422, `A run's model is one of ${MODELS.join(', ')}; not ${model}.`);
+    }
+    if (effort !== undefined && !EFFORTS.includes(effort)) {
+      throw new Refusal(422, `A run's effort is one of ${EFFORTS.join(', ')}; not ${effort}.`);
+    }
+    if (deadline !== undefined && !Number.isFinite(deadline)) {
+      throw new Refusal(422, "A run's deadline is a time, in milliseconds since the epoch.");
     }
     const { backend, unavailable } = await this.status();
     if (!backend) {
@@ -55,7 +75,10 @@ export class Inference {
       .find((candidate) => candidate.name === backend)
       .complete({
         system,
-        prompt
+        prompt,
+        ...(model !== undefined && { model }),
+        ...(effort !== undefined && { effort }),
+        ...(deadline !== undefined && { deadline })
       });
     return { backend, ...answer };
   }
