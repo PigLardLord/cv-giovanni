@@ -82,7 +82,10 @@ checks, not by this paragraph.
 A job prints in one layout and is gated by the audits — `audit:ats`'s floors, `audit:print`, two pages for
 the CV and one for the letter — and a print the copy can fix goes back to the model up to `auditRetries`
 times; `auditGate` decides what a last failure means, and an audit that did not run is never a pass
-(#303). Out of scope, and to stay so until someone decides otherwise: hosting the API anywhere but this
+(#303); a build that printed nothing fails the job whatever the gate. A ready job's documents download
+under the name the public CV's download has — the candidate, the role, the document — so a recruiter
+never saves two shapes (#320). One server on a checkout runs the queue, and a second leaves its jobs alone
+(#282). Out of scope, and to stay so until someone decides otherwise: hosting the API anywhere but this
 machine, editing the full CV through it, deleting jobs, and sending anything anywhere — a tailored CV
 leaves the machine only as a PDF its owner attaches.
 
