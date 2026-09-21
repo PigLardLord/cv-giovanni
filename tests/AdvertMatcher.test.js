@@ -185,3 +185,27 @@ describe('the language of the advert', () => {
     expect(extract().language.language).toBe('en');
   });
 });
+
+// A German advert's words were read with an ASCII pattern, and broke at every umlaut and ß: "frühestmöglichen" came
+// out as "fr", "hestm" and "glichen", "Hauptstraße" as "Hauptstra" (#305). They are read whole.
+describe('a German advert', () => {
+  const advert = [
+    'Senior iOS Entwickler (m/w/d)',
+    '',
+    'Anforderungen:',
+    '- Erfahrung mit SwiftUI und Barrierefreiheit',
+    '- Testautomatisierung und Qualitätssicherung',
+    '',
+    'Bitte nennen Sie Ihren frühestmöglichen Eintrittstermin. Hauptstraße 1, 10115 Berlin.'
+  ].join('\n');
+
+  test('is read in whole words, umlauts and ß included, and yields no fragment of one', () => {
+    const terms = AdvertMatcher.extractTerms(advert, 60).terms.map(({ term }) => term);
+    const words = terms.flatMap((term) => term.split(' '));
+
+    expect(words).toEqual(expect.arrayContaining(['Qualitätssicherung', 'Barrierefreiheit']));
+    for (const fragment of ['fr', 'hestm', 'glichen', 'Hauptstra', 'Qualit', 'tssicherung']) {
+      expect(words).not.toContain(fragment);
+    }
+  });
+});
