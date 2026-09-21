@@ -552,9 +552,10 @@ describe('a rewording into the advert’s plain words', () => {
   test.each([
     ['relevant_experience[0].summary', 'Owned the iOS client in a team of 2 engineers.'],
     ['relevant_experience[0].highlights[1]', 'Cut test performance from 37.7 to 5.2 minutes.'],
+    ['relevant_experience[0].highlights[1]', 'Improved test speed: from 37.7 to 5.2 minutes.'],
     [
       'relevant_experience[0].highlights[2]',
-      'Shipped App Store releases every two weeks through the year, for stability.'
+      'Shipped App Store releases every two weeks through the year.'
     ]
   ])('%s as "%s" holds', (path, text) => {
     expect(reword(path, text)).toEqual([]);
@@ -566,6 +567,13 @@ describe('a rewording into the advert’s plain words', () => {
       'relevant_experience[0].highlights[2]',
       'Shipped reliable App Store releases every two weeks.',
       'reliable'
+    ],
+    // What a claim measures, beside no figure, is the claim (the review of #315).
+    ['relevant_experience[0].highlights[1]', 'Improved app performance.', 'performance'],
+    [
+      'relevant_experience[0].highlights[2]',
+      'Shipped App Store releases every two weeks, for stability.',
+      'stability'
     ]
   ])('%s as "%s" claims what the source does not', (path, text, word) => {
     expect(reasonsAt(reword(path, text), path)).toEqual([

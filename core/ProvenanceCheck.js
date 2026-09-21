@@ -286,6 +286,7 @@ export class ProvenanceCheck {
           .some((word) => said.has(word))
       )
         continue;
+      if (AdvertLexicon.isDimension(term) && measured(term, text)) continue;
       if (AdvertMatcher.appears(term, text) && !AdvertMatcher.appears(term, against)) {
         reasons.push(`says "${term}", which its source does not`);
       }
@@ -336,7 +337,7 @@ export class ProvenanceCheck {
               word.length >= 3 &&
               /\p{L}/u.test(word) &&
               !AdvertLexicon.isStopword(word) &&
-              !AdvertLexicon.isDimension(word)
+              !AdvertLexicon.isPlainWord(word)
           )
           // Found as written, or as the table spells it: "engineers" where the source writes "developers" (#296).
           .filter(
@@ -388,6 +389,17 @@ function words(text) {
       opens: before === '' || /[.!?•\n]$/.test(before)
     };
   });
+}
+
+/**
+ * Whether a text names a dimension in a clause that states a figure: "test performance from 37.7 to 5.2 minutes" says
+ * what the figure measures, and the figure is held to the source; "improved app performance" is a claim of its own
+ * (#296, the review of #315). A full stop before a digit is a decimal point, and a colon introduces the measure.
+ */
+function measured(dimension, text) {
+  return text
+    .split(/[,;!?]|\.(?!\d)/)
+    .some((clause) => AdvertMatcher.appears(dimension, clause) && figuresOf(clause).length > 0);
 }
 
 /** What a name may be found in its source as: itself, without a possessive, or its capitalised parts. */

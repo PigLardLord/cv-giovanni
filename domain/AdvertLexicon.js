@@ -131,9 +131,9 @@ export const ADVERT = {
       'solid',
       'hands-on',
       'closely',
-      'across',
       // Function words, and the plain verbs and nouns of every advert's prose: a tailoring rewords into them, and they
-      // name no technology and no claim (#296).
+      // name no technology and no claim (#296). One that begins or ends a technology's name — "New Relic", "time
+      // series", "use cases" — is a plain word instead, below: a stopword takes the whole phrase out of the ranking.
       'through',
       'onto',
       'within',
@@ -141,7 +141,6 @@ export const ADVERT = {
       'then',
       'there',
       'here',
-      'after',
       'before',
       'under',
       'between',
@@ -150,19 +149,13 @@ export const ADVERT = {
       'per',
       'like',
       'able',
-      'make',
       'made',
       'take',
-      'get',
-      'keep',
-      'set',
-      'use',
       'used',
       'usage',
       'part',
       'both',
       'each',
-      'new',
       'well',
       'plus',
       'day',
@@ -171,18 +164,14 @@ export const ADVERT = {
       'weeks',
       'month',
       'months',
-      'time',
       'must',
       'need',
       'needs',
       'ideal',
-      'knowledge',
       'understanding',
       'familiarity',
-      'exposure',
       'improve',
       'deliver',
-      'drive',
       'ship',
       'collaborate',
       'integrate',
@@ -561,19 +550,46 @@ export const ADVERT = {
   ],
 
   /**
-   * Nouns that name what a claim measures, never the claim: a tailoring may write "test performance" where its source
-   * measures the test runtime, and the figures are still its source's (#296). Still ranked as the advert's terms; only
-   * the provenance check lets them pass. An adjective that claims the quality — "scalable", "reliable" — is not one.
+   * Plain words the provenance check lets a tailoring write although the full CV does not, and the matcher still ranks:
+   * each is a word of some technology's name — "New Relic", "Google Drive", "time series", "set up" — which a stopword
+   * would take out of the ranking whole (the review of #315). Only the English check reads them; the other languages
+   * carry theirs for the shape.
+   */
+  plainWords: {
+    en: [
+      'new',
+      'time',
+      'set',
+      'use',
+      'get',
+      'make',
+      'keep',
+      'drive',
+      'after',
+      'knowledge',
+      'exposure'
+    ],
+    de: ['neu', 'neue', 'neuen', 'zeit', 'kenntnisse', 'nutzen'],
+    it: ['nuovo', 'nuova', 'tempo', 'conoscenza', 'conoscenze', 'usare']
+  },
+
+  /**
+   * Nouns that name what a claim measures: a tailoring may write "test performance" beside the figure its source
+   * measures the test runtime with, and the figure is still held to the source (#296). Beside no figure, "improved app
+   * performance" is a claim, and refused like "scalable" or "reliable" (the review of #315). Still ranked as the
+   * advert's terms.
    */
   dimensions: {
     en: ['performance', 'stability', 'quality', 'speed', 'efficiency'],
-    de: ['performance', 'leistung', 'stabilität', 'qualität', 'geschwindigkeit', 'effizienz']
+    de: ['performance', 'leistung', 'stabilität', 'qualität', 'geschwindigkeit', 'effizienz'],
+    it: ['prestazioni', 'stabilità', 'qualità', 'velocità', 'efficienza']
   }
 };
 
 const set = (group) => new Set(Object.values(group).flat().map(fold));
 const STOPWORDS = set(ADVERT.stopwords);
 const DIMENSIONS = set(ADVERT.dimensions);
+const PLAIN_WORDS = set(ADVERT.plainWords);
 const BOILERPLATE = Object.values(ADVERT.boilerplate).flat().map(fold);
 const REQUIREMENT = Object.values(ADVERT.requirementHeadings).flat().map(fold);
 const OFFER = Object.values(ADVERT.offerHeadings).flat().map(fold);
@@ -596,7 +612,12 @@ export class AdvertLexicon {
     return STOPWORDS.has(fold(word));
   }
 
-  /** A noun that names what a claim measures, not the claim itself: "performance", "stability". */
+  /** A word of an advert's prose the provenance check lets pass, which the matcher still ranks: "new", "time". */
+  static isPlainWord(word) {
+    return PLAIN_WORDS.has(fold(word));
+  }
+
+  /** A noun that names what a claim measures, beside a figure: "performance", "stability". */
   static isDimension(word) {
     return DIMENSIONS.has(fold(word));
   }
