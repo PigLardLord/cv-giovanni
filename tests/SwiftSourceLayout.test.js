@@ -812,6 +812,19 @@ describe('the parts of a value its closing syntax holds', () => {
     ]);
   });
 
+  // The review of #322: a range followed by a full stop, a bracket or a quote was cut at its dash where its last word
+  // began to be held.
+  test.each([
+    ['Shipped in 2020–2023.', '.'],
+    ['Shipped (2020–2023)', ')']
+  ])('are a closed range whole where punctuation follows it: %s', (text, after) => {
+    expect(partsOf(tokensOf(role({ highlights: [text] })), text)).toEqual([
+      { text: text.slice(0, text.indexOf('2020')) },
+      { text: '2020–2023', whole: true, held: true },
+      { text: after, held: true }
+    ]);
+  });
+
   test('are none in a value no syntax closes', () => {
     expect(partsOf(tokensOf(), 'Engineer with eleven years in native mobile.')).toBeUndefined();
   });

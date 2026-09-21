@@ -169,7 +169,8 @@ const withLastWordHeld = (token) => {
       const from = at;
       at += part.text.length;
       if (at <= start) return [part];
-      if (from >= start) return [{ ...part, held: true }];
+      // A whole part is atomic: the held word that starts inside a range holds all of it (the review of #322).
+      if (from >= start || part.whole) return [{ ...part, held: true }];
       return [
         { ...part, text: part.text.slice(0, start - from) },
         { ...part, text: part.text.slice(start - from), held: true }
