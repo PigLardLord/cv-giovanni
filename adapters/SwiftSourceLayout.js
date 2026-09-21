@@ -18,7 +18,8 @@
  *   before the character it escapes. A line break or a tab is `unseen`: kept in the text, so a
  *   copy does not weld the words around it, and out of sight, where its `\n` is drawn (#160).
  *   A period is `whole`: the editor never wraps inside either of its ends, and parts them after
- *   the dash only where no row holds the period with its quotes and its comma (#180, #219).
+ *   the dash only where no row holds the period with its quotes and its comma (#180, #219). A
+ *   closed range inside a value, "2021–2026", is a `whole` part of it (#237).
  * - `{ code, closes }` is syntax that closes the literal before it — its quote, and the comma,
  *   parenthesis or bracket after that — which the editor never parts from the literal's last word
  *   (#219).
@@ -40,7 +41,7 @@
 import { readableAddress } from '../domain/ReadableUrl.js';
 import { tenureText } from '../domain/Tenure.js';
 import { scopeText } from '../domain/EntryLines.js';
-import { SEPARATOR_GLYPHS, periodEnds } from '../domain/Separators.js';
+import { SEPARATOR_GLYPHS, WORD_CHARACTER, periodEnds } from '../domain/Separators.js';
 
 /**
  * Who the candidate is comes first, then the evidence — experience before skills — and last how
@@ -121,6 +122,32 @@ const withEnds = (token) => {
   return { ...token, parts: texts.map((text) => ({ text, whole: true })) };
 };
 
+/** A closed range inside a value — "2021–2026", "2020–2023" — joined by an en dash. */
+const RANGE = new RegExp(`(${WORD_CHARACTER}+(?:–${WORD_CHARACTER}+)+)`, 'u');
+
+/**
+ * A literal with each closed range in it a part of its own, whole: the editor's rows break anywhere, and a range broken
+ * at its dash left "2021–" ending a row, the stranded separator #180 forbids (#237). The page holds a range whole the
+ * same way (#230). A period is held by its ends instead, and is left as it is.
+ * @param {object} token - A literal
+ * @returns {object} The literal, its ranges as whole parts
+ */
+const withRanges = (token) => {
+  if (token.whole) return token;
+  const parts = token.parts ?? [{ text: token.text }];
+  if (!parts.some((part) => 'text' in part && !part.unseen && RANGE.test(part.text))) return token;
+  return {
+    ...token,
+    parts: parts.flatMap((part) => {
+      if (!('text' in part) || part.unseen) return [part];
+      return part.text
+        .split(RANGE)
+        .map((text, index) => (index % 2 ? { ...part, text, whole: true } : { ...part, text }))
+        .filter(({ text }) => text);
+    })
+  };
+};
+
 /**
  * A literal with the parts its closing syntax holds marked `held`, split where they begin, with every escape among
  * them. The value is read whole, before its escapes part it: a highlight ending in a quote of its own ends in three
@@ -164,7 +191,7 @@ const markClosing = (tokens) => {
   const marked = tokens.map((token) => {
     if (!('code' in token)) {
       closable = LITERALS.includes(token.kind);
-      return closable ? withEnds(token) : token;
+      return closable ? withEnds(withRanges(token)) : token;
     }
     closable = closable && CLOSING_MARKS.includes(token.code[0]);
     return closable ? { ...token, closes: true } : token;
