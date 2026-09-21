@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process';
+import { basename } from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { GenerationTarget } from '../../core/GenerationTarget.js';
 import { builtCv } from './printed-cv.mjs';
@@ -42,7 +43,9 @@ export async function publishedTargets(projectRoot) {
  */
 export function eachPublished(script, targets, argv, run = spawnSync) {
   if (!targets.length) {
-    console.error(`${script}: config/cv-manifest.json publishes no CV, so nothing was checked.`);
+    console.error(
+      `${basename(script, '.mjs')}: config/cv-manifest.json publishes no CV, so nothing was checked.`
+    );
     return 2;
   }
   return targets.reduce((worst, target) => {
@@ -90,3 +93,60 @@ export function unlistedProfile(argv, targets) {
     'applications/ to build it for yourself.'
   );
 }
+
+/**
+ * What a run is about: one CV to read, or an exit code to end on (#248).
+ *
+ * Every script opened with the same few lines, and the copies had already drifted — two refused a profile the
+ * manifest does not list and two did not. So the decision is made once:
+ *
+ * - `--profile` under `profiles/` names a published CV, and one the manifest does not list is refused, since the
+ *   page loads no such profile; a tailored profile never reads the manifest, so a mistake there cannot stop it.
+ * - No `--profile` is a run over every published CV, each re-run naming itself. `--out` without `--profile` is
+ *   refused: it names where one CV is printed, and the download list would still be written over generated/.
+ * - A manifest that cannot be read ends the run with a sentence and exit 2, not a stack trace: nothing was checked.
+ * @param {string} name - The script's name, for what it says
+ * @param {string} script - The script's own path, to re-run it
+ * @param {string[]} argv - The run's arguments
+ * @param {object} options - How to read the manifest, and optionally how to run a script, how to speak, and a
+ *   wrapper `around(runAll, published)` for work before and after the whole run
+ * @returns {Promise<{ target: GenerationTarget } | { exit: number }>} The CV to read, or how the run ends
+ */
+export async function resolveRun(name, script, argv, options) {
+  const { readManifest, run = spawnSync, around, say = console.error } = options;
+  const refuse = (sentence) => {
+    say(`${name}: ${sentence}`);
+    return { exit: 2 };
+  };
+  const published = async () => {
+    try {
+      return { targets: GenerationTarget.published(await readManifest()) };
+    } catch (error) {
+      return { error: error.message };
+    }
+  };
+
+  if (namesProfile(argv)) {
+    const target = GenerationTarget.fromArguments(argv);
+    if (!target.dataPath.startsWith('profiles/')) return { target };
+    const { targets, error } = await published();
+    if (error) return refuse(error);
+    const unlisted = unlistedProfile(argv, targets);
+    return unlisted ? refuse(unlisted) : { target };
+  }
+
+  if (argv.some((argument) => argument === '--out' || argument.startsWith('--out='))) {
+    return refuse(
+      '--out says where one CV is printed; name that CV with --profile. A run over every published CV prints ' +
+        'into generated/, which is what the page reads.'
+    );
+  }
+  const { targets, error } = await published();
+  if (error) return refuse(error);
+  const runAll = () => eachPublished(script, targets, argv, run);
+  return { exit: around ? await around(runAll, targets) : runAll() };
+}
+
+/** Read `config/cv-manifest.json` under a project root. */
+export const manifestReader = (projectRoot) => async () =>
+  JSON.parse(await readFile(new URL('config/cv-manifest.json', projectRoot), 'utf8'));

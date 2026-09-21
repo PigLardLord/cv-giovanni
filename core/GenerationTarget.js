@@ -99,7 +99,9 @@ export class GenerationTarget {
         })
     );
 
-    const dataPath = options.get('profile') || DEFAULT_DATA_PATH;
+    // "./profiles/general/de.json" is the same file as "profiles/general/de.json", and read as a different one it
+    // walked past every rule that asks whether a path is under profiles/ (the review of #248).
+    const dataPath = (options.get('profile') || DEFAULT_DATA_PATH).replace(/^(\.\/)+/, '');
     const match = /^(.*\/)?([^/]+)\/([^/]+)\.json$/.exec(dataPath);
     if (!match) {
       throw new Error(

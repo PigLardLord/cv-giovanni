@@ -4,9 +4,8 @@ package-lock.json
 
 # Written by the scripts, not by hand. Formatting them would fight the generator on every run.
 generated/
-docs/ATS_AUDIT.md
-docs/PRINT_AUDIT.md
-docs/SCREEN_AUDIT.md
+# Every audit report, the public CV's and each other published CV's, named for its profile and locale (#248).
+docs/*_AUDIT*.md
 
 # Installed and updated by the harness tooling, which owns their layout.
 .agents/harness/
