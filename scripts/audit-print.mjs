@@ -627,6 +627,12 @@ const letterFailures = letterRows.filter(failed);
 const tight = rows
   .filter((row) => roomReport(row.room).lastPageTight)
   .map((row) => `${row.layout} (${row.room[row.room.length - 1].points.toFixed(1)}pt)`);
+// The score is `passed/Object.keys(checks).length`, so it cannot miscount; the prose describing the checks can,
+// and did — 25 described under a 26/26 score (#252). So each description ends on the list the score counts,
+// derived the same way, and a check added without a sentence still appears here by name.
+const scoredChecks = (rowsOf) =>
+  rowsOf.length ? `The checks the score counts: ${Object.keys(rowsOf[0].checks).join(', ')}.` : '';
+
 const report = [
   '# Print quality matrix',
   '',
@@ -665,6 +671,8 @@ const report = [
   `more than ${BULLET_LINES} printed lines and the summary over no more than ${SUMMARY_LINES}, and every role whole on one page, so no`,
   'page opens on a bullet whose role heading stands on the page before, and every line of the masthead on the',
   "page's left edge, none of them opening or closing on a separator.",
+  '',
+  scoredChecks(rows),
   // Only a profile that carries a letter has one to report, so the published report reads as it always has.
   ...(letterRows.length
     ? [
@@ -688,7 +696,9 @@ const report = [
         "inside a DL window envelope's window 20–110mm across (DIN 5008 form B), every word at 4.5:1",
         `on paper, every margin no narrower than ${MARGIN_FLOOR_MM}mm (form B is asymmetric by design, so the sides`,
         'are not compared), no pictograph in the text layer, every run of text set in a typeface its layout',
-        'prints in, no Type 3 font, no glyph mapped to a Private Use code point, and no image.'
+        'prints in, no Type 3 font, no glyph mapped to a Private Use code point, and no image.',
+        '',
+        scoredChecks(letterRows)
       ]
     : [])
 ].join('\n');
