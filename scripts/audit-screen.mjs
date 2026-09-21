@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -21,7 +22,7 @@ import { downloadReach } from './lib/download-reach.mjs';
 import { currentLayoutMarked, forcedBoundaries } from './lib/forced-colours.mjs';
 import { decodePng } from './lib/png.mjs';
 import { ringOnPixels, ringsReport } from './lib/ring-pixels.mjs';
-import { GenerationTarget } from '../core/GenerationTarget.js';
+import { manifestReader, resolveRun } from './lib/published-targets.mjs';
 
 /**
  * What a reader copies off the screen, checked in a browser that lays the page out.
@@ -36,7 +37,13 @@ import { GenerationTarget } from '../core/GenerationTarget.js';
  * read from the screen's pixels (#111).
  */
 const projectUrl = new URL('..', import.meta.url);
-const target = GenerationTarget.fromArguments(process.argv.slice(2));
+// One CV, or a run over every CV the manifest publishes, each re-run naming itself (#248).
+const argv = process.argv.slice(2);
+const run = await resolveRun('audit-screen', fileURLToPath(import.meta.url), argv, {
+  readManifest: manifestReader(projectUrl)
+});
+if ('exit' in run) process.exit(run.exit);
+const { target, manifest } = run;
 
 /** Read a file the audit cannot run without. Missing means unchecked, which is exit 2. */
 async function readJson(path) {
@@ -50,7 +57,6 @@ async function readJson(path) {
 }
 const profile = await readJson(target.dataPath);
 const labels = (await readJson(`locales/${target.locale}/cv.json`)).sections;
-const manifest = await readJson('config/cv-manifest.json');
 // The page offers a download only for a file the build wrote, and the build's files are not committed (#149). On a
 // tree nobody built, the Download link is rightly hidden and every check on it would fail a page that is right.
 try {

@@ -120,7 +120,7 @@ jobs:
         if: always()
         run: |
           mkdir -p "$RUNNER_TEMP/audit-reports"
-          find docs -maxdepth 1 -name '*_AUDIT.md' -newer "$RUNNER_TEMP/run-started" -exec cp {} "$RUNNER_TEMP/audit-reports/" \;
+          find docs -maxdepth 1 -name '*_AUDIT*.md' -newer "$RUNNER_TEMP/run-started" -exec cp {} "$RUNNER_TEMP/audit-reports/" \;
           ls "$RUNNER_TEMP/audit-reports"
 
       - name: Keep them
