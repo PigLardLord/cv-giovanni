@@ -407,6 +407,17 @@ section {
   border-left-color: var(--primary-color);
 }
 
+/*
+ * A role and a degree are headings, for a screen reader and the printed PDF's structure tree (#265), and look as they
+ * did: `:where` has no specificity, so every rule for their class still wins over this, and this over the browser's.
+ */
+:where(h4.job-header, h4.edu-degree) {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+}
+
 .job-header {
   margin-bottom: var(--space-sm);
 }
