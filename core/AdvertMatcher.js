@@ -1,11 +1,14 @@
 import { AdvertLexicon } from '../domain/AdvertLexicon.js';
 import { fold } from '../domain/fold.js';
 
-/** Tokens that survive: `CI/CD`, `C++`, `.NET`, `Objective-C`, `Swift 6`. */
-const TOKEN = /\.?[A-Za-z0-9][A-Za-z0-9+#./-]*/g;
+/**
+ * Tokens that survive: `CI/CD`, `C++`, `.NET`, `Objective-C`, `Swift 6` — and a German advert's words whole, umlauts
+ * and ß included, which an ASCII pattern broke at every one (#305).
+ */
+const TOKEN = /\.?[\p{L}\p{N}][\p{L}\p{N}+#./-]*/gu;
 
 /** A term that carries a capital inside it, a digit, or a symbol is probably a technology. */
-const TECHNICAL = /[A-Z].*[A-Z]|[0-9]|[+#/.]/;
+const TECHNICAL = /\p{Lu}.*\p{Lu}|[0-9]|[+#/.]/u;
 
 /**
  * What an advert asks for, and where the CV answers it.
@@ -113,11 +116,14 @@ export class AdvertMatcher {
     return kept;
   }
 
-  /** A phrase worth ranking: not a stopword, not boilerplate, not a bare number. */
+  /**
+   * A phrase worth ranking: not a stopword, not boilerplate, not a bare number. A number is a phrase with no letter in
+   * any script: "Опыт" is a word as much as "Erfahrung" is (the review of #310).
+   */
   static keeps(phrase, words) {
     if (words.some((word) => AdvertLexicon.isStopword(word))) return false;
     if (AdvertLexicon.isBoilerplate(phrase)) return false;
-    if (/^[\d\W]+$/.test(phrase)) return false;
+    if (/^\P{L}+$/u.test(phrase)) return false;
     return phrase.length >= 2 && phrase.length <= 60;
   }
 

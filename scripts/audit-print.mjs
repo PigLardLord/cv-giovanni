@@ -25,6 +25,7 @@ import { PRINTED_PAGE, bboxPages, printedRoom, roomReport } from './lib/page-roo
 import { MEASURE_LIMIT, longProseLines, overflowingPeriods, proseOf } from './lib/line-length.mjs';
 import {
   proseSpans,
+  runtSpans,
   raggedMasthead,
   straddlingRoles,
   strandedSeparators
@@ -411,9 +412,10 @@ try {
     ];
     const sections = { read: outOfOrder(text, anchors), drawn: outOfOrder(drawn, anchors) };
     // What each bullet, and the summary, cost on the paper, and whether a role's own evidence left its header's page.
-    const bullets = proseSpans(text, everyBullet, { periods }).filter(
-      (span) => !span.found || span.lines > BULLET_LINES
-    );
+    const spans = proseSpans(text, everyBullet, { periods });
+    const bullets = spans.filter((span) => !span.found || span.lines > BULLET_LINES);
+    // And whether one ends on a line of a single word (#295).
+    const runts = runtSpans(spans);
     const summary = proseSpans(text, [profile.profile], { periods })[0];
     const straddling = straddlingRoles(text, roleProse, { periods });
     // And whether the masthead's lines share one left edge, which a hidden label's leftover space broke.
@@ -509,6 +511,8 @@ try {
       datesInColumn: overflow.length === 0,
       // A bullet a recruiter reads in one glance: at most two printed lines, whatever the layout (#230).
       bulletsScan: bullets.length === 0,
+      // And no bullet ends on a line of one word (#295).
+      bulletsEndWhole: runts.length === 0,
       // The summary is the first prose on the page and the last thing a skimmer gives time to: three lines.
       summaryScans: summary.found && summary.lines <= SUMMARY_LINES,
       // The page break falls between two roles. Page 2 opened on three bullets with no employer above them, which
@@ -543,6 +547,7 @@ try {
       long,
       overflow,
       bullets,
+      runts,
       summary,
       straddling,
       ragged,
@@ -706,7 +711,7 @@ const report = [
   'poppler reconstructs the page and as the PDF draws it, no image, no line of prose past',
   `${MEASURE_LIMIT} characters (WCAG 1.4.8; lists of skills, interests and contacts are scanned, not read along a`,
   "measure, and are exempt), in Nerd Mode every line of a role's dates inside its column, every bullet set over no",
-  `more than ${BULLET_LINES} printed lines and the summary over no more than ${SUMMARY_LINES}, and every role whole on one page, so no`,
+  `more than ${BULLET_LINES} printed lines and none ending on a line of one word, the summary over no more than ${SUMMARY_LINES}, and every role whole on one page, so no`,
   'page opens on a bullet whose role heading stands on the page before, and every line of the masthead on the',
   "page's left edge, none of them opening or closing on a separator.",
   '',
@@ -752,7 +757,8 @@ if (stale.length) {
   console.error('');
   console.error(
     'audit-print: the ATS fixtures are not this print. Extract them again from this build — `pdftotext` and ' +
-      '`pdftotext -raw` of each layout into tests/fixtures/ats/ — and check what the tests they feed now say.'
+      '`pdftotext -raw` of each layout into tests/fixtures/ats/ — and check what the tests they feed now say. On ' +
+      "CI, the run's audit-reports artefact holds the PDFs it printed, under printed/."
   );
   for (const { fixture, line, printed, fixed } of stale) {
     console.error(
@@ -783,6 +789,7 @@ if (failures.length || letterFailures.length) {
             long,
             overflow,
             bullets,
+            runts,
             summary,
             straddling,
             ragged,
@@ -803,6 +810,7 @@ if (failures.length || letterFailures.length) {
             long,
             overflow,
             bullets,
+            runts,
             summary,
             straddling,
             ragged,
