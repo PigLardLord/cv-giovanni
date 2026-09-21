@@ -77,7 +77,7 @@ is a defect in the review.
   every automated step.
 - **Check geometry and length**: `pdfinfo <file>`.
 - **In this repository**, `npm run verify:pdf` prints the CV from the page in each layout, then
-  `npm run audit:print` scores those PDFs on seventeen checks, rewriting `docs/PRINT_AUDIT.md`, and
+  `npm run audit:print` scores those PDFs on every check `docs/PRINT_AUDIT.md` lists, rewriting it, and
   `npm run audit:ats` parses them as a stranger's parser would and reports what structure it could
   rebuild — which is most of P0, measured. Prefer both over hand-rolled checks, and read
   `scripts/audit-print.mjs` and `scripts/audit-ats.mjs` to see what they already guarantee so you
