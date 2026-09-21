@@ -37,6 +37,7 @@ import {
   marginsClear
 } from './lib/printed-letter.mjs';
 import { manifestReader, resolveRun } from './lib/published-targets.mjs';
+import { FIXTURES, staleFixtures } from './lib/print-fixtures.mjs';
 import { LetterContent } from '../core/LetterContent.js';
 import { CoverLetter } from '../domain/CoverLetter.js';
 import { CvDocument } from '../domain/CvDocument.js';
@@ -349,6 +350,18 @@ if (missing.length) {
 const workspace = await mkdtemp(join(tmpdir(), 'mycv-print-'));
 const rows = [];
 const letterRows = [];
+// The ATS fixtures are extractions of the public CV's print, which tests read as the current one (#234). Each run of the
+// public CV compares them with what it extracts, so a content change that forgets them fails here, naming the fixture.
+const holdsFixtures = target.dataPath === 'profiles/general/en.json';
+const stale = [];
+const readFixture = (name) => {
+  try {
+    return readFileSync(new URL(`${FIXTURES}/${name}`, projectUrl), 'utf8');
+  } catch (error) {
+    if (error.code === 'ENOENT') return null;
+    throw error;
+  }
+};
 
 try {
   for (const { layout, path } of files) {
@@ -367,6 +380,7 @@ try {
       margins,
       faint
     } = await measure(path, typefacesFor(layout), workspace);
+    if (holdsFixtures) stale.push(...staleFixtures({ layout, text, drawn }, readFixture));
     const long = longProseLines(text, prose, { periods });
     const overflow = layout === 'nerd' ? overflowingPeriods(bbox, periods) : [];
     // How close each page runs to its foot, reported and never gated: the page count is the gate (#162). A page with
@@ -658,6 +672,14 @@ const report = [
   `page with less than one ${PRINTED_PAGE.bodyLine.toFixed(1)}pt line of running text free is marked ⚠: the next line`,
   'added to it has nowhere to go. It is a warning, never a failure, since the page count is the gate.',
   ...(tight.length ? ['', `⚠ Tight last page: ${tight.join(', ')}.`] : []),
+  ...(holdsFixtures
+    ? [
+        '',
+        stale.length
+          ? `✗ Stale ATS fixtures, extracted from an older print: ${stale.map(({ fixture }) => fixture).join(', ')}.`
+          : `The ATS fixtures in \`${FIXTURES}/\` are this print, as \`pdftotext\` and \`pdftotext -raw\` extract it.`
+      ]
+    : []),
   '',
   'Checks: A4, at most two pages, required ATS text in the case the catalogue wrote it,',
   'reading order, canonical hyphenated compounds, degree beside its school, every skill',
@@ -714,6 +736,19 @@ const failedChecks = (checks) =>
   Object.entries(checks)
     .filter(([, value]) => !value)
     .map(([name]) => name);
+if (stale.length) {
+  console.error('');
+  console.error(
+    'audit-print: the ATS fixtures are not this print. Extract them again from this build — `pdftotext` and ' +
+      '`pdftotext -raw` of each layout into tests/fixtures/ats/ — and check what the tests they feed now say.'
+  );
+  for (const { fixture, line, printed, fixed } of stale) {
+    console.error(
+      `  ${fixture}, line ${line}: printed ${JSON.stringify(printed)}, fixture ${JSON.stringify(fixed)}`
+    );
+  }
+  process.exitCode = 1;
+}
 if (failures.length || letterFailures.length) {
   console.error('');
   console.error(

@@ -15,6 +15,8 @@ Room left is the space between each page's lowest line and its 33pt bottom margi
 page with less than one 15.4pt line of running text free is marked ⚠: the next line
 added to it has nowhere to go. It is a warning, never a failure, since the page count is the gate.
 
+The ATS fixtures in `tests/fixtures/ats/` are this print, as `pdftotext` and `pdftotext -raw` extract it.
+
 Checks: A4, at most two pages, required ATS text in the case the catalogue wrote it,
 reading order, canonical hyphenated compounds, degree beside its school, every skill
 attached to its category, every role present, every word at 4.5:1 on paper, margins
