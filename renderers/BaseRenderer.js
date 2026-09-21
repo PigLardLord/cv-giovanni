@@ -85,7 +85,10 @@ export class BaseRenderer extends Renderer {
     parts.forEach((part, index) => {
       if (!part) return;
       if (index % 2 === 1) {
-        const held = this.createElement(root, 'span', 'no-break');
+        // A run joined only by hyphens is a compound, which a German screen may break at its hyphens when it is
+        // wider than the column (#249); a run with a dash in it is a range, and stays whole everywhere.
+        const kind = part.includes('–') ? 'no-break' : 'no-break compound';
+        const held = this.createElement(root, 'span', kind);
         held.textContent = part;
         element.appendChild(held);
         return;

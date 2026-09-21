@@ -579,6 +579,23 @@ section {
   white-space: nowrap;
 }
 
+/* German writes compounds wider than a phone's column: "Augmented-Reality-Anwendungen" ran 74.6px past it at
+   320px, and "Vertriebsautomatisierung", with no hyphen to break at, 8.2px (#249). The reason for holding a
+   compound is the printed text layer, where a break at the hyphen welds it; on a screen a break there costs
+   nothing, because what a reader copies is the text, not the lines. So on a German screen a compound may break at
+   its hyphens, and a word too long for any line is hyphenated where German allows. A closed range stays whole —
+   it is held, not a compound — and paper keeps every compound whole: this is screen only. */
+@media screen {
+  body:lang(de) .no-break.compound {
+    white-space: normal;
+  }
+
+  body:lang(de) {
+    hyphens: auto;
+    overflow-wrap: break-word;
+  }
+}
+
 /* A degree's period is one unit, as a role's ends are (#180). Broken at its dash, Impact Spotlight's 1280px read
    "Università degli Studi di Pisa (2014" / "– 2016)", two dates and a fragment. The period is already an element of
    its own, and "(2014 – 2016)" measures 81px against the narrowest column's 206px, at 320px. */

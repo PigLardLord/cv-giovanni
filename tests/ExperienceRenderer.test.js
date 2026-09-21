@@ -79,6 +79,33 @@ describe('ExperienceRenderer', () => {
     ).toEqual(['App-Übersicht', 'Über-Sicht', 'offline-first']);
   });
 
+  // A German compound can be wider than a phone's column: "Augmented-Reality-Anwendungen" ran 74.6px past it at
+  // 320px (#249). On a German screen it may break at its hyphens, where a line break costs nothing, since what a
+  // reader copies off a screen is the text and not the lines. A closed range may not: broken after its dash it
+  // strands the dash, which is the separator #180 forbids. So the renderer says which held run is which.
+  test('marks a hyphenated compound as one, and a closed range as held but not a compound', () => {
+    renderer.render(document, {
+      relevant_experience: [
+        {
+          title: 'Mobile Developer',
+          company: 'Apparound',
+          period: 'September 2015 – July 2018',
+          highlights: ['Augmented-Reality-Anwendungen, 2020–2023, offline-first.']
+        }
+      ]
+    });
+
+    const held = [...document.querySelectorAll('.job-highlights .no-break')].map((span) => [
+      span.textContent,
+      span.classList.contains('compound')
+    ]);
+    expect(held).toEqual([
+      ['Augmented-Reality-Anwendungen', true],
+      ['2020–2023', false],
+      ['offline-first', true]
+    ]);
+  });
+
   // A closed range is one word too: "ezeep Blue for iOS, 2020–" ended a line at Technical Profile's 320px,
   // with "2023" opening the next (#230). The rule against a line ending on a separator is the same rule.
   test('holds a closed range whole, as it holds a hyphenated compound', () => {
