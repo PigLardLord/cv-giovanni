@@ -228,6 +228,25 @@ describe('what a run is about', () => {
     }
   );
 
+  // An audit's own option with no value is refused once, before any CV starts, not once by each (#272).
+  test('is nothing, said once, for an option with no value, and no CV starts', async () => {
+    const said = [];
+    const started = [];
+    const run = await resolveRun('audit-ats', 's.mjs', ['--advert'], {
+      say: (line) => said.push(line),
+      readManifest: reads(manifest),
+      run: (_node, args) => {
+        started.push(args);
+        return { status: 0 };
+      }
+    });
+    expect(run).toEqual({ exit: 2 });
+    expect(said).toEqual([
+      expect.stringMatching(/^audit-ats: --advert needs a value: --advert=<path>/)
+    ]);
+    expect(started).toEqual([]);
+  });
+
   // --out names where one CV goes. Without --profile the combined download list was still written into
   // generated/, over what the page reads, for PDFs printed somewhere else.
   test('is nothing, said, for --out without the CV it would apply to', async () => {

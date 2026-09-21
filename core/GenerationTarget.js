@@ -1,8 +1,8 @@
 const DEFAULT_DATA_PATH = 'profiles/general/en.json';
 const PUBLISHED_OUT_DIR = 'generated';
 
-/** The options a target is made from, each of which names a path and means nothing without one. */
-const VALUED = Object.freeze(['profile', 'out']);
+/** The options that mean nothing without a value, and what the value is (#258, #272). */
+const VALUED = Object.freeze({ profile: '<path>', out: '<path>', advert: '<path>', base: '<ref>' });
 
 /**
  * Which CV is being generated, and where its files go.
@@ -56,11 +56,12 @@ export class GenerationTarget {
    *
    * The second form used to be read as `--profile` with no value, and a profile with no value fell back to the
    * public CV: "--profile profiles/general/de.json" built the English CV and said nothing. So an option this
-   * reads — `--profile`, `--out` — must carry a value one way or the other, and one that does not is refused
-   * rather than defaulted. Anything else is left as it was written, for the script that reads it.
+   * reads — `--profile`, `--out`, and the audits' `--advert` and `--base` — must carry a value one way or the other,
+   * and one that does not is refused rather than defaulted. Anything else is left as it was written, for the script
+   * that reads it.
    * @param {string[]} argv - Arguments after the script name
    * @returns {Map<string, string>} Each option's value
-   * @throws {Error} For `--profile` or `--out` with no value
+   * @throws {Error} For `--profile`, `--out`, `--advert` or `--base` with no value
    */
   static options(argv = []) {
     const options = new Map();
@@ -75,8 +76,9 @@ export class GenerationTarget {
           : next !== undefined && !next.startsWith('--')
             ? next
             : '';
-      if (VALUED.includes(name) && !value) {
-        throw new Error(`--${name} needs a value: --${name}=<path>, or --${name} <path>.`);
+      if (Object.hasOwn(VALUED, name) && !value) {
+        const shape = VALUED[name];
+        throw new Error(`--${name} needs a value: --${name}=${shape}, or --${name} ${shape}.`);
       }
       options.set(name, value);
     });
