@@ -752,7 +752,8 @@ if (stale.length) {
   console.error('');
   console.error(
     'audit-print: the ATS fixtures are not this print. Extract them again from this build — `pdftotext` and ' +
-      '`pdftotext -raw` of each layout into tests/fixtures/ats/ — and check what the tests they feed now say.'
+      '`pdftotext -raw` of each layout into tests/fixtures/ats/ — and check what the tests they feed now say. On ' +
+      "CI, the run's audit-reports artefact holds the PDFs it printed, under printed/."
   );
   for (const { fixture, line, printed, fixed } of stale) {
     console.error(
