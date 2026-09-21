@@ -37,6 +37,14 @@ describe('ProfileResolver', () => {
       'Unknown CV profile: unknown'
     );
     expect(resolver.requestedProfile('?profile=../../secret')).toBeNull();
+    expect(resolver.requestedProfile('?profile=-general')).toBeNull();
+  });
+
+  // A tailoring job's id begins with the date it arrived, and names the profile its CV is printed from (#303).
+  test('takes a name that begins with a digit, as an application and a job may', () => {
+    expect(resolver.requestedProfile('?profile=20260921-143205-a1b2c3')).toBe(
+      '20260921-143205-a1b2c3'
+    );
   });
 });
 

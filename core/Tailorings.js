@@ -3,6 +3,7 @@ import { EFFORTS, MODELS } from './Inference.js';
 import { ProfileShape } from './ProfileShape.js';
 import { ProfileStore } from './ProfileStore.js';
 import { Refusal } from './Refusal.js';
+import { CvFiles } from './CvFiles.js';
 
 /** What a tailoring takes besides its advert, and what each is when the request leaves it out (#260). */
 export const DEFAULTS = Object.freeze({
@@ -192,7 +193,69 @@ export class Tailorings {
     await this.start();
     const state = typeof id === 'string' && APPLICATION_NAME.test(id) ? this.jobs.get(id) : null;
     if (!state) throw new Refusal(404, `No tailoring job ${JSON.stringify(String(id))}.`);
-    return { ...state, secondsLeft: this.secondsLeft(id) };
+    // A ready job says where its documents download from (#303); the files on this machine stay its own business.
+    const printed = state.status === 'ready' ? (state.result?.files ?? {}) : {};
+    const downloads = Object.fromEntries(
+      ['cv', 'letter']
+        .filter((document) => printed[document])
+        .map((document) => [document, `/api/tailorings/${id}/${document}`])
+    );
+    return {
+      ...state,
+      secondsLeft: this.secondsLeft(id),
+      ...(Object.keys(downloads).length && { downloads })
+    };
+  }
+
+  /**
+   * A ready job's CV, as a recruiter receives it (#303).
+   * @param {string} id - A job's id
+   * @returns {Promise<{ file: Buffer, type: string, filename: string }>} The PDF, and the name it is saved as
+   * @throws {Refusal} 404 when no job has that id, or it failed; 409 while it is not ready
+   */
+  cv(id) {
+    return this.download(id, 'cv');
+  }
+
+  /** A ready job's letter, as `cv` gives its CV. */
+  letter(id) {
+    return this.download(id, 'letter');
+  }
+
+  /**
+   * A document a ready job printed. Named for the recruiter who saves it as the public CV is — the candidate, the role
+   * and the document, `Ada-Lovelace-Senior-iOS-Engineer-CV.pdf`, its letter in the job's language,
+   * `…-Anschreiben.pdf` — never for the job, whose id says nothing to them.
+   */
+  async download(id, document) {
+    const state = await this.status(id);
+    if (state.status === 'failed') {
+      throw new Refusal(404, `The job ${id} failed: it delivered no ${document}.`);
+    }
+    if (state.status !== 'ready') {
+      throw new Refusal(
+        409,
+        `The job ${id} is ${state.status}: its ${document} is not printed yet.`
+      );
+    }
+    const path = state.result?.files?.[document];
+    // A file gone from disk since — applications/ cleaned by hand — is a refusal, not the server failing.
+    if (!path || !(await this.files.exists(path)))
+      throw new Refusal(404, `The job ${id} printed no ${document}.`);
+    const { language } = JSON.parse(await this.files.readText(Tailorings.paths(id).request));
+    const profile = JSON.parse(await this.files.readText(`applications/${id}/${language}.json`));
+    // The CV is a CV in every language, as the public one's name says; a letter is named in the job's catalogue:
+    // "Cover Letter", "Anschreiben".
+    let word = 'CV';
+    if (document === 'letter') {
+      const catalogue = JSON.parse(await this.files.readText(`locales/${language}/ui.json`));
+      word = 'files.letter'.split('.').reduce((node, step) => node?.[step], catalogue) || 'letter';
+    }
+    return {
+      file: await this.files.readBytes(path),
+      type: 'application/pdf',
+      filename: new CvFiles().downloadName(profile, word)
+    };
   }
 
   /** Resolves once the queue is empty and nothing runs. */
@@ -390,7 +453,9 @@ export class Tailorings {
             : 'The job failed: the terminal running the server says why.',
         // What failed, item by item, and what the attempts cost, when the work says (#284).
         ...(error instanceof Refusal && error.details && { problems: error.details }),
-        ...(error instanceof Refusal && error.cost && { cost: error.cost })
+        ...(error instanceof Refusal && error.cost && { cost: error.cost }),
+        // What a job that ran to its gate found, though it delivers nothing (#303).
+        ...(error instanceof Refusal && error.result && { result: error.result })
       };
     }
     const finished = this.clock();

@@ -781,6 +781,50 @@ describe('the parts of a value its closing syntax holds', () => {
     expect(partsOf(tokens, '2015')).toEqual([{ text: '2015', whole: true, held: true }]);
   });
 
+  // "…crash reports, 2021–" / "2026" at 320px and 390px (#237): a closed range in a value is a part of its own, whole,
+  // as a period's ends are; the text either side of it breaks as it did.
+  test('are a closed range whole, where one ends the value or sits inside it', () => {
+    const tokens = tokensOf(
+      role({
+        highlights: [
+          'Cortado MDM for iOS: ~30k downloads, 4 App Store Connect crash reports, 2021–2026',
+          'ezeep Blue for iOS, 2020–2023: rewrote it in SwiftUI in a team of 2.'
+        ]
+      })
+    );
+
+    expect(
+      partsOf(
+        tokens,
+        'Cortado MDM for iOS: ~30k downloads, 4 App Store Connect crash reports, 2021–2026'
+      )
+    ).toEqual([
+      { text: 'Cortado MDM for iOS: ~30k downloads, 4 App Store Connect crash reports, ' },
+      { text: '2021–2026', whole: true, held: true }
+    ]);
+    expect(
+      partsOf(tokens, 'ezeep Blue for iOS, 2020–2023: rewrote it in SwiftUI in a team of 2.')
+    ).toEqual([
+      { text: 'ezeep Blue for iOS, ' },
+      { text: '2020–2023', whole: true },
+      { text: ': rewrote it in SwiftUI in a team of ' },
+      { text: '2.', held: true }
+    ]);
+  });
+
+  // The review of #322: a range followed by a full stop, a bracket or a quote was cut at its dash where its last word
+  // began to be held.
+  test.each([
+    ['Shipped in 2020–2023.', '.'],
+    ['Shipped (2020–2023)', ')']
+  ])('are a closed range whole where punctuation follows it: %s', (text, after) => {
+    expect(partsOf(tokensOf(role({ highlights: [text] })), text)).toEqual([
+      { text: text.slice(0, text.indexOf('2020')) },
+      { text: '2020–2023', whole: true, held: true },
+      { text: after, held: true }
+    ]);
+  });
+
   test('are none in a value no syntax closes', () => {
     expect(partsOf(tokensOf(), 'Engineer with eleven years in native mobile.')).toBeUndefined();
   });

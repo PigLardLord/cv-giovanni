@@ -7,13 +7,14 @@ Layouts: 3
 
 | Layout | Pages | Score | Worst side margin | Room left |
 |---|---:|---:|---:|---|
-| nerd | 2 | 26/26 | 13.7mm | p1 45.0pt · p2 198.3pt |
-| spotlight | 2 | 26/26 | 33.5mm | p1 6.0pt · p2 185.5pt |
-| technical | 2 | 26/26 | 33.5mm | p1 9.8pt · p2 188.5pt |
+| nerd | 2 | 27/27 | 13.7mm | p1 60.0pt · p2 198.3pt |
+| spotlight | 2 | 27/27 | 33.5mm | p1 21.0pt · p2 189.3pt |
+| technical | 2 | 27/27 | 33.5mm | p1 25.5pt · p2 188.5pt |
 
-Room left is the space between each page's lowest line and its 33pt bottom margin. A last
-page with less than one 15.4pt line of running text free is marked ⚠: the next line
-added to it has nowhere to go. It is a warning, never a failure, since the page count is the gate.
+Room left is the space between each page's lowest line and its 33pt bottom margin. A page
+with less than one 15.4pt line of running text free is marked ⚠: on the last page the
+next line has nowhere to go; on a page before it, the next line moves the block at its foot — today a role —
+whole to the next page. It is a warning, never a failure, since the page count is the gate.
 
 The ATS fixtures in `tests/fixtures/ats/` are this print, word for word and line for line as `pdftotext` and `pdftotext -raw` extract it, allowing for the spaces poppler infers.
 
@@ -30,8 +31,8 @@ skill categories with the spaces between their words, the sections in reading or
 poppler reconstructs the page and as the PDF draws it, no image, no line of prose past
 80 characters (WCAG 1.4.8; lists of skills, interests and contacts are scanned, not read along a
 measure, and are exempt), in Nerd Mode every line of a role's dates inside its column, every bullet set over no
-more than 2 printed lines and the summary over no more than 3, and every role whole on one page, so no
+more than 2 printed lines and none ending on a line of one word, the summary over no more than 3, and every role whole on one page, so no
 page opens on a bullet whose role heading stands on the page before, and every line of the masthead on the
 page's left edge, none of them opening or closing on a separator.
 
-The checks the score counts: format, pages, content, readingOrder, canonicalCompounds, blockIntegrity, skillsAttached, rolesPresent, contrast, margins, textLayerClean, noEmptyFieldMarks, intendedTypeface, noType3Fonts, noPrivateUseGlyphs, wordsSpacedInDrawingOrder, sectionsInOrder, sectionsInOrderDrawn, noImages, measure, datesInColumn, bulletsScan, summaryScans, rolesWhole, mastheadAligned, mastheadSeparatorsHeld.
+The checks the score counts: format, pages, content, readingOrder, canonicalCompounds, blockIntegrity, skillsAttached, rolesPresent, contrast, margins, textLayerClean, noEmptyFieldMarks, intendedTypeface, noType3Fonts, noPrivateUseGlyphs, wordsSpacedInDrawingOrder, sectionsInOrder, sectionsInOrderDrawn, noImages, measure, datesInColumn, bulletsScan, bulletsEndWhole, summaryScans, rolesWhole, mastheadAligned, mastheadSeparatorsHeld.

@@ -55,6 +55,11 @@ export class NodeProjectFiles {
     return readFile(await this.inside(this.place(path), path), 'utf8');
   }
 
+  /** @returns {Promise<Buffer>} The file's bytes: a PDF a job printed, to download (#303) */
+  async readBytes(path) {
+    return readFile(await this.inside(this.place(path), path));
+  }
+
   /** Writes the file, making the directories it needs inside the project. */
   async writeText(path, text) {
     const file = this.place(path);
