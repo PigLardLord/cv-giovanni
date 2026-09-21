@@ -1,6 +1,8 @@
+import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { readdir, readFile, writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { readFile, writeFile } from 'node:fs/promises';
 import { CvDocument } from '../domain/CvDocument.js';
 import { AtsTextParser } from '../core/AtsTextParser.js';
 import { RecoveryDiff } from '../core/RecoveryDiff.js';
@@ -8,8 +10,9 @@ import { AtsScore } from '../core/AtsScore.js';
 import { AtsReport } from '../core/AtsReport.js';
 import { AtsFloors } from '../core/AtsFloors.js';
 import { AdvertMatcher } from '../core/AdvertMatcher.js';
-import { GenerationTarget } from '../core/GenerationTarget.js';
+import { manifestReader, resolveRun } from './lib/published-targets.mjs';
 import { catalogueTranslator } from './lib/printed-letter.mjs';
+import { auditedFiles } from './lib/printed-cv.mjs';
 
 /**
  * The third audit: what a stranger's parser recovers.
@@ -23,7 +26,13 @@ import { catalogueTranslator } from './lib/printed-letter.mjs';
  * this file only fetches text and reports.
  */
 const projectRoot = new URL('../', import.meta.url);
-const target = GenerationTarget.fromArguments(process.argv.slice(2));
+// One CV, or a run over every CV the manifest publishes, each re-run naming itself (#248).
+const argv = process.argv.slice(2);
+const run = await resolveRun('audit-ats', fileURLToPath(import.meta.url), argv, {
+  readManifest: manifestReader(projectRoot)
+});
+if ('exit' in run) process.exit(run.exit);
+const { target } = run;
 
 /** Stop, having said what was not checked. An audit that did not run must not read as a pass. */
 function cannotCheck(reason, hint) {
@@ -77,29 +86,19 @@ try {
   cannotCheck('pdftotext is not installed', 'Install poppler-utils and run again.');
 }
 
-// The files a recruiter receives, and nothing else: the CV printed from the page in each layout (#149). A
-// directory beside them, such as the qa/ an older build wrote, is not read: it would be audited as if this build
-// had written it.
-const directories = [target.outDir];
-const files = [];
-for (const directory of directories) {
-  const url = new URL(`${directory}/`, projectRoot);
-  const entries = await readdir(url).catch(() => []);
-  files.push(
-    ...entries
-      .filter((name) => name.endsWith('.pdf'))
-      .sort()
-      .map((name) => ({
-        artefact: `${directory}/${name}`,
-        path: new URL(name, url).pathname,
-        // A cover letter is not a CV and must not be parsed as one: it has no headings, no
-        // chronology and no skills, so this audit would report a failed segmentation and trip
-        // two floors on a perfectly good letter. A false failure is worse than no check — it
-        // teaches whoever sees it to ignore the exit code.
-        isCover: /-cover(-|\.)/.test(name)
-      }))
-  );
-}
+// The files a recruiter receives, and nothing else: the CV printed from the page in each layout (#149), and the
+// letter beside each when the profile carries one. Chosen by the target, never by the directory: every published
+// CV prints into generated/, so a run that read the directory graded the German PDFs against the English profile
+// and the English against the German, and the English report fell from 80/80 to 63.2 for a CV nothing had
+// changed (#248). A directory beside them, such as the qa/ an older build wrote, is not read either.
+const onDisk = (path) => existsSync(new URL(path, projectRoot));
+const files = auditedFiles(target, authored, run.manifest.layouts, onDisk).map(
+  ({ path, isCover }) => ({
+    artefact: path,
+    path: new URL(path, projectRoot).pathname,
+    isCover
+  })
+);
 
 if (!files.filter((file) => !file.isCover).length) {
   cannotCheck(

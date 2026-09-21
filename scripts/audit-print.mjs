@@ -36,7 +36,7 @@ import {
   letterAnchors,
   marginsClear
 } from './lib/printed-letter.mjs';
-import { GenerationTarget } from '../core/GenerationTarget.js';
+import { manifestReader, resolveRun } from './lib/published-targets.mjs';
 import { LetterContent } from '../core/LetterContent.js';
 import { CoverLetter } from '../domain/CoverLetter.js';
 import { CvDocument } from '../domain/CvDocument.js';
@@ -60,7 +60,13 @@ import { periodText } from '../domain/Tenure.js';
 const projectUrl = new URL('..', import.meta.url);
 // The expectations come from the CV under test. Auditing a tailored profile against the
 // published one would check strings it never contained and report a clean pass.
-const target = GenerationTarget.fromArguments(process.argv.slice(2));
+// One CV, or a run over every CV the manifest publishes, each re-run naming itself (#248).
+const argv = process.argv.slice(2);
+const run = await resolveRun('audit-print', fileURLToPath(import.meta.url), argv, {
+  readManifest: manifestReader(projectUrl)
+});
+if ('exit' in run) process.exit(run.exit);
+const { target, manifest } = run;
 const profile = await readJson(target.dataPath);
 const catalogue = await readJson(`locales/${target.locale}/cv.json`);
 const labels = catalogue.sections;
@@ -89,7 +95,6 @@ async function readJson(path) {
     process.exit(2);
   }
 }
-const manifest = JSON.parse(await readFile(new URL('config/cv-manifest.json', projectUrl)));
 // A layout with no printed typefaces declared cannot have its text checked: exit 2, as for a file never built.
 try {
   manifest.layouts.forEach((layout) => typefacesFor(layout));

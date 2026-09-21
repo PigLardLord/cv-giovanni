@@ -553,7 +553,7 @@ caught them. An indentation test would have policed one rule; a formatter remove
   single quotes, no trailing commas, 100 columns. `proseWrap` is `preserve`, so Markdown keeps its
   line breaks.
 - **`.prettierignore` says what is not formatted, and why:** vendored code and the lockfile, the
-  files the scripts write (`generated/` and the three audit reports), the harness's own files, the
+  files the scripts write (`generated/` and every audit report in `docs/`), the harness's own files, the
   profiles, and test fixtures whose exact bytes are what the tests check. The profiles are the local
   app's to lay out: `ProfileStore` writes them with `JSON.stringify` at two spaces, which sets one
   entry of a list a line, and Prettier sets a short list on one line — so a formatted profile came

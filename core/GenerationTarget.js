@@ -23,21 +23,57 @@ export class GenerationTarget {
   }
 
   /**
-   * True for the CV that ships. An audit of a tailored profile writes its report beside
-   * that profile instead of over `docs/`: the committed matrix must describe the published
-   * document, not whichever application was audited last.
+   * True for a CV that ships: the public one, or any profile under `profiles/` printed into the directory CI
+   * publishes, which is how `published` builds every one the manifest lists (#248). An audit of a tailored
+   * profile writes its report beside that profile instead of over `docs/`: the committed matrix must describe
+   * the published document, not whichever application was audited last.
    */
   get isPublished() {
-    return this.dataPath === DEFAULT_DATA_PATH;
+    return (
+      this.dataPath === DEFAULT_DATA_PATH ||
+      (this.outDir === PUBLISHED_OUT_DIR && this.dataPath.startsWith('profiles/'))
+    );
   }
 
   /**
-   * Where an audit's markdown belongs.
+   * Where an audit's markdown belongs. The public CV keeps the names its reports always had; every other
+   * published CV names its own after itself, so two of them never write over each other's (#248).
    * @param {string} name - Report filename, e.g. `PRINT_AUDIT.md`
    * @returns {string} Path relative to the project root
    */
   reportPath(name) {
-    return this.isPublished ? `docs/${name}` : `${this.outDir}/${name}`;
+    if (!this.isPublished) return `${this.outDir}/${name}`;
+    if (this.dataPath === DEFAULT_DATA_PATH) return `docs/${name}`;
+    const dot = name.lastIndexOf('.');
+    return `docs/${name.slice(0, dot)}.${this.profile}-${this.locale}${name.slice(dot)}`;
+  }
+
+  /**
+   * Every CV the manifest publishes, each printed into the directory CI publishes (#248).
+   *
+   * Published because the manifest lists it, not because its path matches one written into the code: a
+   * second locale listed there was built by nobody and audited by nobody, and its page hid the download. The
+   * manifest names each profile and locale twice — as its keys and in the path — and a manifest whose two
+   * disagree is refused, since the filename would carry the path's and the page would ask for the keys'.
+   * @param {{ profiles?: Record<string, { locales?: Record<string, string> }> }} manifest - `config/cv-manifest.json`
+   * @returns {GenerationTarget[]} One target per published profile and locale, in the manifest's order
+   */
+  static published(manifest) {
+    return Object.entries(manifest?.profiles ?? {}).flatMap(([profile, { locales } = {}]) =>
+      Object.entries(locales ?? {}).map(([locale, dataPath]) => {
+        const target = GenerationTarget.fromArguments([
+          `--profile=${dataPath}`,
+          `--out=${PUBLISHED_OUT_DIR}`
+        ]);
+        if (target.profile !== profile || target.locale !== locale) {
+          throw new Error(
+            `config/cv-manifest.json lists ${dataPath} as ${profile} in ${locale}, and the path says ` +
+              `${target.profile} in ${target.locale}: the two must agree.`
+          );
+        }
+        return target;
+      })
+    );
   }
 
   /**
@@ -63,7 +99,9 @@ export class GenerationTarget {
         })
     );
 
-    const dataPath = options.get('profile') || DEFAULT_DATA_PATH;
+    // "./profiles/general/de.json" is the same file as "profiles/general/de.json", and read as a different one it
+    // walked past every rule that asks whether a path is under profiles/ (the review of #248).
+    const dataPath = (options.get('profile') || DEFAULT_DATA_PATH).replace(/^(\.\/)+/, '');
     const match = /^(.*\/)?([^/]+)\/([^/]+)\.json$/.exec(dataPath);
     if (!match) {
       throw new Error(
