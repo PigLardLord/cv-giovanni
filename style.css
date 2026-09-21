@@ -579,6 +579,53 @@ section {
   white-space: nowrap;
 }
 
+/* German writes compounds wider than a phone's column: "Augmented-Reality-Anwendungen" ran 74.6px past it at
+   320px, and "Vertriebsautomatisierung", with no hyphen to break at, 8.2px (#249). The reason for holding a
+   compound is the printed text layer, where a break at the hyphen welds it; on a screen a break there costs
+   nothing, because what a reader copies is the text, not the lines. Paper keeps every compound whole: all of this
+   is screen only, and a closed range is held but is not a compound, so it stays whole everywhere.
+
+   Each rule is as narrow as it can be:
+   - a compound may break at its hyphens;
+   - a word wider than its whole line may break anywhere, as the floor. `break-word`, unlike `anywhere`, does not
+     enter min-content sizing, so no flex or grid layout reflows because of it;
+   - a long word is hyphenated where German allows, and only a long one. `hyphens: auto` on its own breaks
+     wherever a line's fill improves: over the whole body it cut the employer ("Ap-paround"), titles, certification
+     and school names and the layout switcher at every width, and Swift identifiers in Nerd Mode's editor
+     ("Certifica-tion"); over running prose alone it still cut the product names prose carries — "An-droid",
+     "Work-place", "NF-CReader". Every name here is shorter than 16 letters and every word that overflowed is
+     longer, so the limit is the line between them. The editor is left out altogether. A browser that cannot be
+     told the limit hyphenates nothing and keeps the floor. No audit sees an automatic hyphen — it is not in the
+     page's text — so the scope and the limit are the guard. */
+@media screen {
+  body:lang(de) .no-break.compound {
+    white-space: normal;
+  }
+
+  body:lang(de) {
+    overflow-wrap: break-word;
+  }
+
+  @supports (hyphenate-limit-chars: 16 6 6) {
+    body:lang(de)
+      :is(
+        .hero-summary,
+        .hero-availability,
+        .job-title,
+        .job-summary,
+        .job-description,
+        .job-highlights li,
+        #career-highlights li,
+        .cert-description,
+        .letter-paragraph,
+        .no-break.compound
+      ) {
+      hyphens: auto;
+      hyphenate-limit-chars: 16 6 6;
+    }
+  }
+}
+
 /* A degree's period is one unit, as a role's ends are (#180). Broken at its dash, Impact Spotlight's 1280px read
    "Università degli Studi di Pisa (2014" / "– 2016)", two dates and a fragment. The period is already an element of
    its own, and "(2014 – 2016)" measures 81px against the narrowest column's 206px, at 320px. */
