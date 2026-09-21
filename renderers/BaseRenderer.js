@@ -1,5 +1,9 @@
 import { Renderer } from '../interfaces/Renderer.js';
 import { createSeparatorElement, holdSeparators } from './inlineSeparator.js';
+import { WORD_CHARACTER } from '../domain/Separators.js';
+
+/** A hyphenated compound or a closed range, in any script: held whole so no line breaks at its hyphen (#251). */
+const HELD_COMPOUND = new RegExp(`(${WORD_CHARACTER}+(?:[-–]${WORD_CHARACTER}+)+)`, 'u');
 
 /**
  * Base renderer with common DOM manipulation utilities
@@ -77,7 +81,7 @@ export class BaseRenderer extends Renderer {
     element.textContent = '';
     // A closed range is held the same way, and for the neighbouring reason: broken at its en dash it leaves
     // "2020–" ending a line, which is the stranded separator #180 forbids (#230).
-    const parts = String(text ?? '').split(/([A-Za-z0-9]+(?:[-–][A-Za-z0-9]+)+)/g);
+    const parts = String(text ?? '').split(HELD_COMPOUND);
     parts.forEach((part, index) => {
       if (!part) return;
       if (index % 2 === 1) {

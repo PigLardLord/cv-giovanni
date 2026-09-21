@@ -7,7 +7,9 @@ import { fileURLToPath } from 'node:url';
 import { writeReport } from './lib/write-report.mjs';
 import { fallbackRuns, typefacesFor } from './lib/printed-typefaces.mjs';
 import {
+  brokenCompound,
   gluedPhrases,
+  hyphenatedCompounds,
   privateUseDestinations,
   toUnicodeCmaps,
   toUnicodeFonts,
@@ -108,7 +110,6 @@ const SUMMARY_LINES = 3;
 const MARGIN_FLOOR_MM = 10;
 const SIDE_TOLERANCE_MM = 1.5;
 
-const escapeForRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const strings = (node) =>
   typeof node === 'string'
     ? [node]
@@ -136,11 +137,9 @@ const mustHave = [
 // Every hyphenated compound the data writes. A line broken at an existing hyphen
 // extracts without it, so "offline-first" arrives welded shut as "offlinefirst":
 // right on the page, unfindable by anyone searching the canonical spelling.
-const brokenForms = [
-  ...new Set(strings(profile).flatMap((text) => text.match(/[A-Za-z0-9]+-[A-Za-z0-9]+/g) || []))
-].map((compound) => ({
+const brokenForms = hyphenatedCompounds(strings(profile)).map((compound) => ({
   compound,
-  broken: new RegExp(`\\b${escapeForRegExp(compound.replace(/-/g, ''))}\\b`)
+  broken: brokenCompound(compound)
 }));
 
 // Every entry the page prints, with each part the profile leaves out, where a separator left in front of that part would
