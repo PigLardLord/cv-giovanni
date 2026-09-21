@@ -4,6 +4,7 @@ import { createReadStream, realpath, realpathSync } from 'node:fs';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { LocalProfiles } from '../core/LocalProfiles.js';
 import { Applications } from '../core/Applications.js';
+import { Tailorings } from '../core/Tailorings.js';
 import { ProfileStore } from '../core/ProfileStore.js';
 import { handleApi } from '../adapters/LocalApi.js';
 import { NodeProjectFiles } from '../adapters/NodeProjectFiles.js';
@@ -140,20 +141,23 @@ export function listenSettings(args = [], env = {}) {
  * @param {string} root - The project root
  * @param {{ claude?: string, env?: object, apiKeyFile?: string }} [options] - The claude executable, the
  *   environment the key's place is read from, and the key's file itself
- * @returns {{ profile: ProfileStore, applications: Applications, inference: Inference }} The services
+ * @returns {{ profile: ProfileStore, applications: Applications, inference: Inference, tailorings: Tailorings }}
+ *   The services
  */
 export function localServices(
   root,
   { claude = 'claude', env = process.env, apiKeyFile = keyFile({ env, projectRoot: root }) } = {}
 ) {
   const files = new NodeProjectFiles(root);
+  const inference = new Inference([
+    new ClaudeCliInference({ command: claude }),
+    new AnthropicApiInference({ file: apiKeyFile })
+  ]);
   return {
     profile: new ProfileStore(files),
     applications: new Applications({ files, scripts: new NodeScripts(root) }),
-    inference: new Inference([
-      new ClaudeCliInference({ command: claude }),
-      new AnthropicApiInference({ file: apiKeyFile })
-    ])
+    inference,
+    tailorings: new Tailorings({ files, inference })
   };
 }
 
@@ -424,7 +428,16 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   } catch (error) {
     reason = error.message;
   }
-  createStaticServer(projectRoot, { key, apiToken }).listen(port, host, () => {
+  // The services start with the server rather than with the first call, so that the jobs an earlier run left —
+  // a queued one resumed, a running one marked interrupted — do not wait for someone to ask after them (#275).
+  let services;
+  try {
+    services = localServices(projectRoot);
+    services.tailorings.start().catch((error) => console.error(error));
+  } catch (error) {
+    console.error(`  the local API's services cannot start: ${error.message}`);
+  }
+  createStaticServer(projectRoot, { key, apiToken, services }).listen(port, host, () => {
     console.log(`serving ${projectRoot} on ${host}:${port} with no-store`);
     console.log(
       network

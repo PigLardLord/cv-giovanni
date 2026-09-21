@@ -6,6 +6,8 @@ import { request as httpRequest } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createStaticServer, previewKey } from '../scripts/serve.mjs';
+import { NodeProjectFiles } from '../adapters/NodeProjectFiles.js';
+import { Tailorings } from '../core/Tailorings.js';
 
 // The local API writes the CV and runs scripts, so it answers exactly whom applications/ answers: this
 // machine's browser holding the run's key (#21, #71). And only from the page this server serves: a
@@ -226,6 +228,65 @@ describe('who the local API answers', () => {
       await start({ key: KEY, apiToken: TOKEN });
 
       expect((await send('GET', '/applications/acme/en.json', bearer())).status).toBe(404);
+    });
+  });
+
+  // #260's whole point: a program posts an advert, gets an id and an estimate at once, and polls (#275).
+  describe('a tailoring, from a program on this machine', () => {
+    const TOKEN = previewKey();
+    const json = { authorization: `Bearer ${TOKEN}`, 'content-type': 'application/json' };
+    const withTailorings = () => {
+      mkdirSync(join(root, 'locales', 'en'), { recursive: true });
+      writeFileSync(
+        join(root, 'config', 'cv-manifest.json'),
+        JSON.stringify({ defaultProfile: 'general', profiles: {}, layouts: ['technical'] })
+      );
+      const files = new NodeProjectFiles(root);
+      const inference = {
+        status: async () => ({ backend: 'claude-cli', cost: { perRun: 0 }, unavailable: [] })
+      };
+      return {
+        tailorings: new Tailorings({ files, inference, work: async () => ({ done: true }) })
+      };
+    };
+
+    test('is accepted at once with 202, runs, and is polled to ready', async () => {
+      const services = withTailorings();
+      await start({ key: KEY, apiToken: TOKEN, services });
+
+      const posted = await send(
+        'POST',
+        '/api/tailorings',
+        json,
+        JSON.stringify({ advert: 'Senior iOS Engineer' })
+      );
+      expect(posted.status).toBe(202);
+      const { id, status, backend, estimateSeconds } = JSON.parse(posted.body);
+      // Nothing was ahead of it: it is running by the time the answer is written.
+      expect({ status, backend }).toEqual({ status: 'running', backend: 'claude-cli' });
+      expect(estimateSeconds).toBeGreaterThan(0);
+
+      await services.tailorings.idle();
+      const polled = await send('GET', `/api/tailorings/${id}`, json);
+      expect(polled.status).toBe(200);
+      expect(JSON.parse(polled.body)).toMatchObject({
+        id,
+        status: 'ready',
+        result: { done: true }
+      });
+      expect(readFileSync(join(root, 'applications', id, 'advert.txt'), 'utf8')).toBe(
+        'Senior iOS Engineer'
+      );
+    });
+
+    test('finds nothing there without the token, and an unknown job is a 404', async () => {
+      await start({ key: KEY, apiToken: TOKEN, services: withTailorings() });
+
+      const body = JSON.stringify({ advert: 'Senior iOS Engineer' });
+      expect(
+        (await send('POST', '/api/tailorings', { 'content-type': 'application/json' }, body)).status
+      ).toBe(404);
+      expect((await send('GET', '/api/tailorings/20260921-143205-ffffff', json)).status).toBe(404);
     });
   });
 });

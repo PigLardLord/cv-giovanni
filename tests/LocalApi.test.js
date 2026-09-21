@@ -26,8 +26,9 @@ const recording = (overrides = {}) => {
       profile: { read: method('profile', 'read'), write: method('profile', 'write') },
       inference: { status: method('inference', 'status') },
       applications: Object.fromEntries(
-        ['create', 'match', 'tailor', 'build'].map((name) => [name, method('applications', name)])
-      )
+        ['create', 'match', 'build'].map((name) => [name, method('applications', name)])
+      ),
+      tailorings: { create: method('tailorings', 'create'), status: method('tailorings', 'status') }
     }
   };
 };
@@ -68,8 +69,13 @@ describe('the local API passes every request through', () => {
     ],
     ['POST', '/api/applications', application, ['applications.create', application]],
     ['POST', '/api/applications/acme/match', undefined, ['applications.match', 'acme']],
-    ['POST', '/api/applications/acme/tailor', undefined, ['applications.tailor', 'acme']],
-    ['POST', '/api/applications/acme/build', undefined, ['applications.build', 'acme']]
+    ['POST', '/api/applications/acme/build', undefined, ['applications.build', 'acme']],
+    [
+      'GET',
+      '/api/tailorings/20260921-143205-a1b2c3',
+      undefined,
+      ['tailorings.status', '20260921-143205-a1b2c3']
+    ]
   ])(
     '%s %s reaches one service method, and answers with what it returned',
     async (method, path, body, expected) => {
@@ -91,7 +97,7 @@ describe('the local API passes every request through', () => {
   const passesThrough = (call) => PASS_THROUGH.test(call.toString().replace(/\s+/g, ' ').trim());
 
   test('every route is one call to one service method, and the check catches one that is not', () => {
-    expect(ROUTES.map(({ method, path }) => `${method} ${path.source}`)).toHaveLength(7);
+    expect(ROUTES.map(({ method, path }) => `${method} ${path.source}`)).toHaveLength(8);
     expect(ROUTES.filter(({ call }) => !passesThrough(call))).toEqual([]);
 
     const leaking = [
@@ -179,6 +185,28 @@ describe('what the local API answers when a request goes wrong', () => {
     });
 
     expect(response.status).toBe(413);
+    expect(calls).toEqual([]);
+  });
+
+  // A tailoring takes minutes: the call answers at once that the job is accepted, and the client polls its state.
+  test('POST /api/tailorings reaches one service method, and answers 202 with what it returned', async () => {
+    const { calls, services } = recording();
+    await serve(services);
+
+    const response = await call('POST', '/api/tailorings', {
+      body: JSON.stringify({ advert: 'Senior iOS Engineer' })
+    });
+
+    expect(calls).toEqual([['tailorings.create', { advert: 'Senior iOS Engineer' }]]);
+    expect(response.status).toBe(202);
+    expect(response.body).toEqual({ answeredBy: 'tailorings.create' });
+  });
+
+  test('the application route that answered 501 for tailoring is gone', async () => {
+    const { calls, services } = recording();
+    await serve(services);
+
+    expect((await call('POST', '/api/applications/acme/tailor')).status).toBe(404);
     expect(calls).toEqual([]);
   });
 

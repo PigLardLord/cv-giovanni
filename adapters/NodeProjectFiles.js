@@ -1,4 +1,4 @@
-import { lstat, mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, readFile, readdir, realpath, writeFile } from 'node:fs/promises';
 import { realpathSync } from 'node:fs';
 import { dirname, isAbsolute, join, sep } from 'node:path';
 
@@ -66,14 +66,29 @@ export class NodeProjectFiles {
     await writeFile(file, text);
   }
 
-  /** @returns {Promise<boolean>} Whether the file exists, inside the project */
+  /** @returns {Promise<string[]>} The names in a directory inside the project; none when it does not exist */
+  async list(path) {
+    let directory;
+    try {
+      directory = await this.inside(this.place(path), path);
+    } catch (error) {
+      if (error.code === 'ENOENT') return [];
+      throw error;
+    }
+    return readdir(directory);
+  }
+
+  /**
+   * @returns {Promise<boolean>} Whether the file exists, inside the project. Under a file rather than a directory,
+   *   it does not.
+   */
   async exists(path) {
     const file = this.place(path);
     try {
       await this.inside(file, path);
       return true;
     } catch (error) {
-      if (error.code === 'ENOENT') return false;
+      if (error.code === 'ENOENT' || error.code === 'ENOTDIR') return false;
       throw error;
     }
   }

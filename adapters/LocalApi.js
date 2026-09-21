@@ -32,13 +32,20 @@ export const ROUTES = [
   },
   {
     method: 'POST',
-    path: /^\/api\/applications\/([^/]+)\/tailor$/,
-    call: (services, { name }) => services.applications.tailor(name)
-  },
-  {
-    method: 'POST',
     path: /^\/api\/applications\/([^/]+)\/build$/,
     call: (services, { name }) => services.applications.build(name)
+  },
+  // A tailoring takes minutes (#260): the job is queued, 202 says so, and the client polls its state.
+  {
+    method: 'POST',
+    path: /^\/api\/tailorings$/,
+    status: 202,
+    call: (services, { body }) => services.tailorings.create(body)
+  },
+  {
+    method: 'GET',
+    path: /^\/api\/tailorings\/([^/]+)$/,
+    call: (services, { name }) => services.tailorings.status(name)
   }
 ];
 
@@ -75,7 +82,8 @@ function bodyOf(request, limit) {
  * Answers one request to `/api/`.
  * @param {import('node:http').IncomingMessage} request - The request
  * @param {import('node:http').ServerResponse} response - Where the answer goes
- * @param {{ profile: object, applications: object }} services - The services the routes call
+ * @param {{ profile: object, applications: object, inference: object, tailorings: object }} services - The
+ *   services the routes call
  * @param {{ maxBody?: number }} [options] - The largest body taken, in bytes
  */
 export async function handleApi(request, response, services, { maxBody = 1024 * 1024 } = {}) {
@@ -133,12 +141,12 @@ export async function handleApi(request, response, services, { maxBody = 1024 * 
   try {
     name = found.match[1] === undefined ? undefined : decodeURIComponent(found.match[1]);
   } catch {
-    answer(response, 400, { error: 'The address does not name an application.' });
+    answer(response, 400, { error: 'The address does not name an application or a job.' });
     return;
   }
 
   try {
-    answer(response, 200, await found.route.call(services, { body, name }));
+    answer(response, found.route.status ?? 200, await found.route.call(services, { body, name }));
   } catch (error) {
     if (error instanceof Refusal) {
       answer(
