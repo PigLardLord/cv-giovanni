@@ -186,6 +186,29 @@ describe('the language of the advert', () => {
   });
 });
 
+// A stopword takes every phrase it is in out of the ranking, so the plain words a tailoring rewords into are kept out
+// of the stopwords where they name part of a technology (the review of #315).
+describe('a technology whose name holds a plain word', () => {
+  test.each([
+    'New Relic',
+    'Google Drive',
+    'After Effects',
+    'Time Profiler',
+    'time series',
+    'use cases',
+    'set up',
+    'keep alive'
+  ])('%s is a phrase worth ranking', (phrase) => {
+    expect(AdvertMatcher.keeps(phrase, phrase.split(' '))).toBe(true);
+  });
+
+  test('and ranks: New Relic', () => {
+    const terms = AdvertMatcher.extractTerms('Requirements\n- Monitoring with New Relic', 30).terms;
+
+    expect(terms.map(({ term }) => term)).toContain('New Relic');
+  });
+});
+
 // A German advert's words were read with an ASCII pattern, and broke at every umlaut and ß: "frühestmöglichen" came
 // out as "fr", "hestm" and "glichen", "Hauptstraße" as "Hauptstra" (#305). They are read whole.
 describe('a German advert', () => {
