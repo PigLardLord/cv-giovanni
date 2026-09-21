@@ -1,8 +1,7 @@
 import { readFile, stat } from 'node:fs/promises';
 import Anthropic from '@anthropic-ai/sdk';
-import { homedir } from 'node:os';
-import { isAbsolute, join, relative, resolve } from 'node:path';
 import { Refusal } from '../core/Refusal.js';
+import { configFile } from './ConfigDirectory.js';
 
 /**
  * The prices of every model a run may ask for, in US dollars per million tokens: base input, a five-minute cache
@@ -36,21 +35,8 @@ const NO_DEADLINE = 60 * 60 * 1000;
  * @returns {string} The key's file
  * @throws {Error} When that file would be inside the project
  */
-export function keyFile({ env = process.env, home = homedir(), projectRoot } = {}) {
-  const base =
-    env.XDG_CONFIG_HOME && isAbsolute(env.XDG_CONFIG_HOME)
-      ? env.XDG_CONFIG_HOME
-      : join(home, '.config');
-  const file = join(base, 'mycv', 'anthropic-api-key');
-  if (projectRoot) {
-    const inside = relative(resolve(projectRoot), resolve(file));
-    if (!inside.startsWith('..') && !isAbsolute(inside)) {
-      throw new Error(
-        `The API key's file would be inside the project, at ${file}: keep it outside the repository.`
-      );
-    }
-  }
-  return file;
+export function keyFile(where = {}) {
+  return configFile('anthropic-api-key', { ...where, what: "API key's file" });
 }
 
 /**

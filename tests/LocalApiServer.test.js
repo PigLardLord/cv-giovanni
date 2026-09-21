@@ -151,4 +151,81 @@ describe('who the local API answers', () => {
     expect(response.status).toBe(200);
     expect(response.headers['cache-control']).toBe('no-store, must-revalidate');
   });
+
+  // #260's callers are programs on this machine, with no browser to trade the key for a cookie: they send the
+  // token kept in ~/.config/mycv/api-token instead (#270). It replaces the cookie and nothing else — the request
+  // still comes directly from this machine and from no other origin.
+  describe('with the API token instead of the cookie', () => {
+    const TOKEN = previewKey();
+    const bearer = (token = TOKEN) => ({ authorization: `Bearer ${token}` });
+
+    test('a program on this machine reaches the API', async () => {
+      await start({ key: KEY, apiToken: TOKEN });
+
+      const answer = await send('GET', '/api/profile', bearer());
+
+      expect(answer.status).toBe(200);
+      expect(JSON.parse(answer.body)).toMatchObject({ name: 'Giovanni Trovato' });
+    });
+
+    test.each([
+      ['a wrong token', () => bearer('not-the-token')],
+      ['the preview key in its place', () => bearer(KEY)],
+      ['no token at all', () => ({})],
+      ['the token through a proxy', () => ({ ...bearer(), 'x-forwarded-for': '203.0.113.9' })],
+      ['the token from another origin', () => ({ ...bearer(), origin: 'https://example.com' })],
+      ['the token from another site', () => ({ ...bearer(), 'sec-fetch-site': 'cross-site' })],
+      ['the token as a cookie', () => ({ cookie: `mycv-api=${TOKEN}` })],
+      ['a scheme other than Bearer', () => ({ authorization: `Basic ${TOKEN}` })]
+    ])('%s finds nothing there', async (what, headers) => {
+      await start({ key: KEY, apiToken: TOKEN });
+
+      expect((await send('GET', '/api/profile', headers())).status).toBe(404);
+    });
+
+    test('a server with no usable token lets no bearer in, and the cookie still works', async () => {
+      await start({ key: KEY, apiToken: null });
+
+      expect((await send('GET', '/api/profile', bearer())).status).toBe(404);
+      expect((await send('GET', '/api/profile', { cookie: await cookieFor() })).status).toBe(200);
+    });
+
+    // What keeps a page on another site from sending the header is the CORS preflight, and that holds only while the
+    // server grants none. A "helpful" CORS header added later would pass every other test here (the review of #271).
+    test('a preflight from another site finds nothing, and no response grants CORS', async () => {
+      await start({ key: KEY, apiToken: TOKEN });
+
+      const preflight = await send('OPTIONS', '/api/profile', {
+        origin: 'http://evil.example',
+        'access-control-request-method': 'GET',
+        'access-control-request-headers': 'authorization'
+      });
+      const answered = await send('GET', '/api/profile', bearer());
+
+      expect(preflight.status).toBe(404);
+      for (const { headers } of [preflight, answered]) {
+        expect(Object.keys(headers).filter((name) => name.startsWith('access-control'))).toEqual(
+          []
+        );
+      }
+    });
+
+    // RFC 9110 makes an authentication scheme case-insensitive: a client that writes "bearer" is sending the token.
+    test('the scheme is read whatever its case', async () => {
+      await start({ key: KEY, apiToken: TOKEN });
+
+      expect((await send('GET', '/api/profile', { authorization: `bearer ${TOKEN}` })).status).toBe(
+        200
+      );
+    });
+
+    // The token opens the API, not applications/ served as files: those stay the cookie's.
+    test('opens the API and nothing the cookie alone opens', async () => {
+      mkdirSync(join(root, 'applications', 'acme'), { recursive: true });
+      writeFileSync(join(root, 'applications', 'acme', 'en.json'), '{}');
+      await start({ key: KEY, apiToken: TOKEN });
+
+      expect((await send('GET', '/applications/acme/en.json', bearer())).status).toBe(404);
+    });
+  });
 });
