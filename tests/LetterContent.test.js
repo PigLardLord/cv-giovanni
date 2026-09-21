@@ -18,7 +18,8 @@ const strings = {
   'cv:letter.salutationAnonymous': 'Dear Hiring Team',
   'cv:letter.closing': 'Kind regards,',
   'cv:letter.attachments': 'Enclosed',
-  'ui:letter.absent': 'This profile carries no cover letter.'
+  'ui:letter.absent': 'This profile carries no cover letter.',
+  'ui:files.letter': 'Cover Letter'
 };
 const t = (key, values = {}) =>
   (strings[key] || key).replace(
@@ -111,9 +112,11 @@ describe('who writes', () => {
     expect(words(profile()).returnAddress).toBe('Giovanni Trovato · Bad Liebenstein');
   });
 
-  test('the document is titled after the sender and the subject', () => {
+  // It said "Giovanni Trovato — Senior iOS Engineer", which could be either document, with another dash than the
+  // CV's (#324).
+  test('the document is titled after the sender, the document and the subject', () => {
     expect(LetterContent.of(profile(), { t, locale: 'en' }).title).toBe(
-      'Giovanni Trovato — Application for iOS Software Engineer'
+      'Giovanni Trovato – Cover Letter – Application for iOS Software Engineer'
     );
   });
 });
@@ -398,6 +401,18 @@ describe('in the catalogues the page loads', () => {
     });
     return (key, values) => instance.t(key, values);
   };
+
+  // The document's word is the catalogue's, in the letter's language, on the page and in the audit (the review of #338).
+  test.each([
+    ['en', 'Giovanni Trovato – Cover Letter – Application'],
+    ['de', 'Giovanni Trovato – Anschreiben – Bewerbung']
+  ])('a letter in %s is titled "%s"', async (locale, title) => {
+    const letter = profile({ subject: '' });
+    const options = { locale };
+
+    expect(LetterContent.of(letter, { ...options, t: catalogue(locale) }).title).toBe(title);
+    expect(LetterContent.of(letter, { ...options, t: await page(locale) }).title).toBe(title);
+  });
 
   test('a German letter opens, closes and lists its attachments in German', () => {
     const content = LetterContent.of(
