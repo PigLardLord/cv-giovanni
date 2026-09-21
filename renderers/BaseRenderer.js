@@ -79,6 +79,18 @@ export class BaseRenderer extends Renderer {
    */
   setProse(root, element, text) {
     element.textContent = '';
+    return this.appendProse(root, element, text);
+  }
+
+  /**
+   * Prose appended after what an element already holds, held as `setProse` holds it: a line that sets some of its
+   * pieces otherwise — a figure in Bold (#261) — lays the rest out the same way.
+   * @param {Document} root - DOM root
+   * @param {Element} element - Element to append to
+   * @param {string} text - Prose as the data wrote it
+   * @returns {Element} The element
+   */
+  appendProse(root, element, text) {
     // A closed range is held the same way, and for the neighbouring reason: broken at its en dash it leaves
     // "2020–" ending a line, which is the stranded separator #180 forbids (#230).
     const parts = String(text ?? '').split(HELD_COMPOUND);

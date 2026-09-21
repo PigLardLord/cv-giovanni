@@ -51,6 +51,9 @@ const NO_FULL_CV = Object.freeze({
   readLetter: async () => ({ letter: null, where: null })
 });
 
+/** The queue's lock when nothing else could run it: the tests', and a service built without one. */
+const ALONE = Object.freeze({ take: async () => ({ taken: true }), release: () => {} });
+
 /** A service given no work: the server hands it a `Tailor` (#284), and a test hands it what it checks. */
 const NOTHING_TO_RUN = async () => {
   throw new Refusal(501, 'This service was built without its work: nothing runs a tailoring.');
@@ -76,6 +79,7 @@ export class Tailorings {
    * @param {{ readCv: Function, readLetter: Function }} [ports.fullCv] - The full CV and the letter's defaults its
    *   owner keeps outside the project (#279)
    * @param {(job: object, progress: { update: Function }) => Promise<object>} [ports.work] - What a job does
+   * @param {{ take: Function, release: Function }} [ports.lock] - Which server on this checkout runs the queue (#282)
    * @param {() => number} [ports.clock] - The time, in milliseconds since the epoch
    * @param {() => string} [ports.random] - Six random hex digits, to make an id no one can guess or collide with
    */
@@ -84,6 +88,7 @@ export class Tailorings {
     inference,
     fullCv = NO_FULL_CV,
     work = NOTHING_TO_RUN,
+    lock = ALONE,
     clock = Date.now,
     random = hex
   }) {
@@ -91,6 +96,8 @@ export class Tailorings {
     this.inference = inference;
     this.fullCv = fullCv;
     this.work = work;
+    this.lock = lock;
+    this.holder = null;
     this.clock = clock;
     this.random = random;
     this.jobs = new Map();
@@ -116,17 +123,55 @@ export class Tailorings {
   }
 
   /**
-   * Reads the jobs an earlier run of the server left, once: a job that was running is marked failed, and the jobs
-   * that were waiting are queued again, in their order of arrival.
+   * Takes the queue and reads the jobs an earlier run of the server left, once: a job that was running is marked
+   * failed, and the jobs that were waiting are queued again, in their order of arrival.
+   *
+   * Unless another server on this checkout runs the queue (#282): then its jobs are its own, running or waiting, and
+   * this one only reads their state from disk and refuses new ones. It asks again on every call, and takes the queue
+   * over once the other has stopped.
    * @returns {Promise<void>}
    */
   start() {
     // A recovery that failed is tried again on the next call, rather than answering every call after it with its error.
-    this.started ??= this.recover().catch((error) => {
+    this.started ??= this.lead().catch((error) => {
       this.started = null;
       throw error;
     });
     return this.started;
+  }
+
+  /** Takes the queue, if no other server holds it, and recovers what an earlier run left. */
+  async lead() {
+    const lock = await this.lock.take();
+    if (!lock.taken) {
+      this.holder = lock;
+      this.started = null;
+      return;
+    }
+    this.holder = null;
+    await this.recover();
+  }
+
+  /** Lets the queue go, for the next server on this checkout to take: called as the server stops. */
+  stop() {
+    this.lock.release();
+  }
+
+  /** Why this server runs no job, when another on this checkout holds the queue, or null. */
+  heldElsewhere() {
+    if (!this.holder) return null;
+    const { holder, file } = this.holder;
+    if (!holder.pid) {
+      return (
+        'Another server on this checkout is taking the tailoring queue as this one asks: try again in a moment. ' +
+        `If this persists, delete ${file}.`
+      );
+    }
+    const since = holder.since ? `, since ${holder.since}` : '';
+    return (
+      `Another server on this checkout runs the tailoring queue — process ${holder.pid}${since}: send the job to ` +
+      `it, or stop it first. If that process is no server, delete ${file}.`
+    );
   }
 
   /**
@@ -139,6 +184,7 @@ export class Tailorings {
    */
   async create(request) {
     await this.start();
+    if (this.holder) throw new Refusal(409, this.heldElsewhere());
     const { advert, cv: given, letter: overrides, options } = await this.accepted(request);
     const { cv, source } = await this.startingCv(given);
     const letter = await this.letterFor(overrides);
@@ -191,7 +237,9 @@ export class Tailorings {
    */
   async status(id) {
     await this.start();
-    const state = typeof id === 'string' && APPLICATION_NAME.test(id) ? this.jobs.get(id) : null;
+    const known = typeof id === 'string' && APPLICATION_NAME.test(id);
+    // Another server's job is as that server last wrote it: its queue is not this one's to count.
+    const state = known && (this.holder ? await this.written(id) : this.jobs.get(id));
     if (!state) throw new Refusal(404, `No tailoring job ${JSON.stringify(String(id))}.`);
     // A ready job says where its documents download from (#303); the files on this machine stay its own business.
     const printed = state.status === 'ready' ? (state.result?.files ?? {}) : {};
@@ -202,9 +250,20 @@ export class Tailorings {
     );
     return {
       ...state,
-      secondsLeft: this.secondsLeft(id),
+      secondsLeft: this.holder ? this.left(state) : this.secondsLeft(id),
       ...(Object.keys(downloads).length && { downloads })
     };
+  }
+
+  /** A job's state as written, or null when there is none to read. */
+  async written(id) {
+    const path = Tailorings.paths(id).state;
+    try {
+      if (!(await this.files.exists(path))) return null;
+      return { ...JSON.parse(await this.files.readText(path)), id };
+    } catch {
+      return null;
+    }
   }
 
   /**
@@ -383,16 +442,19 @@ export class Tailorings {
   /** What is left of a job's estimate and of every job ahead of it, in seconds. */
   secondsLeft(id) {
     const state = this.jobs.get(id);
-    const left = (job) => {
-      if (job.status === 'queued') return job.estimate.seconds;
-      if (job.status !== 'running') return 0;
-      const elapsed = Math.round((this.clock() - Date.parse(job.startedAt)) / 1000);
-      return Math.max(0, job.estimate.seconds - elapsed);
-    };
-    if (state.status !== 'queued') return left(state);
+    if (state.status !== 'queued') return this.left(state);
     const place = this.queue.indexOf(id);
     const ahead = [this.current, ...(place < 0 ? [] : this.queue.slice(0, place))].filter(Boolean);
-    return ahead.reduce((sum, other) => sum + left(this.jobs.get(other)), left(state));
+    return ahead.reduce((sum, other) => sum + this.left(this.jobs.get(other)), this.left(state));
+  }
+
+  /** What is left of one job's own estimate, in seconds. */
+  left(job) {
+    const seconds = job.estimate?.seconds ?? SEED_SECONDS[job.effort] ?? SEED_SECONDS.max;
+    if (job.status === 'queued') return seconds;
+    if (job.status !== 'running') return 0;
+    const elapsed = Math.round((this.clock() - Date.parse(job.startedAt)) / 1000);
+    return Math.max(0, seconds - elapsed);
   }
 
   /** Runs the queue, one job at a time, unless it is running already. */

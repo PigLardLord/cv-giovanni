@@ -1019,6 +1019,64 @@ describe('what the third review of the letter found', () => {
   });
 });
 
+// A greeting and a closing are read by their shape, not by a paragraph's first word (#312): "Hi-fi audio …", "Lieber
+// als …" and "Sincerely, I believe …" are prose.
+describe('a greeting or a closing in the letter', () => {
+  const read = (field, text) => {
+    const letter = {
+      recipient: { company: 'Engine Works' },
+      subject: 'iOS Engineer',
+      opening: 'I am writing about the role.',
+      body: ['At Analytical Engines I cut the test suite from 37.7 to 5.2 minutes.'],
+      closing: 'I look forward to hearing from you.'
+    };
+    letter[field] = text;
+    return ProvenanceCheck.letterFailures({
+      letter,
+      source: SOURCE,
+      advert: 'iOS Engineer at Engine Works',
+      states: () => {}
+    }).filter(({ reason }) => /salutation|valediction/.test(reason));
+  };
+
+  test.each([
+    ['opening', 'Hi-fi audio was the first product I shipped.'],
+    ['opening', 'Lieber als Rezepte schreibe ich Code.'],
+    ['closing', 'Sincerely, I believe the role fits what I have done.'],
+    ['opening', 'Hi there are two reasons I am writing.']
+  ])('that opens prose holds: %s "%s"', (field, text) => {
+    expect(read(field, text)).toEqual([]);
+  });
+
+  test.each([
+    ['opening', 'Dear Dr. Hopper,'],
+    ['opening', 'Sehr geehrte Frau Dr. Hopper,'],
+    ['opening', 'Hi Grace,'],
+    ['opening', 'Lieber Herr Müller,'],
+    ['opening', 'Dear hiring team,'],
+    ['opening', 'To whom it may concern,'],
+    ['closing', 'Kind regards'],
+    ['closing', 'I look forward to hearing from you. Kind regards'],
+    ['closing', 'Kind regards, Ada Lovelace'],
+    ['closing', 'Mit freundlichen Grüßen'],
+    // The review of #331.
+    ['opening', 'Sehr geehrte Damen und Herren,'],
+    ['opening', 'Hi, Grace'],
+    ['opening', 'Dear recruiting team,'],
+    ['opening', 'Dear engineering team,'],
+    ['opening', 'Hello there,'],
+    ['opening', 'Hello!'],
+    ['opening', 'Liebes Team,'],
+    ['closing', 'Kind regards\nAda Lovelace'],
+    ['closing', 'Sincerely yours,'],
+    ['closing', 'Liebe Grüße'],
+    ['closing', 'Yours truly,'],
+    ['closing', 'Mit besten Grüßen']
+  ])('is refused: %s "%s"', (field, text) => {
+    expect(read(field, text)).toEqual([expect.objectContaining({ path: field })]);
+  });
+});
+
 // A translation (#299): German capitalises its nouns, so a capital names nothing; the names, figures and dates are
 // what a translation keeps, and what it is held to.
 describe('a tailored CV translated into German', () => {
@@ -1183,6 +1241,15 @@ describe('a tailored CV translated into German', () => {
       new Set(['names "KI-Agenten", which its source does not'])
     );
   });
+});
+
+// Across languages (#306): a German term of the advert is held in an English tailoring through its English forms.
+test('an English claim of a German advert term the source does not make is refused', () => {
+  expect(
+    ProvenanceCheck.additions('Automated tests on every release.', 'Manual QA on every release.', {
+      vocabulary: ['Testautomatisierung']
+    })
+  ).toEqual(['says "Testautomatisierung", which its source does not']);
 });
 
 describe('the names a text writes', () => {

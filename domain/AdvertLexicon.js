@@ -532,18 +532,51 @@ export const ADVERT = {
    * would make the matcher's mistakes harder to see. A match through this table is reported as
    * `synonym`, never as `exact`, so a reader can tell which rung a term arrived on.
    */
+  // A German advert names what an English full CV evidences in German words: "Testautomatisierung" is test automation
+  // (#306). The German forms stand beside the English in the same group, so evidence is found across the two, and a
+  // match through them is reported as `synonym`, as any other. Whole words only: a compound built on one with a
+  // linking "s" — "Testautomatisierungs-Framework", "Barrierefreiheitsprüfung" — is out of reach, as is any compound
+  // the table does not list.
   synonyms: [
-    ['mdm', 'mobile device management'],
-    ['ci/cd', 'continuous integration', 'continuous delivery', 'continuous deployment'],
-    ['ml', 'machine learning'],
-    ['ui', 'user interface'],
-    ['ux', 'user experience'],
-    ['qa', 'quality assurance'],
+    ['mdm', 'mobile device management', 'mobilgeräteverwaltung'],
+    [
+      'ci/cd',
+      'continuous integration',
+      'continuous delivery',
+      'continuous deployment',
+      'kontinuierliche integration'
+    ],
+    ['ml', 'machine learning', 'maschinelles lernen'],
+    ['ui', 'user interface', 'benutzeroberfläche'],
+    ['ux', 'user experience', 'nutzererlebnis', 'benutzererfahrung'],
+    ['qa', 'quality assurance', 'qualitätssicherung'],
     ['spm', 'swift package manager'],
-    ['tdd', 'test driven development', 'test-driven development'],
-    ['api', 'apis'],
+    ['tdd', 'test driven development', 'test-driven development', 'testgetriebene entwicklung'],
+    // Not the bare singular: "die Schnittstelle zwischen Produkt und Entwicklung" is a liaison, not an API.
+    [
+      'api',
+      'apis',
+      'schnittstellen',
+      'rest-schnittstelle',
+      'rest-schnittstellen',
+      'programmierschnittstelle',
+      'programmierschnittstellen'
+    ],
     ['ios', 'apple platform', 'apple platforms'],
-    ['developer', 'developers', 'engineer', 'engineers']
+    ['developer', 'developers', 'engineer', 'engineers', 'entwickler', 'entwicklerin'],
+    [
+      'test automation',
+      'automated testing',
+      'automated tests',
+      'testautomatisierung',
+      'test-automatisierung',
+      'automatisierte tests'
+    ],
+    ['accessibility', 'barrierefreiheit', 'a11y'],
+    ['architecture', 'architektur', 'softwarearchitektur'],
+    ['code review', 'code reviews', 'code-review', 'code-reviews'],
+    ['unit tests', 'unit testing', 'unit-tests', 'unittests'],
+    ['mobile development', 'mobile app development', 'app-entwicklung', 'mobile entwicklung']
   ],
 
   /**
