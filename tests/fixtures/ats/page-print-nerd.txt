@@ -1,7 +1,7 @@
 Giovanni Trovato
 Senior iOS Engineer
 Swift · SwiftUI · Enterprise Mobility · CI/CD · Agentic Development
-Bad Liebenstein, Thuringia, Germany · Remote · available immediately
+Bad Liebenstein, Thuringia, Germany · Remote only · available immediately
 trovato.giovanni@gmail.com · +39 329 8484 046
 github.com/PigLardLord · linkedin.com/in/piglardlord · piglardlord.github.io/cv-giovanni
 EU citizen · no work permit needed in Germany
@@ -13,7 +13,7 @@ them at Cortado Mobile Solutions. Builds its mobile device management
 Selected Impact
 Cortado MDM for iOS: ~30k downloads, 4 App Store Connect crash
 reports since 2021
-ezeep Blue for iOS: 300k downloads since its 2020 release
+ezeep Blue for iOS: ~300k downloads since its 2020 release
 Cortado MDM for Android, 2026: 1040 → 5308 tests, branch
 coverage 14% → 83%
 
@@ -22,8 +22,7 @@ August 2018 – November 2026
 
 iOS Developer at Cortado Mobile Solutions, Berlin (remote)
 Enterprise mobility and device management, in a mobile team of 2
-since 2020. Owns the iOS client's architecture and its internal
-releases.
+since 2020. Owns the iOS client's architecture and its internal releases.
 Cortado MDM for iOS, built in SwiftUI from its first commit in 2020:
 Clean Architecture, TDD, Live Activities, App Intents.
 ezeep Blue for iOS, 2020–2023: rewrote it in SwiftUI with another
@@ -33,7 +32,9 @@ runtime from a July 2026 peak of 37.7 to 5.2 minutes.
 Earlier products, 2018–2023: moved Workplace and Teamplace to
 Swift and Combine; NFCReader, sole author.
 Across products: CI/CD, code signing and provisioning, App Store
-and Google Play releases; SBOM and security scans.
+and Google Play releases.
+Software bill of materials (SBOM) and security scans, across
+products.
 Agentic development since 2025, mentoring 2 developers in it;
 Cortado's Android Enterprise Partner Program certification.
 
@@ -41,8 +42,8 @@ September 2015 – July 2018
 
 Mobile Developer at Apparound, Pisa, Italy
 B2B sales-automation platform for enterprise field sales teams.
-Built offline-first iOS and Android features that kept field sales
-teams working without a connection.
+Built offline-first iOS and Android features that kept field sales teams
+working without a connection.
 Created a reusable UI component library and led the mobile clients'
 UI/UX redesign, cutting duplicate work on new screens.
 
@@ -65,8 +66,8 @@ XCUITest, App Intents, Live Activities, Swift Package Manager
 Android – Kotlin, Jetpack Compose, DevicePolicyManager
 Delivery – GitLab CI/CD, fastlane, code signing and provisioning, TestFlight,
 App Store Connect, Google Play Console, SBOM
-Architecture & practices – Clean Architecture, MVVM, modularisation, REST
-APIs, TDD, agentic development, Claude Code
+Architecture and practices – Clean Architecture, MVVM, modularisation,
+REST APIs, TDD, agentic development, Claude Code
 
 Certifications
 Android Enterprise Expert (Associate, Professional) – Google (2026)
@@ -86,6 +87,6 @@ English: C1 (CEFR), working language since 2018
 German: A1 (CEFR), self-study
 
 Interests
-Robotics and IoT, Mountain hiking, Strategy games
+Robotics and IoT, mountain hiking, strategy games
 
 

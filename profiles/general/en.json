@@ -5,12 +5,12 @@
   "location": "Bad Liebenstein, Thuringia, Germany",
   "email": "trovato.giovanni@gmail.com",
   "phone": "+39 329 8484 046",
-  "availability": "Remote · available immediately",
+  "availability": "Remote only · available immediately",
   "workAuthorisation": "EU citizen · no work permit needed in Germany",
   "profile": "Senior iOS engineer with 11+ years in native mobile development, 8 of them at Cortado Mobile Solutions. Builds its mobile device management (MDM) client for iOS in SwiftUI, and its Android client since 2025.",
   "career_highlights": [
     "Cortado MDM for iOS: ~30k downloads, 4 App Store Connect crash reports since 2021",
-    "ezeep Blue for iOS: 300k downloads since its 2020 release",
+    "ezeep Blue for iOS: ~300k downloads since its 2020 release",
     "Cortado MDM for Android, 2026: 1040 → 5308 tests, branch coverage 14% → 83%"
   ],
   "asOf": "2026-09",
@@ -26,7 +26,8 @@
         "ezeep Blue for iOS, 2020–2023: rewrote it in SwiftUI with another developer.",
         "Cortado MDM for Android, 2025: Compose on most screens; test runtime from a July 2026 peak of 37.7 to 5.2 minutes.",
         "Earlier products, 2018–2023: moved Workplace and Teamplace to Swift and Combine; NFCReader, sole author.",
-        "Across products: CI/CD, code signing and provisioning, App Store and Google Play releases; SBOM and security scans.",
+        "Across products: CI/CD, code signing and provisioning, App Store and Google Play releases.",
+        "Software bill of materials (SBOM) and security scans, across products.",
         "Agentic development since 2025, mentoring 2 developers in it; Cortado's Android Enterprise Partner Program certification."
       ]
     },
@@ -151,7 +152,7 @@
       ]
     },
     {
-      "category": "Architecture & practices",
+      "category": "Architecture and practices",
       "items": [
         {
           "name": "Clean Architecture"
@@ -207,8 +208,8 @@
   ],
   "interests": [
     "Robotics and IoT",
-    "Mountain hiking",
-    "Strategy games"
+    "mountain hiking",
+    "strategy games"
   ],
   "social": [
     {

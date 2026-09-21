@@ -1,7 +1,7 @@
 Giovanni Trovato
 Senior iOS Engineer
 Swift · SwiftUI · Enterprise Mobility · CI/CD · Agentic Development
-Bad Liebenstein, Thuringia, Germany · Remote · available immediately
+Bad Liebenstein, Thuringia, Germany · Remote only · available immediately
 trovato.giovanni@gmail.com · +39 329 8484 046
 github.com/PigLardLord · linkedin.com/in/piglardlord · piglardlord.github.io/cv-giovanni
 EU citizen · no work permit needed in Germany
@@ -26,7 +26,8 @@ July 2026 peak of 37.7 to 5.2 minutes.
 Earlier products, 2018–2023: moved Workplace and Teamplace to Swift and Combine;
 NFCReader, sole author.
 Across products: CI/CD, code signing and provisioning, App Store and Google Play
-releases; SBOM and security scans.
+releases.
+Software bill of materials (SBOM) and security scans, across products.
 Agentic development since 2025, mentoring 2 developers in it; Cortado's Android
 Enterprise Partner Program certification.
 
@@ -72,7 +73,7 @@ Delivery
 GitLab CI/CD, fastlane, code signing and provisioning,
 TestFlight, App Store Connect, Google Play Console, SBOM
 
-Architecture & practices
+Architecture and practices
 
 Clean Architecture, MVVM, modularisation,
 REST APIs, TDD, agentic development, Claude Code
