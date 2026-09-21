@@ -1,7 +1,15 @@
 /**
  * @jest-environment node
  */
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  utimesSync,
+  writeFileSync
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { QUEUE_LOCK, QueueLock } from '../adapters/QueueLock.js';
@@ -100,6 +108,62 @@ describe('the queue’s lock', () => {
     expect(await server(101).take()).toEqual({ taken: true });
     expect(await server(202).take()).toMatchObject({ taken: false, holder: { pid: 101 } });
     expect(lockOf().pid).toBe(101);
+  });
+
+  // The second review of #316: on a file system without hard links a live lock moved aside could not be put back, and
+  // three servers at once could still lose one. A stale lock is now removed under a claim, and only while still stale.
+  test.each([
+    ['with hard links', undefined],
+    [
+      'without them',
+      {
+        link: async () => {
+          throw Object.assign(new Error('operation not permitted'), { code: 'EPERM' });
+        }
+      }
+    ]
+  ])('left by a dead server and found by three at once, is taken by one, %s', async (_, fs) => {
+    await serverWith(101).take();
+    const servers = [202, 303, 404].map((pid) => {
+      const server = new QueueLock(root, { pid, alive: (other) => other !== 101, fs });
+      // Each looks at the lock, then lets the others run before it acts on what it saw.
+      const read = server.read.bind(server);
+      server.read = async (path) => {
+        const found = await read(path);
+        await new Promise((resolve) => setImmediate(resolve));
+        return found;
+      };
+      return server;
+    });
+
+    const results = await Promise.all(servers.map((server) => server.take()));
+
+    const leaders = [202, 303, 404].filter((_pid, index) => results[index].taken);
+    expect(leaders).toHaveLength(1);
+    expect(lockOf().pid).toBe(leaders[0]);
+    expect(existsSync(join(root, `${QUEUE_LOCK}.takeover`))).toBe(false);
+  });
+
+  test('being written — empty, and young — is waited for, and one empty for long is stale', async () => {
+    mkdirSync(join(root, 'applications'), { recursive: true });
+    writeFileSync(join(root, QUEUE_LOCK), '');
+
+    expect(await serverWith(202).take()).toEqual({
+      taken: false,
+      holder: { pid: null, since: null },
+      file: QUEUE_LOCK
+    });
+    const old = new Date(Date.now() - 60_000);
+    utimesSync(join(root, QUEUE_LOCK), old, old);
+    expect(await serverWith(202).take()).toEqual({ taken: true });
+  });
+
+  test('a claim left by a server that died mid-takeover blocks no one', async () => {
+    await serverWith(101).take();
+    writeFileSync(join(root, `${QUEUE_LOCK}.takeover`), JSON.stringify({ pid: 101, since: null }));
+
+    expect(await serverWith(202, (pid) => pid !== 101).take()).toEqual({ taken: true });
+    expect(lockOf().pid).toBe(202);
   });
 
   test('is its own holder’s to take again', async () => {

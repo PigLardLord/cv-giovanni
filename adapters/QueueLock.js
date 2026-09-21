@@ -1,9 +1,15 @@
 import { readFileSync, unlinkSync } from 'node:fs';
-import { link, mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
+import { link, mkdir, readFile, stat, unlink, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
 /** The errors of a file system that makes no hard links. */
 const LINKLESS = ['EPERM', 'ENOTSUP', 'EOPNOTSUPP', 'ENOSYS', 'EXDEV'];
+
+/** How long a lock may stay empty while its server writes it: longer, and the server died between the two. */
+const WRITING_MS = 5000;
+
+/** How many times a server looks again at a lock that is changing hands before it says so. */
+const LOOKS = 5;
 
 /** Where the lock lives, relative to the project: beside the jobs, hidden, so nothing lists or serves it. */
 export const QUEUE_LOCK = 'applications/.queue-lock.json';
@@ -18,14 +24,27 @@ function isAlive(pid) {
   }
 }
 
+/** A file that is not there is no failure here: another server removed it first. */
+const gone = (error) => {
+  if (error.code !== 'ENOENT') throw error;
+};
+
+const pause = () => new Promise((resolve) => setTimeout(resolve, 20));
+
 /**
  * Which server on this checkout runs the tailoring queue (#282).
  *
  * Two development servers on one tree both found the jobs in `applications/`: the second marked the first's running
  * job interrupted and queued its waiting jobs again, so each ran twice. The server that runs the queue now says so in
  * a file, created only if absent — the one thing a file system decides for two processes at once — and holding its
- * process id. A lock whose process is gone is stale: it is moved aside and taken, and a live lock moved aside by
- * mistake is put back.
+ * process id.
+ *
+ * A lock whose process is gone is stale, and is removed under a claim: a second file, created the same way, which only
+ * one server holds at a time. Under the claim the lock is read again and removed only if it is still stale — nobody
+ * else removes it, and nobody creates one while it is there — so a live lock is never removed, however many servers
+ * start at once (the reviews of #316). A claim left by a server that died mid-takeover is removed like a stale lock;
+ * two servers removing that same dead claim at the same instant could each hold one, which needs a crash during a
+ * takeover and two starts within it.
  *
  * A process id the system gave to another program since reads as alive; the refusal names the lock's file, so it can
  * be deleted by hand.
@@ -38,6 +57,7 @@ export class QueueLock {
    */
   constructor(root, { pid = process.pid, alive = isAlive, clock = Date.now, fs = { link } } = {}) {
     this.file = join(root, QUEUE_LOCK);
+    this.claim = `${this.file}.takeover`;
     this.pid = pid;
     this.alive = alive;
     this.clock = clock;
@@ -50,15 +70,23 @@ export class QueueLock {
    */
   async take() {
     await mkdir(dirname(this.file), { recursive: true });
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      // Read first: a server that is not the holder asks on every call, and learns who is without writing a draft.
+    for (let look = 0; look < LOOKS; look += 1) {
+      // Read first: a server that is not the holder asks on every call, and learns who is without writing anything.
       const holder = await this.read(this.file);
       if (holder?.pid === this.pid) return { taken: true };
+      if (holder?.writing) {
+        await pause();
+        continue;
+      }
       if (holder && this.lives(holder)) return this.held(holder);
-      if (holder && !(await this.moveAside(holder))) continue;
-      if (await this.create()) return { taken: true };
+      if (holder && !(await this.clear())) {
+        await pause();
+        continue;
+      }
+      if (await this.create(this.file)) return { taken: true };
     }
-    return this.held(await this.read(this.file));
+    const last = await this.read(this.file);
+    return this.held(last && this.lives(last) ? last : null);
   }
 
   /** Whether the process a lock names is alive: a lock no server wrote names none. */
@@ -66,37 +94,38 @@ export class QueueLock {
     return holder.pid > 0 && this.alive(holder.pid);
   }
 
-  /** The answer for a lock another process holds, or one that kept changing hands while this one looked. */
+  /** The answer for a lock another process holds, or for one that kept changing hands while this one looked. */
   held(holder) {
-    return { taken: false, holder: holder ?? { pid: null, since: null }, file: QUEUE_LOCK };
+    return {
+      taken: false,
+      holder: holder?.pid > 0 ? holder : { pid: null, since: null },
+      file: QUEUE_LOCK
+    };
   }
 
   /**
-   * Moves a stale lock aside, and says whether the way is clear. A rename moves whatever is there now, which another
-   * server may have made its own since the stale one was read: that one is put back, and this server does not lead
-   * (the review of #316). Three servers at once on one stale lock can still lose the second's when a third creates its
-   * own in between; two, the case a checkout meets, cannot.
-   * @param {{ pid: number }} stale - The lock as it was read
-   * @returns {Promise<boolean>} True when nothing live was moved
+   * Removes a stale lock under the claim, and says whether the way is clear. Without the claim — another server is
+   * taking over — it removes nothing.
+   * @returns {Promise<boolean>} True when this server held the claim and the lock is no live process's
    */
-  async moveAside(stale) {
-    const aside = `${this.file}.stale-${this.pid}`;
-    try {
-      await rename(this.file, aside);
-    } catch (error) {
-      if (error.code === 'ENOENT') return true;
-      throw error;
-    }
-    const moved = await this.read(aside);
-    if (moved && moved.pid !== stale.pid && this.lives(moved)) {
-      await this.fs.link(aside, this.file).catch((error) => {
-        if (error.code !== 'EEXIST') throw error;
-      });
-      await unlink(aside);
+  async clear() {
+    if (!(await this.create(this.claim))) {
+      const claimant = await this.read(this.claim);
+      // A claim whose server died mid-takeover would block every start after it: it goes, and the next look clears.
+      if (claimant && !claimant.writing && !this.lives(claimant)) {
+        await unlink(this.claim).catch(gone);
+      }
       return false;
     }
-    await unlink(aside).catch(() => {});
-    return true;
+    try {
+      const now = await this.read(this.file);
+      if (now && !now.writing && now.pid !== this.pid && !this.lives(now)) {
+        await unlink(this.file).catch(gone);
+      }
+      return !now || !this.lives(now);
+    } finally {
+      await unlink(this.claim).catch(gone);
+    }
   }
 
   /** Releases the lock, if this process holds it. Synchronous, so a process on its way out can call it. */
@@ -110,23 +139,25 @@ export class QueueLock {
   }
 
   /**
-   * Creates the lock whole, or says it exists: written under a name of its own first and then linked into place, so no
-   * other server ever reads a lock half written and takes it for a torn one. A file system without hard links gets the
-   * lock written in place, created only if absent (the review of #316).
+   * Creates a file naming this process, whole, or says it exists: written under a name of its own first and then
+   * linked into place, so no other server ever reads it half written. A file system without hard links gets it written
+   * in place, created only if absent; read empty meanwhile, it is being written (the reviews of #316).
+   * @param {string} path - The lock, or the claim
+   * @returns {Promise<boolean>} True when this process created it
    */
-  async create() {
+  async create(path) {
     const since = new Date(this.clock()).toISOString();
     const text = `${JSON.stringify({ pid: this.pid, since }, null, 2)}\n`;
-    const draft = `${this.file}.${this.pid}.draft`;
+    const draft = `${path}.${this.pid}.draft`;
     await writeFile(draft, text);
     try {
-      await this.fs.link(draft, this.file);
+      await this.fs.link(draft, path);
       return true;
     } catch (error) {
       if (error.code === 'EEXIST') return false;
       if (!LINKLESS.includes(error.code)) throw error;
       try {
-        await writeFile(this.file, text, { flag: 'wx' });
+        await writeFile(path, text, { flag: 'wx' });
         return true;
       } catch (inPlace) {
         if (inPlace.code === 'EEXIST') return false;
@@ -137,7 +168,12 @@ export class QueueLock {
     }
   }
 
-  /** Who a lock names, or null when it vanished while being read. A lock nobody can read is nobody's: stale. */
+  /**
+   * Who a lock or a claim names; `writing` while it is empty and young; null when there is none. One nobody can read,
+   * or empty for longer than a server takes to write it, is nobody's: stale.
+   * @param {string} path - The lock, or the claim
+   * @returns {Promise<{ pid: number, since: string|null } | { writing: true } | null>} Who holds it
+   */
   async read(path) {
     let text;
     try {
@@ -145,6 +181,16 @@ export class QueueLock {
     } catch (error) {
       if (error.code === 'ENOENT') return null;
       throw error;
+    }
+    if (text === '') {
+      try {
+        const { mtimeMs } = await stat(path);
+        if (Date.now() - mtimeMs < WRITING_MS) return { writing: true };
+      } catch (error) {
+        if (error.code === 'ENOENT') return null;
+        throw error;
+      }
+      return { pid: -1, since: null };
     }
     try {
       const { pid, since = null } = JSON.parse(text);
