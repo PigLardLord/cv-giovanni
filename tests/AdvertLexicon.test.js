@@ -6,7 +6,15 @@ describe('the lexicon is multilingual by construction', () => {
     const languages = AdvertLexicon.languages();
 
     expect(languages).toEqual(['de', 'en', 'it']);
-    for (const group of ['stopwords', 'boilerplate', 'requirementHeadings', 'offerHeadings']) {
+    for (const group of [
+      'stopwords',
+      'boilerplate',
+      'requirementHeadings',
+      'offerHeadings',
+      'structuralHeadings',
+      'plainWords',
+      'dimensions'
+    ]) {
       expect(Object.keys(ADVERT[group]).sort()).toEqual(languages);
     }
   });
@@ -15,6 +23,31 @@ describe('the lexicon is multilingual by construction', () => {
     for (const word of ['the', 'with', 'der', 'für', 'della', 'anche']) {
       expect(AdvertLexicon.isStopword(word)).toBe(true);
     }
+  });
+
+  // A stopword takes every phrase it is in out of the ranking, so a word of a technology's name is a plain word, which
+  // only the provenance check lets pass (the review of #315).
+  test('a word of a technology’s name is a plain word, never a stopword', () => {
+    for (const word of ['new', 'time', 'set', 'use', 'get', 'make', 'keep', 'drive', 'after']) {
+      expect(AdvertLexicon.isStopword(word)).toBe(false);
+      expect(AdvertLexicon.isPlainWord(word)).toBe(true);
+    }
+  });
+
+  test('no word is both a stopword and a plain word, in any language', () => {
+    for (const language of AdvertLexicon.languages()) {
+      expect(ADVERT.plainWords[language].filter((word) => AdvertLexicon.isStopword(word))).toEqual(
+        []
+      );
+    }
+  });
+
+  test('a dimension is what a claim measures, and no stopword', () => {
+    for (const word of ['performance', 'Stability', 'qualità']) {
+      expect(AdvertLexicon.isDimension(word)).toBe(true);
+      expect(AdvertLexicon.isStopword(word)).toBe(false);
+    }
+    expect(AdvertLexicon.isDimension('scalable')).toBe(false);
   });
 
   // The words that would otherwise dominate any frequency ranking, and mean nothing.
@@ -79,7 +112,15 @@ describe('synonyms are curated, and say so', () => {
     ['MDM', 'Mobile Device Management'],
     ['CI/CD', 'Continuous Integration'],
     ['TDD', 'test-driven development'],
-    ['SPM', 'Swift Package Manager']
+    ['SPM', 'Swift Package Manager'],
+    ['engineers', 'developers'],
+    ['engineer', 'developer'],
+    // Across languages (#306).
+    ['Testautomatisierung', 'test automation'],
+    ['Barrierefreiheit', 'accessibility'],
+    ['Qualitätssicherung', 'QA'],
+    ['code reviews', 'code review'],
+    ['unit tests', 'unit testing']
   ])('%s and %s are the same thing', (a, b) => {
     expect(AdvertLexicon.areSynonyms(a, b)).toBe(true);
   });
@@ -116,4 +157,12 @@ describe('the language of the advert', () => {
     expect(AdvertLexicon.languageOf('Senior iOS Engineer')).toBeNull();
     expect(AdvertLexicon.languageOf('')).toBeNull();
   });
+});
+
+// A liaison is no API: "die Schnittstelle zwischen Produkt und Entwicklung" is how German writes a bridging role (the
+// review of #327).
+test('a bare "Schnittstelle" is no API, and its plural and compounds are', () => {
+  expect(AdvertLexicon.areSynonyms('Schnittstelle', 'API')).toBe(false);
+  expect(AdvertLexicon.areSynonyms('Schnittstellen', 'API')).toBe(true);
+  expect(AdvertLexicon.areSynonyms('REST-Schnittstelle', 'API')).toBe(true);
 });

@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
-import { mkdtemp, readdir, readFile, rm, stat } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -757,6 +757,22 @@ const report = [
 ].join('\n');
 
 await writeReport(new URL(target.reportPath('PRINT_AUDIT.md'), projectUrl), `${report}\n`);
+// A tailored CV's audit is read by the tailoring job that printed it (#303), which needs each document's page count and
+// the checks it failed, not the prose: it writes them beside the report, and nowhere a published CV's go.
+if (!target.isPublished) {
+  const results = (rowsOf) =>
+    rowsOf.map(({ layout, pages, checks }) => ({
+      layout,
+      pages,
+      failed: Object.entries(checks)
+        .filter(([, value]) => !value)
+        .map(([name]) => name)
+    }));
+  await writeFile(
+    new URL(`${target.outDir}/PRINT_AUDIT.json`, projectUrl),
+    `${JSON.stringify({ cv: results(rows), letters: results(letterRows) }, null, 2)}\n`
+  );
+}
 console.log(report);
 
 const failedChecks = (checks) =>

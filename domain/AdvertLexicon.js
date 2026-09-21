@@ -131,7 +131,54 @@ export const ADVERT = {
       'solid',
       'hands-on',
       'closely',
-      'across'
+      // Function words, and the plain verbs and nouns of every advert's prose: a tailoring rewords into them, and they
+      // name no technology and no claim (#296). One that begins or ends a technology's name — "New Relic", "time
+      // series", "use cases" — is a plain word instead, below: a stopword takes the whole phrase out of the ranking.
+      'through',
+      'onto',
+      'within',
+      'them',
+      'then',
+      'there',
+      'here',
+      'before',
+      'under',
+      'between',
+      'among',
+      'via',
+      'per',
+      'like',
+      'able',
+      'made',
+      'take',
+      'used',
+      'usage',
+      'part',
+      'both',
+      'each',
+      'well',
+      'plus',
+      'day',
+      'days',
+      'week',
+      'weeks',
+      'month',
+      'months',
+      'must',
+      'need',
+      'needs',
+      'ideal',
+      'understanding',
+      'familiarity',
+      'exposure',
+      'improve',
+      'deliver',
+      'ship',
+      'collaborate',
+      'integrate',
+      'integrating',
+      'optimize',
+      'optimise'
     ],
     de: [
       'der',
@@ -489,22 +536,82 @@ export const ADVERT = {
    * would make the matcher's mistakes harder to see. A match through this table is reported as
    * `synonym`, never as `exact`, so a reader can tell which rung a term arrived on.
    */
+  // A German advert names what an English full CV evidences in German words: "Testautomatisierung" is test automation
+  // (#306). The German forms stand beside the English in the same group, so evidence is found across the two, and a
+  // match through them is reported as `synonym`, as any other. Whole words only: a compound built on one with a
+  // linking "s" — "Testautomatisierungs-Framework", "Barrierefreiheitsprüfung" — is out of reach, as is any compound
+  // the table does not list.
   synonyms: [
-    ['mdm', 'mobile device management'],
-    ['ci/cd', 'continuous integration', 'continuous delivery', 'continuous deployment'],
-    ['ml', 'machine learning'],
-    ['ui', 'user interface'],
-    ['ux', 'user experience'],
-    ['qa', 'quality assurance'],
+    ['mdm', 'mobile device management', 'mobilgeräteverwaltung'],
+    [
+      'ci/cd',
+      'continuous integration',
+      'continuous delivery',
+      'continuous deployment',
+      'kontinuierliche integration'
+    ],
+    ['ml', 'machine learning', 'maschinelles lernen'],
+    ['ui', 'user interface', 'benutzeroberfläche'],
+    ['ux', 'user experience', 'nutzererlebnis', 'benutzererfahrung'],
+    ['qa', 'quality assurance', 'qualitätssicherung'],
     ['spm', 'swift package manager'],
-    ['tdd', 'test driven development', 'test-driven development'],
-    ['api', 'apis'],
-    ['ios', 'apple platform', 'apple platforms']
-  ]
+    ['tdd', 'test driven development', 'test-driven development', 'testgetriebene entwicklung'],
+    // Not the bare singular: "die Schnittstelle zwischen Produkt und Entwicklung" is a liaison, not an API.
+    [
+      'api',
+      'apis',
+      'schnittstellen',
+      'rest-schnittstelle',
+      'rest-schnittstellen',
+      'programmierschnittstelle',
+      'programmierschnittstellen'
+    ],
+    ['ios', 'apple platform', 'apple platforms'],
+    ['developer', 'developers', 'engineer', 'engineers', 'entwickler', 'entwicklerin'],
+    [
+      'test automation',
+      'automated testing',
+      'automated tests',
+      'testautomatisierung',
+      'test-automatisierung',
+      'automatisierte tests'
+    ],
+    ['accessibility', 'barrierefreiheit', 'a11y'],
+    ['architecture', 'architektur', 'softwarearchitektur'],
+    ['code review', 'code reviews', 'code-review', 'code-reviews'],
+    ['unit tests', 'unit testing', 'unit-tests', 'unittests'],
+    ['mobile development', 'mobile app development', 'app-entwicklung', 'mobile entwicklung']
+  ],
+
+  /**
+   * Plain words the provenance check lets a tailoring write although the full CV does not, and the matcher still ranks:
+   * each is a word of some technology's name — "New Relic", "Google Drive", "time series", "set up" — which a stopword
+   * would take out of the ranking whole (the review of #315). Only the English check reads them; the other languages
+   * carry theirs for the shape.
+   */
+  plainWords: {
+    en: ['new', 'time', 'set', 'use', 'get', 'make', 'keep', 'drive', 'after', 'knowledge'],
+    de: ['neu', 'neue', 'neuen', 'zeit', 'nutzen'],
+    it: ['nuovo', 'nuova', 'tempo', 'conoscenza', 'conoscenze', 'usare']
+  },
+
+  /**
+   * Nouns that name what a claim measures: a tailoring may write "test performance" beside the figure its source
+   * measures the test runtime with, and the figure is still held to the source (#296). Beside no figure, "improved app
+   * performance" is a claim, and refused like "scalable" or "reliable" (the review of #315). Still ranked as the
+   * advert's terms.
+   */
+  dimensions: {
+    en: ['performance', 'stability', 'quality', 'speed', 'efficiency'],
+    de: ['performance', 'leistung', 'stabilität', 'qualität', 'geschwindigkeit', 'effizienz'],
+    it: ['prestazioni', 'stabilità', 'qualità', 'velocità', 'efficienza']
+  }
 };
 
 const set = (group) => new Set(Object.values(group).flat().map(fold));
 const STOPWORDS = set(ADVERT.stopwords);
+const DIMENSIONS = set(ADVERT.dimensions);
+const PLAIN_WORDS = set(ADVERT.plainWords);
 const BOILERPLATE = Object.values(ADVERT.boilerplate).flat().map(fold);
 const REQUIREMENT = Object.values(ADVERT.requirementHeadings).flat().map(fold);
 const OFFER = Object.values(ADVERT.offerHeadings).flat().map(fold);
@@ -525,6 +632,16 @@ export class AdvertLexicon {
   /** A word that carries no information about the role, in any supported language. */
   static isStopword(word) {
     return STOPWORDS.has(fold(word));
+  }
+
+  /** A word of an advert's prose the provenance check lets pass, which the matcher still ranks: "new", "time". */
+  static isPlainWord(word) {
+    return PLAIN_WORDS.has(fold(word));
+  }
+
+  /** A noun that names what a claim measures, beside a figure: "performance", "stability". */
+  static isDimension(word) {
+    return DIMENSIONS.has(fold(word));
   }
 
   /** A phrase that belongs to the posting rather than to the job. */
