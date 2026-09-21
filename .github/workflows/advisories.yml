@@ -1,0 +1,29 @@
+name: Advisories
+
+# The dependency tree's advisories, on every pull request and every week (#280). Nine sat on main, one critical,
+# until someone ran `npm audit` by hand (#267). Not a check the merge ruleset requires: the advisory database changes
+# without a commit, so a required check could block a branch for an advisory the branch did not bring. The weekly run
+# is what catches one published between pull requests.
+on:
+  pull_request:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  advisories:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 26
+
+      # The lockfile is the tree: nothing needs installing to read it against the advisory database.
+      - name: Audit the dependency tree
+        run: npm audit --package-lock-only --audit-level=high
