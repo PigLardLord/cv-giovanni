@@ -2,7 +2,13 @@ const DEFAULT_DATA_PATH = 'profiles/general/en.json';
 const PUBLISHED_OUT_DIR = 'generated';
 
 /** The options that mean nothing without a value, and what the value is (#258, #272). */
-const VALUED = Object.freeze({ profile: '<path>', out: '<path>', advert: '<path>', base: '<ref>' });
+const VALUED = Object.freeze({
+  profile: '<path>',
+  out: '<path>',
+  advert: '<path>',
+  base: '<ref>',
+  layout: '<name>'
+});
 
 /**
  * Which CV is being generated, and where its files go.

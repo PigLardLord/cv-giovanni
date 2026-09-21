@@ -247,6 +247,42 @@ describe('what a run is about', () => {
     expect(started).toEqual([]);
   });
 
+  // A tailoring job prints and audits its CV in the one layout it was asked for (#303); a published CV keeps every
+  // layout the page offers, since its build writes the page's downloads and its audits the reports in docs/.
+  const laidOut = { ...manifest, layouts: ['nerd', 'spotlight', 'technical'] };
+
+  test('with --layout, a tailored CV is read in that layout alone', async () => {
+    const run = await resolveRun(
+      'audit-print',
+      's.mjs',
+      ['--profile=applications/20260921-143205-a1b2c3/en.json', '--layout', 'technical'],
+      { ...quiet, readManifest: reads(laidOut) }
+    );
+    expect(run.manifest.layouts).toEqual(['technical']);
+    expect(run.target.dataPath).toBe('applications/20260921-143205-a1b2c3/en.json');
+  });
+
+  test.each([
+    [['--profile=applications/x/en.json', '--layout=modern'], /not a layout the manifest lists/],
+    [['--layout=technical'], /one layout of a tailored CV/],
+    [['--profile=profiles/general/en.json', '--layout=technical'], /one layout of a tailored CV/],
+    [['--profile=applications/x/en.json', '--layout'], /--layout needs a value/]
+  ])('%j is refused', async (argv, reason) => {
+    const said = [];
+    const started = [];
+    const run = await resolveRun('generate-pdfs', 's.mjs', argv, {
+      say: (line) => said.push(line),
+      readManifest: reads(laidOut),
+      run: (_node, args) => {
+        started.push(args);
+        return { status: 0 };
+      }
+    });
+    expect(run).toEqual({ exit: 2 });
+    expect(said.join(' ')).toMatch(reason);
+    expect(started).toEqual([]);
+  });
+
   // --out names where one CV goes. Without --profile the combined download list was still written into
   // generated/, over what the page reads, for PDFs printed somewhere else.
   test('is nothing, said, for --out without the CV it would apply to', async () => {
