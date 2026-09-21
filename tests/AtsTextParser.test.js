@@ -76,7 +76,7 @@ describe('a clean document, as the artefact actually extracts', () => {
       'iOS',
       'Android',
       'Delivery',
-      'Architecture & practices'
+      'Architecture and practices'
     ]);
     expect(cv.skills[0].items).toContain('Swift');
     // Split on `,` and `·` only: on `/` this would shatter into halves that are not skills.
@@ -344,7 +344,7 @@ describe('the printed page, in the order poppler reads it', () => {
         'iOS',
         'Android',
         'Delivery',
-        'Architecture & practices'
+        'Architecture and practices'
       ]);
       expect(cv.skills[0].items).toContain('Swift Package Manager');
       expect(cv.skills[1].items).toContain('DevicePolicyManager');
