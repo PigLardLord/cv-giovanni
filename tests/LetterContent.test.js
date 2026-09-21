@@ -18,7 +18,8 @@ const strings = {
   'cv:letter.salutationAnonymous': 'Dear Hiring Team',
   'cv:letter.closing': 'Kind regards,',
   'cv:letter.attachments': 'Enclosed',
-  'ui:letter.absent': 'This profile carries no cover letter.'
+  'ui:letter.absent': 'This profile carries no cover letter.',
+  'ui:files.letter': 'Cover Letter'
 };
 const t = (key, values = {}) =>
   (strings[key] || key).replace(
@@ -111,9 +112,11 @@ describe('who writes', () => {
     expect(words(profile()).returnAddress).toBe('Giovanni Trovato · Bad Liebenstein');
   });
 
-  test('the document is titled after the sender and the subject', () => {
+  // It said "Giovanni Trovato — Senior iOS Engineer", which could be either document, with another dash than the
+  // CV's (#324).
+  test('the document is titled after the sender, the document and the subject', () => {
     expect(LetterContent.of(profile(), { t, locale: 'en' }).title).toBe(
-      'Giovanni Trovato — Application for iOS Software Engineer'
+      'Giovanni Trovato – Cover Letter – Application for iOS Software Engineer'
     );
   });
 });

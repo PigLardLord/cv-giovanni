@@ -44,7 +44,9 @@ export class LetterContent {
     const subject = letter.subject || t('cv:letter.subject');
 
     return {
-      title: [name, subject].filter(Boolean).join(' — '),
+      // The candidate, the document and its subject, with the dash the CV's own title takes: a viewer's tab, an email's
+      // preview and a screen reader's list of documents tell the letter from the CV by it (#324).
+      title: [name, t('ui:files.letter'), subject].filter(Boolean).join(' – '),
       notice: '',
       letter: {
         sender: {
