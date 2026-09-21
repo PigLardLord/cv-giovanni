@@ -147,15 +147,50 @@ describe('the queue’s lock', () => {
   test('being written — empty, and young — is waited for, and one empty for long is stale', async () => {
     mkdirSync(join(root, 'applications'), { recursive: true });
     writeFileSync(join(root, QUEUE_LOCK), '');
+    // The file's time is the machine's, so this server's clock is too.
+    const server = new QueueLock(root, { pid: 202, alive: () => true });
 
-    expect(await serverWith(202).take()).toEqual({
+    expect(await server.take()).toEqual({
       taken: false,
       holder: { pid: null, since: null },
       file: QUEUE_LOCK
     });
     const old = new Date(Date.now() - 60_000);
     utimesSync(join(root, QUEUE_LOCK), old, old);
-    expect(await serverWith(202).take()).toEqual({ taken: true });
+    expect(await server.take()).toEqual({ taken: true });
+  });
+
+  // The third review of #316: a file from the future read as being written for ever, and a live claim blocked every
+  // start with a refusal that named no file.
+  test('empty and dated in the future, is stale, not being written for ever', async () => {
+    mkdirSync(join(root, 'applications'), { recursive: true });
+    writeFileSync(join(root, QUEUE_LOCK), '');
+    const later = new Date(Date.now() + 3_600_000);
+    utimesSync(join(root, QUEUE_LOCK), later, later);
+
+    expect(await new QueueLock(root, { pid: 202, alive: () => true }).take()).toEqual({
+      taken: true
+    });
+  });
+
+  test('blocked by a live claim, names the claim as the file to delete', async () => {
+    await serverWith(101).take();
+    writeFileSync(join(root, `${QUEUE_LOCK}.takeover`), JSON.stringify({ pid: 303, since: null }));
+
+    expect(await serverWith(202, (pid) => pid !== 101).take()).toEqual({
+      taken: false,
+      holder: { pid: null, since: null },
+      file: `${QUEUE_LOCK}.takeover`
+    });
+  });
+
+  test('its claim is let go with it, so a signal inside a takeover leaves none behind', async () => {
+    mkdirSync(join(root, 'applications'), { recursive: true });
+    writeFileSync(join(root, `${QUEUE_LOCK}.takeover`), JSON.stringify({ pid: 202, since: null }));
+
+    serverWith(202).release();
+
+    expect(existsSync(join(root, `${QUEUE_LOCK}.takeover`))).toBe(false);
   });
 
   test('a claim left by a server that died mid-takeover blocks no one', async () => {

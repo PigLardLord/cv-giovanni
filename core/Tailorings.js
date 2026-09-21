@@ -161,7 +161,10 @@ export class Tailorings {
     if (!this.holder) return null;
     const { holder, file } = this.holder;
     if (!holder.pid) {
-      return 'Another server on this checkout is taking the tailoring queue as this one asks: try again in a moment.';
+      return (
+        'Another server on this checkout is taking the tailoring queue as this one asks: try again in a moment. ' +
+        `If this persists, delete ${file}.`
+      );
     }
     const since = holder.since ? `, since ${holder.since}` : '';
     return (

@@ -40,11 +40,15 @@ const pause = () => new Promise((resolve) => setTimeout(resolve, 20));
  * process id.
  *
  * A lock whose process is gone is stale, and is removed under a claim: a second file, created the same way, which only
- * one server holds at a time. Under the claim the lock is read again and removed only if it is still stale — nobody
- * else removes it, and nobody creates one while it is there — so a live lock is never removed, however many servers
- * start at once (the reviews of #316). A claim left by a server that died mid-takeover is removed like a stale lock;
- * two servers removing that same dead claim at the same instant could each hold one, which needs a crash during a
- * takeover and two starts within it.
+ * one server holds at a time. Under the claim the lock is read again and removed only if it is still stale — while the
+ * claim's server lives nobody else removes it, and nobody creates a lock while the stale one is there — so a live lock
+ * is never removed, however many servers start at once (the reviews of #316).
+ *
+ * A claim whose server died is removed like a stale lock, so a crash inside a takeover blocks no start after it. The
+ * price, chosen over a claim deleted by hand: two servers that remove the same dead claim at the same instant could
+ * each hold one, and both would lead. That needs a server killed inside the few milliseconds of a takeover — a signal
+ * releases the claim with the lock, so only `kill -9` or a power cut leaves one — and two starts interleaving within
+ * the next.
  *
  * A process id the system gave to another program since reads as alive; the refusal names the lock's file, so it can
  * be deleted by hand.
@@ -86,7 +90,10 @@ export class QueueLock {
       if (await this.create(this.file)) return { taken: true };
     }
     const last = await this.read(this.file);
-    return this.held(last && this.lives(last) ? last : null);
+    if (last && this.lives(last)) return this.held(last);
+    // Still changing hands, or blocked by a claim: the refusal names the file that blocks it.
+    const claimed = await this.read(this.claim);
+    return { ...this.held(null), file: claimed ? `${QUEUE_LOCK}.takeover` : QUEUE_LOCK };
   }
 
   /** Whether the process a lock names is alive: a lock no server wrote names none. */
@@ -122,19 +129,24 @@ export class QueueLock {
       if (now && !now.writing && now.pid !== this.pid && !this.lives(now)) {
         await unlink(this.file).catch(gone);
       }
-      return !now || !this.lives(now);
+      return !now || (!now.writing && !this.lives(now));
     } finally {
       await unlink(this.claim).catch(gone);
     }
   }
 
-  /** Releases the lock, if this process holds it. Synchronous, so a process on its way out can call it. */
+  /**
+   * Releases the lock, and a claim this process holds mid-takeover, if they are its own. Synchronous, so a process on
+   * its way out can call it: a signal that stops a takeover leaves no dead claim behind (the third review of #316).
+   */
   release() {
-    try {
-      const { pid } = JSON.parse(readFileSync(this.file, 'utf8'));
-      if (pid === this.pid) unlinkSync(this.file);
-    } catch (error) {
-      if (error.code !== 'ENOENT' && !(error instanceof SyntaxError)) throw error;
+    for (const path of [this.claim, this.file]) {
+      try {
+        const { pid } = JSON.parse(readFileSync(path, 'utf8'));
+        if (pid === this.pid) unlinkSync(path);
+      } catch (error) {
+        if (error.code !== 'ENOENT' && !(error instanceof SyntaxError)) throw error;
+      }
     }
   }
 
@@ -184,8 +196,9 @@ export class QueueLock {
     }
     if (text === '') {
       try {
-        const { mtimeMs } = await stat(path);
-        if (Date.now() - mtimeMs < WRITING_MS) return { writing: true };
+        // A file from the future is no file being written: its clock was wrong, and it would block for ever.
+        const age = this.clock() - (await stat(path)).mtimeMs;
+        if (age >= 0 && age < WRITING_MS) return { writing: true };
       } catch (error) {
         if (error.code === 'ENOENT') return null;
         throw error;
