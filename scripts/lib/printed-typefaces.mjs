@@ -80,6 +80,40 @@ const plain = (markup) =>
     .trim();
 
 /**
+ * The runs the document sets in Bold, as `pdftohtml -xml` marks them: each `<b>` of it, as a reader sees it.
+ * @param {string} xml - What `pdftohtml -xml` wrote for the printed document
+ * @returns {string[]} The bold runs, in order
+ */
+export function boldRuns(xml) {
+  return [...xml.matchAll(/<b>([\s\S]*?)<\/b>/g)]
+    .map(([, markup]) => plain(markup))
+    .filter(Boolean);
+}
+
+/**
+ * Selected Impact lines with a figure that prints in no Bold run of the section (#261): every figure of each line, by
+ * the domain's rule, looked for among the bold runs between the section's heading and the next one — never among the
+ * page's, where a bold "4" in a role would pass a line whose "4" is Regular (the review of #328). A line with no
+ * figure has none to set.
+ * @param {string[]} highlights - The profile's career highlights
+ * @param {string[]} bold - The document's bold runs, from `boldRuns`, in order
+ * @param {(text: string) => string[]} figuresOf - The figures of a line
+ * @param {{ from?: string, to?: string }} [section] - The headings the section runs between, as they print
+ * @returns {string[]} The lines with a figure in the body's weight
+ */
+export function lightFigures(highlights, bold, figuresOf, { from, to } = {}) {
+  const bare = (text) => text.replace(/\s+/g, '');
+  const printed = bold.map(bare);
+  const start = from ? printed.indexOf(bare(from)) + 1 : 0;
+  const stop = to ? printed.indexOf(bare(to), start) : -1;
+  const section = printed.slice(start, stop === -1 ? printed.length : stop);
+  return highlights.filter((line) => {
+    const figures = figuresOf(line);
+    return figures.length > 0 && !figures.every((figure) => section.includes(bare(figure)));
+  });
+}
+
+/**
  * @param {string} xml - What `pdftohtml -xml` wrote for the printed document
  * @param {string[]} intended - The faces its layout prints in, from `typefacesFor`
  * @returns {{ face: string, text: string }[]} Every visible run set in another face, in order
