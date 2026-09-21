@@ -138,10 +138,12 @@ browser and **exits 2 having written nothing** when it cannot find one. A profil
 also gets a cover letter per layout, printed from `letter.html` in the same browser (#151); the `-cover` in a
 filename is what tells the two documents apart.
 
-`npm run audit:print` scores the printed PDFs on seventeen checks, measured on the text layer and
-the rasterised page rather than on the stylesheet, and rewrites `docs/PRINT_AUDIT.md`. All three
-layouts must stay at 17/17. It reads the files the build wrote, and **exits 2 having checked
-nothing** when one is missing, which must never be read as a pass.
+`npm run audit:print` scores the printed PDFs on every check it runs, measured on the text layer
+and the rasterised page rather than on the stylesheet, and rewrites `docs/PRINT_AUDIT.md`, which
+lists the checks the score counts. All three layouts must score full marks; the count is the
+report's to state, since a number written here drifts the day a check is added (#252). It reads the
+files the build wrote, and **exits 2 having checked nothing** when one is missing, which must never
+be read as a pass.
 
 `npm run audit:ats` is the second: it parses the generated PDF the way a stranger's parser would and
 diffs the recovered structure against the authored one, writing `docs/ATS_AUDIT.md`. It exits 1 on
