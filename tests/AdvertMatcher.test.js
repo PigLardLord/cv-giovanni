@@ -278,4 +278,10 @@ describe('a phrase of the advert', () => {
     // Which of "GitLab" and "GitLab CI" ranks is #318's; the list's items are no longer one phrase.
     expect(terms).toEqual(expect.arrayContaining(['fastlane', 'GitLab']));
   });
+
+  test('keeps a technology its brackets qualify: React (Native)', () => {
+    const terms = AdvertMatcher.extractTerms('Requirements\n- React (Native) experience', 20).terms;
+
+    expect(terms.map(({ term }) => term)).toContain('React Native');
+  });
 });

@@ -6,9 +6,11 @@ import { fold } from '../domain/fold.js';
  * and ß included, which an ASCII pattern broke at every one (#305).
  */
 const TOKEN = /\.?[\p{L}\p{N}][\p{L}\p{N}+#./-]*/gu;
-/** Where a phrase ends: a dash, a bar or a hyphen standing between spaces, a bracket, a comma, a colon, a semicolon,
- * a bullet, or a full stop that ends a sentence. */
-const CLAUSE = /\s[–—|-]\s|[,;:()[\]•]|\.(?=\s|$)/u;
+/**
+ * Where a phrase ends: a dash, a bar or a hyphen standing between spaces, a comma, a colon, a semicolon, a bullet, or a
+ * full stop that ends a sentence. Not a bracket: "React (Native)" names one framework (the review of #347).
+ */
+const CLAUSE = /\s[–—|-]\s|[,;:•]|\.(?=\s|$)/u;
 
 /** A term that carries a capital inside it, a digit, or a symbol is probably a technology. */
 const TECHNICAL = /\p{Lu}.*\p{Lu}|[0-9]|[+#/.]/u;
