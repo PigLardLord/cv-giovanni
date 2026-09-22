@@ -7,9 +7,9 @@ Layouts: 3
 
 | Layout | Pages | Score | Worst side margin | Room left |
 |---|---:|---:|---:|---|
-| nerd | 2 | 28/28 | 13.7mm | p1 60.0pt · p2 198.3pt |
-| spotlight | 2 | 28/28 | 33.5mm | p1 21.0pt · p2 189.3pt |
-| technical | 2 | 28/28 | 33.5mm | p1 25.5pt · p2 188.5pt |
+| nerd | 2 | 29/29 | 13.7mm | p1 60.0pt · p2 198.3pt |
+| spotlight | 2 | 29/29 | 33.5mm | p1 21.0pt · p2 189.3pt |
+| technical | 2 | 29/29 | 33.5mm | p1 25.5pt · p2 188.5pt |
 
 Room left is the space between each page's lowest line and its 33pt bottom margin. A page
 with less than one 15.4pt line of running text free is marked ⚠: on the last page the
@@ -34,7 +34,8 @@ poppler reconstructs the page and as the PDF draws it, no image, no line of pros
 80 characters (WCAG 1.4.8; lists of skills, interests and contacts are scanned, not read along a
 measure, and are exempt), in Nerd Mode every line of a role's dates inside its column, every bullet set over no
 more than 2 printed lines and none ending on a line of one word, a figure of every Selected Impact line in Bold, the summary over no more than 3, and every role whole on one page, so no
-page opens on a bullet whose role heading stands on the page before, and every line of the masthead on the
-page's left edge, none of them opening or closing on a separator.
+page opens on a bullet whose role heading stands on the page before, every line of the masthead on the
+page's left edge, none of them opening or closing on a separator, and the PDF titled as the page composes
+its title: "Giovanni Trovato – Curriculum Vitae".
 
-The checks the score counts: format, pages, content, readingOrder, canonicalCompounds, blockIntegrity, skillsAttached, rolesPresent, contrast, margins, textLayerClean, noEmptyFieldMarks, intendedTypeface, noType3Fonts, noPrivateUseGlyphs, wordsSpacedInDrawingOrder, sectionsInOrder, sectionsInOrderDrawn, noImages, measure, datesInColumn, bulletsScan, bulletsEndWhole, impactFiguresBold, summaryScans, rolesWhole, mastheadAligned, mastheadSeparatorsHeld.
+The checks the score counts: format, pages, content, readingOrder, canonicalCompounds, blockIntegrity, skillsAttached, rolesPresent, contrast, margins, textLayerClean, noEmptyFieldMarks, intendedTypeface, noType3Fonts, noPrivateUseGlyphs, wordsSpacedInDrawingOrder, sectionsInOrder, sectionsInOrderDrawn, noImages, measure, datesInColumn, bulletsScan, bulletsEndWhole, impactFiguresBold, summaryScans, rolesWhole, mastheadAligned, mastheadSeparatorsHeld, titled.

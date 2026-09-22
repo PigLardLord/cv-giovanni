@@ -39,6 +39,7 @@ import {
 } from './lib/printed-letter.mjs';
 import { manifestReader, resolveRun } from './lib/published-targets.mjs';
 import { FIXTURES, fixturePair, staleFixtures } from './lib/print-fixtures.mjs';
+import { composedTitles, pdfTitle } from './lib/pdf-titles.mjs';
 import { LetterContent } from '../core/LetterContent.js';
 import { CoverLetter } from '../domain/CoverLetter.js';
 import { CvDocument } from '../domain/CvDocument.js';
@@ -73,6 +74,13 @@ const { target, manifest } = run;
 const profile = await readJson(target.dataPath);
 const catalogue = await readJson(`locales/${target.locale}/cv.json`);
 const labels = catalogue.sections;
+// Both namespaces, as the page loads them: with `cv` alone, the letter's title read "… – ui:files.letter – …" (#340).
+const translate = catalogueTranslator({
+  cv: catalogue,
+  ui: await readJson(`locales/${target.locale}/ui.json`)
+});
+// The title each document's page composes, which Chrome writes into the PDF it prints.
+const titles = composedTitles(profile, { t: translate, locale: target.locale });
 // The prose a reader follows along a line, and each role's dates as Nerd Mode prints them, with their length (#155).
 const prose = proseOf(profile);
 const cv = new CvDocument(profile);
@@ -557,7 +565,10 @@ try {
       mastheadAligned: ragged.length === 0,
       // No line of the masthead opens or closes on a separator: the contacts' dots are drawn by the stylesheet, so
       // a field the profile leaves out takes its value away and would leave its dot behind (#178, #180).
-      mastheadSeparatorsHeld: stranded.length === 0
+      mastheadSeparatorsHeld: stranded.length === 0,
+      // The PDF's title is the one the page composes from meta.title: a viewer's tab, an email's preview and a
+      // screen reader's list of documents show it, and a letter titled like its CV cannot be told from it, #324.
+      titled: pdfTitle(info) === titles.cv
     };
 
     const passed = Object.values(checks).filter(Boolean).length;
@@ -568,6 +579,7 @@ try {
       tagged: isTagged(info),
       score: `${passed}/${Object.keys(checks).length}`,
       checks,
+      title: pdfTitle(info),
       faint: faint.slice(0, 8),
       fallback: fallback.slice(0, 8),
       type3,
@@ -594,10 +606,7 @@ try {
 
   if (letters.files.length) {
     // The letter's words as the page wrote them, from the same catalogue, so nothing is expected that it never said.
-    const { letter: words } = LetterContent.of(profile, {
-      t: catalogueTranslator({ cv: catalogue }),
-      locale: target.locale
-    });
+    const { letter: words } = LetterContent.of(profile, { t: translate, locale: target.locale });
     const anchors = letterAnchors(words);
     const collapse = (value) => value.replace(/\s+/g, ' ').trim();
     // The three things that make it a letter rather than a page of prose.
@@ -652,7 +661,10 @@ try {
         // The letter is the other artefact this script audits, and the rule is the same: no glyph mapped
         // to a Private Use code point, because a reader that trusts the map loses it (#238).
         noPrivateUseGlyphs: privateUse.length === 0 && unreadMaps.length === 0,
-        noImages: images === 0
+        noImages: images === 0,
+        // Titled as a letter, never as the CV it travels with: the page writes the CV's title first and the letter's
+        // over it, so a letter whose words failed to render would print under the CV's, #340.
+        titled: pdfTitle(info) === titles.letter
       };
 
       const passed = Object.values(checks).filter(Boolean).length;
@@ -662,6 +674,7 @@ try {
         tagged: isTagged(info),
         score: `${passed}/${Object.keys(checks).length}`,
         checks,
+        title: pdfTitle(info),
         faint: faint.slice(0, 8),
         fallback: fallback.slice(0, 8),
         type3,
@@ -757,8 +770,9 @@ const report = [
   `${MEASURE_LIMIT} characters (WCAG 1.4.8; lists of skills, interests and contacts are scanned, not read along a`,
   "measure, and are exempt), in Nerd Mode every line of a role's dates inside its column, every bullet set over no",
   `more than ${BULLET_LINES} printed lines and none ending on a line of one word, a figure of every Selected Impact line in Bold, the summary over no more than ${SUMMARY_LINES}, and every role whole on one page, so no`,
-  'page opens on a bullet whose role heading stands on the page before, and every line of the masthead on the',
-  "page's left edge, none of them opening or closing on a separator.",
+  'page opens on a bullet whose role heading stands on the page before, every line of the masthead on the',
+  "page's left edge, none of them opening or closing on a separator, and the PDF titled as the page composes",
+  `its title: "${titles.cv}".`,
   '',
   scoredChecks(rows),
   // Only a profile that carries a letter has one to report, so the published report reads as it always has.
@@ -786,7 +800,8 @@ const report = [
         "inside a DL window envelope's window 20–110mm across (DIN 5008 form B), every word at 4.5:1",
         `on paper, every margin no narrower than ${MARGIN_FLOOR_MM}mm (form B is asymmetric by design, so the sides`,
         'are not compared), no pictograph in the text layer, every run of text set in a typeface its layout',
-        'prints in, no Type 3 font, no glyph mapped to a Private Use code point, and no image.',
+        'prints in, no Type 3 font, no glyph mapped to a Private Use code point, no image, and the PDF titled',
+        `as the page composes the letter's title: "${titles.letter}".`,
         '',
         scoredChecks(letterRows)
       ]
@@ -849,6 +864,7 @@ if (failures.length || letterFailures.length) {
           ({
             layout,
             checks,
+            title,
             faint,
             fallback,
             type3,
@@ -871,6 +887,7 @@ if (failures.length || letterFailures.length) {
           }) => ({
             layout,
             failed: failedChecks(checks),
+            ...(checks.titled ? {} : { title, composed: titles.cv }),
             faint,
             fallback,
             type3,
@@ -893,9 +910,10 @@ if (failures.length || letterFailures.length) {
           })
         ),
         ...letterFailures.map(
-          ({ layout, checks, faint, fallback, type3, parts, window, images, margins }) => ({
+          ({ layout, checks, title, faint, fallback, type3, parts, window, images, margins }) => ({
             letter: layout,
             failed: failedChecks(checks),
+            ...(checks.titled ? {} : { title, composed: titles.letter }),
             faint,
             fallback,
             type3,
