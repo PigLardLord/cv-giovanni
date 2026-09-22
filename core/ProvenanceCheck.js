@@ -3,6 +3,7 @@ import { CoverLetter } from '../domain/CoverLetter.js';
 import { DateRange, MONTHS } from '../domain/DateRange.js';
 import { fold } from '../domain/fold.js';
 import { driftingSpans } from '../domain/StatedSpans.js';
+import { TECHNOLOGIES } from '../domain/TechnologyLexicon.js';
 import { AdvertMatcher } from './AdvertMatcher.js';
 import { ProfileShape } from './ProfileShape.js';
 
@@ -348,7 +349,10 @@ export class ProvenanceCheck {
         ? shown.filter((term) => /\p{Lu}.*\p{Lu}|\d|[+#/.]/u.test(term))
         : shown),
       ...(source.skills || []).flatMap((group) => (group.items || []).map((item) => item.name)),
-      ...(translated ? [] : ProvenanceCheck.wordsOnlyIn(advert, whole))
+      ...(translated ? [] : ProvenanceCheck.wordsOnlyIn(advert, whole)),
+      // A technology the lexicon knows, however it is written and in either language: in lower case, opening a
+      // sentence, or among a translation's capitalised nouns, its capitals say nothing (#292).
+      ...TECHNOLOGIES
     ].filter(Boolean);
     const states = (path, text, against, allowed) => {
       for (const reason of ProvenanceCheck.additions(text, against, {
