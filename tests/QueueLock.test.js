@@ -170,6 +170,9 @@ describe('the queue’s lock', () => {
     const server = new QueueLock(root, { pid: 202, alive: () => true, clock: () => mtimeMs - 0.5 });
 
     expect(await server.take()).toMatchObject({ taken: false, holder: { pid: null } });
+    // And a file a tenth of a second ahead is from the future, and stale at once.
+    const ahead = new QueueLock(root, { pid: 202, alive: () => true, clock: () => mtimeMs - 100 });
+    expect(await ahead.take()).toEqual({ taken: true });
   });
 
   // The third review of #316: a file from the future read as being written for ever, and a live claim blocked every

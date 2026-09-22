@@ -8,8 +8,12 @@ const LINKLESS = ['EPERM', 'ENOTSUP', 'EOPNOTSUPP', 'ENOSYS', 'EXDEV'];
 /** How long a lock may stay empty while its server writes it: longer, and the server died between the two. */
 const WRITING_MS = 5000;
 
-/** How far ahead of the clock a file's time may read and still be now: whole milliseconds against their fractions. */
-const SKEW_MS = 1000;
+/**
+ * How far ahead of the clock a file's time may read and still be now: whole milliseconds against their fractions, which
+ * measured under a millisecond; fifty leaves room for a busy machine and keeps a file really from the future stale at
+ * once (the review of #345).
+ */
+const SKEW_MS = 50;
 
 /** How many times a server looks again at a lock that is changing hands before it says so. */
 const LOOKS = 5;
