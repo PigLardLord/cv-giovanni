@@ -241,9 +241,9 @@ const scratch = mkdtempSync(join(tmpdir(), 'audit-ats-base-'));
 cleanups.push(() => rmSync(scratch, { recursive: true, force: true }));
 
 // The base's parser, and what the base grades a print with: its diff, the lines the diff expects, its document model
-// (#201), and the words its lines name the catalogue by (#215). Every module they import, at the base's commit, imported apart from this branch's: the base's
-// `EntryLines` answers only the base's diff, and a module the closure missed fails the import rather than being read
-// from this branch. A base that does not have them cannot grade its own print, and nothing is compared.
+// (#201), and the key its lines name the catalogue by (#215). Every module they import, at the base's commit, imported
+// apart from this branch's: the base's `EntryLines` answers only the base's diff and the base's words, and a module the
+// closure missed fails the import rather than being read from this branch. A base that does not have them cannot grade its own print, and nothing is compared.
 let fromBase;
 try {
   const [parser, diff, model, lines] = await importApart(
