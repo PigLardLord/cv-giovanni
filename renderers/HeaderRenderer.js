@@ -29,11 +29,13 @@ export class HeaderRenderer extends Renderer {
     if (contactsElement) {
       const email = this.i18n ? this.i18n.t('contacts.email', { ns: 'cv' }) : 'Email';
       const phone = this.i18n ? this.i18n.t('contacts.phone', { ns: 'cv' }) : 'Phone';
-      // Labels and values are text, never markup (#157).
+      // Labels and values are text, never markup (#157). A label is set in weight, in a span: a <strong> is tagged
+      // Strong in the printed PDF, which poppler-based readers drop with its text (#370).
       const line = (label, value) => {
-        const strong = root.createElement('strong');
-        strong.textContent = `${label}:`;
-        return [strong, root.createTextNode(` ${value || ''}`)];
+        const named = root.createElement('span');
+        named.className = 'contact-label';
+        named.textContent = `${label}:`;
+        return [named, root.createTextNode(` ${value || ''}`)];
       };
       contactsElement.replaceChildren(
         ...line(email, identity.email),

@@ -23,7 +23,7 @@ export class CareerHighlightsRenderer extends BaseRenderer {
       const item = this.createElement(root, 'li');
       figurePieces(highlight).forEach(({ text, figure }) => {
         if (figure)
-          item.appendChild(this.createElement(root, 'strong', 'impact-figure no-break', text));
+          item.appendChild(this.createElement(root, 'span', 'impact-figure no-break', text));
         else this.appendProse(root, item, text);
       });
       container.appendChild(item);

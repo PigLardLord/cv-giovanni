@@ -16,7 +16,7 @@ export class LanguagesRenderer extends BaseRenderer {
   createLanguageItem(root, language) {
     // The name and the level are text (#157), and a separator in the level stays with its words (#180).
     return this.appendPieces(root, this.createElement(root, 'li'), [
-      this.createElement(root, 'strong', '', `${language.name ?? ''}:`),
+      this.createElement(root, 'span', 'language-name', `${language.name ?? ''}:`),
       ...holdSeparators(root, ` ${language.level ?? ''}`)
     ]);
   }

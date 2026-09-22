@@ -18,7 +18,7 @@ export class CertificationsRenderer extends BaseRenderer {
     // Every string from the data is text (#157); the name is a link to the certificate when there is one, and the
     // issuer and the year each bring their own separator only when the certification has them (#169), held to the
     // words either side of it (#180).
-    const name = this.createElement(root, 'strong', '', String(cert.name ?? ''));
+    const name = this.createElement(root, 'span', 'cert-name', String(cert.name ?? ''));
     const title = cert.url ? this.createLink(root, cert.url, '') : null;
     if (title) title.appendChild(name);
 

@@ -123,7 +123,7 @@ const NAMED = [
   '.job-header',
   '.edu-degree',
   '.edu-school',
-  '#certifications strong',
+  '#certifications .cert-name',
   '#name',
   '#title',
   '#location',

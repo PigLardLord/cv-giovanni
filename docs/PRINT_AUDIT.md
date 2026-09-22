@@ -7,7 +7,7 @@ Layouts: 1
 
 | Layout | Pages | Score | Worst side margin | Room left |
 |---|---:|---:|---:|---|
-| technical | 2 | 28/28 | 33.5mm | p1 13.5pt ⚠ · p2 190.8pt |
+| technical | 2 | 29/29 | 33.5mm | p1 13.5pt ⚠ · p2 190.8pt |
 
 Room left is the space between each page's lowest line and its 33pt bottom margin. A page
 with less than one 15.4pt line of running text free is marked ⚠: on the last page the
@@ -33,9 +33,9 @@ skill categories with the spaces between their words, the sections in reading or
 poppler reconstructs the page and as the PDF draws it, no image, no line of prose past
 80 characters (WCAG 1.4.8; lists of skills, interests and contacts are scanned, not read along a
 measure, and are exempt), every bullet set over no
-more than 2 printed lines and none ending on a line of one word, a figure of every Selected Impact line in Bold, the summary over no more than 3, and every role whole on one page, so no
+more than 2 printed lines and none ending on a line of one word, a figure of every Selected Impact line in Bold, and every one of them in the structure tree, which poppler reads with no element rejected, the summary over no more than 3, and every role whole on one page, so no
 page opens on a bullet whose role heading stands on the page before, every line of the masthead on the
 page's left edge, none of them opening or closing on a separator, and the PDF titled as the page composes
 its title: "Giovanni Trovato – Curriculum Vitae".
 
-The checks the score counts: format, pages, content, readingOrder, canonicalCompounds, blockIntegrity, skillsAttached, rolesPresent, contrast, margins, textLayerClean, noEmptyFieldMarks, intendedTypeface, noType3Fonts, noPrivateUseGlyphs, wordsSpacedInDrawingOrder, sectionsInOrder, sectionsInOrderDrawn, noImages, measure, bulletsScan, bulletsEndWhole, impactFiguresBold, summaryScans, rolesWhole, mastheadAligned, mastheadSeparatorsHeld, titled.
+The checks the score counts: format, pages, content, readingOrder, canonicalCompounds, blockIntegrity, skillsAttached, rolesPresent, contrast, margins, textLayerClean, noEmptyFieldMarks, intendedTypeface, noType3Fonts, noPrivateUseGlyphs, wordsSpacedInDrawingOrder, sectionsInOrder, sectionsInOrderDrawn, noImages, measure, bulletsScan, bulletsEndWhole, impactFiguresBold, treeReadable, summaryScans, rolesWhole, mastheadAligned, mastheadSeparatorsHeld, titled.
