@@ -3,7 +3,6 @@
   "actions": { "downloadPdf": "PDF herunterladen" },
   "layouts": {
     "nerd": "Nerd-Modus",
-    "spotlight": "Wirkung im Fokus",
     "technical": "Technisches Profil"
   },
   "accessibility": {

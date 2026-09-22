@@ -240,7 +240,7 @@ where the screen audit cannot:
 - **The lesser of two paired actions carries no shadow, at rest or on hover.** Fill and shadow mark the
   primary. The secondary may share its hue in its outline and its label, never its fill or its shadow (#110).
 - **A focus ring takes the tone its surface cannot swallow, never a bright one.** Deep on a light surface,
-  white on a dark one such as Spotlight's ember masthead. It is an outline, never a shadow, which forced
+  white on a dark one such as Technical Profile's blue masthead. It is an outline, never a shadow, which forced
   colours drop. And it is drawn whole: a focusable control stands at least the ring's offset and width, plus
   3px, from the next one, so its ring meets the surface and not the next control's fill; where controls touch,
   as in Nerd Mode's segmented switcher, the focused one is raised above its neighbours (#121).
@@ -273,8 +273,8 @@ that button at one height (#116); and, in forced colours, the primary's border n
 secondary's (#119). The rules above that came from them stay, for the next pair of actions.
 
 A copy of the page has a space where a line broke, so no check on the copy can tell where one did: the product
-review of #179 measured a degree's period broken as "Università degli Studi di Pisa (2014" / "– 2016)" at Impact
-Spotlight's 1280px while the selection read it whole. Since #180 `npm run audit:screen` also reads the lines the CV
+review of #179 measured a degree's period broken as "Università degli Studi di Pisa (2014" / "– 2016)" in a 1280px
+column while the selection read it whole. Since #180 `npm run audit:screen` also reads the lines the CV
 is laid on, from the box of every character the page draws, in the same stretch of the page the copy is selected
 from: no line starts or ends with a separator, `·`, `–`, `—`, `|` or `→`, and no period the profile writes is split across
 two lines. A period wider than its line cannot keep to one, and there the least bad break is after its dash, which
@@ -647,9 +647,10 @@ Settled on #144 by the owner, and not to be undone by someone reclaiming space:
   Three layouts had meant three builds, three audits and three reviews of every change, and a review
   of one print did not carry over to the others. The manifest names the printed layout as `pdf`, and
   `printedLayout` in `core/ProfileResolver.js` is the one rule the page, the build, the audits and a
-  tailoring job read it by (#361). Spotlight still ships as a screen layout until #362 retires it.
-  The ATS fixtures of the Nerd Mode and Spotlight prints stay as `frozen-print-…`: the parser still
-  reads those shapes, but no audit holds them to a print.
+  tailoring job read it by (#361). Spotlight left the page too (#362): the switcher offers Nerd Mode
+  and Technical Profile, a link with no `?layout=` opens Technical Profile, and so does an old
+  `?layout=spotlight`. The ATS fixtures of the Nerd Mode and Spotlight prints stay as
+  `frozen-print-…`: the parser still reads those shapes, but no audit holds them to a print.
 - **One CV, printed from the page.** `npm run build:pdf` prints the layout `config/cv-manifest.json`
   names as its `pdf`, under the name the page already offers, and writes `generated/manifest.json`
   from what it printed. There is no second design to keep in step.
@@ -722,8 +723,7 @@ and did (#153). A letter is far simpler than a CV, which kept the cost of re-exp
   glyphs from 102.5mm, one page.
 - **Inter from its static TrueType files, and no tracking,** as the CV prints, for the same reasons
   (#143). `letter.css` declares only the faces the letter prints in and never loads
-  `vendor/fonts/fonts.css`. Impact Spotlight sets the sender's name in Instrument Serif, as
-  `print.css` sets the CV's name.
+  `vendor/fonts/fonts.css`.
 - **Its audit.** `npm run audit:print` reads every letter the build wrote beside the CV, exits 2 when
   one is missing, and scores each on checks of its own: A4, one page, the recipient's company, the
   subject and the signature, the letter's parts in reading order in both orders, the address in the

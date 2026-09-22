@@ -89,7 +89,6 @@ const SIZES = [
  */
 const BOUNDS = {
   nerd: ['#source-code', '#source-code'],
-  spotlight: ['.hero-section', '.main-content'],
   technical: ['.hero-section', '.main-content']
 };
 

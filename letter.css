@@ -23,29 +23,6 @@
   src: url('vendor/fonts/inter/Inter-Bold.ttf') format('truetype');
 }
 
-/* Impact Spotlight's display face, for the name alone, as print.css sets the CV's name. */
-@font-face {
-  font-family: 'Instrument Serif';
-  font-style: normal;
-  font-weight: 400;
-  src: url('vendor/fonts/instrument-serif/instrument-serif-latin-ext-400-normal.woff2')
-    format('woff2');
-  unicode-range:
-    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
-    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
-    U+A720-A7FF;
-}
-
-@font-face {
-  font-family: 'Instrument Serif';
-  font-style: normal;
-  font-weight: 400;
-  src: url('vendor/fonts/instrument-serif/instrument-serif-latin-400-normal.woff2') format('woff2');
-  unicode-range:
-    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
-    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-
 /* Form B's margins: 24.1mm on the left, where a window envelope needs the address, and 20mm elsewhere. */
 @page {
   size: A4;
@@ -128,15 +105,6 @@ body:not([data-rendered]) {
   font-size: 18pt;
   font-weight: 700;
   line-height: 1.2;
-}
-
-/* Impact Spotlight's name in Instrument Serif, as print.css sets the CV's; its narrow word space is widened so a
-   parser reading in drawing order still finds two words (#143). */
-body[data-layout='spotlight'] .letter-name {
-  font-family: 'Instrument Serif', Georgia, serif;
-  font-size: 22pt;
-  font-weight: 400;
-  word-spacing: 0.1em;
 }
 
 .letter-contact {

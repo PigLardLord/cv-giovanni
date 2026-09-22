@@ -63,7 +63,7 @@
    ============================================================================= */
 
 /* No tracking in print (#143). A parser that reads in drawing order finds a word's end only in the gap the
-   page leaves, and letter-spacing narrows it: Impact Spotlight's name extracted as "GiovanniTrovato". The
+   page leaves, and letter-spacing narrows it: a name set in a display serif extracted as "GiovanniTrovato". The
    design system of pdfmake's PDF held the same rule until #153. */
 html body * {
   letter-spacing: 0 !important;
@@ -365,7 +365,7 @@ body[data-layout='technical'] .container {
    piece holding an "@" or a digit, so the place keeps a dot between itself and what follows.
 
    No line may wrap. Measured on the printed PDF at 10pt, the longest runs 412pt of Nerd Mode's 517pt and
-   391pt of Impact Spotlight's and Technical Profile's 405pt: the addresses, whose separators are set
+   391pt of Technical Profile's 405pt: the addresses, whose separators are set
    tighter here than the screen's for exactly that reason. */
 .contact-card {
   display: block !important;

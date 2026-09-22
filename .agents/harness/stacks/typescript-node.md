@@ -87,7 +87,7 @@ carries `data-i18n` keys and `DocumentLocalizer` applies them. No user-visible s
 JS or HTML: add the key to **both** catalogs or `LocaleCatalogs.test.js` fails. `I18nService`
 appends a `?v=` cache-buster to `backend.loadPath` — bump it when the catalogs change shape.
 
-The three layouts `nerd`, `spotlight` and `technical` are declared in two places that must
+The two layouts `technical` and `nerd` are declared in two places that must
 agree, `LayoutResolver` and `config/cv-manifest.json`, and styled per layout in `layouts.css`,
 `design-glacier.css` and `print.css`.
 

@@ -202,9 +202,10 @@ three options to look thorough wastes the reader's decision.
 ## Respect the medium you are proposing into
 
 When you are working inside a project that generates its CV, propose within what that pipeline
-can actually do, and read enough of it to know. In this repository that means: three layouts
-(`nerd`, `spotlight`, `technical`), a PDF printed from the page by Chrome through `print.css` in one
-reading column on two A4 pages, and an audit that scores each printed layout on format, page count,
+can actually do, and read enough of it to know. In this repository that means: one layout,
+Technical Profile, and Nerd Mode as a screen-only view of the same CV (#231); a PDF printed from the
+Technical Profile page by Chrome through `print.css` in one reading column on two A4 pages; and an
+audit that scores the print on format, page count,
 required text, reading order in both of the orders parsers read, contrast on paper, margins,
 typefaces, Type 3 fonts and images.
 

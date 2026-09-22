@@ -20,7 +20,7 @@ export class CvFiles {
    * @param {{ profile?: string, locale?: string, layout?: string }} options - The combination
    * @returns {string} The filename
    */
-  filename(data, { profile = 'general', locale = 'en', layout = 'spotlight' } = {}) {
+  filename(data, { profile = 'general', locale = 'en', layout = 'technical' } = {}) {
     const name = nameSlug(this.documentFactory(data).identity.name);
     return `${name}-${profile}-${locale}-${layout}.pdf`;
   }
@@ -34,7 +34,7 @@ export class CvFiles {
    * @param {{ profile?: string, locale?: string, layout?: string }} options - The combination it accompanies
    * @returns {string} The filename
    */
-  letterFilename(data, { profile = 'general', locale = 'en', layout = 'spotlight' } = {}) {
+  letterFilename(data, { profile = 'general', locale = 'en', layout = 'technical' } = {}) {
     const name = nameSlug(this.documentFactory(data).identity.name);
     return `${name}-${profile}-${locale}-${layout}-cover.pdf`;
   }
