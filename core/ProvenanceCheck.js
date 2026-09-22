@@ -844,10 +844,13 @@ export class ProvenanceCheck {
               !AdvertLexicon.isStopword(word) &&
               !AdvertLexicon.isPlainWord(word)
           )
-          // Found as written, or as the table spells it: "engineers" where the source writes "developers" (#296).
+          // Found as written, as the table spells it — "engineers" where the source writes "developers" (#296) — or in
+          // its other number: "code reviews" where the source writes "code review" (#319).
           .filter(
             (word) =>
-              !AdvertLexicon.formsOf(word).some((form) => AdvertMatcher.contains(folded, form))
+              !AdvertLexicon.formsOf(word)
+                .flatMap(numbers)
+                .some((form) => AdvertMatcher.contains(folded, form))
           )
       )
     ];
@@ -913,6 +916,38 @@ function measured(dimension, text) {
     const where = clause.search(at);
     return where >= 0 && figuresOf(clause.slice(where)).length > 0;
   });
+}
+
+/** Words that end like a plural and are none: stripped, "news" would be "new" and "means" "mean" (the review of #342). */
+const NOT_PLURALS = new Set([
+  'news',
+  'goods',
+  'means',
+  'series',
+  'species',
+  'lens',
+  'gas',
+  'bus',
+  'sales'
+]);
+
+/**
+ * A word in both its numbers, as English regularly writes them: "review" and "reviews", "process" and "processes",
+ * "library" and "libraries", "analysis" and "analyses". No stemmer: a few rules anyone can read, and a word they would
+ * get wrong is only a word the check goes on holding. A singular is never made of a word that ends like a plural and is
+ * none (`NOT_PLURALS`), nor of one in -ss, -us, -is or -ics, which English does not pluralise with the -s it ends in
+ * (#319).
+ */
+function numbers(word) {
+  const forms = [word, `${word}s`, `${word}es`];
+  if (/[^aeiou]y$/.test(word)) forms.push(word.replace(/y$/, 'ies'));
+  if (/is$/.test(word)) forms.push(word.replace(/is$/, 'es'));
+  if (NOT_PLURALS.has(word) || /(?:ss|us|is|ics)$/.test(word)) return forms;
+  if (/[^aeiou]ies$/.test(word)) forms.push(word.replace(/ies$/, 'y'));
+  else if (/yses$/.test(word)) forms.push(word.replace(/es$/, 'is'));
+  else if (/(?:s|x|z|ch|sh)es$/.test(word)) forms.push(word.replace(/es$/, ''));
+  if (/[^s]s$/.test(word)) forms.push(word.replace(/s$/, ''));
+  return forms;
 }
 
 /** What a name may be found in its source as: itself, without a possessive, or the parts of it that are names. */

@@ -1287,6 +1287,34 @@ test('an English claim of a German advert term the source does not make is refus
   ).toEqual(['says "Testautomatisierung", which its source does not']);
 });
 
+// A word in its other number is the word (#319): the advert's "code reviews" where the source writes "code review".
+describe('a word of the advert in its other number', () => {
+  test.each([
+    ['code reviews', 'Code review on every change.'],
+    ['code review', 'Code reviews on every change.'],
+    ['libraries', 'Wrote the library the app uses.'],
+    ['processes', 'Owned the release process.'],
+    ['analyses', 'Ran a quantitative analysis of the data.']
+  ])('"%s" is found where the source writes "%s"', (advert, source) => {
+    expect(ProvenanceCheck.wordsOnlyIn(advert, source)).toEqual([]);
+  });
+
+  // The review of #342: "news" stripped of its s was "new", which any CV writes.
+  test.each([
+    ['news', 'We shipped a brand new onboarding flow.'],
+    ['goods', 'Delivered a good outcome for the client.'],
+    ['means', 'The mean response time improved.']
+  ])('"%s" is not the plural of what "%s" writes', (advert, source) => {
+    expect(ProvenanceCheck.wordsOnlyIn(advert, source)).toEqual([advert]);
+  });
+
+  test('and a word the source does not write in either number is still held', () => {
+    expect(
+      ProvenanceCheck.wordsOnlyIn('scalable, reliable', 'Code review on every change.')
+    ).toEqual(['scalable', 'reliable']);
+  });
+});
+
 describe('the names a text writes', () => {
   // A sentence begins at the start and after a full stop; after a colon, a semicolon or a dash it goes on, and a
   // capital there is a name (the review of #286).

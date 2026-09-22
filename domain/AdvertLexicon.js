@@ -380,12 +380,18 @@ export const ADVERT = {
       'part time',
       'part-time',
       'permanent',
+      'permanent position',
+      'permanent contract',
       'competitive salary',
       'about us',
       'join us',
       'our mission',
       'diverse',
       'inclusive',
+      'diverse team',
+      'inclusive team',
+      'diverse and inclusive',
+      'inclusive workplace',
       'flexible hours',
       'remote friendly'
     ],
@@ -397,6 +403,12 @@ export const ADVERT = {
       'benefits',
       'jetzt bewerben',
       'bewerbung',
+      'bewerbungsunterlagen',
+      'bewerbungsprozess',
+      'ihre bewerbung',
+      'deine bewerbung',
+      'ihre bewerbungsunterlagen',
+      'deine bewerbungsunterlagen',
       'vollzeit',
       'teilzeit',
       'unbefristet',
@@ -413,6 +425,10 @@ export const ADVERT = {
       'pari opportunità',
       'indipendentemente da',
       'offriamo',
+      'offriamo un',
+      'offriamo una',
+      'ti offriamo',
+      'vi offriamo',
       'cosa offriamo',
       'benefit',
       'candidati ora',
@@ -421,6 +437,8 @@ export const ADVERT = {
       'part time',
       'indeterminato',
       'determinato',
+      'tempo determinato',
+      'tempo indeterminato',
       'chi siamo',
       'la nostra missione',
       'le tue mansioni',
@@ -642,7 +660,20 @@ const GENDER_MARKER = new RegExp(
   String.raw`\s*(?:[([]\s*${whole(ANY)}\s*[)\]]|${whole(LONG)})`,
   'giu'
 );
-const BOILERPLATE = Object.values(ADVERT.boilerplate).flat().map(fold);
+// Each entry as whole words, never inside a word or before a hyphen: as substrings, "about us" swallowed "about
+// users", "our mission" "our mission-critical app" and "bewerbung" "Bewerbungsmanagement-Software" (#335). An entry
+// of one word — "diverse", "benefits", "determinato" — is an ordinary word too, and marks furniture only on a short
+// line: "Vollzeit, unbefristet" is, "a diverse set of technologies" is not.
+const wholeEntry = (entry) =>
+  new RegExp(
+    `(?<![\\p{L}\\p{N}])${entry.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}(?![\\p{L}\\p{N}-])`,
+    'u'
+  );
+const FURNITURE = Object.values(ADVERT.boilerplate).flat().map(fold);
+const PHRASES = FURNITURE.filter((entry) => /\s/.test(entry)).map(wholeEntry);
+const WORDS = FURNITURE.filter((entry) => !/\s/.test(entry)).map(wholeEntry);
+/** How many words a line may hold and still be furniture when a word of it is. */
+const SHORT = 3;
 const REQUIREMENT = Object.values(ADVERT.requirementHeadings).flat().map(fold);
 const OFFER = Object.values(ADVERT.offerHeadings).flat().map(fold);
 const STRUCTURAL = Object.values(ADVERT.structuralHeadings).flat().map(fold);
@@ -689,7 +720,24 @@ export class AdvertLexicon {
   /** A phrase that belongs to the posting rather than to the job. */
   static isBoilerplate(phrase) {
     const folded = fold(phrase);
-    return BOILERPLATE.some((entry) => folded === entry || folded.includes(entry));
+    if (AdvertLexicon.isBoilerplatePhrase(folded)) return true;
+    // A word of it counts on a short line — a slash between two words is no word (the review of #346) — or as the
+    // label a line opens with: "Benefits: gym, lunch".
+    const words = folded.split(/[^\p{L}\p{N}/.-]+/u).filter((word) => /[\p{L}\p{N}]/u.test(word));
+    if (words.length <= SHORT && WORDS.some((entry) => entry.test(folded))) return true;
+    return WORDS.some((entry) => new RegExp(`^\\s*${entry.source}\\s*:`, 'u').test(folded));
+  }
+
+  /**
+   * Whether a phrase holds a phrase of posting furniture — "competitive salary", "wir bieten" — as the matcher asks of
+   * each phrase it ranks. A lone word of the list is no furniture inside a phrase: "health benefits administration"
+   * is a job (the review of #346).
+   * @param {string} phrase - A phrase of the advert
+   * @returns {boolean} Whether it holds one
+   */
+  static isBoilerplatePhrase(phrase) {
+    const folded = fold(phrase);
+    return PHRASES.some((entry) => entry.test(folded));
   }
 
   /**

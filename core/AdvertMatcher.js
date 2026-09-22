@@ -133,7 +133,7 @@ export class AdvertMatcher {
    */
   static keeps(phrase, words) {
     if (words.some((word) => AdvertLexicon.isStopword(word))) return false;
-    if (AdvertLexicon.isBoilerplate(phrase)) return false;
+    if (AdvertLexicon.isBoilerplatePhrase(phrase)) return false;
     if (/^\P{L}+$/u.test(phrase)) return false;
     return phrase.length >= 2 && phrase.length <= 60;
   }

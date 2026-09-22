@@ -4,6 +4,7 @@ import { fedTheModel } from './support/model.js';
 import { SEPARATOR_GLYPHS } from '../domain/Separators.js';
 
 const labels = {
+  'cv:experience.at': 'at',
   'source.marks.profile': 'Profile',
   'source.marks.contact': 'Contact',
   'source.card.mail': 'mail',
@@ -342,6 +343,10 @@ describe('SourceRenderer', () => {
     expect([...code().querySelectorAll('h3')].map((heading) => heading.textContent)).toEqual([
       'Mobile Engineer'
     ]);
+    // Announced as the page's heading reads, employer and place included (#332); the text stays the title.
+    expect(
+      [...code().querySelectorAll('h3')].map((heading) => heading.getAttribute('aria-label'))
+    ).toEqual(['Mobile Engineer at Acme, Berlin']);
   });
 
   test('gives each line its depth and marks the one the editor opens on', () => {
