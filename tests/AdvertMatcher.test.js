@@ -242,6 +242,19 @@ describe('a German advert', () => {
     expect(terms.filter((term) => /\d|straße/iu.test(term))).toEqual([]);
   });
 
+  // The review of #352: a figure and its noun, or a job beside a number, are no address.
+  test('keeps a figure and its noun, and a job beside a number', () => {
+    const terms = AdvertMatcher.extractTerms(
+      ['Anforderungen:', '- Betreuung von 12000 Kunden.', '- Verkäufer 3 Jahre Erfahrung'].join(
+        '\n'
+      ),
+      60
+    ).terms.map(({ term }) => term);
+    const words = terms.flatMap((term) => term.split(' '));
+
+    expect(words).toEqual(expect.arrayContaining(['Kunden', 'Verkäufer']));
+  });
+
   test('a word in a script without ASCII letters is a word, and a number is not', () => {
     expect(AdvertMatcher.keeps('Опыт', ['Опыт'])).toBe(true);
     expect(AdvertMatcher.keeps('10115', ['10115'])).toBe(false);

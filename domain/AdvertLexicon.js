@@ -717,13 +717,28 @@ const STREETS = Object.entries(ADVERT.streets).map(([language, words]) => {
   if (!shape) throw new Error(`The lexicon does not say where ${language} writes its street word`);
   return shape(words);
 });
-// A postcode and the city after it, closing its clause: "10115 Berlin", "A-1010 Wien", "60311 Frankfurt am Main",
-// "20121 Milano (MI)". Four digits only when they are not a year: "Seit 2019 Teamleiter" names no town.
-const POSTCODE_CITY = String.raw`(?<![\p{L}\p{N}.,/-])(?:(?:A|CH|D|FL|I)-\s?\d{4,5}|\d{5}|(?!(?:19|20)\d\d)\d{4})\s+\p{Lu}\p{L}+(?:-\p{L}+)*(?:\s+(?:am|an der|im|in der|ob der|bei)\s+\p{Lu}\p{L}+)?(?:\s*\(\p{Lu}[\p{L}.]*\))?(?=\s*(?:$|[,.;:)–—|]))`;
-// A British postcode, "SW1A 2AA", and an American state with its ZIP code, "CA 94105".
-const UK_POSTCODE = String.raw`(?<![\p{L}\p{N}])[A-Z]{1,2}\d[A-Z\d]?\s+\d[A-Z]{2}(?![\p{L}\p{N}])`;
-const US_ZIP = String.raw`(?<![\p{L}\p{N}])[A-Z]{2}\s+\d{5}(?:-\d{4})?(?![\p{L}\p{N}])`;
-const ADDRESS = new RegExp([...STREETS, POSTCODE_CITY, UK_POSTCODE, US_ZIP].join('|'), 'gu');
+// A postcode and the city after it: "10115 Berlin", "A-1010 Wien", "60311 Frankfurt am Main", "20121 Milano (MI)". Four
+// digits only when they are not a year: "Seit 2019 Teamleiter" names no town.
+const POSTCODE_CITY = String.raw`(?:(?:A|CH|D|FL|I)-\s?\d{4,5}|\d{5}|(?!(?:19|20)\d\d)\d{4})\s+\p{Lu}\p{L}+(?:-\p{L}+)*(?:\s+(?:am|an der|im|in der|ob der|bei)\s+\p{Lu}\p{L}+)?(?:\s*\(\p{Lu}[\p{L}.]*\))?`;
+// A British postcode with the town before it, "London SW1A 2AA", and an American state with its ZIP code, "CA 94105":
+// the fifty states and the District by their postal codes, so "AI 10000" is no address.
+const UK_POSTCODE = String.raw`(?:\p{Lu}\p{L}+\s+){0,2}[A-Z]{1,2}\d[A-Z\d]?\s+\d[A-Z]{2}(?![\p{L}\p{N}])`;
+const US_STATES =
+  'AL AK AZ AR CA CO CT DC DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY';
+const US_ZIP = String.raw`(?:${US_STATES.split(' ').join('|')})\s+\d{5}(?:-\d{4})?(?![\p{L}\p{N}])`;
+const PART = [...STREETS, POSTCODE_CITY, UK_POSTCODE, US_ZIP].join('|');
+// An address fills its clause: it opens the line, or follows a separator or a sentence's end, and runs to the next
+// separator or the line's end, one part or several — "Hauptstraße 1, 10115 Berlin", "Hauptstraße 1 · 10115 Berlin".
+// Anywhere in a sentence the same shapes are a figure and its noun, "Betreuung von 12000 Kunden", or a word beside a
+// number, "Verkäufer 3 Jahre Erfahrung", "Via Slack 24 hours a day" (the review of #352). Two parts are parted by a
+// comma or a middle dot, or by spaces alone — never by an optional mark between optional spaces, which splits one space
+// two ways at every part and took seconds on a line of twenty-five.
+const OPENS = String.raw`(?<=^\s*|[,;:•|·]\s*|[.!?]\s+|\s[–—-]\s+)`;
+const CLOSES = String.raw`(?=\s*(?:$|[,;:•|·]|[.!?](?:\s|$)|\s[–—-]\s))`;
+const ADDRESS = new RegExp(
+  String.raw`${OPENS}(?:${PART})(?:(?:\s*[,·]\s*|\s+)(?:${PART}))*${CLOSES}`,
+  'gu'
+);
 
 const SYNONYM = new Map();
 for (const group of ADVERT.synonyms) {

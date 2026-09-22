@@ -244,7 +244,8 @@ describe('the furniture of a posting, read whole', () => {
 });
 
 // An advert's address line ranked as its first requirement: "Hauptstraße 1" and "10115 Berlin" are tokens like any
-// other (#337). A street beside its house number, and a postcode with the city after it, are the posting's.
+// other (#337). A street beside its house number, and a postcode with the city after it, are the posting's — when they
+// fill their clause: in running prose the same shapes are a figure and its noun (the review of #352).
 describe('an address', () => {
   const left = (line) =>
     AdvertLexicon.withoutAddresses(line)
@@ -263,7 +264,9 @@ describe('an address', () => {
     ['Piazza del Duomo 3', ''],
     ["Piazza d'Azeglio 5", ''],
     ['221B Baker Street', ''],
-    ['London SW1A 2AA', 'London'],
+    ['London SW1A 2AA', ''],
+    ['10 Downing Street, London SW1A 2AA', ''],
+    ['Hauptstraße 1 · 10115 Berlin', ''],
     ['1 Market St., San Francisco, CA 94105', 'San Francisco'],
     [
       'Bitte nennen Sie Ihren frühestmöglichen Eintrittstermin. Hauptstraße 1, 10115 Berlin.',
@@ -283,8 +286,31 @@ describe('an address', () => {
     'Integration via REST APIs',
     'Monitoring 24/7',
     'The road ahead',
-    'Clean Architecture in 3 Teams'
+    'Clean Architecture in 3 Teams',
+    // The review of #352: each lost the words beside its figure.
+    'AI 10000 requires GPU.',
+    'IT 50000 Nutzer weltweit.',
+    'Betreuung von 12000 Kunden.',
+    'Umsatz von 50000 Euro.',
+    'Verkäufer 3 Jahre Erfahrung erforderlich.',
+    'Stellplatz 5 ist inklusive.',
+    'Wir belegen Platz 1 als bester Arbeitgeber.',
+    'Der Lebensweg 7 war lang.',
+    'Via Slack 24 hours a day, we stay in touch.',
+    'Via Amazon Web Services 5 regions are covered.'
   ])('"%s" holds no address', (line) => {
     expect(AdvertLexicon.withoutAddresses(line)).toBe(line);
   });
+
+  // Parts parted by an optional mark between optional spaces split each space two ways: twenty-five streets and a word
+  // took four seconds, thirty would take two minutes.
+  test.each(['Hauptstraße 1 ', '10115 Berlin ', 'London SW1A 2AA '])(
+    'a line of thirty "%s" and a word is read at once',
+    (part) => {
+      const started = performance.now();
+      AdvertLexicon.withoutAddresses(`${part.repeat(30)}weiter`);
+
+      expect(performance.now() - started).toBeLessThan(500);
+    }
+  );
 });
