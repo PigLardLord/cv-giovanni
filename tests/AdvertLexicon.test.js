@@ -203,3 +203,36 @@ test('a bare "Schnittstelle" is no API, and its plural and compounds are', () =>
   expect(AdvertLexicon.areSynonyms('Schnittstellen', 'API')).toBe(true);
   expect(AdvertLexicon.areSynonyms('REST-Schnittstelle', 'API')).toBe(true);
 });
+
+// Every entry was matched as a substring, and a boilerplate line is dropped whole: "about us" swallowed "about users",
+// "our mission" "our mission-critical app", "diverse" "a diverse set of technologies" (#335).
+describe('the furniture of a posting, read whole', () => {
+  test.each([
+    'Learn about users and their needs',
+    'Join usability sessions',
+    'Erfahre mehr über unsere Plattform',
+    'Inclusive design for accessibility',
+    'Work with a diverse set of technologies',
+    'Persist data permanently on device',
+    'The app benefits from offline caching',
+    'Ship our mission-critical app',
+    'Bewerbungsmanagement-Software in Swift entwickeln',
+    'Teilzeitmodelle in der App abbilden',
+    'Cerchiamo un candidato determinato'
+  ])('"%s" is a line of the job, not furniture', (line) => {
+    expect(AdvertLexicon.isBoilerplate(line)).toBe(false);
+  });
+
+  test('every entry, written on its own, is still furniture', () => {
+    const entries = Object.values(ADVERT.boilerplate).flat();
+
+    expect(entries.filter((entry) => !AdvertLexicon.isBoilerplate(entry))).toEqual([]);
+  });
+
+  test.each(['Vollzeit, unbefristet', 'Full-time, permanent', 'Contratto a tempo indeterminato'])(
+    'a short line of furniture, or a phrase of it, is furniture: "%s"',
+    (line) => {
+      expect(AdvertLexicon.isBoilerplate(line)).toBe(true);
+    }
+  );
+});
