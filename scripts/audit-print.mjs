@@ -311,6 +311,14 @@ async function measure(path, faces, directory) {
     encoding: 'utf8',
     maxBuffer: 16 * 1024 * 1024
   });
+  // A tree that was not read has nothing to say, and must not read as clean: a profile with no highlights would pass
+  // (the review of #371). Exit 2, as for a file never built.
+  if (struct.error || struct.status !== 0) {
+    console.error(
+      `audit-print: pdfinfo -struct-text did not read ${path} — ${struct.error?.message ?? struct.stderr} — nothing was checked.`
+    );
+    process.exit(2);
+  }
   const structure = { output: struct.stdout ?? '', errors: struct.stderr ?? '' };
   const text = execFileSync('pdftotext', [pdf, '-'], { encoding: 'utf8' });
   // The face of every run of text, so a substitution is named rather than inferred.
@@ -467,7 +475,10 @@ try {
     // And whether one ends on a line of a single word (#295).
     const runts = runtSpans(spans);
     // And whether each Selected Impact line sets its figures in Bold, where #230 put them (#261).
-    const tree = treeFindings(structure, highlights.flatMap(figuresIn));
+    const tree = treeFindings(structure, highlights.flatMap(figuresIn), {
+      from: labels.selectedImpact,
+      to: labels.experience
+    });
     const light = lightFigures(highlights, bold, figuresIn, {
       from: labels.selectedImpact,
       to: labels.experience
