@@ -615,39 +615,62 @@ section {
   break-inside: avoid !important;
 }
 
-/* 9pt between two roles, 12pt until Selected Impact needed the room (#148). */
+/* 9pt between two roles, 12pt until Selected Impact needed the room (#148). The role's line box takes the
+   second header line's size, which sits in it. */
 .job-entry + .job-entry {
   margin-top: 9pt !important;
 }
 
+.job-entry {
+  font-size: 10pt !important;
+  line-height: 1.4 !important;
+}
+
+/* A role's header on two lines, as #230 asked and #240 made readable: the title alone, then "Employer · Place ·
+   Dates" at 10pt. A parser anchors a role on that second line's period, under the title that opens its
+   paragraph. The heading stays one element, the title a block inside it, and the dates, which are not the
+   heading's, run on after it: the screen's "at" and comma are joints the print does not set, and the dots are
+   punctuation the stylesheet draws, as it draws the skills' dash. */
 .job-header {
+  display: inline !important;
   margin: 0 !important;
-  font-size: 11pt !important;
+  font-size: 10pt !important;
   font-weight: 400 !important;
   line-height: 1.4 !important;
-  color: #374151 !important;
+  color: #1f2937 !important;
 }
 
 .job-title {
-  display: inline !important;
+  display: block !important;
   font-size: 11pt !important;
   font-weight: 700 !important;
   color: #1e40af !important;
 }
 
+.job-joint {
+  display: none !important;
+}
+
 /* The employer is one name and never breaks. At 405pt the first role's line broke after "Cortado", and
    "Cortado Mobile Solutions" was no longer a string a parser could find in the text layer. */
 .job-company {
-  font-size: 11pt !important;
+  font-size: 10pt !important;
   font-weight: 700 !important;
   color: #1f2937 !important;
   white-space: nowrap !important;
 }
 
-/* #4b5563, not the screen's #6b7280: at that grey the period's thin en dash measured 4.48:1 on paper, under
-   the 4.5:1 every printed word is held to. At #4b5563 it measures 6.79:1. */
+.job-location::before,
+.job-period::before {
+  content: ' · ';
+  font-weight: 400 !important;
+}
+
+/* #1f2937, not the screen's #6b7280: at that grey the period's thin en dash measured 4.48:1 on paper, under
+   the 4.5:1 every printed word is held to. */
 .job-period {
-  margin: 1pt 0 0 !important;
+  display: inline !important;
+  margin: 0 !important;
   font-size: 10pt !important;
   font-weight: 400 !important;
   line-height: 1.4 !important;

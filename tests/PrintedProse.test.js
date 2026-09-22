@@ -175,6 +175,28 @@ describe('what a sentence costs on the printed page', () => {
     ]);
   });
 
+  // #240 sets the title on a line of its own and "Employer · Place · Dates" under it: the header is those two lines.
+  test('a header set over two lines, the title above the employer, is found', () => {
+    const printed = [
+      'Professional Experience',
+      'iOS Developer',
+      'Cortado Mobile Solutions · Berlin (remote) · August 2018 – November 2026',
+      'Built the MDM client.'
+    ].join('\n');
+    const roles = [
+      {
+        title: 'iOS Developer',
+        company: 'Cortado Mobile Solutions',
+        prose: ['Built the MDM client.']
+      }
+    ];
+
+    expect(rolePages(printed, roles)).toEqual([
+      { title: 'iOS Developer', company: 'Cortado Mobile Solutions', header: 1, pages: [1] }
+    ]);
+    expect(straddlingRoles(printed, roles)).toEqual([]);
+  });
+
   // The contacts' separators are drawn by the stylesheet in the place of a hidden label, so a field the profile
   // leaves out takes its value away and leaves the dot behind (#230).
   test('a masthead line left ending on its separator is found, and the sections below it are not read', () => {

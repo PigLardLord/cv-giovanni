@@ -361,3 +361,38 @@ describe('ExperienceRenderer', () => {
     ]);
   });
 });
+
+// #240: the print sets a role's title on its own line and "Employer · Place · Dates" under it, which a parser reads
+// (#358). The words between the header's fields are the page's on screen, and the print's to set otherwise: each in a
+// joint of its own, so the stylesheet can drop "at" and the comma on paper without the screen's text changing.
+describe("a role's header, joined", () => {
+  const header = () => {
+    document.body.innerHTML = '<section id="experience"></section>';
+    new ExperienceRenderer().render(document, {
+      experience: [
+        {
+          title: 'iOS Developer',
+          company: 'Acme Mobile GmbH',
+          location: 'Berlin (remote)',
+          period: 'August 2018 – November 2026'
+        }
+      ],
+      monthsIn: () => null
+    });
+    return document.querySelector('.job-header');
+  };
+
+  test('reads as it did on screen', () => {
+    expect(header().textContent).toBe('iOS Developer at Acme Mobile GmbH, Berlin (remote)');
+  });
+
+  test('sets each field in its own element, and each word between them in a joint', () => {
+    expect([...header().children].map((child) => [child.className, child.textContent])).toEqual([
+      ['job-title', 'iOS Developer'],
+      ['job-joint', ' at '],
+      ['job-company', 'Acme Mobile GmbH'],
+      ['job-joint', ', '],
+      ['job-location', 'Berlin (remote)']
+    ]);
+  });
+});

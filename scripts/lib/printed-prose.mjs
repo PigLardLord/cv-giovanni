@@ -102,9 +102,14 @@ export function runtSpans(spans) {
 export function rolePages(text, roles, options) {
   const pages = printedPages(text);
   return roles.map((role) => {
+    // The header is one line, "Title at Company, City", or two: the title, and the employer's line under it (#240).
     const header =
       pages.find(({ lines }) =>
-        lines.some((line) => line.includes(role.title) && line.includes(role.company))
+        lines.some(
+          (line, at) =>
+            line.includes(role.title) &&
+            [line, lines[at + 1] ?? ''].some((near) => near.includes(role.company))
+        )
       )?.page ?? null;
     const spans = proseSpans(text, role.prose, options).filter((span) => span.found);
     return {

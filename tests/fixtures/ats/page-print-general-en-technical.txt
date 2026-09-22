@@ -18,8 +18,9 @@ Cortado MDM for Android, 2026: 1040 → 5308 tests, branch coverage
 14% → 83%
 
 Professional Experience
-iOS Developer at Cortado Mobile Solutions, Berlin (remote)
-August 2018 – November 2026 (8 years, 4 months)
+iOS Developer
+Cortado Mobile Solutions · Berlin (remote) · August 2018 – November 2026
+(8 years, 4 months)
 
 Enterprise mobility and device management, in a mobile team of 2 since
 2020. Owns the iOS client's architecture and its internal releases.
@@ -35,8 +36,8 @@ Google Play releases.
 Software bill of materials (SBOM) and security scans.
 Agentic development since 2025, mentoring 2 developers in it; Cortado's
 Android Enterprise Partner Program certification.
-Mobile Developer at Apparound, Pisa, Italy
-September 2015 – July 2018 (2 years, 11 months)
+Mobile Developer
+Apparound · Pisa, Italy · September 2015 – July 2018 (2 years, 11 months)
 
 B2B sales-automation platform for enterprise field sales teams.
 Built offline-first iOS and Android features that kept field sales teams
@@ -44,13 +45,13 @@ working without a connection.
 Created a reusable UI component library and led the mobile clients' UI/UX
 redesign, cutting duplicate work on new screens.
 
-Mobile Developer Intern at Marte 5, Livorno, Italy
-May 2015 – August 2015 (4 months)
+Mobile Developer Intern
+Marte 5 · Livorno, Italy · May 2015 – August 2015 (4 months)
 
 Built production Android augmented-reality applications for manufacturing
 and automotive clients using Java, Vuforia and Wikitude.
-IT System Administrator at Compusoft, Modica, Italy
-May 2010 – November 2014 (4 years, 7 months)
+IT System Administrator
+Compusoft · Modica, Italy · May 2010 – November 2014 (4 years, 7 months)
 
 Company networks, servers, NAS and security systems; the company
 website; business applications on Microsoft Access.
