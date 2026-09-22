@@ -6,6 +6,8 @@ import { SectionLexicon } from '../domain/SectionLexicon.js';
 const EMAIL = /[\w.+-]+@[\w-]+\.[\w.-]+/g;
 const URL = /(?:https?:\/\/)?(?:www\.)?(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s·|]*)?/gi;
 const SEPARATORS = /\s*[·|•]\s*/;
+/** The most words a role's title runs to where no blank line sets it apart: an achievement runs longer (#240). */
+const TITLE_WORDS = 6;
 const YEAR = String.raw`(?:19|20)\d{2}`;
 const SHORT_YEAR = String.raw`(?:${YEAR}|\d{2})`;
 // An academic term DateRange has no notation for: "WS 2014/15 – SS 2016", "Wintersemester 2014", "Fall 2014" (#187).
@@ -385,15 +387,22 @@ export class AtsTextParser {
   }
 
   /**
-   * Whether the line above a line opens its paragraph as a role's title does: next to it, first of its paragraph — the
-   * section's first line, or the first after a blank — and not closing like a sentence. A role's last achievement sits
-   * in its paragraph and ends on a full stop, and is never the next role's title (the review of #358).
+   * Whether the line above a line opens a role as its title does: next to it, not closing like a sentence, and first of
+   * its paragraph — the section's first line, or the first after a blank — or a short line after one that ends a
+   * sentence. Poppler sets no blank line between a role's last achievement and the next role's title, which stand 9pt
+   * apart on the paper (the print of #240). A role's last achievement ends on a full stop and is never the next role's
+   * title, and a long line after a sentence is an achievement written without its stop (the review of #358).
    */
   static titleOpensAbove(entries, index) {
     const above = entries[index - 1];
     if (!above || above.line !== entries[index].line - 1) return false;
-    const opens = index - 1 === 0 || entries[index - 2].line < above.line - 1;
-    return opens && !/[.;:!?]$/.test(above.text.trim());
+    const title = above.text.trim();
+    if (/[.;:!?]$/.test(title)) return false;
+    const before = entries[index - 2];
+    const opens = !before || before.line < above.line - 1;
+    const afterASentence =
+      /[.!?]$/.test(before?.text.trim() ?? '') && title.split(/\s+/).length <= TITLE_WORDS;
+    return opens || afterASentence;
   }
 
   /**

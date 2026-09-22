@@ -584,6 +584,46 @@ describe('a title over its employer, place and period on one line', () => {
     expect(experience.map(identityOf)).toContainEqual(['Senior iOS Developer', 'Acme', 'Berlin']);
   });
 
+  // Poppler sets no blank line between one role's last achievement and the next role's title: the roles stand 9pt
+  // apart on the paper, which it reads as one paragraph. A short title after a line that ends a sentence opens a role
+  // as a title opening its paragraph does (the print of #240).
+  test('reads a role whose title follows the last achievement of the role before, with no blank line', () => {
+    const { experience } = cv([
+      'iOS Developer',
+      'Acme Mobile GmbH · Berlin (remote) · August 2018 – November 2026',
+      'Built the MDM client.',
+      'Google Play releases.',
+      'Mobile Developer',
+      'Beta Apps · Pisa, Italy · September 2015 – July 2018 (2 years, 11 months)',
+      'Shipped the offline mode.'
+    ]);
+
+    expect(experience.map((role) => [...identityOf(role), role.period.raw])).toEqual([
+      ['iOS Developer', 'Acme Mobile GmbH', 'Berlin (remote)', 'August 2018 – November 2026'],
+      [
+        'Mobile Developer',
+        'Beta Apps',
+        'Pisa, Italy',
+        'September 2015 – July 2018 (2 years, 11 months)'
+      ]
+    ]);
+    expect(experience[0].bodyLines).toEqual(['Built the MDM client.', 'Google Play releases.']);
+  });
+
+  // A line after a sentence opens a role only as a title does: short. An achievement written without its full stop,
+  // under one written with it, stays an achievement.
+  test('an achievement after a sentence is no title', () => {
+    const { experience } = cv([
+      'iOS Developer at Acme, Berlin',
+      'August 2018 – November 2026',
+      'Shipped the offline mode.',
+      'Led the migration of the whole iOS client to SwiftUI across three teams',
+      'Beta Apps · Pisa, Italy · 2019 – 2021'
+    ]);
+
+    expect(experience).toHaveLength(1);
+  });
+
   test("a role's last achievement is never the next role's title", () => {
     const { experience } = cv([
       'Mobile Developer at Beta Apps, Pisa',
