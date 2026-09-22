@@ -2,9 +2,10 @@
 
 ## The three choices, and who owns what
 
-A CV here is `profile × locale × layout`. The first production target is `general × en × nerd`;
-English is the primary content language, and German is enabled only when its CV content has been
-reviewed as German rather than translated.
+A CV here is `profile × locale × layout`. The production target is `general × en × technical`:
+Technical Profile is the CV's one layout and its one PDF, and Nerd Mode a screen-only view of the
+same CV (#231, below). English is the primary content language, and German is enabled only when its
+CV content has been reviewed as German rather than translated.
 
 Ownership is strict, because every blurred line here has already produced a bug:
 
@@ -641,6 +642,13 @@ it as accessible.
 
 Settled on #144 by the owner, and not to be undone by someone reclaiming space:
 
+- **One layout, one PDF.** The owner settled #231 on 2026-09-22: Technical Profile is the CV's layout
+  and the only one printed. Nerd Mode stays for its style as a screen-only view: it prints nothing of
+  its own, and its Download link downloads the Technical Profile PDF. Impact Spotlight is retired.
+  Three layouts had meant three builds, three audits and three reviews of every change, and a review
+  of one print did not carry over to the others. The code is behind the decision until #361 (one
+  PDF) and #362 (Spotlight retired) land; until then a print change is judged on Technical Profile,
+  and the other prints are kept passing, not improved.
 - **One CV, printed from the page.** `npm run build:pdf` prints each layout `config/cv-manifest.json`
   declares, under the names the page already offers, and writes `generated/manifest.json` from what
   it printed. There is no second design to keep in step.
