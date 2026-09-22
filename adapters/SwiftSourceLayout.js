@@ -40,7 +40,7 @@
  */
 import { readableAddress } from '../domain/ReadableUrl.js';
 import { tenureText } from '../domain/Tenure.js';
-import { roleHeader, scopeText } from '../domain/EntryLines.js';
+import { creditWords, roleHeader, scopeText } from '../domain/EntryLines.js';
 import { SEPARATOR_GLYPHS, WORD_CHARACTER, periodEnds } from '../domain/Separators.js';
 
 /**
@@ -534,7 +534,7 @@ export class SwiftSourceLayout {
   education(data, { locale = 'en', t = (key) => key } = {}) {
     // A degree's scope in the catalogue's words (#48): the argument label is drawn, so a number literal would copy as
     // a bare "60" that says nothing of what it counts.
-    const words = { locale, credits: (count) => t('cv:education.credits', { count }) };
+    const words = creditWords(t, locale);
     return this.collection(
       'education',
       'Degree',
