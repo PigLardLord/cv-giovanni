@@ -61,7 +61,7 @@ Regenerate with `npm run audit:ats`.
 
 ## Distinct text streams
 
-1 artefacts, 1 distinct streams.
+1 artefact, 1 distinct stream.
 
 - `038c6314179a` — generated/giovanni-trovato-general-en-technical.pdf
 
