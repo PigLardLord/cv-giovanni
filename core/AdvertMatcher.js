@@ -124,8 +124,10 @@ export class AdvertMatcher {
       const overlaps = kept.some(({ term }) => {
         const other = fold(term);
         // A name is read whole where it is written, so a word of it that ranks on its own was written on its own:
-        // "Kotlin" beside "Kotlin Multiplatform" is two claims, not one phrase's windows (#318).
-        if (AdvertLexicon.isName(entry.term) || AdvertLexicon.isName(term)) return folded === other;
+        // "Kotlin" beside "Kotlin Multiplatform" is two claims, not one phrase's windows (#318). Two forms of one
+        // synonym group are one claim: "code review" and "code reviews" (the review of #359).
+        if (AdvertLexicon.isName(entry.term) || AdvertLexicon.isName(term))
+          return folded === other || AdvertLexicon.areSynonyms(entry.term, term);
         if (AdvertMatcher.contains(folded, other) || AdvertMatcher.contains(other, folded))
           return true;
         // Two phrases sharing a pair of adjacent words are one idea said twice: `App Store

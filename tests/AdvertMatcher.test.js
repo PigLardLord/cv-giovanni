@@ -367,3 +367,38 @@ describe('a name written in several words', () => {
     expect(terms()).toContain('Kotlin');
   });
 });
+
+// The review of #359: two forms of one synonym group both stood, and the owner was asked twice for one fact.
+describe('two forms of one name', () => {
+  test('rank once: "code review" and "code reviews", "unit tests" and "unit testing"', () => {
+    const terms = AdvertMatcher.extractTerms(
+      [
+        'Requirements',
+        '- Code review on every change',
+        '- Code reviews with the whole team',
+        '- Unit tests for every feature',
+        '- Unit testing in CI'
+      ].join('\n'),
+      60
+    ).terms.map(({ term }) => term.toLowerCase());
+
+    expect(terms.filter((term) => /^code reviews?$/.test(term))).toHaveLength(1);
+    expect(terms.filter((term) => /^unit test(s|ing)$/.test(term))).toHaveLength(1);
+  });
+
+  // A name ranks whatever its words mean alone, by intent: "user experience" is a skill, where "experience" alone is the
+  // word every advert pads with.
+  test('"user experience" ranks, and "experience" alone does not', () => {
+    const terms = AdvertMatcher.extractTerms(
+      [
+        'Requirements',
+        '- Five years of professional experience',
+        '- Strong user experience sensibility'
+      ].join('\n'),
+      60
+    ).terms.map(({ term }) => term);
+
+    expect(terms).toContain('user experience');
+    expect(terms).not.toContain('experience');
+  });
+});

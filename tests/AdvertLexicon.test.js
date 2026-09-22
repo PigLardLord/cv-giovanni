@@ -407,3 +407,17 @@ describe('a name in several words', () => {
     expect(AdvertLexicon.namesIn(words)).toEqual(spans);
   });
 });
+
+describe('whether a phrase is a name', () => {
+  test.each([
+    ['GitHub Actions', true],
+    ['github actions', true],
+    ['Künstliche Intelligenz', true],
+    // A form of the synonym table in several words.
+    ['user experience', true],
+    ['GitHub', false],
+    ['GitHub Actions pipelines', false]
+  ])('"%s" → %s', (phrase, expected) => {
+    expect(AdvertLexicon.isName(phrase)).toBe(expected);
+  });
+});
