@@ -18,7 +18,7 @@ whole to the next page. It is a warning, never a failure, since the page count i
 
 Every CV print is a tagged PDF (`pdfinfo`: `Tagged: yes`): Chrome wrote a structure tree. A tree is not accessibility, and no screen reader has read it (AGENTS.md).
 
-The ATS fixtures in `tests/fixtures/ats/` are this print, word for word and line for line as `pdftotext` and `pdftotext -raw` extract it, allowing for the spaces poppler infers.
+The ATS fixtures `page-print-general-en-nerd.txt`, `page-print-general-en-nerd.raw.txt`, `page-print-general-en-spotlight.txt`, `page-print-general-en-spotlight.raw.txt` in `tests/fixtures/ats/` are this print, word for word and line for line as `pdftotext` and `pdftotext -raw` extract it, allowing for the spaces poppler infers.
 
 Checks: A4, at most two pages, required ATS text in the case the catalogue wrote it,
 reading order, canonical hyphenated compounds, degree beside its school, every skill
