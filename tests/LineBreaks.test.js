@@ -7,7 +7,8 @@ import {
   lineBoxes,
   lineBreaks,
   pageWidth,
-  renderedGlyphs
+  renderedGlyphs,
+  wordSplits
 } from '../scripts/lib/line-breaks.mjs';
 import { DASH_GLYPHS, SEPARATOR_GLYPHS } from '../domain/Separators.js';
 import { CLOSING_MARKS } from '../adapters/SwiftSourceLayout.js';
@@ -800,7 +801,9 @@ describe('the glyphs the audit collects from the page', () => {
       right: 8,
       room: 300,
       column: { left: 0, right: 300 },
-      block: 0
+      block: 0,
+      // No selector of names was given, so no glyph belongs to one (#259).
+      named: null
     });
     expect(glyphs.at(-1)).toMatchObject({ room: 280, column: { left: 10, right: 290 } });
   });
@@ -1059,5 +1062,39 @@ describe('the glyphs the check knows', () => {
   // The same for the syntax Nerd Mode's file holds to the literal it closes (#219).
   test('are the closing marks the Swift file holds to its literals', () => {
     expect(CLOSING_SYNTAX).toBe(CLOSING_MARKS);
+  });
+});
+
+// An automatic hyphen is drawn at a break and never written into the text, so a name hyphenated on screen passed every
+// check (#259): the screen reads where a name broke, and two letters of one word on two lines are a split.
+describe('a name or a label on screen', () => {
+  const named = (glyphs, owner) => glyphs.map((glyph) => ({ ...glyph, named: owner }));
+
+  test('broken inside a word is named, as the word it split', () => {
+    const glyphs = named([...run('Mobile Developer at Ap'), ...run('paround', { top: 20 })], 0);
+
+    expect(wordSplits(glyphs)).toEqual({
+      checks: { wordsWhole: false },
+      findings: { splitWords: ['Ap-/paround'] }
+    });
+  });
+
+  test('broken at a space, or after its own hyphen, is whole', () => {
+    const glyphs = named(
+      [...run('Mobile Developer at '), ...run('Offline-'), ...run('first Apparound', { top: 20 })],
+      0
+    );
+
+    expect(wordSplits(glyphs).checks.wordsWhole).toBe(true);
+  });
+
+  test('two elements on two lines are no split, nor is prose no name holds', () => {
+    const glyphs = [...named(run('Giovanni Trovato'), 0), ...named(run('Senior', { top: 20 }), 1)];
+    const prose = [...run('develop'), ...run('ment', { top: 20 })].map((glyph) => ({
+      ...glyph,
+      named: null
+    }));
+
+    expect(wordSplits([...glyphs, ...prose]).checks.wordsWhole).toBe(true);
   });
 });

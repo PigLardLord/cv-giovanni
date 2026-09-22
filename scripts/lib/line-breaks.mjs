@@ -43,7 +43,15 @@ const MEASURE_TOLERANCE = 0.5;
  * @param {string} end - Selector of its last
  * @returns {string} An expression for the page, resolving to `{ glyphs, syntax }`, or null when a bound is missing
  */
-export const renderedGlyphs = (start, end) => `(() => {
+export const renderedGlyphs = (start, end, named = null) => `(() => {
+  const naming = ${JSON.stringify(named)};
+  const owners = new Map();
+  const ownerOf = (element) => {
+    const owner = naming ? element.closest(naming) : null;
+    if (!owner) return null;
+    if (!owners.has(owner)) owners.set(owner, owners.size);
+    return owners.get(owner);
+  };
   const first = document.querySelector(${JSON.stringify(start)});
   const last = document.querySelector(${JSON.stringify(end)});
   if (!first || !last) return null;
@@ -148,7 +156,8 @@ export const renderedGlyphs = (start, end) => `(() => {
           right: box.right + scrollX,
           room,
           column,
-          block
+          block,
+          named: ownerOf(parent)
         });
       } else if (shown && /^\\s+$/.test(text.slice(index, index + size))) {
         const unboxed = { top: null, bottom: null, left: null, right: null };
@@ -199,6 +208,42 @@ function layOut(glyphs) {
     laid.push({ glyph, line: lines.length - 1, index: laid.length });
   }
   return { lines, laid: laid.filter((entry) => entry.line >= 0) };
+}
+
+/**
+ * The words of a name or a label a line broke inside (#259). `hyphens: auto` draws its hyphen at the break without
+ * putting it in the page's text, so no copy and no glyph shows one; what shows the break is two letters of one word on
+ * two lines. A break at a space, or after a compound's own hyphen, is no split. Only the glyphs `renderedGlyphs` marks
+ * with the element they belong to — `named` — are judged, two letters of one element at a time: running prose may
+ * hyphenate where the stylesheet lets it.
+ * @param {object[]} glyphs - As `renderedGlyphs` collects them, with the selector of what is named
+ * @returns {{ checks: { wordsWhole: boolean }, findings: { splitWords: string[] } }} Each word split, as "Ap-/paround"
+ */
+export function wordSplits(glyphs) {
+  const { laid } = layOut(glyphs);
+  const letter = (glyph) => /\p{L}/u.test(glyph.text);
+  const splits = [];
+  for (let index = 1; index < laid.length; index++) {
+    const [before, after] = [laid[index - 1], laid[index]];
+    if (blank(before.glyph) || blank(after.glyph)) continue;
+    // Two letters of one named element, on two lines: the name broke inside a word. A name and the headline under it
+    // are two elements, each whole.
+    const owner = before.glyph.named;
+    if (owner === null || owner === undefined || after.glyph.named !== owner) continue;
+    if (before.line === after.line) continue;
+    if (!letter(before.glyph) || !letter(after.glyph)) continue;
+    const word = (from, step) => {
+      let text = '';
+      for (let at = from; at >= 0 && at < laid.length; at += step) {
+        const { glyph } = laid[at];
+        if (!letter(glyph)) break;
+        text = step < 0 ? glyph.text + text : text + glyph.text;
+      }
+      return text;
+    };
+    splits.push(`${word(index - 1, -1)}-/${word(index, 1)}`);
+  }
+  return { checks: { wordsWhole: splits.length === 0 }, findings: { splitWords: splits } };
 }
 
 /**

@@ -5,18 +5,18 @@ width and two phone widths, its CV selected, and the selection read. Regenerate 
 
 | Layout | Width | Layout shift | Score |
 |---|---:|---:|---:|
-| nerd | 1280px | 0.000 | 19/19 |
-| nerd | 820px | 0.000 | 19/19 |
-| nerd | 390px | 0.000 | 19/19 |
-| nerd | 320px | 0.000 | 19/19 |
-| spotlight | 1280px | 0.000 | 19/19 |
-| spotlight | 820px | 0.000 | 19/19 |
-| spotlight | 390px | 0.000 | 19/19 |
-| spotlight | 320px | 0.000 | 19/19 |
-| technical | 1280px | 0.000 | 19/19 |
-| technical | 820px | 0.000 | 19/19 |
-| technical | 390px | 0.000 | 19/19 |
-| technical | 320px | 0.000 | 19/19 |
+| nerd | 1280px | 0.000 | 20/20 |
+| nerd | 820px | 0.000 | 20/20 |
+| nerd | 390px | 0.000 | 20/20 |
+| nerd | 320px | 0.000 | 20/20 |
+| spotlight | 1280px | 0.000 | 20/20 |
+| spotlight | 820px | 0.000 | 20/20 |
+| spotlight | 390px | 0.000 | 20/20 |
+| spotlight | 320px | 0.000 | 20/20 |
+| technical | 1280px | 0.000 | 20/20 |
+| technical | 820px | 0.000 | 20/20 |
+| technical | 390px | 0.000 | 20/20 |
+| technical | 320px | 0.000 | 20/20 |
 
 Checks: the CV captured whole — name, role, email and current employer; no two words the profile
 writes in sequence welded into one, and no contact detail run into the word beside it; every skill
