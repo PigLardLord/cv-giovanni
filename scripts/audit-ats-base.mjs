@@ -17,8 +17,10 @@ import { AtsTextParser } from '../core/AtsTextParser.js';
 import { GenerationTarget } from '../core/GenerationTarget.js';
 import { RecoveryDiff } from '../core/RecoveryDiff.js';
 import { CvDocument } from '../domain/CvDocument.js';
+import { creditWords } from '../domain/EntryLines.js';
 import {
   applicability,
+  catalogueWords,
   gradedReadings,
   GRADER,
   outcome,
@@ -33,7 +35,6 @@ import {
 } from './lib/base-parser.mjs';
 import { importApart, importClosure } from './lib/import-closure.mjs';
 import { builtCv } from './lib/printed-cv.mjs';
-import { catalogueTranslator } from './lib/printed-letter.mjs';
 
 /**
  * The base branch's parser, reading the new print (#181).
@@ -239,21 +240,24 @@ const texts = (path) =>
 const scratch = mkdtempSync(join(tmpdir(), 'audit-ats-base-'));
 cleanups.push(() => rmSync(scratch, { recursive: true, force: true }));
 
-// The base's parser, and what the base grades a print with: its diff, the lines the diff expects, and its document
-// model (#201). Every module they import, at the base's commit, imported apart from this branch's: the base's
-// `EntryLines` answers only the base's diff, and a module the closure missed fails the import rather than being read
-// from this branch. A base that does not have them cannot grade its own print, and nothing is compared.
+// The base's parser, and what the base grades a print with: its diff, the lines the diff expects, its document model
+// (#201), and the key its lines name the catalogue by (#215). Every module they import, at the base's commit, imported
+// apart from this branch's: the base's `EntryLines` answers only the base's diff and the base's words, and a module the
+// closure missed fails the import rather than being read from this branch. A base that does not have them cannot grade its own print, and nothing is compared.
 let fromBase;
 try {
-  const [parser, diff, model] = await importApart(
-    [PARSER, ...GRADER],
+  const [parser, diff, model, lines] = await importApart(
+    [PARSER, ...GRADER, 'domain/EntryLines.js'],
     readBase,
     join(scratch, 'base-modules')
   );
   fromBase = {
     parser: parser.AtsTextParser,
     grader: diff.RecoveryDiff,
-    Document: model.CvDocument
+    Document: model.CvDocument,
+    // A base from before #215 names the key where it builds each line, as this branch did: this branch's copy names it
+    // the same, and a key its catalogue does not hold stops the step rather than grading against the key.
+    creditWords: lines.creditWords ?? creditWords
   };
 } catch (error) {
   cannotCheck(`cannot import the base's parser and grader from ${base.commit}`, error.message);
@@ -348,12 +352,8 @@ const baseCatalogue = JSON.parse(
 cleanUp();
 
 // Each print is graded by the branch that printed it (#201): the base's against the base's profile, by the base's diff
-// and the lines it expects, in the base's catalogue's words; this print against this branch's. The base's parser reads
-// both.
-const wordsOf = (catalogue) => {
-  const t = catalogueTranslator({ cv: catalogue });
-  return { locale: target.locale, credits: (count) => t('cv:education.credits', { count }) };
-};
+// and the lines it expects, in the base's catalogue's words, looked up by the key the base names (#215); this print
+// against this branch's. The base's parser reads both.
 let readings;
 try {
   const sides = {
@@ -361,13 +361,17 @@ try {
       parser: fromBase.parser,
       grader: fromBase.grader,
       document: new fromBase.Document(baseData),
-      words: wordsOf(baseCatalogue)
+      words: catalogueWords(fromBase.creditWords, baseCatalogue, target.locale)
     },
     head: {
       parser: AtsTextParser,
       grader: RecoveryDiff,
       document: new CvDocument(headData),
-      words: wordsOf(JSON.parse(readHead(`locales/${target.locale}/cv.json`)))
+      words: catalogueWords(
+        creditWords,
+        JSON.parse(readHead(`locales/${target.locale}/cv.json`)),
+        target.locale
+      )
     }
   };
   readings = printed.flatMap(({ layout, baseText, headText }) =>

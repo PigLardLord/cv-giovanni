@@ -43,6 +43,18 @@ export function schoolLine({ school, period }) {
 }
 
 /**
+ * How the CV writes a count of credits, in its catalogue's words, as `scopeText` and `degreeLine` take them. The one
+ * place the catalogue's key is named: a branch that renames it renames it here, and a step that grades another branch's
+ * print builds that branch's words with that branch's copy of this function (#215).
+ * @param {(key: string, values?: object) => string} t - The catalogue, read by namespaced key
+ * @param {string} locale - The CV's language, in which `Intl` writes the count
+ * @returns {{ credits: (count: string) => string, locale: string }} The words
+ */
+export function creditWords(t, locale) {
+  return { locale, credits: (count) => t('cv:education.credits', { count }) };
+}
+
+/**
  * A degree's scope in the CV's words, "60 ECTS", or '' when it states none (#48).
  *
  * Only a count of credits is a scope: a whole number above zero. A count nobody can read reads as nothing, never as a

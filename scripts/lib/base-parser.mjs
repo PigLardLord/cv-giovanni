@@ -1,5 +1,6 @@
 import { RecoveryDiff } from '../../core/RecoveryDiff.js';
 import { importClosure } from './import-closure.mjs';
+import { catalogueTranslator } from './printed-letter.mjs';
 
 /**
  * The rules of `npm run audit:ats:base` (#181), with no git, no browser and no file in them, so each can be shown to
@@ -20,6 +21,25 @@ export const PARSER = 'core/AtsTextParser.js';
  * printed it, so the base's print by the base's (#201).
  */
 export const GRADER = ['core/RecoveryDiff.js', 'domain/CvDocument.js'];
+
+/**
+ * How a branch's print writes a count of credits: that branch's `creditWords`, which names its catalogue key, over that
+ * branch's catalogue (#215). A key the catalogue does not hold throws, naming it, rather than reading as its own text in
+ * a line the grader expects: graded against "(cv:education.scope)", a degree the print wrote whole read partial, and a
+ * loss read "partial → partial".
+ * @param {(t: Function, locale: string) => object} creditWords - The branch's own, from its `domain/EntryLines.js`
+ * @param {object} catalogue - The branch's `locales/<locale>/cv.json`
+ * @param {string} locale - The CV's language
+ * @returns {{ credits: (count: string) => string, locale: string }} The words, as the grader takes them
+ */
+export function catalogueWords(creditWords, catalogue, locale) {
+  const translate = catalogueTranslator({ cv: catalogue });
+  return creditWords((key, values) => {
+    const text = translate(key, values);
+    if (text === key) throw new Error(`the catalogue holds no ${key}`);
+    return text;
+  }, locale);
+}
 
 /** The heading AGENTS.md lists what renders the CV under, for the product review. */
 const PRODUCT_REVIEW = /^###\s+When the product review runs\s*$/m;

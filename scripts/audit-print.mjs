@@ -43,6 +43,7 @@ import { composedTitles, pdfTitle } from './lib/pdf-titles.mjs';
 import { LetterContent } from '../core/LetterContent.js';
 import { CoverLetter } from '../domain/CoverLetter.js';
 import { CvDocument } from '../domain/CvDocument.js';
+import { creditWords } from '../domain/EntryLines.js';
 import { periodText } from '../domain/Tenure.js';
 import { figuresIn } from '../domain/Figures.js';
 
@@ -168,7 +169,7 @@ const entryHeadings = entrySections(labels);
 
 // A degree and its school must stay adjacent, with only the degree's scope between them when it states one (#48).
 const educationPairs = profile.education.map((item) =>
-  degreeBesideSchool(item, { credits: catalogue.education.credits, locale: target.locale })
+  degreeBesideSchool(item, creditWords(translate, target.locale))
 );
 
 /** Contrast of a grey against the white of the paper. */

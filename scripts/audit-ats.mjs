@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { CvDocument } from '../domain/CvDocument.js';
+import { creditWords } from '../domain/EntryLines.js';
 import { AtsTextParser } from '../core/AtsTextParser.js';
 import { RecoveryDiff } from '../core/RecoveryDiff.js';
 import { AtsScore } from '../core/AtsScore.js';
@@ -60,7 +61,7 @@ try {
   const t = catalogueTranslator({
     cv: JSON.parse(await readFile(new URL(`locales/${target.locale}/cv.json`, projectRoot)))
   });
-  words = { locale: target.locale, credits: (count) => t('cv:education.credits', { count }) };
+  words = creditWords(t, target.locale);
 } catch (error) {
   cannotCheck(`cannot read the ${target.locale} catalogue`, error.message);
 }
