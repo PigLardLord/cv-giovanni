@@ -8,6 +8,9 @@ const LINKLESS = ['EPERM', 'ENOTSUP', 'EOPNOTSUPP', 'ENOSYS', 'EXDEV'];
 /** How long a lock may stay empty while its server writes it: longer, and the server died between the two. */
 const WRITING_MS = 5000;
 
+/** How far ahead of the clock a file's time may read and still be now: whole milliseconds against their fractions. */
+const SKEW_MS = 1000;
+
 /** How many times a server looks again at a lock that is changing hands before it says so. */
 const LOOKS = 5;
 
@@ -196,9 +199,11 @@ export class QueueLock {
     }
     if (text === '') {
       try {
-        // A file from the future is no file being written: its clock was wrong, and it would block for ever.
+        // A file from the future is no file being written: its clock was wrong, and it would block for ever. A file
+        // from the millisecond now is not from the future: the clock reads whole milliseconds and the file's time
+        // their fractions, so a lock read as it is written can read a fraction of one ahead.
         const age = this.clock() - (await stat(path)).mtimeMs;
-        if (age >= 0 && age < WRITING_MS) return { writing: true };
+        if (age > -SKEW_MS && age < WRITING_MS) return { writing: true };
       } catch (error) {
         if (error.code === 'ENOENT') return null;
         throw error;
