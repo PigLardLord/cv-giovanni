@@ -584,6 +584,95 @@ describe('a title over its employer, place and period on one line', () => {
     expect(experience.map(identityOf)).toContainEqual(['Senior iOS Developer', 'Acme', 'Berlin']);
   });
 
+  // Poppler sets no blank line between one role's last achievement and the next role's title: the roles stand 9pt
+  // apart on the paper, which it reads as one paragraph. A short title after a line that ends a sentence opens a role
+  // as a title opening its paragraph does (the print of #240).
+  test('reads a role whose title follows the last achievement of the role before, with no blank line', () => {
+    const { experience } = cv([
+      'iOS Developer',
+      'Acme Mobile GmbH · Berlin (remote) · August 2018 – November 2026',
+      'Built the MDM client.',
+      'Google Play releases.',
+      'Mobile Developer',
+      'Beta Apps · Pisa, Italy · September 2015 – July 2018 (2 years, 11 months)',
+      'Shipped the offline mode.'
+    ]);
+
+    expect(experience.map((role) => [...identityOf(role), role.period.raw])).toEqual([
+      ['iOS Developer', 'Acme Mobile GmbH', 'Berlin (remote)', 'August 2018 – November 2026'],
+      [
+        'Mobile Developer',
+        'Beta Apps',
+        'Pisa, Italy',
+        'September 2015 – July 2018 (2 years, 11 months)'
+      ]
+    ]);
+    expect(experience[0].bodyLines).toEqual(['Built the MDM client.', 'Google Play releases.']);
+  });
+
+  // A line after a sentence opens a role only as a title does: short. An achievement written without its full stop,
+  // under one written with it, stays an achievement.
+  test('an achievement after a sentence is no title', () => {
+    const { experience } = cv([
+      'iOS Developer at Acme, Berlin',
+      'August 2018 – November 2026',
+      'Shipped the offline mode.',
+      'Led the migration of the whole iOS client to SwiftUI across three teams',
+      'Beta Apps · Pisa, Italy · 2019 – 2021'
+    ]);
+
+    expect(experience).toHaveLength(1);
+  });
+
+  // The review of #366: with no blank line to set it apart, a short bullet without its full stop read as a title, and
+  // a line after it naming a count and a range as its employer — an invented role, which took the real one's next
+  // achievement. Where no blank line opens the paragraph, a title is written as a name, and the line under it names
+  // an employer and a place before its period.
+  test.each([
+    ['Mentoring juniors', 'Team of 3 · 2019 – 2021'],
+    ['Mentoring juniors', 'Team von 3 · 2019 – 2021'],
+    ['Kotlin Multiplatform', 'Side project · 2020 – 2022']
+  ])('"%s" over "%s", after a sentence, is no role', (short, closing) => {
+    const { experience } = cv([
+      'Senior iOS Developer',
+      'Acme Mobile GmbH · Berlin (remote) · August 2018 – November 2026',
+      'Owns the client architecture and internal releases.',
+      short,
+      closing,
+      'Cut onboarding time in half.',
+      'Mobile Developer',
+      'Beta Apps · Pisa, Italy · September 2015 – July 2018',
+      'Shipped the offline mode.'
+    ]);
+
+    expect(experience.map((role) => role.title?.value)).toEqual([
+      'Senior iOS Developer',
+      'Mobile Developer'
+    ]);
+    expect(experience[0].bodyLines).toEqual([
+      'Owns the client architecture and internal releases.',
+      short,
+      closing,
+      'Cut onboarding time in half.'
+    ]);
+  });
+
+  test.each([
+    ['Senior iOS Developer, Mobile Platform Team', 2],
+    ['Senior iOS Developer, Mobile Platform Infra Team', 1]
+  ])('a title of "%s" after a sentence reads %i roles: six words at most', (title, roles) => {
+    const { experience } = cv([
+      'iOS Developer',
+      'Acme Mobile GmbH · Berlin (remote) · August 2018 – November 2026',
+      'Built the MDM client.',
+      title,
+      'Beta Apps · Pisa, Italy · September 2015 – July 2018',
+      'Shipped the offline mode.'
+    ]);
+
+    expect(experience).toHaveLength(roles);
+  });
+
   test("a role's last achievement is never the next role's title", () => {
     const { experience } = cv([
       'Mobile Developer at Beta Apps, Pisa',
