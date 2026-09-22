@@ -488,3 +488,123 @@ describe('which way a section runs is read off its first entry', () => {
     expect(identityOf(cv.experience[0])).toEqual(['Entwickler', 'Acme', 'Berlin']);
   });
 });
+
+// #230 asked for a role's metadata on two lines — the title, then "employer · place · dates" — and it waited, because
+// no shape here read that second line: the role was lost with its period (#240). The parser reads it first, so the
+// print can follow in a change of its own.
+describe('a title over its employer, place and period on one line', () => {
+  const cv = (lines) =>
+    AtsTextParser.parse(
+      [
+        'Giovanni Rossi',
+        'rossi@example.com',
+        '',
+        'Professional Experience',
+        ...lines,
+        '',
+        'Education',
+        'B.Sc.',
+        'X · 2015'
+      ].join('\n')
+    );
+
+  test('reads each role whole: title, employer, place and period', () => {
+    const { experience } = cv([
+      'Senior iOS Developer',
+      'Acme Mobile GmbH · Berlin (remote) · August 2018 – November 2026',
+      'Built the MDM client.',
+      '',
+      'Mobile Developer',
+      'Beta Apps · Pisa, Italy · September 2015 – July 2018',
+      'Shipped the offline mode.'
+    ]);
+
+    expect(experience.map((role) => [...identityOf(role), role.period.raw])).toEqual([
+      [
+        'Senior iOS Developer',
+        'Acme Mobile GmbH',
+        'Berlin (remote)',
+        'August 2018 – November 2026'
+      ],
+      ['Mobile Developer', 'Beta Apps', 'Pisa, Italy', 'September 2015 – July 2018']
+    ]);
+    expect(experience.map((role) => role.tripleAdjacent)).toEqual([true, true]);
+    expect(experience.map((role) => role.bodyText)).toEqual([
+      'Built the MDM client.',
+      'Shipped the offline mode.'
+    ]);
+  });
+
+  test('reads a role still running, and one with no place', () => {
+    const { experience } = cv([
+      'iOS Developer',
+      'Acme Mobile GmbH · August 2018 – present',
+      'Built the MDM client.'
+    ]);
+
+    expect(identityOf(experience[0]).slice(0, 2)).toEqual(['iOS Developer', 'Acme Mobile GmbH']);
+    expect(experience[0].location).toBeNull();
+    expect(experience[0].period.raw).toBe('August 2018 – present');
+  });
+
+  // The review of #358: an achievement that closes on a date after a separator became a role, and took the next line
+  // of the real role's body. The shape is the title opening its paragraph, then the employer's line.
+  test.each([
+    'Shipped v2 · May 2021',
+    'Released v3 · 03/2021',
+    'Mentored 3 juniors · since 2022',
+    'Mentorte Junior-Entwickler · seit 2020',
+    'Led the migration · 2019 – 2021'
+  ])('an achievement closing on "%s" is no role', (achievement) => {
+    const { experience } = cv([
+      'iOS Developer at Acme, Berlin',
+      'August 2018 – November 2026',
+      achievement,
+      'Cut the test suite in half.'
+    ]);
+
+    expect(experience).toHaveLength(1);
+    expect(experience[0].bodyLines).toEqual([achievement, 'Cut the test suite in half.']);
+  });
+
+  test('a line above the section’s first role does not turn the section around', () => {
+    const { experience } = cv([
+      'Gave a talk · May 2021',
+      'Senior iOS Developer at Acme, Berlin',
+      'August 2018 – November 2026',
+      'Built the MDM client.'
+    ]);
+
+    expect(experience.map(identityOf)).toContainEqual(['Senior iOS Developer', 'Acme', 'Berlin']);
+  });
+
+  test("a role's last achievement is never the next role's title", () => {
+    const { experience } = cv([
+      'Mobile Developer at Beta Apps, Pisa',
+      'September 2015 – July 2018',
+      'Shipped the offline mode.',
+      'Cut crash rate in half.',
+      'Acme Mobile GmbH · Berlin (remote) · August 2018 – November 2026',
+      'Built the MDM client.'
+    ]);
+
+    expect(experience.map((role) => role.title?.value)).not.toContain('Cut crash rate in half.');
+    expect(experience[0].bodyLines).toContain('Cut crash rate in half.');
+  });
+
+  // An achievement that closes on a year after a separator is not a role: a single year states when, not how long.
+  test('an achievement closing on a year is no role', () => {
+    const { experience } = cv([
+      'iOS Developer at Acme, Berlin',
+      'August 2018 – November 2026',
+      'Released the tablet app · 2021',
+      'Cut the test suite · 2019'
+    ]);
+
+    expect(experience).toHaveLength(1);
+    expect(experience[0].bodyLines).toEqual([
+      'Released the tablet app · 2021',
+      'Cut the test suite · 2019'
+    ]);
+  });
+});
