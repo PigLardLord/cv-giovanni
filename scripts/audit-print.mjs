@@ -254,6 +254,19 @@ function faintWords(xml, pages) {
   return faint;
 }
 
+/** Whether a PDF carries a structure tree, as `pdfinfo` reports it (#333). */
+function isTagged(info) {
+  return /^Tagged:\s+yes\b/m.test(info);
+}
+
+/** The report's line on the trees, for the CVs or the letters it read. */
+function taggedLine(rows, what) {
+  const untagged = rows.filter(({ tagged }) => !tagged).map(({ layout }) => layout);
+  return untagged.length
+    ? `⚠ Not a tagged PDF: ${untagged.join(', ')} — Chrome wrote no structure tree, which AGENTS.md says it does.`
+    : `Every ${what} is a tagged PDF (\`pdfinfo\`: \`Tagged: yes\`): Chrome wrote a structure tree. A tree is not accessibility, and no screen reader has read it (AGENTS.md).`;
+}
+
 /** Whether `pdfinfo` reports A4, to within a couple of points. */
 function isA4(info) {
   const size = info.match(/Page size:\s+([\d.]+) x ([\d.]+) pts/);
@@ -551,6 +564,8 @@ try {
     rows.push({
       layout,
       pages: pageCount,
+      // Whether Chrome wrote a structure tree: reported, never scored — a tree is not accessibility (#333).
+      tagged: isTagged(info),
       score: `${passed}/${Object.keys(checks).length}`,
       checks,
       faint: faint.slice(0, 8),
@@ -644,6 +659,7 @@ try {
       letterRows.push({
         layout,
         pages: pageCount,
+        tagged: isTagged(info),
         score: `${passed}/${Object.keys(checks).length}`,
         checks,
         faint: faint.slice(0, 8),
@@ -706,6 +722,8 @@ const report = [
   `with less than one ${PRINTED_PAGE.bodyLine.toFixed(1)}pt line of running text free is marked ⚠: on the last page the`,
   'next line has nowhere to go; on a page before it, the next line moves the block at its foot — today a role —',
   'whole to the next page. It is a warning, never a failure, since the page count is the gate.',
+  '',
+  taggedLine(rows, 'CV print'),
   ...(tight.length ? ['', `⚠ Tight last page: ${tight.join(', ')}.`] : []),
   ...(tightBefore.length
     ? [
@@ -759,6 +777,8 @@ const report = [
             : '—';
           return `| ${row.layout} | ${row.pages} | ${row.score} | ${left}mm |`;
         }),
+        '',
+        taggedLine(letterRows, 'letter'),
         '',
         "Checks: A4, one page, the recipient's company, the subject and the signature, the letter's parts",
         'in reading order both as poppler reconstructs the page and as the PDF draws it, the return line',
