@@ -1293,9 +1293,19 @@ describe('a word of the advert in its other number', () => {
     ['code reviews', 'Code review on every change.'],
     ['code review', 'Code reviews on every change.'],
     ['libraries', 'Wrote the library the app uses.'],
-    ['processes', 'Owned the release process.']
+    ['processes', 'Owned the release process.'],
+    ['analyses', 'Ran a quantitative analysis of the data.']
   ])('"%s" is found where the source writes "%s"', (advert, source) => {
     expect(ProvenanceCheck.wordsOnlyIn(advert, source)).toEqual([]);
+  });
+
+  // The review of #342: "news" stripped of its s was "new", which any CV writes.
+  test.each([
+    ['news', 'We shipped a brand new onboarding flow.'],
+    ['goods', 'Delivered a good outcome for the client.'],
+    ['means', 'The mean response time improved.']
+  ])('"%s" is not the plural of what "%s" writes', (advert, source) => {
+    expect(ProvenanceCheck.wordsOnlyIn(advert, source)).toEqual([advert]);
   });
 
   test('and a word the source does not write in either number is still held', () => {

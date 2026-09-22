@@ -918,17 +918,35 @@ function measured(dimension, text) {
   });
 }
 
+/** Words that end like a plural and are none: stripped, "news" would be "new" and "means" "mean" (the review of #342). */
+const NOT_PLURALS = new Set([
+  'news',
+  'goods',
+  'means',
+  'series',
+  'species',
+  'lens',
+  'gas',
+  'bus',
+  'sales'
+]);
+
 /**
  * A word in both its numbers, as English regularly writes them: "review" and "reviews", "process" and "processes",
- * "library" and "libraries". No stemmer: three rules anyone can read, and a word they would get wrong is only a word
- * the check goes on holding (#319).
+ * "library" and "libraries", "analysis" and "analyses". No stemmer: a few rules anyone can read, and a word they would
+ * get wrong is only a word the check goes on holding. A singular is never made of a word that ends like a plural and is
+ * none (`NOT_PLURALS`), nor of one in -ss, -us, -is or -ics, which English does not pluralise with the -s it ends in
+ * (#319).
  */
 function numbers(word) {
   const forms = [word, `${word}s`, `${word}es`];
-  if (/ies$/.test(word)) forms.push(word.replace(/ies$/, 'y'));
-  else if (/[^aeiou]y$/.test(word)) forms.push(word.replace(/y$/, 'ies'));
-  if (/(?:s|x|z|ch|sh)es$/.test(word)) forms.push(word.replace(/es$/, ''));
-  else if (/[^s]s$/.test(word)) forms.push(word.replace(/s$/, ''));
+  if (/[^aeiou]y$/.test(word)) forms.push(word.replace(/y$/, 'ies'));
+  if (/is$/.test(word)) forms.push(word.replace(/is$/, 'es'));
+  if (NOT_PLURALS.has(word) || /(?:ss|us|is|ics)$/.test(word)) return forms;
+  if (/[^aeiou]ies$/.test(word)) forms.push(word.replace(/ies$/, 'y'));
+  else if (/yses$/.test(word)) forms.push(word.replace(/es$/, 'is'));
+  else if (/(?:s|x|z|ch|sh)es$/.test(word)) forms.push(word.replace(/es$/, ''));
+  if (/[^s]s$/.test(word)) forms.push(word.replace(/s$/, ''));
   return forms;
 }
 
