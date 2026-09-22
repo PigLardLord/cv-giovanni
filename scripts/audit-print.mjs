@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -47,6 +47,7 @@ import { printedLayout } from '../core/ProfileResolver.js';
 import { creditWords } from '../domain/EntryLines.js';
 import { periodText } from '../domain/Tenure.js';
 import { figuresIn } from '../domain/Figures.js';
+import { treeFindings } from './lib/printed-structure.mjs';
 
 /**
  * What the browser prints, checked on the paper rather than on the stylesheet.
@@ -305,6 +306,12 @@ async function measure(path, faces, directory) {
   process.stderr.write(`audit-print: reading ${path}, written ${mtime.toISOString()}\n`);
 
   const info = execFileSync('pdfinfo', [pdf], { encoding: 'utf8' });
+  // The structure tree as a reader that walks it meets it, and what poppler rejected on the way (#370).
+  const struct = spawnSync('pdfinfo', ['-struct-text', pdf], {
+    encoding: 'utf8',
+    maxBuffer: 16 * 1024 * 1024
+  });
+  const structure = { output: struct.stdout ?? '', errors: struct.stderr ?? '' };
   const text = execFileSync('pdftotext', [pdf, '-'], { encoding: 'utf8' });
   // The face of every run of text, so a substitution is named rather than inferred.
   const html = execFileSync('pdftohtml', ['-xml', '-i', '-stdout', '-q', pdf], {
@@ -347,6 +354,7 @@ async function measure(path, faces, directory) {
 
   return {
     info,
+    structure,
     text,
     drawn,
     bbox,
@@ -402,6 +410,7 @@ try {
   for (const { layout, path } of files) {
     const {
       info,
+      structure,
       text,
       drawn,
       bbox,
@@ -458,6 +467,7 @@ try {
     // And whether one ends on a line of a single word (#295).
     const runts = runtSpans(spans);
     // And whether each Selected Impact line sets its figures in Bold, where #230 put them (#261).
+    const tree = treeFindings(structure, highlights.flatMap(figuresIn));
     const light = lightFigures(highlights, bold, figuresIn, {
       from: labels.selectedImpact,
       to: labels.experience
@@ -558,6 +568,9 @@ try {
       bulletsEndWhole: runts.length === 0,
       // Every Selected Impact line prints a figure in Bold (#230, #261).
       impactFiguresBold: light.length === 0,
+      // A reader walking the structure tree meets every element poppler can read, and every Selected Impact figure:
+      // a Strong with no RoleMap was dropped with the figures it held (#370).
+      treeReadable: tree.wrongTypes.length === 0 && tree.missing.length === 0,
       // The summary is the first prose on the page and the last thing a skimmer gives time to: three lines.
       summaryScans: summary.found && summary.lines <= SUMMARY_LINES,
       // The page break falls between two roles. Page 2 opened on three bullets with no employer above them, which
@@ -599,6 +612,7 @@ try {
       bullets,
       runts,
       light,
+      tree,
       summary,
       straddling,
       ragged,
@@ -771,7 +785,7 @@ const report = [
   'poppler reconstructs the page and as the PDF draws it, no image, no line of prose past',
   `${MEASURE_LIMIT} characters (WCAG 1.4.8; lists of skills, interests and contacts are scanned, not read along a`,
   'measure, and are exempt), every bullet set over no',
-  `more than ${BULLET_LINES} printed lines and none ending on a line of one word, a figure of every Selected Impact line in Bold, the summary over no more than ${SUMMARY_LINES}, and every role whole on one page, so no`,
+  `more than ${BULLET_LINES} printed lines and none ending on a line of one word, a figure of every Selected Impact line in Bold, and every one of them in the structure tree, which poppler reads with no element rejected, the summary over no more than ${SUMMARY_LINES}, and every role whole on one page, so no`,
   'page opens on a bullet whose role heading stands on the page before, every line of the masthead on the',
   "page's left edge, none of them opening or closing on a separator, and the PDF titled as the page composes",
   `its title: "${titles.cv}".`,
@@ -881,6 +895,7 @@ if (failures.length || letterFailures.length) {
             bullets,
             runts,
             light,
+            tree,
             summary,
             straddling,
             ragged,
@@ -903,6 +918,7 @@ if (failures.length || letterFailures.length) {
             bullets,
             runts,
             light,
+            tree,
             summary,
             straddling,
             ragged,

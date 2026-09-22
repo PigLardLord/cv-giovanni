@@ -3,6 +3,18 @@
    Optimized for maximum visual impact and easy scanning
    ============================================================================= */
 
+/* Emphasis is a span with a class, never a <strong>: Chrome tags a <strong> as Strong in the printed PDF, a type
+   PDF 1.4 does not have, and poppler-based readers drop it from the structure tree with its text, Selected Impact's
+   figures among it (#370). Each takes the weight the browser gave a <strong>, first in the cascade as that was, so
+   every rule after it still wins. */
+.contact-label,
+.skill-category,
+.language-name,
+.cert-name,
+.impact-figure {
+  font-weight: bolder;
+}
+
 /* CSS Custom Properties */
 :root {
   /* Primary Brand Colors - Professional Blue Palette */
@@ -517,7 +529,7 @@ section {
   border-left: 3px solid var(--accent-color);
 }
 
-.certifications-list strong {
+.certifications-list .cert-name {
   color: var(--primary-color);
   font-weight: 700;
 }
@@ -531,7 +543,7 @@ section {
   text-decoration: underline;
 }
 
-/* A certificate's name is a <strong> inside its link, and Chrome breaks a line where those two elements close, even
+/* A certificate's name is a span inside its link, and Chrome breaks a line where those two elements close, even
    before a separator held to it (#180): a 1280px column still opened a line on "– Google (2026)". Measured in
    headless Chrome, one element closing there gives no break, and neither does an empty box that never wraps at the end
    of the link. The box writes nothing, so nothing reads it. */

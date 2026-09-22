@@ -35,7 +35,7 @@ export class SkillsRenderer extends BaseRenderer {
   createSkillGroup(root, group) {
     const element = this.createElement(root, 'div', 'skill-group');
     if (group.category) {
-      const category = this.createElement(root, 'strong', 'skill-category');
+      const category = this.createElement(root, 'span', 'skill-category');
       category.textContent = group.category;
       element.appendChild(category);
     }

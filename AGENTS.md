@@ -621,9 +621,15 @@ it reads (#333). Measured with `pdfinfo -struct` on the three printed layouts, p
 2026-09-21 (#149, #265): `H1` for the name, `H2` for the title, seven `H3` section heads, six `H4` —
 each role and each degree, one level below its section — then seven `P`, five lists with seventeen `LI`
 and twelve `Lbl`, and five `Link`s tied to their annotations. Most of the page — 191 to 213 elements a
-layout — is `NonStruct`, Chrome's element for a `div` or `span` with no role, and poppler reports
-`StructElem object is wrong type (Strong)` in every layout, most likely Chrome's tagging of
-`<strong>`. The counts drift as the page does; the headings are what #265 holds.
+layout — is `NonStruct`, Chrome's element for a `div` or `span` with no role. The counts drift as the
+page does; the headings are what #265 holds.
+
+Chrome tagged every `<strong>` as `Strong`, a type PDF 1.4 does not have, and with no RoleMap: poppler
+reported `StructElem object is wrong type (Strong)` fourteen times, and a poppler-based reader —
+Evince, Okular, the Linux assistive stack — dropped the element with its text, Selected Impact's
+figures among it. The page sets emphasis in a classed `span` now, never a `<strong>` (#370), and
+`audit:print`'s `treeReadable` fails a print whose tree poppler rejects any element of, or that lost a
+Selected Impact figure.
 
 Since #230 the print sets its own section order, and the tree does not follow it: Chrome builds the tree
 from the markup, so a screen reader meets Core Technologies where the page prints the roles. The text layer
@@ -633,8 +639,7 @@ Since #240 a role's printed header is the title over `Employer · Place · Dates
 punctuation the stylesheet draws. Chrome writes them into the text layer and not into the tree: the
 `H4` holds the title, the employer and the place with nothing between them, and the screen's "at"
 and comma, which the tree did carry, are not printed. Whether the screen writes the dots too is
-#369's. And the `Strong` Chrome tags emphasis with has no RoleMap, so a poppler-based reader drops
-it with its text, Selected Impact's figures among it (#370).
+#369's.
 
 pdfmake, which composed the PDF before, wrote the tagged flag over an empty tree, and the project
 refused to set it: a flag over nothing tells a screen reader structure exists, and the reader stops

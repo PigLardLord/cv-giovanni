@@ -34,7 +34,7 @@ describe('CareerHighlightsRenderer', () => {
     const line = 'Cortado MDM for Android, 2026: 1040 → 5308 tests, branch coverage 14% → 83%';
     renderer.render(document, { career_highlights: [line] });
 
-    const figures = [...list().querySelectorAll('strong.impact-figure.no-break')];
+    const figures = [...list().querySelectorAll('span.impact-figure.no-break')];
     expect(figures.map((figure) => figure.textContent)).toEqual(['1040 → 5308', '14% → 83%']);
     expect(items()).toEqual([line]);
   });
@@ -73,7 +73,7 @@ describe('CareerHighlightsRenderer', () => {
     expect(items()).toEqual(['Cut crashes to <b>0.1%</b> at AT&T & co']);
     // The one element is the page's own: the figure it sets in Bold (#261). The data's "<b>" stays text.
     expect([...list().querySelector('li').children].map((child) => child.outerHTML)).toEqual([
-      '<strong class="impact-figure no-break">0.1%</strong>'
+      '<span class="impact-figure no-break">0.1%</span>'
     ]);
     expect(list().querySelectorAll('b')).toHaveLength(0);
   });

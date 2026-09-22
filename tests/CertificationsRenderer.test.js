@@ -60,7 +60,7 @@ describe('CertificationsRenderer', () => {
     const items = certList.querySelectorAll('li');
 
     expect(items).toHaveLength(1);
-    expect(items[0].innerHTML).toContain('<strong>Project Management</strong>');
+    expect(items[0].innerHTML).toContain('<span class="cert-name">Project Management</span>');
     expect(items[0].innerHTML).not.toContain('<a href=');
     expect(items[0].textContent).toContain('PMI (2022)');
   });

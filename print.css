@@ -410,15 +410,15 @@ body[data-layout='technical'] .container {
   display: none !important;
 }
 
-/* HeaderRenderer writes each label in a <strong> in front of its value, and the value as bare text, so the
+/* HeaderRenderer writes each label in a span in front of its value, and the value as bare text, so the
    label is the one element standing where each separator belongs. The label's own text is hidden and takes
    no room; the dot is drawn in its place, between the real spaces the markup already has on either side. */
-.contact-details strong {
+.contact-details .contact-label {
   visibility: hidden !important;
   font-size: 0 !important;
 }
 
-.contact-details strong::before {
+.contact-details .contact-label::before {
   content: '·';
   visibility: visible !important;
   font-size: 10pt !important;
@@ -431,7 +431,7 @@ body[data-layout='technical'] .container {
    the email line printed 2.8pt — one space at 10pt — to the right of every other line of the masthead, which a
    neutral read of the printed CV saw before any check did (#230). Removed, the space falls at the start of the
    line and collapses away. `audit:print` holds every masthead line to the page's left edge. */
-.contact-details strong:first-child {
+.contact-details .contact-label:first-child {
   display: none !important;
 }
 
@@ -793,8 +793,8 @@ section {
   margin-top: 0 !important;
 }
 
-.certifications-list strong,
-.languages-list strong {
+.certifications-list .cert-name,
+.languages-list .language-name {
   font-weight: 700 !important;
   color: #1f2937 !important;
 }

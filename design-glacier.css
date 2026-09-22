@@ -425,7 +425,7 @@ body[data-layout='technical'] .hero-name {
     line-height: 1.6;
   }
 
-  body[data-layout='technical'] .contact-details strong {
+  body[data-layout='technical'] .contact-details .contact-label {
     color: var(--t-ink);
   }
 
@@ -579,7 +579,7 @@ body[data-layout='technical'] .hero-name {
     border-bottom: 0;
   }
 
-  body[data-layout='technical'] .languages-list strong {
+  body[data-layout='technical'] .languages-list .language-name {
     color: var(--t-ink);
   }
 
@@ -727,7 +727,7 @@ body[data-layout='technical'] .hero-name {
     font-size: 0.92rem;
   }
 
-  body[data-layout='technical'] .certifications-list strong,
+  body[data-layout='technical'] .certifications-list .cert-name,
   body[data-layout='technical'] .certifications-list a {
     color: var(--t-blue);
   }

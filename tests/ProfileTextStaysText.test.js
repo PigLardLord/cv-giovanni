@@ -103,10 +103,12 @@ describe('profile text reaches the page as text', () => {
       `${awkward('school')} (${awkward('eduperiod')})`
     );
     expect(oneLine('#languages li')).toBe(`${awkward('language')}: ${awkward('level')}`);
-    expect(document.querySelector('#languages li strong').textContent).toBe(
+    expect(document.querySelector('#languages li .language-name').textContent).toBe(
       `${awkward('language')}:`
     );
-    expect(document.querySelector('#certifications li a strong').textContent).toBe(awkward('cert'));
+    expect(document.querySelector('#certifications li a .cert-name').textContent).toBe(
+      awkward('cert')
+    );
     expect(document.querySelector('#certifications li a').getAttribute('href')).toBe(
       'https://example.com/cert'
     );
