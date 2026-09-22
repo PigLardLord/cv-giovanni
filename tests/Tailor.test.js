@@ -75,7 +75,7 @@ const reply = (answer, usd = 0.5) => ({
 
 const setup = (
   replies,
-  { language = 'en', advert = ADVERT, clock, letter = { note: 'Remote.' } } = {}
+  { language = 'en', advert = ADVERT, clock, letter = { note: 'Remote.' }, cv = SOURCE } = {}
 ) => {
   const asked = [];
   const written = new Map();
@@ -106,7 +106,7 @@ const setup = (
     directory: 'applications/20260921-143205-a1b2c3',
     advert,
     options: { ...DEFAULTS, language, letter },
-    cv: SOURCE
+    cv
   };
   const run = () => tailor.run(job, { update: async (fields) => updates.push(fields) });
   return { asked, written, updates, run };
@@ -442,6 +442,49 @@ describe('what the review of the tailoring found', () => {
     expect(asked[1].prompt).toMatch(
       /<what_failed>\n- answer: has `sources` that is not an object from each tailored item to its source\n<\/what_failed>/
     );
+  });
+});
+
+// A span the calendar overtakes — "six years" over a role still running — is refused in a tailored CV as in the
+// published one, which only the published one's test used to read (#274). The full CV lives outside the suite, so it
+// can carry one; a tailoring that copies it faithfully is still refused, before anything is written.
+describe('a span of time in a tailored CV', () => {
+  // Through JSON: Jest's structuredClone builds its objects in another realm, which the check does not walk.
+  const stating = (profile) => ({ ...JSON.parse(JSON.stringify(SOURCE)), profile });
+  const copying = (source) => {
+    const answer = faithful();
+    answer.profile.profile = source.profile;
+    return answer;
+  };
+
+  test('the calendar will overtake ends the job refused, quoting the span and why, with nothing written', async () => {
+    const cv = stating('Senior iOS engineer with six years of SwiftUI.');
+    const { written, run } = setup([reply(copying(cv)), reply(copying(cv)), reply(copying(cv))], {
+      cv
+    });
+
+    const refusal = await run().catch((error) => error);
+
+    expect(refusal).toBeInstanceOf(Refusal);
+    expect(refusal.details).toEqual([
+      {
+        path: 'profile',
+        reason: expect.stringMatching(
+          /^"six years": an exact count of time with no ended role behind it/
+        )
+      }
+    ]);
+    expect(written.size).toBe(0);
+  });
+
+  test('tied to a role that has ended, and agreeing with its dates, is written', async () => {
+    const cv = stating(
+      'Senior iOS engineer with 11+ years in native mobile development, 3 of them at Analytical Engines.'
+    );
+    const { written, run } = setup([reply(copying(cv))], { cv });
+
+    await expect(run()).resolves.toMatchObject({ attempts: 1 });
+    expect(written.size).toBe(1);
   });
 });
 
