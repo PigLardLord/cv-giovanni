@@ -1088,6 +1088,21 @@ describe('a name or a label on screen', () => {
     expect(wordSplits(glyphs).checks.wordsWhole).toBe(true);
   });
 
+  // An apostrophe and a digit are the word's too: "Master's" broken before its "s", "A11y" between its ones (the review
+  // of #349).
+  test.each([
+    ["First Level Master'", 's Programme', "Master'-/s"],
+    ['First Level Master', "'s Programme", "Master-/'s"],
+    ['Audit A1', '1y', 'A1-/1y']
+  ])(
+    'broken inside a word with an apostrophe or a digit is named: %s|%s',
+    (first, second, split) => {
+      const glyphs = named([...run(first), ...run(second, { top: 20 })], 0);
+
+      expect(wordSplits(glyphs).findings.splitWords).toEqual([split]);
+    }
+  );
+
   test('two elements on two lines are no split, nor is prose no name holds', () => {
     const glyphs = [...named(run('Giovanni Trovato'), 0), ...named(run('Senior', { top: 20 }), 1)];
     const prose = [...run('develop'), ...run('ment', { top: 20 })].map((glyph) => ({

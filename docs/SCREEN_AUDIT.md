@@ -48,6 +48,13 @@ its own. A line of the file may open with one. A failure names the syntax, the c
 its row, and the line of text it closes. The quotes and the comma drawn flush against a period count
 toward how wide it is, since the editor holds them to it.
 
+Since #259 no name or label breaks inside a word: the name, the role line, the location, each role
+and degree heading, each school, each certification's name, each token of Nerd Mode's file and each
+control of the toolbar. An automatic hyphen is drawn at a break and never written into the page's
+text, so what shows it is two characters of one word, letters, digits or its apostrophe, on two lines
+of one element. A break at a space, or after a compound's own hyphen, is whole; running prose may
+hyphenate. A failure names the word, split where it broke.
+
 ## The Download PDF link
 
 | Layout | Width | Controls | Top copy | Heights | Label lines | Focus ring | Forced colours |

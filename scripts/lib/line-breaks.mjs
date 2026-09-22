@@ -215,13 +215,14 @@ function layOut(glyphs) {
  * putting it in the page's text, so no copy and no glyph shows one; what shows the break is two letters of one word on
  * two lines. A break at a space, or after a compound's own hyphen, is no split. Only the glyphs `renderedGlyphs` marks
  * with the element they belong to — `named` — are judged, two letters of one element at a time: running prose may
- * hyphenate where the stylesheet lets it.
+ * hyphenate where the stylesheet lets it. A digit or an apostrophe is a character of the word as much as a letter.
  * @param {object[]} glyphs - As `renderedGlyphs` collects them, with the selector of what is named
  * @returns {{ checks: { wordsWhole: boolean }, findings: { splitWords: string[] } }} Each word split, as "Ap-/paround"
  */
 export function wordSplits(glyphs) {
   const { laid } = layOut(glyphs);
-  const letter = (glyph) => /\p{L}/u.test(glyph.text);
+  // A word's own characters: letters, digits and its apostrophe — "Master's", "A11y" (the review of #349).
+  const letter = (glyph) => /[\p{L}\p{N}'’]/u.test(glyph.text);
   const splits = [];
   for (let index = 1; index < laid.length; index++) {
     const [before, after] = [laid[index - 1], laid[index]];
