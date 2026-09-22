@@ -624,6 +624,43 @@ export const ADVERT = {
   ],
 
   /**
+   * Names written in several words, read whole where an advert writes them: every window of a line was ranked, and
+   * "GitHub Actions" came out as "GitHub" and "Actions", "time series" as "time" and "series" (#318). Each is a thing
+   * the CV can claim by that name. Every form of the synonym table written in several words is one too.
+   */
+  names: {
+    en: [
+      'github actions',
+      'gitlab ci',
+      'azure devops',
+      'jetpack compose',
+      'kotlin multiplatform',
+      'kotlin coroutines',
+      'react native',
+      'firebase crashlytics',
+      'new relic',
+      'core data',
+      'app store',
+      'app store connect',
+      'play store',
+      'google play',
+      'android studio',
+      'time series',
+      'use case',
+      'use cases',
+      'ui tests',
+      'feature flags',
+      'clean architecture',
+      'design system',
+      'dependency injection',
+      'push notifications',
+      'deep links'
+    ],
+    de: ['künstliche intelligenz', 'verteilte systeme'],
+    it: ['intelligenza artificiale', 'sistemi distribuiti']
+  },
+
+  /**
    * The gender markers a job title carries in words: "(gn)", "(all genders)". The letters joined by slashes — "m/w/d",
    * "f/m/d/x", "m | w | d" — are one shape, read by the pattern below whatever their order. Each is read as a whole
    * token and taken out of its line, never matched inside a word — as boilerplate, "gn" dropped every line with
@@ -846,6 +883,15 @@ const INSTRUCTION = new RegExp(
   'giu'
 );
 
+// Every name in several words, as folded words: the lexicon's own and the synonym table's, longest first, so "app store
+// connect" is read before "app store" (#318).
+const NAMES = [
+  ...Object.values(ADVERT.names).flat(),
+  ...ADVERT.synonyms.flat().filter((form) => /\s/.test(form))
+]
+  .map((name) => fold(name).split(/\s+/))
+  .sort((a, b) => b.length - a.length);
+
 const SYNONYM = new Map();
 for (const group of ADVERT.synonyms) {
   const canonical = fold(group[0]);
@@ -911,6 +957,38 @@ export class AdvertLexicon {
       .replace(INSTRUCTION, ',')
       .replace(/\s{2,}/g, ' ')
       .trim();
+  }
+
+  /**
+   * Where the names the lexicon knows stand in a line's words: "CI/CD with GitHub Actions pipelines" holds one at words
+   * 2 to 4. Read from the left, the longest name first at each word, and never two overlapping (#318).
+   * @param {string[]} words - One clause's words, as the matcher reads them
+   * @returns {number[][]} Each name's words, as [first, after last]
+   */
+  static namesIn(words) {
+    const folded = words.map((word) => fold(word));
+    const spans = [];
+    for (let at = 0; at < folded.length;) {
+      const name = NAMES.find((parts) => parts.every((part, index) => folded[at + index] === part));
+      if (name) {
+        spans.push([at, at + name.length]);
+        at += name.length;
+      } else at += 1;
+    }
+    return spans;
+  }
+
+  /**
+   * Whether a phrase is a name the lexicon knows in several words: "GitHub Actions", "time series" (#318).
+   * @param {string} phrase - A phrase of the advert
+   * @returns {boolean} Whether it is one
+   */
+  static isName(phrase) {
+    const words = fold(phrase).split(/\s+/);
+    return NAMES.some(
+      (parts) =>
+        parts.length === words.length && parts.every((part, index) => part === words[index])
+    );
   }
 
   /** A phrase that belongs to the posting rather than to the job. */

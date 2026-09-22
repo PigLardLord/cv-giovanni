@@ -64,9 +64,17 @@ export class AdvertMatcher {
         const words = (clause.match(TOKEN) || [])
           .map((word) => word.replace(/[.,;:]+$/, ''))
           .filter(Boolean);
+        // A name in several words is read whole where it is written: no window takes part of it, and its words do not
+        // count apart from it there (#318).
+        const names = AdvertLexicon.namesIn(words);
+        const cuts = (from, to) =>
+          names.some(
+            ([first, after]) => from < after && first < to && !(from === first && to === after)
+          );
 
         for (let size = 1; size <= 3; size += 1) {
           for (let start = 0; start + size <= words.length; start += 1) {
+            if (cuts(start, start + size)) continue;
             const phrase = words.slice(start, start + size).join(' ');
             if (!AdvertMatcher.keeps(phrase, words.slice(start, start + size))) continue;
             const key = fold(phrase);
@@ -115,6 +123,9 @@ export class AdvertMatcher {
       const folded = fold(entry.term);
       const overlaps = kept.some(({ term }) => {
         const other = fold(term);
+        // A name is read whole where it is written, so a word of it that ranks on its own was written on its own:
+        // "Kotlin" beside "Kotlin Multiplatform" is two claims, not one phrase's windows (#318).
+        if (AdvertLexicon.isName(entry.term) || AdvertLexicon.isName(term)) return folded === other;
         if (AdvertMatcher.contains(folded, other) || AdvertMatcher.contains(other, folded))
           return true;
         // Two phrases sharing a pair of adjacent words are one idea said twice: `App Store
@@ -135,6 +146,8 @@ export class AdvertMatcher {
    * any script: "Опыт" is a word as much as "Erfahrung" is (the review of #310).
    */
   static keeps(phrase, words) {
+    // A name is a name whatever its words mean alone: the "CI" of "GitLab CI" is an Italian stopword (#318).
+    if (AdvertLexicon.isName(phrase)) return true;
     if (words.some((word) => AdvertLexicon.isStopword(word))) return false;
     if (AdvertLexicon.isBoilerplatePhrase(phrase)) return false;
     if (/^\P{L}+$/u.test(phrase)) return false;

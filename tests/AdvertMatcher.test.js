@@ -320,8 +320,8 @@ describe('a phrase of the advert', () => {
     for (const spanning of ['Engineer Berlin', 'fastlane GitLab', 'English German']) {
       expect(terms).not.toContain(spanning);
     }
-    // Which of "GitLab" and "GitLab CI" ranks is #318's; the list's items are no longer one phrase.
-    expect(terms).toEqual(expect.arrayContaining(['fastlane', 'GitLab']));
+    // "GitLab CI" is a name, read whole (#318); the list's items are no longer one phrase.
+    expect(terms).toEqual(expect.arrayContaining(['fastlane', 'GitLab CI']));
   });
 
   test('keeps a technology its brackets qualify: React (Native)', () => {
@@ -338,5 +338,32 @@ describe('a phrase the matcher ranks', () => {
     expect(AdvertMatcher.keeps('health benefits', ['health', 'benefits'])).toBe(true);
     expect(AdvertMatcher.keeps('diverse', ['diverse'])).toBe(true);
     expect(AdvertMatcher.keeps('competitive salary', ['competitive', 'salary'])).toBe(false);
+  });
+});
+
+// Every window of a line was ranked, and a name written in two words lost to its own words: "GitHub Actions" came out
+// as "GitHub" and "Actions", "time series" as "time" and "series", "use cases" as "use" and "cases" (#318). A name the
+// lexicon knows is read whole where it is written, and its words do not count apart from it there.
+describe('a name written in several words', () => {
+  const advert = [
+    'Requirements',
+    '- CI/CD with GitHub Actions pipelines',
+    '- Time series data on device',
+    '- Clear use cases for every feature',
+    '- Android development with Kotlin, and Kotlin Multiplatform'
+  ].join('\n');
+  const terms = () => AdvertMatcher.extractTerms(advert, 60).terms.map(({ term }) => term);
+
+  test('ranks as the name, never as its words', () => {
+    expect(terms()).toEqual(
+      expect.arrayContaining(['GitHub Actions', 'Time series', 'use cases', 'Kotlin Multiplatform'])
+    );
+    for (const word of ['GitHub', 'Actions', 'series', 'cases', 'Multiplatform']) {
+      expect(terms()).not.toContain(word);
+    }
+  });
+
+  test('and a word of it written on its own elsewhere still ranks on its own', () => {
+    expect(terms()).toContain('Kotlin');
   });
 });
