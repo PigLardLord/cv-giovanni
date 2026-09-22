@@ -401,7 +401,13 @@ try {
           '.layout-switcher a, [data-download-pdf]'
         )
       );
-      const split = wordSplits([...drawn.glyphs, ...(toolbar?.glyphs ?? [])]);
+      // Each reading on its own: the two number their elements from 0, and must never be read as one line of text.
+      const [inPage, inToolbar] = [wordSplits(drawn.glyphs), wordSplits(toolbar?.glyphs ?? [])];
+      const splitWords = [...inPage.findings.splitWords, ...inToolbar.findings.splitWords];
+      const split = {
+        checks: { wordsWhole: splitWords.length === 0 },
+        findings: { splitWords }
+      };
 
       // The Download link (#101): measured as the page loaded, reached with Tab the way a keyboard user reaches
       // it, scrolled past where a layout pins it, and loaded again with no PDF to offer.
