@@ -501,7 +501,13 @@ export class ProvenanceCheck {
       (tailored[key] || []).forEach((entry, index) => {
         const path = `${key}[${index}]`;
         if (!translated) {
-          if (!(source[key] || []).some((candidate) => same(entry, candidate))) {
+          // A tailoring shortens: an entry may leave out its description — a degree's thesis — and writes every other
+          // field as the source writes it (#374).
+          const shortened = (candidate) =>
+            entry.description === undefined || entry.description === null
+              ? { ...candidate, description: undefined }
+              : candidate;
+          if (!(source[key] || []).some((candidate) => same(entry, shortened(candidate)))) {
             fail(path, `is not a ${what} the source lists, as it lists it`);
           }
           return;

@@ -1422,3 +1422,50 @@ describe('a technology the lexicon knows', () => {
     expect(reasonsAt(failures, 'relevant_experience[0].summary')).toEqual([]);
   });
 });
+
+// A tailoring shortens, and leaving out a degree's thesis or a certification's description is shortening. Every entry
+// had to equal the source's, field for field, so a full CV that gave its degrees their theses failed every tailoring
+// that left them out (#374).
+describe('an entry the tailoring shortens', () => {
+  const described = JSON.parse(JSON.stringify(SOURCE));
+  described.education[0].description = 'Thesis: "Periodic orbits of analytical engines".';
+  described.certifications[0].description = 'Operation and upkeep of difference engines.';
+  const tailor = (edit) => {
+    const tailored = JSON.parse(JSON.stringify(described));
+    edit(tailored);
+    return ProvenanceCheck.failures({
+      source: described,
+      tailored,
+      sources: itself(described),
+      terms: [],
+      advert: ''
+    });
+  };
+
+  test('may leave out a degree’s and a certification’s description', () => {
+    expect(
+      tailor((cv) => {
+        delete cv.education[0].description;
+        delete cv.certifications[0].description;
+      })
+    ).toEqual([]);
+  });
+
+  test('may not write another description', () => {
+    expect(
+      reasonsAt(
+        tailor((cv) => (cv.education[0].description = 'Thesis: "Something else".')),
+        'education[0]'
+      )
+    ).toEqual(['is not a degree the source lists, as it lists it']);
+  });
+
+  test.each([
+    ['its period', (cv) => delete cv.education[0].period],
+    ['its school', (cv) => (cv.education[0].school = 'University of Cambridge')]
+  ])('may not leave out or change %s', (_, edit) => {
+    expect(reasonsAt(tailor(edit), 'education[0]')).toEqual([
+      'is not a degree the source lists, as it lists it'
+    ]);
+  });
+});
