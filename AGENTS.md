@@ -38,7 +38,7 @@ tailored version leaves the machine only as an attached PDF.
 rule you discover by pushing.
 
 **The PDF a recruiter downloads is the page, printed.** `npm run build:pdf` serves the site to a
-headless Chrome and prints each layout through `print.css`, so the page and the PDF share one DOM,
+headless Chrome and prints Technical Profile through `print.css`, so the page and the PDF share one DOM,
 one design and one set of words. They used to be two artefacts: the page through `renderers/`, and a
 PDF pdfmake composed from the model in a design of its own. They drifted — the PDF carried career
 highlights and an as-of month the page never showed (#148) — and the owner chose one CV over two
@@ -432,11 +432,10 @@ still attached to its category, nothing in the text layer the data did not write
 order the PDF draws it, every name spaced and every section in its place. No line of prose, the
 summary, the highlights and what a role, a certificate or a degree says, runs past WCAG 1.4.8's 80
 characters; a line of skills, interests or contacts is a list, scanned item by item, and is exempt.
-In Nerd Mode no line of a role's dates runs out of its 128pt column (#155). Every bullet is set over
-no more than two printed lines and the summary over no more than three, and every role prints whole on
-one page, so no page opens on a bullet whose role heading stands on the page before (#230): what a
-sentence costs on paper is not what it costs in the profile, and the same words wrap differently in
-each layout. It also reports how much
+Every bullet is set over no more than two printed lines and the summary over no more than three, and
+every role prints whole on one page, so no page opens on a bullet whose role heading stands on the
+page before (#230): what a sentence costs on paper is not what it costs in the profile. It also
+reports how much
 room each page has left above its foot, and marks a last page with less than one line of running
 text free, as a warning and never a failure: the page count is the gate, and the warning is the
 notice that it is close (#162). A check on the stylesheet passed a page that printed a line of
@@ -646,12 +645,14 @@ Settled on #144 by the owner, and not to be undone by someone reclaiming space:
   and the only one printed. Nerd Mode stays for its style as a screen-only view: it prints nothing of
   its own, and its Download link downloads the Technical Profile PDF. Impact Spotlight is retired.
   Three layouts had meant three builds, three audits and three reviews of every change, and a review
-  of one print did not carry over to the others. The code is behind the decision until #361 (one
-  PDF) and #362 (Spotlight retired) land; until then a print change is judged on Technical Profile,
-  and the other prints are kept passing, not improved.
-- **One CV, printed from the page.** `npm run build:pdf` prints each layout `config/cv-manifest.json`
-  declares, under the names the page already offers, and writes `generated/manifest.json` from what
-  it printed. There is no second design to keep in step.
+  of one print did not carry over to the others. The manifest names the printed layout as `pdf`, and
+  `printedLayout` in `core/ProfileResolver.js` is the one rule the page, the build, the audits and a
+  tailoring job read it by (#361). Spotlight still ships as a screen layout until #362 retires it.
+  The ATS fixtures of the Nerd Mode and Spotlight prints stay as `frozen-print-…`: the parser still
+  reads those shapes, but no audit holds them to a print.
+- **One CV, printed from the page.** `npm run build:pdf` prints the layout `config/cv-manifest.json`
+  names as its `pdf`, under the name the page already offers, and writes `generated/manifest.json`
+  from what it printed. There is no second design to keep in step.
 - **One reading column, and the print sets its order.** Nothing is positioned or floated, and no grid
   moves a section: printed in two columns, the text layer put Education between the first role's
   achievements, and a parser reading in drawing order met the name after the skills (#142). The order
@@ -659,9 +660,7 @@ Settled on #144 by the owner, and not to be undone by someone reclaiming space:
   same sections its own way, and the print gives each a place in one flex column — contacts under the
   headline, then the summary, Selected Impact, the roles, Core Technologies, the credentials. Chrome
   draws flex items in that order, so the text layer comes out in the printed order in both of the
-  orders a parser reads; `audit:print` checks both, and a page that fails either fails the build. The
-  one column inside a section is Nerd Mode's dates, beside the role they date and drawn before it, so
-  no period leaves its role in either reading order (`print.css`).
+  orders a parser reads; `audit:print` checks both, and a page that fails either fails the build.
 - **Two A4 pages, in colour.** The LETTER and monochrome variants existed to audit pdfmake's design
   system. The target market is Germany, and contrast is measured word by word on the printed page,
   which covers a monochrome printout. `audit:print` fails a third page.
@@ -701,7 +700,7 @@ Settled on #151 by the owner: one system for both documents a recruiter receives
 and did (#153). A letter is far simpler than a CV, which kept the cost of re-expressing DIN 5008 small.
 
 - **A page, printed by Chrome.** `letter.html?profile=<name>&lang=<locale>&layout=<layout>` renders
-  the `letter` a tailored profile carries, and `npm run build:pdf` prints it beside each layout's CV,
+  the `letter` a tailored profile carries, and `npm run build:pdf` prints it beside the CV,
   in the same browser session, to `<name>-<profile>-<locale>-<layout>-cover.pdf`
   (`CvFiles.letterFilename`). The `-cover` is what the audits tell a letter by. `core/LetterContent.js`
   decides the words, once, for the page and the audit alike; `renderers/LetterRenderer.js` writes them

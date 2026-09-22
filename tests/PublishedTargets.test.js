@@ -247,9 +247,9 @@ describe('what a run is about', () => {
     expect(started).toEqual([]);
   });
 
-  // A tailoring job prints and audits its CV in the one layout it was asked for (#303); a published CV keeps every
-  // layout the page offers, since its build writes the page's downloads and its audits the reports in docs/.
-  const laidOut = { ...manifest, layouts: ['nerd', 'spotlight', 'technical'] };
+  // A tailoring job prints and audits its CV in the one layout it was asked for (#303), which is the one every CV is
+  // printed in (#361).
+  const laidOut = { ...manifest, layouts: ['nerd', 'spotlight', 'technical'], pdf: 'technical' };
 
   test('with --layout, a tailored CV is read in that layout alone', async () => {
     const run = await resolveRun(
@@ -263,7 +263,12 @@ describe('what a run is about', () => {
   });
 
   test.each([
-    [['--profile=applications/x/en.json', '--layout=modern'], /not a layout the manifest lists/],
+    [
+      ['--profile=applications/x/en.json', '--layout=modern'],
+      /not the layout the CV is printed in/
+    ],
+    // A screen layout is no printed one: Nerd Mode prints nothing of its own (#361).
+    [['--profile=applications/x/en.json', '--layout=nerd'], /not the layout the CV is printed in/],
     [['--layout=technical'], /one layout of a tailored CV/],
     [['--profile=profiles/general/en.json', '--layout=technical'], /one layout of a tailored CV/],
     [['--profile=applications/x/en.json', '--layout'], /--layout needs a value/],

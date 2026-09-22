@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { CvDocument } from '../domain/CvDocument.js';
+import { printedLayout } from '../core/ProfileResolver.js';
 import { creditWords } from '../domain/EntryLines.js';
 import { AtsTextParser } from '../core/AtsTextParser.js';
 import { RecoveryDiff } from '../core/RecoveryDiff.js';
@@ -91,13 +92,18 @@ try {
 // and the English against the German, and the English report fell from 80/80 to 63.2 for a CV nothing had
 // changed (#248). A directory beside them, such as the qa/ an older build wrote, is not read either.
 const onDisk = (path) => existsSync(new URL(path, projectRoot));
-const files = auditedFiles(target, authored, run.manifest.layouts, onDisk).map(
-  ({ path, isCover }) => ({
-    artefact: path,
-    path: new URL(path, projectRoot).pathname,
-    isCover
-  })
-);
+// The one layout printed (#361); a manifest that names none is refused, never a stack trace (the review of #364).
+let printed;
+try {
+  printed = printedLayout(run.manifest);
+} catch (error) {
+  cannotCheck(error.message);
+}
+const files = auditedFiles(target, authored, [printed], onDisk).map(({ path, isCover }) => ({
+  artefact: path,
+  path: new URL(path, projectRoot).pathname,
+  isCover
+}));
 
 if (!files.filter((file) => !file.isCover).length) {
   cannotCheck(
@@ -199,7 +205,7 @@ const report = [
   '',
   '## Distinct text streams',
   '',
-  `${files.length} artefacts, ${results.length} distinct streams.`,
+  `${files.length} ${files.length === 1 ? 'artefact' : 'artefacts'}, ${results.length} distinct ${results.length === 1 ? 'stream' : 'streams'}.`,
   '',
   ...[...seen.entries()].map(
     ([fingerprint, group]) => `- \`${fingerprint.slice(0, 12)}\` — ${group.join(', ')}`

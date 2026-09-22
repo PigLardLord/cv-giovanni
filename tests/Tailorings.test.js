@@ -12,7 +12,8 @@ import { Refusal } from '../core/Refusal.js';
 const MANIFEST = JSON.stringify({
   defaultProfile: 'general',
   profiles: { general: { locales: { en: 'profiles/general/en.json' } } },
-  layouts: ['nerd', 'spotlight', 'technical']
+  layouts: ['nerd', 'spotlight', 'technical'],
+  pdf: 'technical'
 });
 const API = { backend: 'anthropic-api', cost: { kind: 'per-run' }, unavailable: [] };
 const PUBLISHED = '{\n  "name": "Ada Lovelace"\n}\n';
@@ -187,7 +188,9 @@ describe('creating a tailoring', () => {
     ['language', 'fr', /de, en/],
     ['model', 'claude-opus-4-8', /claude-opus-5, claude-sonnet-5, claude-fable-5-1/],
     ['effort', 'extreme', /low, medium, high, xhigh, max/],
-    ['layout', 'modern', /nerd, spotlight, technical/],
+    ['layout', 'modern', /is one of technical; not modern/],
+    // Nerd Mode is a screen view, printed in no job (#361).
+    ['layout', 'nerd', /is one of technical; not nerd/],
     ['auditRetries', 6, /0 to 5/],
     ['auditRetries', -1, /0 to 5/],
     ['auditRetries', 1.5, /0 to 5/],

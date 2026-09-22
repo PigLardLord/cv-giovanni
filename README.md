@@ -15,10 +15,11 @@ A CV is `profile × locale × layout`.
 - **The page** is HTML, CSS and ES modules with no build step. `index.html` loads `script.js`, which renders the
   profile through `renderers/` into one of three layouts: Nerd Mode (`nerd`), Impact Spotlight (`spotlight`) and
   Technical Profile (`technical`).
-- **The PDFs** are the page, printed. `npm run build:pdf` serves the site to a headless Chrome and prints each
-  layout through `print.css` into `generated/`, where the page's Download PDF link finds them through
-  `generated/manifest.json`. Nothing there is committed: CI builds, audits and publishes its own. A cover letter is
-  a page too: `letter.html`, printed beside each layout when a tailored profile carries one.
+- **The PDF** is the page, printed. `npm run build:pdf` serves the site to a headless Chrome and prints Technical
+  Profile, the one layout `config/cv-manifest.json` names as `pdf`, through `print.css` into `generated/`, where
+  the Download PDF link of every layout finds it through `generated/manifest.json` (#231). Nothing there is
+  committed: CI builds, audits and publishes its own. A cover letter is a page too: `letter.html`, printed beside
+  the CV when a tailored profile carries one.
 
 The page and the PDF share one DOM, one design and one set of words. The audits measure the printed file on paper
 and as a stranger's parser reads it, and the page on screen.
@@ -52,7 +53,7 @@ The URL chooses the CV:
 | Command                  | What it does                                                                                           |
 | ------------------------ | ------------------------------------------------------------------------------------------------------ |
 | `npm test`               | Jest with JSDOM: the renderers, the domain, the rules the audits apply, and the repository's own rules |
-| `npm run build:pdf`      | Prints each layout from the page in headless Chrome, into the PDFs the page offers for download        |
+| `npm run build:pdf`      | Prints Technical Profile from the page in headless Chrome, into the PDF every layout offers            |
 | `npm run verify:pdf`     | Prints them, then runs `npm run audit:print` and `npm run audit:ats` on what it printed                |
 | `npm run audit:print`    | Checks the printed PDFs on paper: the text layer and the pixels                                        |
 | `npm run audit:ats`      | Parses the PDF the way a stranger's parser would, and reports what it recovers                         |
@@ -113,7 +114,7 @@ CI builds, audits and publishes its own.
 ## Every published CV
 
 What is published is what `config/cv-manifest.json` lists: every profile and locale in it. With no `--profile`,
-`npm run build:pdf` prints each of them in every layout into `generated/`, writes one `generated/manifest.json`
+`npm run build:pdf` prints each of them in Technical Profile into `generated/`, writes one `generated/manifest.json`
 naming all their files — which is what lets the page offer a download in each language — and the three audits
 score each of them, failing the run if any fails. The public CV keeps its reports' names in `docs/`; every other
 published CV writes its own beside them, with its profile and locale in the name. A profile
@@ -125,8 +126,8 @@ CV's files alone, so the page offers only it until the next run with no `--profi
 
 A CV tailored to a named employer lives in `applications/`, which git ignores: this repository is public, and a
 committed application would publish where the candidate applied. `npm run build:pdf -- --profile=<path>` builds
-from that profile into a folder beside it, the audits take the same `--profile`, `--layout <name>` prints and audits
-one layout the manifest lists — a published CV is always every layout — and a `letter` in the profile
+from that profile into a folder beside it, the audits take the same `--profile`, `--layout <name>` is accepted only
+for the layout every CV is printed in, and a `letter` in the profile
 adds a cover letter, printed from `letter.html` and checked by `npm run audit:print` too. CI never prints one, since
 the published profile has none, and the site leaves `letter.html` out: published, it could only say there is no
 letter. A tailored CV leaves the machine only as an attached PDF.

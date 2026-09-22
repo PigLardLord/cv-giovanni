@@ -2,6 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { basename } from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { GenerationTarget } from '../../core/GenerationTarget.js';
+import { printedLayout } from '../../core/ProfileResolver.js';
 import { builtCv } from './printed-cv.mjs';
 
 /**
@@ -138,10 +139,15 @@ export async function resolveRun(name, script, argv, options) {
   // either narrowed to one layout would drop the others.
   const layout = GenerationTarget.options(argv).get('layout');
   if (layout !== undefined) {
-    if (!(manifest.layouts || []).includes(layout)) {
-      return refuse(
-        `--layout ${layout} is not a layout the manifest lists: ${(manifest.layouts || []).join(', ')}.`
-      );
+    // One layout is printed (#361): a tailored CV too is printed in it, and in no other.
+    let printed;
+    try {
+      printed = printedLayout(manifest);
+    } catch (error) {
+      return refuse(error.message);
+    }
+    if (layout !== printed) {
+      return refuse(`--layout ${layout} is not the layout the CV is printed in: ${printed}.`);
     }
     // A --profile that names no CV is refused below, with its own reason.
     let tailored = false;

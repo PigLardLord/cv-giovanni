@@ -239,7 +239,12 @@ describe('who the local API answers', () => {
       mkdirSync(join(root, 'locales', 'en'), { recursive: true });
       writeFileSync(
         join(root, 'config', 'cv-manifest.json'),
-        JSON.stringify({ defaultProfile: 'general', profiles: {}, layouts: ['technical'] })
+        JSON.stringify({
+          defaultProfile: 'general',
+          profiles: {},
+          layouts: ['technical'],
+          pdf: 'technical'
+        })
       );
       const files = new NodeProjectFiles(root);
       const inference = {

@@ -21,8 +21,7 @@ traces to a 2012 sales pitch with no published method; it is not repeated here.
 
 | Artefact | Contacts | Structure | Fidelity | Links | Roles intact |
 |---|---|---|---|---|---|
-| generated/giovanni-trovato-general-en-nerd.pdf | normalised | ok | exact | 3/3 | yes |
-| generated/giovanni-trovato-general-en-spotlight.pdf | normalised | ok | exact | 3/3 | yes |
+| generated/giovanni-trovato-general-en-technical.pdf | normalised | ok | exact | 3/3 | yes |
 
 ## What did not come back
 
@@ -35,8 +34,7 @@ Four failures gate the audit whatever the number says: a document that did not s
 
 | Artefact | Poppler's order | Content-stream order |
 |---|---|---|
-| generated/giovanni-trovato-general-en-nerd.pdf | pass | pass |
-| generated/giovanni-trovato-general-en-spotlight.pdf | pass | pass |
+| generated/giovanni-trovato-general-en-technical.pdf | pass | pass |
 
 ## The advert
 
@@ -63,10 +61,9 @@ Regenerate with `npm run audit:ats`.
 
 ## Distinct text streams
 
-3 artefacts, 2 distinct streams.
+1 artefact, 1 distinct stream.
 
-- `4ce4f9a6fe2e` — generated/giovanni-trovato-general-en-nerd.pdf
-- `038c6314179a` — generated/giovanni-trovato-general-en-spotlight.pdf, generated/giovanni-trovato-general-en-technical.pdf
+- `038c6314179a` — generated/giovanni-trovato-general-en-technical.pdf
 
 
 A layout-aware read recovers the same structure everywhere, so no column is being serialised.

@@ -22,7 +22,7 @@ import { emptyFieldMarks, entrySections, printedEntries } from './lib/empty-fiel
 import { imageCount, outOfOrder } from './lib/section-order.mjs';
 import { builtCv, builtLetters } from './lib/printed-cv.mjs';
 import { PRINTED_PAGE, bboxPages, printedRoom, roomReport } from './lib/page-room.mjs';
-import { MEASURE_LIMIT, longProseLines, overflowingPeriods, proseOf } from './lib/line-length.mjs';
+import { MEASURE_LIMIT, longProseLines, proseOf } from './lib/line-length.mjs';
 import {
   proseSpans,
   runtSpans,
@@ -43,6 +43,7 @@ import { composedTitles, pdfTitle } from './lib/pdf-titles.mjs';
 import { LetterContent } from '../core/LetterContent.js';
 import { CoverLetter } from '../domain/CoverLetter.js';
 import { CvDocument } from '../domain/CvDocument.js';
+import { printedLayout } from '../core/ProfileResolver.js';
 import { creditWords } from '../domain/EntryLines.js';
 import { periodText } from '../domain/Tenure.js';
 import { figuresIn } from '../domain/Figures.js';
@@ -72,6 +73,14 @@ const run = await resolveRun('audit-print', fileURLToPath(import.meta.url), argv
 });
 if ('exit' in run) process.exit(run.exit);
 const { target, manifest } = run;
+// The one layout printed (#231, #361). A manifest that prints none it lists is refused before anything is read.
+let printed;
+try {
+  printed = [printedLayout(manifest)];
+} catch (error) {
+  console.error(`audit-print: ${error.message} — nothing was checked.`);
+  process.exit(2);
+}
 const profile = await readJson(target.dataPath);
 const catalogue = await readJson(`locales/${target.locale}/cv.json`);
 const labels = catalogue.sections;
@@ -109,9 +118,8 @@ async function readJson(path) {
 }
 // A layout with no printed typefaces declared cannot have its text checked: exit 2, as for a file never built.
 try {
-  manifest.layouts.forEach((layout) => typefacesFor(layout));
-  if (LetterContent.has(profile))
-    manifest.layouts.forEach((layout) => typefacesFor(layout, 'letter'));
+  printed.forEach((layout) => typefacesFor(layout));
+  if (LetterContent.has(profile)) printed.forEach((layout) => typefacesFor(layout, 'letter'));
 } catch (error) {
   console.error(`audit-print: ${error.message} — nothing was checked.`);
   process.exit(2);
@@ -361,11 +369,9 @@ const asCodePoint = (code) => `U+${code.toString(16).toUpperCase().padStart(4, '
 // The files the generator wrote for this profile, one per layout. One that is not there was never built, and an
 // audit of it would check nothing: exit 2, as every audit here does when it did not run.
 const onDisk = (path) => fileURLToPath(new URL(path, projectUrl));
-const { files, missing } = builtCv(target, profile, manifest.layouts, (path) =>
-  existsSync(onDisk(path))
-);
+const { files, missing } = builtCv(target, profile, printed, (path) => existsSync(onDisk(path)));
 // And a cover letter beside each, when the profile carries one (#151). None for the published CV.
-const letters = builtLetters(target, profile, manifest.layouts, (path) => existsSync(onDisk(path)));
+const letters = builtLetters(target, profile, printed, (path) => existsSync(onDisk(path)));
 missing.push(...letters.missing);
 if (missing.length) {
   console.error(`audit-print: ${missing.join(', ')} not built — nothing was checked.`);
@@ -419,7 +425,6 @@ try {
       stale.push(...staleFixtures(print, readFixture));
     }
     const long = longProseLines(text, prose, { periods });
-    const overflow = layout === 'nerd' ? overflowingPeriods(bbox, periods) : [];
     // How close each page runs to its foot, reported and never gated: the page count is the gate (#162). A page with
     // no line has no room to measure.
     const room = bboxPages(bbox).map((page) =>
@@ -547,9 +552,6 @@ try {
       // No line of prose past WCAG 1.4.8's 80 characters. A line of skills, interests or contacts is a list, scanned
       // item by item, and is not held to the measure (#155).
       measure: long.length === 0,
-      // Nerd Mode's dates stay inside their 128pt column: a longer period runs into the gap beside its role and wraps
-      // nothing a text check would see.
-      datesInColumn: overflow.length === 0,
       // A bullet a recruiter reads in one glance: at most two printed lines, whatever the layout (#230).
       bulletsScan: bullets.length === 0,
       // And no bullet ends on a line of one word (#295).
@@ -594,7 +596,6 @@ try {
       margins,
       room,
       long,
-      overflow,
       bullets,
       runts,
       light,
@@ -769,7 +770,7 @@ const report = [
   'skill categories with the spaces between their words, the sections in reading order both as',
   'poppler reconstructs the page and as the PDF draws it, no image, no line of prose past',
   `${MEASURE_LIMIT} characters (WCAG 1.4.8; lists of skills, interests and contacts are scanned, not read along a`,
-  "measure, and are exempt), in Nerd Mode every line of a role's dates inside its column, every bullet set over no",
+  'measure, and are exempt), every bullet set over no',
   `more than ${BULLET_LINES} printed lines and none ending on a line of one word, a figure of every Selected Impact line in Bold, the summary over no more than ${SUMMARY_LINES}, and every role whole on one page, so no`,
   'page opens on a bullet whose role heading stands on the page before, every line of the masthead on the',
   "page's left edge, none of them opening or closing on a separator, and the PDF titled as the page composes",
@@ -877,7 +878,6 @@ if (failures.length || letterFailures.length) {
             sections,
             images,
             long,
-            overflow,
             bullets,
             runts,
             light,
@@ -900,7 +900,6 @@ if (failures.length || letterFailures.length) {
             sections,
             images,
             long,
-            overflow,
             bullets,
             runts,
             light,

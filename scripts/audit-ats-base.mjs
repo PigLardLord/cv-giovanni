@@ -17,6 +17,7 @@ import { AtsTextParser } from '../core/AtsTextParser.js';
 import { GenerationTarget } from '../core/GenerationTarget.js';
 import { RecoveryDiff } from '../core/RecoveryDiff.js';
 import { CvDocument } from '../domain/CvDocument.js';
+import { printedLayout } from '../core/ProfileResolver.js';
 import { creditWords } from '../domain/EntryLines.js';
 import {
   applicability,
@@ -212,8 +213,16 @@ try {
   cannotCheck('pdftotext is not installed', 'Install poppler-utils and run again.');
 }
 
-const layouts = (root) =>
-  JSON.parse(readFileSync(join(root, 'config/cv-manifest.json'), 'utf8')).layouts;
+// The layout this branch prints (#361); the base's prints are matched to it by name, so a base that printed every
+// layout still yields its print of this one.
+// A manifest that names none is refused, never a stack trace (the review of #364).
+const layouts = (root) => {
+  try {
+    return [printedLayout(JSON.parse(readFileSync(join(root, 'config/cv-manifest.json'), 'utf8')))];
+  } catch (error) {
+    return cannotCheck(error.message);
+  }
+};
 const headData = JSON.parse(readHead(target.dataPath));
 const head = builtCv(target, headData, layouts(projectRoot), (path) =>
   existsSync(join(projectRoot, path))

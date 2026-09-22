@@ -56,10 +56,12 @@ describe('a label beside its block, as the retired pdfmake layout drew it', () =
 
 describe('the page’s print holds in both reading orders', () => {
   test.each([
-    'page-print-general-en-spotlight',
-    'page-print-general-en-spotlight.raw',
-    'page-print-general-en-nerd',
-    'page-print-general-en-nerd.raw'
+    'page-print-general-en-technical',
+    'page-print-general-en-technical.raw',
+    'frozen-print-general-en-spotlight',
+    'frozen-print-general-en-spotlight.raw',
+    'frozen-print-general-en-nerd',
+    'frozen-print-general-en-nerd.raw'
   ])('%s fails no floor', (fixture) => {
     expect(floorsOf(fixture)).toEqual([]);
   });
@@ -80,7 +82,7 @@ describe('the page’s print holds in both reading orders', () => {
 describe('shapes the parser misreads fail a floor instead of passing', () => {
   const published = JSON.parse(readFileSync(`${root}profiles/general/en.json`, 'utf8'));
   const print = readFileSync(
-    `${root}tests/fixtures/ats/page-print-general-en-spotlight.txt`,
+    `${root}tests/fixtures/ats/frozen-print-general-en-spotlight.txt`,
     'utf8'
   );
   const floorsFor = (profile, text) =>

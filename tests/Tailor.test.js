@@ -540,7 +540,7 @@ describe('a tailoring job', () => {
   const project = () => {
     const stored = new Map(
       Object.entries({
-        'config/cv-manifest.json': JSON.stringify({ layouts: ['technical'] }),
+        'config/cv-manifest.json': JSON.stringify({ layouts: ['technical'], pdf: 'technical' }),
         'profiles/general/en.json': PUBLISHED,
         'locales/en/cv.json': '{}',
         [SYSTEM_PROMPT]: PROMPT
