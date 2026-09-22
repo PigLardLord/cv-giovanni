@@ -4,7 +4,7 @@ import { LetterRenderer } from '../renderers/LetterRenderer.js';
 // The cover letter as a page, printed by Chrome like the CV (#151). The words are LetterContent's; the renderer
 // only writes them, as text, in the order a reader meets them, so the printed text layer gives them in that order.
 const words = {
-  title: 'Ada Lovelace — Application for Analyst',
+  title: 'Ada Lovelace – Cover Letter – Application for Analyst',
   notice: '',
   letter: {
     sender: { name: 'Ada Lovelace', contact: 'London · ada@example.com · +44 20 7946 0000' },
@@ -66,7 +66,7 @@ describe('LetterRenderer', () => {
     new LetterRenderer().render(document, words);
 
     expect(document.getElementById('letter-name').textContent).toBe('Ada Lovelace');
-    expect(document.title).toBe('Ada Lovelace — Application for Analyst');
+    expect(document.title).toBe('Ada Lovelace – Cover Letter – Application for Analyst');
   });
 
   // DIN 5008 geometry is fixed-height blocks in normal flow: each is there even when the data leaves it empty, or the
