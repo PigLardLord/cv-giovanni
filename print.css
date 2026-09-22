@@ -603,7 +603,9 @@ section {
    employer or dates above them, which is evidence a reader cannot attach to anything (#230). A role is short
    enough now to move whole, and the print audit's `rolesWhole` fails a page that opens mid-role. The rule stands
    here, with the rest of the role's box: declared earlier in the file it was overridden by the `auto` this
-   replaces, and did nothing. */
+   replaces, and did nothing. It is also what keeps a role's two header lines together: set inline since #240,
+   the heading and the dates take no break rule of their own. Its line box takes the second header line's size,
+   which sits in it. */
 .job-entry {
   display: block !important;
   margin: 0 !important;
@@ -612,18 +614,14 @@ section {
   border: 0 !important;
   border-radius: 0 !important;
   box-shadow: none !important;
+  font-size: 10pt !important;
+  line-height: 1.4 !important;
   break-inside: avoid !important;
 }
 
-/* 9pt between two roles, 12pt until Selected Impact needed the room (#148). The role's line box takes the
-   second header line's size, which sits in it. */
+/* 9pt between two roles, 12pt until Selected Impact needed the room (#148). */
 .job-entry + .job-entry {
   margin-top: 9pt !important;
-}
-
-.job-entry {
-  font-size: 10pt !important;
-  line-height: 1.4 !important;
 }
 
 /* A role's header on two lines, as #230 asked and #240 made readable: the title alone, then "Employer · Place ·
@@ -644,7 +642,7 @@ section {
   display: block !important;
   font-size: 11pt !important;
   font-weight: 700 !important;
-  color: #1e40af !important;
+  color: #1f2937 !important;
 }
 
 .job-joint {
@@ -687,8 +685,8 @@ section {
   color: #374151 !important;
 }
 
-.job-header,
-.job-period,
+/* A break rule applies to a block: the heading and the dates, inline since #240, are held by their role's
+   break-inside above (the review of #367). */
 .job-summary {
   break-inside: avoid !important;
   break-after: avoid !important;
@@ -893,10 +891,6 @@ body[data-layout='technical'] .section-title::before {
   height: 10pt;
   margin-right: 5pt;
   border-left: 3pt solid #1e40af;
-}
-
-body[data-layout='technical'] .job-title {
-  color: #1f2937 !important;
 }
 
 body[data-layout='technical'] .skill-category {

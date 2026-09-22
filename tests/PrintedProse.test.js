@@ -197,6 +197,21 @@ describe('what a sentence costs on the printed page', () => {
     expect(straddlingRoles(printed, roles)).toEqual([]);
   });
 
+  // The review of #367: read as any two neighbouring lines, a sentence naming the title over one naming the employer
+  // passed for a header, and a role whose header never printed could pass rolesWhole. Over two lines, the header is
+  // the title alone, and the employer's line under it opens on the employer.
+  test('a title and an employer named in two lines of prose are no header', () => {
+    const printed = [
+      'Professional Experience',
+      'Led a workshop for the Engineer of the Year nominees.',
+      'Later that year, Acme Corp sponsored the conference.',
+      'Some unrelated paragraph continues here.'
+    ].join('\n');
+    const roles = [{ title: 'Engineer', company: 'Acme', prose: ['Some unrelated paragraph'] }];
+
+    expect(rolePages(printed, roles)).toEqual([expect.objectContaining({ header: null })]);
+  });
+
   // The contacts' separators are drawn by the stylesheet in the place of a hidden label, so a field the profile
   // leaves out takes its value away and leaves the dot behind (#230).
   test('a masthead line left ending on its separator is found, and the sections below it are not read', () => {

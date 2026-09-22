@@ -102,13 +102,16 @@ export function runtSpans(spans) {
 export function rolePages(text, roles, options) {
   const pages = printedPages(text);
   return roles.map((role) => {
-    // The header is one line, "Title at Company, City", or two: the title, and the employer's line under it (#240).
+    // The header is one line, "Title at Company, City", or two: the title alone, and the employer's line under it,
+    // opening on the employer (#240). Any two neighbouring lines would pass a sentence naming the title over one naming
+    // the employer (the review of #367).
     const header =
       pages.find(({ lines }) =>
         lines.some(
           (line, at) =>
-            line.includes(role.title) &&
-            [line, lines[at + 1] ?? ''].some((near) => near.includes(role.company))
+            (line.includes(role.title) && line.includes(role.company)) ||
+            (squash(line) === squash(role.title) &&
+              squash(lines[at + 1] ?? '').startsWith(squash(role.company)))
         )
       )?.page ?? null;
     const spans = proseSpans(text, role.prose, options).filter((span) => span.found);
