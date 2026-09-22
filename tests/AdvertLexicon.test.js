@@ -16,7 +16,8 @@ describe('the lexicon is multilingual by construction', () => {
       'dimensions',
       'genderMarkers',
       'streets',
-      'instructions'
+      'instructions',
+      'names'
     ]) {
       expect(Object.keys(ADVERT[group]).sort()).toEqual(languages);
     }
@@ -390,5 +391,33 @@ describe('an instruction to the applicant', () => {
     'Kenntnisse in Swift und SwiftUI'
   ])('"%s" is a line of the job', (line) => {
     expect(AdvertLexicon.isBoilerplate(line)).toBe(false);
+  });
+});
+
+// #318: where a name the lexicon knows stands in a line's words, as the matcher reads them.
+describe('a name in several words', () => {
+  test.each([
+    [['CI/CD', 'with', 'GitHub', 'Actions', 'pipelines'], [[2, 4]]],
+    [['Time', 'series', 'data'], [[0, 2]]],
+    [['Clear', 'use', 'cases', 'for', 'every', 'feature'], [[1, 3]]],
+    // The synonym table's forms in several words are names too.
+    [['Swift', 'Package', 'Manager', 'and', 'Xcode'], [[0, 3]]],
+    [['GitHub', 'and', 'Actions'], []]
+  ])('%j holds %j', (words, spans) => {
+    expect(AdvertLexicon.namesIn(words)).toEqual(spans);
+  });
+});
+
+describe('whether a phrase is a name', () => {
+  test.each([
+    ['GitHub Actions', true],
+    ['github actions', true],
+    ['Künstliche Intelligenz', true],
+    // A form of the synonym table in several words.
+    ['user experience', true],
+    ['GitHub', false],
+    ['GitHub Actions pipelines', false]
+  ])('"%s" → %s', (phrase, expected) => {
+    expect(AdvertLexicon.isName(phrase)).toBe(expected);
   });
 });
