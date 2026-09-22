@@ -326,3 +326,32 @@ describe('a German form spelled out', () => {
     expect(AdvertLexicon.areSynonyms(spelled, written) || spelled === written).toBe(true);
   });
 });
+
+// A German advert's closing request — "Bitte nennen Sie Ihren frühestmöglichen Eintrittstermin" — ranked as three
+// requirements: the list held "ihr" and "ihre" but none of their inflections, nor "bitte" (#351).
+describe('an instruction to the applicant', () => {
+  test.each(['Ihren', 'ihrem', 'Ihrer', 'deinen', 'unserem', 'unserer', 'bitte', 'please'])(
+    '"%s" is a stopword',
+    (word) => {
+      expect(AdvertLexicon.isStopword(word)).toBe(true);
+    }
+  );
+
+  test.each([
+    'Bitte nennen Sie Ihren frühestmöglichen Eintrittstermin.',
+    'Bitte teilen Sie uns Ihre Gehaltsvorstellung mit.',
+    'Please state your earliest start date and salary expectations.',
+    'Please indicate your notice period.',
+    'Si prega di indicare la data di disponibilità.'
+  ])('"%s" is furniture', (line) => {
+    expect(AdvertLexicon.isBoilerplate(line)).toBe(true);
+  });
+
+  test.each([
+    'Plan the start date of each release with the product team',
+    'Experience with state management in SwiftUI',
+    'Kenntnisse in Swift und SwiftUI'
+  ])('"%s" is a line of the job', (line) => {
+    expect(AdvertLexicon.isBoilerplate(line)).toBe(false);
+  });
+});
