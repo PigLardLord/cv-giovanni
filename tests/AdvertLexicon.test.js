@@ -229,10 +229,15 @@ describe('the furniture of a posting, read whole', () => {
     expect(entries.filter((entry) => !AdvertLexicon.isBoilerplate(entry))).toEqual([]);
   });
 
-  test.each(['Vollzeit, unbefristet', 'Full-time, permanent', 'Contratto a tempo indeterminato'])(
-    'a short line of furniture, or a phrase of it, is furniture: "%s"',
-    (line) => {
-      expect(AdvertLexicon.isBoilerplate(line)).toBe(true);
-    }
-  );
+  test.each([
+    'Vollzeit, unbefristet',
+    'Full-time, permanent',
+    'Contratto a tempo indeterminato',
+    // The review of #346.
+    'Vollzeit / Teilzeit möglich',
+    'Offriamo un ambiente di lavoro stimolante e opportunità di crescita professionale',
+    'Benefits: gym, lunch'
+  ])('a short line of furniture, or a phrase of it, is furniture: "%s"', (line) => {
+    expect(AdvertLexicon.isBoilerplate(line)).toBe(true);
+  });
 });

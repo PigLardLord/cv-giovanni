@@ -425,6 +425,10 @@ export const ADVERT = {
       'pari opportunità',
       'indipendentemente da',
       'offriamo',
+      'offriamo un',
+      'offriamo una',
+      'ti offriamo',
+      'vi offriamo',
       'cosa offriamo',
       'benefit',
       'candidati ora',
@@ -716,11 +720,24 @@ export class AdvertLexicon {
   /** A phrase that belongs to the posting rather than to the job. */
   static isBoilerplate(phrase) {
     const folded = fold(phrase);
-    if (PHRASES.some((entry) => entry.test(folded))) return true;
-    return (
-      folded.split(/[^\p{L}\p{N}/.-]+/u).filter(Boolean).length <= SHORT &&
-      WORDS.some((entry) => entry.test(folded))
-    );
+    if (AdvertLexicon.isBoilerplatePhrase(folded)) return true;
+    // A word of it counts on a short line — a slash between two words is no word (the review of #346) — or as the
+    // label a line opens with: "Benefits: gym, lunch".
+    const words = folded.split(/[^\p{L}\p{N}/.-]+/u).filter((word) => /[\p{L}\p{N}]/u.test(word));
+    if (words.length <= SHORT && WORDS.some((entry) => entry.test(folded))) return true;
+    return WORDS.some((entry) => new RegExp(`^\\s*${entry.source}\\s*:`, 'u').test(folded));
+  }
+
+  /**
+   * Whether a phrase holds a phrase of posting furniture — "competitive salary", "wir bieten" — as the matcher asks of
+   * each phrase it ranks. A lone word of the list is no furniture inside a phrase: "health benefits administration"
+   * is a job (the review of #346).
+   * @param {string} phrase - A phrase of the advert
+   * @returns {boolean} Whether it holds one
+   */
+  static isBoilerplatePhrase(phrase) {
+    const folded = fold(phrase);
+    return PHRASES.some((entry) => entry.test(folded));
   }
 
   /**
