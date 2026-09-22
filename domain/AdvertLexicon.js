@@ -360,7 +360,7 @@ export const ADVERT = {
   },
 
   /**
-   * The furniture of a job posting: legal notices, benefits, gender markers, calls to apply.
+   * The furniture of a job posting: legal notices, benefits, calls to apply.
    * Ranked highly by frequency and worth nothing, which is why they are named rather than
    * filtered by a threshold.
    */
@@ -390,10 +390,6 @@ export const ADVERT = {
       'remote friendly'
     ],
     de: [
-      'm/w/d',
-      'w/m/d',
-      'm/w/x',
-      'gn',
       'chancengleichheit',
       'unabhängig von',
       'wir bieten',
@@ -584,6 +580,19 @@ export const ADVERT = {
   ],
 
   /**
+   * The gender markers a job title carries in words: "(gn)", "(all genders)". The letters joined by slashes — "m/w/d",
+   * "f/m/d/x", "m | w | d" — are one shape, read by the pattern below whatever their order. Each is read as a whole
+   * token and taken out of its line, never matched inside a word — as boilerplate, "gn" dropped every line with
+   * "design", "signal" or "align" in it — and never taken for the line, which is the advert's title (#314). A short
+   * marker counts only in its brackets: "GN Audio" is an employer (the review of #329).
+   */
+  genderMarkers: {
+    en: ['all genders', 'any gender'],
+    de: ['gn', 'alle geschlechter', 'männlich/weiblich/divers'],
+    it: ['uomo/donna', 'tutti i generi']
+  },
+
+  /**
    * Plain words the provenance check lets a tailoring write although the full CV does not, and the matcher still ranks:
    * each is a word of some technology's name — "New Relic", "Google Drive", "time series", "set up" — which a stopword
    * would take out of the ranking whole (the review of #315). Only the English check reads them; the other languages
@@ -612,6 +621,27 @@ const set = (group) => new Set(Object.values(group).flat().map(fold));
 const STOPWORDS = set(ADVERT.stopwords);
 const DIMENSIONS = set(ADVERT.dimensions);
 const PLAIN_WORDS = set(ADVERT.plainWords);
+const escaped = (text) => text.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
+// Longest first, so "m/w/d" is not read as the start of something longer; bracketed or bare, but only whole.
+// Letters of gender joined by slashes or bars, two to four of them: "m/w/d", "f/m/d/x", "m | w | d".
+const SLASHED = String.raw`[mwfd](?:\s*[/|]\s*[mwfdxi]){1,3}`;
+// The markers in words, lowercased as written — folding would strip the "ä" of "männlich" the line still carries.
+const WORDED = Object.values(ADVERT.genderMarkers)
+  .flat()
+  .map((entry) => entry.toLowerCase())
+  .sort((a, b) => b.length - a.length);
+const whole = (pattern) => String.raw`(?<![\p{L}\p{N}/])(?:${pattern})(?![\p{L}\p{N}/])`;
+// Bare, three letters or more: "m/f ratio" is a ratio.
+const LONG = [
+  String.raw`[mwfd](?:\s*[/|]\s*[mwfdxi]){2,3}`,
+  ...WORDED.filter((entry) => entry.length >= 5).map(escaped)
+].join('|');
+const ANY = [SLASHED, ...WORDED.map(escaped)].join('|');
+// Bracketed, any marker; bare, only one too long to be a word of its own.
+const GENDER_MARKER = new RegExp(
+  String.raw`\s*(?:[([]\s*${whole(ANY)}\s*[)\]]|${whole(LONG)})`,
+  'giu'
+);
 const BOILERPLATE = Object.values(ADVERT.boilerplate).flat().map(fold);
 const REQUIREMENT = Object.values(ADVERT.requirementHeadings).flat().map(fold);
 const OFFER = Object.values(ADVERT.offerHeadings).flat().map(fold);
@@ -642,6 +672,18 @@ export class AdvertLexicon {
   /** A noun that names what a claim measures, beside a figure: "performance", "stability". */
   static isDimension(word) {
     return DIMENSIONS.has(fold(word));
+  }
+
+  /**
+   * A line without the gender markers its title carries: "Senior iOS Engineer (m/f/d)" is "Senior iOS Engineer".
+   * @param {string} line - One line of the advert
+   * @returns {string} The line, its markers taken out
+   */
+  static withoutGenderMarkers(line) {
+    return String(line ?? '')
+      .replace(GENDER_MARKER, ' ')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
   }
 
   /** A phrase that belongs to the posting rather than to the job. */

@@ -616,12 +616,14 @@ reports built from the committed profile. That commit is listed in `.git-blame-i
 
 ## Known limitation — the PDF's structure tree is partial, and no screen reader has read it
 
-Chrome writes a tagged PDF: `Tagged: yes`, over a real tree. Measured with `pdfinfo -struct` on the
-three printed layouts, poppler 26.01.0 (#149): `H1` for the name, `H2` for the title, seven `H3`
-section heads, six `P`, five lists with sixteen `LI` and eleven `Lbl`, and five `Link`s tied to their
-annotations. Most of the page — 183 to 196 elements a layout — is `NonStruct`, Chrome's element for a
-`div` or `span` with no role, and poppler reports `StructElem object is wrong type (Strong)` nine
-times in every layout, most likely Chrome's tagging of `<strong>`.
+Chrome writes a tagged PDF: `Tagged: yes`, over a real tree, and `audit:print` says so for every print
+it reads (#333). Measured with `pdfinfo -struct` on the three printed layouts, poppler 26.01.0, on
+2026-09-21 (#149, #265): `H1` for the name, `H2` for the title, seven `H3` section heads, six `H4` —
+each role and each degree, one level below its section — then seven `P`, five lists with seventeen `LI`
+and twelve `Lbl`, and five `Link`s tied to their annotations. Most of the page — 191 to 213 elements a
+layout — is `NonStruct`, Chrome's element for a `div` or `span` with no role, and poppler reports
+`StructElem object is wrong type (Strong)` in every layout, most likely Chrome's tagging of
+`<strong>`. The counts drift as the page does; the headings are what #265 holds.
 
 Since #230 the print sets its own section order, and the tree does not follow it: Chrome builds the tree
 from the markup, so a screen reader meets Core Technologies where the page prints the roles. The text layer
