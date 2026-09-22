@@ -502,12 +502,12 @@ export class ProvenanceCheck {
         const path = `${key}[${index}]`;
         if (!translated) {
           // A tailoring shortens: an entry may leave out its description — a degree's thesis — and writes every other
-          // field as the source writes it (#374).
+          // field as the source writes it (#374). The profile editor clears a field to '' rather than deleting it.
+          const left = !entry.description;
+          const kept = left ? { ...entry, description: undefined } : entry;
           const shortened = (candidate) =>
-            entry.description === undefined || entry.description === null
-              ? { ...candidate, description: undefined }
-              : candidate;
-          if (!(source[key] || []).some((candidate) => same(entry, shortened(candidate)))) {
+            left ? { ...candidate, description: undefined } : candidate;
+          if (!(source[key] || []).some((candidate) => same(kept, shortened(candidate)))) {
             fail(path, `is not a ${what} the source lists, as it lists it`);
           }
           return;

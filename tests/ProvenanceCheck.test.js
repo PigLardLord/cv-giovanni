@@ -1451,6 +1451,15 @@ describe('an entry the tailoring shortens', () => {
     ).toEqual([]);
   });
 
+  test('may clear the description, as the profile editor clears a field', () => {
+    expect(
+      tailor((cv) => {
+        cv.education[0].description = '';
+        cv.certifications[0].description = '';
+      })
+    ).toEqual([]);
+  });
+
   test('may not write another description', () => {
     expect(
       reasonsAt(
