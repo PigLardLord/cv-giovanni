@@ -258,3 +258,13 @@ describe('an advert whose lines hold a gender marker or the letters of one', () 
     expect(words.filter((word) => /m\/f\/d/i.test(word))).toEqual([]);
   });
 });
+
+// A lone word of the furniture list is an ordinary word inside a phrase (the review of #346): "benefits" in a job at a
+// benefits company, "diverse" in a sentence of the job.
+describe('a phrase the matcher ranks', () => {
+  test('is dropped for a phrase of furniture, never for a lone word of it', () => {
+    expect(AdvertMatcher.keeps('health benefits', ['health', 'benefits'])).toBe(true);
+    expect(AdvertMatcher.keeps('diverse', ['diverse'])).toBe(true);
+    expect(AdvertMatcher.keeps('competitive salary', ['competitive', 'salary'])).toBe(false);
+  });
+});
