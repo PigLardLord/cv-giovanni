@@ -6,6 +6,11 @@ import { fold } from '../domain/fold.js';
  * and ß included, which an ASCII pattern broke at every one (#305).
  */
 const TOKEN = /\.?[\p{L}\p{N}][\p{L}\p{N}+#./-]*/gu;
+/**
+ * Where a phrase ends: a dash, a bar or a hyphen standing between spaces, a comma, a colon, a semicolon, a bullet, or a
+ * full stop that ends a sentence. Not a bracket: "React (Native)" names one framework (the review of #347).
+ */
+const CLAUSE = /\s[–—|-]\s|[,;:•]|\.(?=\s|$)/u;
 
 /** A term that carries a capital inside it, a digit, or a symbol is probably a technology. */
 const TECHNICAL = /\p{Lu}.*\p{Lu}|[0-9]|[+#/.]/u;
@@ -50,19 +55,23 @@ export class AdvertMatcher {
       }
       if (!line.trim() || AdvertLexicon.isBoilerplate(line)) continue;
 
-      const words = (line.match(TOKEN) || [])
-        .map((word) => word.replace(/[.,;:]+$/, ''))
-        .filter(Boolean);
+      // A phrase never spans a separator: "Senior iOS Engineer – Berlin" is a title and a city, not "Engineer Berlin"
+      // (#336). Each clause of the line is read on its own.
+      for (const clause of line.split(CLAUSE)) {
+        const words = (clause.match(TOKEN) || [])
+          .map((word) => word.replace(/[.,;:]+$/, ''))
+          .filter(Boolean);
 
-      for (let size = 1; size <= 3; size += 1) {
-        for (let start = 0; start + size <= words.length; start += 1) {
-          const phrase = words.slice(start, start + size).join(' ');
-          if (!AdvertMatcher.keeps(phrase, words.slice(start, start + size))) continue;
-          const key = fold(phrase);
-          const entry = counts.get(key) || { term: phrase, count: 0, required: false, size };
-          entry.count += section === 'offer' ? 0.25 : 1;
-          entry.required = entry.required || section === 'required';
-          counts.set(key, entry);
+        for (let size = 1; size <= 3; size += 1) {
+          for (let start = 0; start + size <= words.length; start += 1) {
+            const phrase = words.slice(start, start + size).join(' ');
+            if (!AdvertMatcher.keeps(phrase, words.slice(start, start + size))) continue;
+            const key = fold(phrase);
+            const entry = counts.get(key) || { term: phrase, count: 0, required: false, size };
+            entry.count += section === 'offer' ? 0.25 : 1;
+            entry.required = entry.required || section === 'required';
+            counts.set(key, entry);
+          }
         }
       }
     }

@@ -259,6 +259,33 @@ describe('an advert whose lines hold a gender marker or the letters of one', () 
   });
 });
 
+// A phrase ran across a dash, a comma or a semicolon: the title line "Senior iOS Engineer (m/f/d) – Berlin or remote"
+// ranked "Engineer Berlin", and "fastlane, GitLab CI" ranked "fastlane GitLab" (#336).
+describe('a phrase of the advert', () => {
+  test('never spans a separator', () => {
+    const advert = [
+      'Senior iOS Engineer (m/f/d) – Berlin or remote',
+      '',
+      'Requirements',
+      '- fastlane, GitLab CI',
+      '- Fluent English; German is a plus'
+    ].join('\n');
+    const terms = AdvertMatcher.extractTerms(advert, 40).terms.map(({ term }) => term);
+
+    for (const spanning of ['Engineer Berlin', 'fastlane GitLab', 'English German']) {
+      expect(terms).not.toContain(spanning);
+    }
+    // Which of "GitLab" and "GitLab CI" ranks is #318's; the list's items are no longer one phrase.
+    expect(terms).toEqual(expect.arrayContaining(['fastlane', 'GitLab']));
+  });
+
+  test('keeps a technology its brackets qualify: React (Native)', () => {
+    const terms = AdvertMatcher.extractTerms('Requirements\n- React (Native) experience', 20).terms;
+
+    expect(terms.map(({ term }) => term)).toContain('React Native');
+  });
+});
+
 // A lone word of the furniture list is an ordinary word inside a phrase (the review of #346): "benefits" in a job at a
 // benefits company, "diverse" in a sentence of the job.
 describe('a phrase the matcher ranks', () => {
