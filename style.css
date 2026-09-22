@@ -610,10 +610,12 @@ section {
      wherever a line's fill improves: over the whole body it cut the employer ("Ap-paround"), titles, certification
      and school names and the layout switcher at every width, and Swift identifiers in Nerd Mode's editor
      ("Certifica-tion"); over running prose alone it still cut the product names prose carries — "An-droid",
-     "Work-place", "NF-CReader". Every name here is shorter than 16 letters and every word that overflowed is
-     longer, so the limit is the line between them. The editor is left out altogether. A browser that cannot be
-     told the limit hyphenates nothing and keeps the floor. No audit sees an automatic hyphen — it is not in the
-     page's text — so the scope and the limit are the guard. */
+     "Work-place", "NF-CReader". Every name in prose is shorter than 16 letters and every word that overflowed is
+     longer, so the limit is the line between them. A role's title is a name, and is not hyphenated at all: the limit
+     let "IT-Systemadministrator" through as "Systemadminist-rator" at every width (#259). The editor is left out altogether. A browser that cannot be
+     told the limit hyphenates nothing and keeps the floor. An automatic hyphen is not in the page's text, so no copy
+     shows one; audit:screen reads where each name and label broke instead, and fails one broken inside a word (#259).
+     Running prose is left to the scope and the limit. */
 @media screen {
   body:lang(de) .no-break.compound {
     white-space: normal;
@@ -628,7 +630,6 @@ section {
       :is(
         .hero-summary,
         .hero-availability,
-        .job-title,
         .job-summary,
         .job-description,
         .job-highlights li,

@@ -5,18 +5,18 @@ width and two phone widths, its CV selected, and the selection read. Regenerate 
 
 | Layout | Width | Layout shift | Score |
 |---|---:|---:|---:|
-| nerd | 1280px | 0.000 | 19/19 |
-| nerd | 820px | 0.000 | 19/19 |
-| nerd | 390px | 0.000 | 19/19 |
-| nerd | 320px | 0.000 | 19/19 |
-| spotlight | 1280px | 0.000 | 19/19 |
-| spotlight | 820px | 0.000 | 19/19 |
-| spotlight | 390px | 0.000 | 19/19 |
-| spotlight | 320px | 0.000 | 19/19 |
-| technical | 1280px | 0.000 | 19/19 |
-| technical | 820px | 0.000 | 19/19 |
-| technical | 390px | 0.000 | 19/19 |
-| technical | 320px | 0.000 | 19/19 |
+| nerd | 1280px | 0.000 | 20/20 |
+| nerd | 820px | 0.000 | 20/20 |
+| nerd | 390px | 0.000 | 20/20 |
+| nerd | 320px | 0.000 | 20/20 |
+| spotlight | 1280px | 0.000 | 20/20 |
+| spotlight | 820px | 0.000 | 20/20 |
+| spotlight | 390px | 0.000 | 20/20 |
+| spotlight | 320px | 0.000 | 20/20 |
+| technical | 1280px | 0.000 | 20/20 |
+| technical | 820px | 0.000 | 20/20 |
+| technical | 390px | 0.000 | 20/20 |
+| technical | 320px | 0.000 | 20/20 |
 
 Checks: the CV captured whole — name, role, email and current employer; no two words the profile
 writes in sequence welded into one, and no contact detail run into the word beside it; every skill
@@ -47,6 +47,13 @@ escapes and characters that are neither letters nor digits, as `\""` after a val
 its own. A line of the file may open with one. A failure names the syntax, the characters before it on
 its row, and the line of text it closes. The quotes and the comma drawn flush against a period count
 toward how wide it is, since the editor holds them to it.
+
+Since #259 no name or label breaks inside a word: the name, the role line, the location, each role
+and degree heading, each school, each certification's name, each token of Nerd Mode's file and each
+control of the toolbar. An automatic hyphen is drawn at a break and never written into the page's
+text, so what shows it is two characters of one word, letters, digits or its apostrophe, on two lines
+of one element. A break at a space, or after a compound's own hyphen, is whole; running prose may
+hyphenate. A failure names the word, split where it broke.
 
 ## The Download PDF link
 
