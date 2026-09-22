@@ -40,7 +40,7 @@
  */
 import { readableAddress } from '../domain/ReadableUrl.js';
 import { tenureText } from '../domain/Tenure.js';
-import { scopeText } from '../domain/EntryLines.js';
+import { roleHeader, scopeText } from '../domain/EntryLines.js';
 import { SEPARATOR_GLYPHS, WORD_CHARACTER, periodEnds } from '../domain/Separators.js';
 
 /**
@@ -439,7 +439,8 @@ export class SwiftSourceLayout {
     return lines;
   }
 
-  experience(data, { locale = 'en' } = {}) {
+  experience(data, { locale = 'en', t = (key) => key } = {}) {
+    const at = t('cv:experience.at');
     return this.collection(
       'experience',
       'Role',
@@ -447,7 +448,18 @@ export class SwiftSourceLayout {
         this.call(
           'Role',
           [
-            ['title', role.title, { element: 'h3' }],
+            // The heading is the title, and a screen reader announces it as the page's h4 reads — title, employer,
+            // place — so two roles of one title are told apart, in the editor as on the page and in the PDF (#332).
+            [
+              'title',
+              role.title,
+              {
+                element: 'h3',
+                label: roleHeader(role, at)
+                  .map((piece) => (typeof piece === 'string' ? piece : piece.text))
+                  .join('')
+              }
+            ],
             ['company', role.company],
             ['location', role.location],
             ['period', role.period],
