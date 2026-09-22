@@ -2,7 +2,7 @@
  * Whether the page's download control keeps a boundary when forced colours take its fill and shadow away (#119).
  *
  * A contrast theme drops box-shadow and background images and replaces colours, but keeps border styles (CSS Color
- * Adjustment Module Level 1, §3.1). Impact Spotlight and Technical Profile marked Download PDF as a button by its fill
+ * Adjustment Module Level 1, §3.1). The layouts that set Download PDF under their switcher marked it as a button by its fill
  * and its shadow alone, so in forced colours it showed as an arrow and a label, while Browser print beside it kept
  * its outline. So every shown control draws a border there. Until #150 the primary's was also held to no thinner
  * than that secondary's; the page now offers one control, Browser print went with the footer, and there is no

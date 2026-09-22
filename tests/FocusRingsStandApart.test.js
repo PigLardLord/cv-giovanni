@@ -105,7 +105,7 @@ const FILLED = [
 /** Every filled control whose ring shares a colour token with its own fill. */
 const sameAsFill = (source) => {
   const all = rules(source);
-  return ['spotlight', 'technical'].flatMap((skin) =>
+  return ['technical'].flatMap((skin) =>
     FILLED.flatMap(({ control, element }) => {
       const fill = fillTokens(all, skin, control);
       const ring = ringTokens(all, skin, control, element);
@@ -123,13 +123,9 @@ describe('a filled control’s focus ring', () => {
       body[data-layout='technical'] .print-button { background: var(--t-blue-deep); }
       body[data-layout='technical'] a:focus-visible { outline: 2px solid var(--t-blue-deep); }
       body[data-layout='technical'] .layout-switcher a[aria-current='page'] { background: var(--t-ink); }
-      body[data-layout='spotlight'] .print-button { background: linear-gradient(var(--e-ember), var(--e-ember-deep)); }
-      body[data-layout='spotlight'] .layout-switcher a[aria-current='page'] { background: var(--e-ink); }
-      body[data-layout='spotlight'] a:focus-visible { outline: 2px solid var(--e-ember-deep); }
     `;
 
     expect(sameAsFill(deep)).toEqual([
-      'spotlight .print-button: ring --e-ember-deep on fill --e-ember --e-ember-deep',
       'technical .print-button: ring --t-blue-deep on fill --t-blue-deep'
     ]);
   });
@@ -158,12 +154,12 @@ describe('a filled control’s focus ring', () => {
   test('a fill written as background-color is read too', () => {
     expect(
       sameAsFill(
-        `${css}\nbody[data-layout='spotlight'] .print-button { background-color: var(--e-ink); }`
+        `${css}\nbody[data-layout='technical'] .print-button { background-color: var(--t-ink); }`
       )
-    ).toContain('spotlight .print-button: ring --e-ink on fill --e-ink');
+    ).toContain('technical .print-button: ring --t-ink on fill --t-ink');
   });
 
-  test('is never the colour of the fill it surrounds, in either skin', () => {
+  test('is never the colour of the fill it surrounds', () => {
     expect(sameAsFill(css)).toEqual([]);
   });
 });

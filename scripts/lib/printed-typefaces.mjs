@@ -12,24 +12,21 @@
 
 /**
  * The faces each layout sets printed text in, as a PDF names them. Checked per layout, never pooled:
- * Instrument Serif is Impact Spotlight's display face, and in Technical Profile it would mean print had
- * asked for a face that layout's screen never loads — and won a race it can also lose (#68). JetBrains
- * Mono belongs to Nerd Mode's editor, and the editor does not print.
+ * Instrument Serif in Technical Profile would mean print had asked for a face that layout's screen never
+ * loads — and won a race it can also lose (#68). JetBrains Mono belongs to Nerd Mode's editor, and the
+ * editor does not print.
  */
 const TYPEFACES = {
   nerd: ['Inter'],
-  spotlight: ['Inter', 'InstrumentSerif'],
   technical: ['Inter']
 };
 
 /**
- * The faces the cover letter prints in, from letter.html (#151): Inter, and Impact Spotlight's name in Instrument
- * Serif, as the CV sets it. Declared apart from the CV's, so a face the CV takes on is not waved through on a letter
- * that never asked for it.
+ * The faces the cover letter prints in, from letter.html (#151): Inter. Declared apart from the CV's, so a face the
+ * CV takes on is not waved through on a letter that never asked for it.
  */
 const LETTER_TYPEFACES = {
   nerd: ['Inter'],
-  spotlight: ['Inter', 'InstrumentSerif'],
   technical: ['Inter']
 };
 

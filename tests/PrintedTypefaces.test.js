@@ -24,19 +24,18 @@ const pdf = (...pages) =>
     '</pdf2xml>'
   ].join('\n');
 
-const spotlight = typefacesFor('spotlight');
 const technical = typefacesFor('technical');
 
 describe('text a printed page set in a typeface its layout does not print in', () => {
-  test('Impact Spotlight, its name in Instrument Serif and the rest in Inter, has none', () => {
+  test('Technical Profile, set in Inter throughout, has none', () => {
     const page = pdf([
       fontspec(0, 'AAAAAA+Inter'),
-      fontspec(1, 'IAAAAA+InstrumentSerif'),
+      fontspec(1, 'BAAAAA+Inter-Bold'),
       run(1, 'Giovanni Trovato'),
       run(0, 'Senior iOS Engineer')
     ]);
 
-    expect(fallbackRuns(page, spotlight)).toEqual([]);
+    expect(fallbackRuns(page, technical)).toEqual([]);
   });
 
   // Measured on main: Technical Profile printed its name in Liberation Serif, with Inter embedded for
@@ -74,11 +73,10 @@ describe('text a printed page set in a typeface its layout does not print in', (
     expect(() => typefacesFor('constructor')).toThrow(/constructor/);
   });
 
-  // The cover letter is printed from its own page (#151), in Inter, with Impact Spotlight's name in Instrument Serif
-  // as the CV sets it. Its faces are declared on their own: a face the CV adds is not one the letter may print in.
+  // The cover letter is printed from its own page (#151), in Inter. Its faces are declared on their own: a face the CV
+  // adds is not one the letter may print in.
   test('the cover letter prints in the faces declared for it, per layout', () => {
     expect(typefacesFor('nerd', 'letter')).toEqual(['Inter']);
-    expect(typefacesFor('spotlight', 'letter')).toEqual(['Inter', 'InstrumentSerif']);
     expect(typefacesFor('technical', 'letter')).toEqual(['Inter']);
     expect(() => typefacesFor('magazine', 'letter')).toThrow(/magazine/);
     expect(() => typefacesFor('nerd', 'invoice')).toThrow(/invoice/);
@@ -139,14 +137,24 @@ describe('text a printed page set in a typeface its layout does not print in', (
     expect(fallbackRuns(page, technical)).toEqual([{ face: 'InterTight', text: 'World' }]);
   });
 
-  test.each(['Inter', 'BAAAAA+Inter', 'IAAAAA+Inter-Bold', 'IAAAAA+InstrumentSerif'])(
-    '%s is a face Impact Spotlight prints in',
+  test.each(['Inter', 'BAAAAA+Inter', 'IAAAAA+Inter-Bold'])(
+    '%s is a face Technical Profile prints in',
     (family) => {
       expect(
-        fallbackRuns(pdf([fontspec(0, family), run(0, 'Giovanni Trovato')]), spotlight)
+        fallbackRuns(pdf([fontspec(0, family), run(0, 'Giovanni Trovato')]), technical)
       ).toEqual([]);
     }
   );
+
+  // Retired with Impact Spotlight (#362): no printed layout sets its name in a display serif any more.
+  test('Instrument Serif is a face Technical Profile does not print in', () => {
+    expect(
+      fallbackRuns(
+        pdf([fontspec(0, 'IAAAAA+InstrumentSerif'), run(0, 'Giovanni Trovato')]),
+        technical
+      )
+    ).toEqual([{ face: 'InstrumentSerif', text: 'Giovanni Trovato' }]);
+  });
 });
 
 // #230 set Selected Impact's figures in Bold, and the print left them Regular (#261): audit:print reads the bold runs

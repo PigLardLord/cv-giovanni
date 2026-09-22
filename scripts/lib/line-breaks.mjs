@@ -5,7 +5,7 @@ import { CLOSING_MARKS } from '../../adapters/SwiftSourceLayout.js';
  * Where the screen breaks the CV's lines, checked against what a break must never do (#180).
  *
  * The copy the screen audit reads has a space where a line broke, so a break in the wrong place reads as right: the
- * education line broke as "Università degli Studi di Pisa (2014" / "– 2016)" at Impact Spotlight's 1280px and the
+ * education line broke as "Università degli Studi di Pisa (2014" / "– 2016)" in a 1280px column and the
  * selection still read "(2014 – 2016)". A date range split at its dash reads as two dates, and a line that starts
  * with a dash reads as a fragment. This reads the line boxes the page laid its text on instead: a rectangle per
  * character, taken in the page, and grouped into lines here, where each rule can be shown to fail.

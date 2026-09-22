@@ -16,7 +16,7 @@ export class I18nService {
       load: 'languageOnly',
       ns: ['ui', 'cv'],
       defaultNS: 'ui',
-      backend: { loadPath: 'locales/{{lng}}/{{ns}}.json?v=20260921-files1' },
+      backend: { loadPath: 'locales/{{lng}}/{{ns}}.json?v=20260922-onelayout1' },
       interpolation: { escapeValue: false }
     });
     return this;

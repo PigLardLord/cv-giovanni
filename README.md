@@ -13,8 +13,8 @@ A CV is `profile × locale × layout`.
 - **The content** is one JSON file, `profiles/general/en.json`, and it is the single source of truth: every surface
   the CV has is generated from it. `config/cv-manifest.json` declares which profiles, locales and layouts exist.
 - **The page** is HTML, CSS and ES modules with no build step. `index.html` loads `script.js`, which renders the
-  profile through `renderers/` into one of three layouts: Nerd Mode (`nerd`), Impact Spotlight (`spotlight`) and
-  Technical Profile (`technical`).
+  profile through `renderers/` into one of two layouts: Technical Profile (`technical`), the CV's one layout and the
+  one it opens in, and Nerd Mode (`nerd`), a screen-only view of the same CV (#231).
 - **The PDF** is the page, printed. `npm run build:pdf` serves the site to a headless Chrome and prints Technical
   Profile, the one layout `config/cv-manifest.json` names as `pdf`, through `print.css` into `generated/`, where
   the Download PDF link of every layout finds it through `generated/manifest.json` (#231). Nothing there is
@@ -44,7 +44,7 @@ The URL chooses the CV:
 
 | Parameter | Values                                                                                   |
 | --------- | ---------------------------------------------------------------------------------------- |
-| `layout`  | `nerd`, `spotlight`, `technical`                                                         |
+| `layout`  | `technical` (the default), `nerd`; any other opens `technical`                           |
 | `profile` | a profile the manifest declares — an unknown one fails visibly, rather than falling back |
 | `lang`    | a locale the profile has; `en` today                                                     |
 
