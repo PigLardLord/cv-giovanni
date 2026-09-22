@@ -4,7 +4,7 @@ import { RendererContainer } from './core/RendererContainer.js';
 import { LocaleResolver } from './core/LocaleResolver.js';
 import { I18nService } from './core/I18nService.js';
 import { DocumentLocalizer } from './core/DocumentLocalizer.js';
-import { ProfileResolver } from './core/ProfileResolver.js';
+import { ProfileResolver, printedLayout } from './core/ProfileResolver.js';
 import { LayoutResolver } from './core/LayoutResolver.js';
 import { CvFiles } from './core/CvFiles.js';
 import { HeaderRenderer } from './renderers/HeaderRenderer.js';
@@ -100,8 +100,17 @@ app.registerRenderer('source', new SourceRenderer(i18n));
 // Start application
 const currentData = await app.initialize(document);
 const cvFiles = new CvFiles();
-const pdfOptions = { profile: profileSelection.profile, locale, layout };
-if (document.querySelector('[data-download-pdf]')) {
+// Every layout offers the one PDF, Technical Profile's (#231, #361): Nerd Mode is a view of the same CV, and prints
+// nothing of its own. A manifest that names no printed layout offers no download rather than a wrong one.
+const printed = (() => {
+  try {
+    return manifest instanceof Error ? null : printedLayout(manifest);
+  } catch {
+    return null;
+  }
+})();
+const pdfOptions = { profile: profileSelection.profile, locale, layout: printed };
+if (document.querySelector('[data-download-pdf]') && printed) {
   const released = await fetch('generated/manifest.json')
     .then((response) => (response.ok ? response.json() : null))
     .then((manifest) => manifest?.released)

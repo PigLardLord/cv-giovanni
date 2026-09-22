@@ -57,8 +57,8 @@ normalises the two into the model every output boundary consumes. On the page, `
 it once and hands it to the localizer, every renderer and Nerd Mode's editor, and
 `tests/PageRendersTheModel.test.js` fails when one of them reads the profile JSON instead (#81).
 
-**The downloadable PDF is the page, printed**: `npm run build:pdf` prints each layout through
-`print.css` with a headless Chrome (#144, #149). A tailored profile's cover letter is printed the same way
+**The downloadable PDF is the page, printed**: `npm run build:pdf` prints Technical Profile, the one layout
+the manifest names as `pdf`, through `print.css` with a headless Chrome (#144, #149, #231). A tailored profile's cover letter is printed the same way
 from `letter.html` (#151). pdfmake composed both until then, and was removed in #153.
 
 ### Layers

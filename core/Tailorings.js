@@ -4,13 +4,14 @@ import { ProfileShape } from './ProfileShape.js';
 import { ProfileStore } from './ProfileStore.js';
 import { Refusal } from './Refusal.js';
 import { CvFiles } from './CvFiles.js';
+import { printedLayout } from './ProfileResolver.js';
 
 /** What a tailoring takes besides its advert, and what each is when the request leaves it out (#260). */
 export const DEFAULTS = Object.freeze({
   language: 'en',
   model: 'claude-opus-5',
   effort: 'max',
-  // Until #231 names the layout that stays.
+  // The one layout the CV is printed in, which #231 settled (#361).
   layout: 'technical',
   auditRetries: 2,
   auditGate: true
@@ -343,14 +344,15 @@ export class Tailorings {
     const languages = (await this.files.list('locales'))
       .filter((name) => LANGUAGE.test(name))
       .sort();
-    const { layouts = [] } = JSON.parse(await this.files.readText('config/cv-manifest.json'));
+    const manifest = JSON.parse(await this.files.readText('config/cv-manifest.json'));
     const oneOf = (accepted) => (value) =>
       accepted.includes(value) ? null : `is one of ${accepted.join(', ')}; not ${value}`;
     const rules = {
       language: oneOf(languages),
       model: oneOf(MODELS),
       effort: oneOf(EFFORTS),
-      layout: oneOf(layouts),
+      // A tailored CV is printed in the layout every CV is printed in, and in no other (#361).
+      layout: oneOf([printedLayout(manifest)]),
       auditRetries: (value) =>
         Number.isInteger(value) && value >= 0 && value <= MOST_RETRIES
           ? null

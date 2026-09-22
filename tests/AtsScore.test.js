@@ -135,7 +135,7 @@ describe('a degree scored as the document prints it', () => {
     cv: JSON.parse(readFileSync(`${root}locales/en/cv.json`, 'utf8'))
   });
   const words = { locale: 'en', credits: (count) => t('cv:education.credits', { count }) };
-  const print = readFileSync(`${root}tests/fixtures/ats/page-print-general-en-nerd.txt`, 'utf8');
+  const print = readFileSync(`${root}tests/fixtures/ats/frozen-print-general-en-nerd.txt`, 'utf8');
   const [pisa] = document.education;
   const scored = (text) => {
     const diff = RecoveryDiff.diff(document, AtsTextParser.parse(text), { words });

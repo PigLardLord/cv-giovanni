@@ -3,6 +3,7 @@ import { readFile, rm, writeFile } from 'node:fs/promises';
 import { NodeDirectoryWriter } from '../adapters/NodeDirectoryWriter.js';
 import { CvDocument } from '../domain/CvDocument.js';
 import { countedPast } from '../domain/Tenure.js';
+import { printedLayout } from '../core/ProfileResolver.js';
 import { findBrowser } from './lib/find-browser.mjs';
 import {
   manifestReader,
@@ -21,8 +22,8 @@ import {
 } from './lib/printed-cv.mjs';
 
 /**
- * Writes the CV a recruiter downloads: the page, printed by Chrome in each layout (#144, #149). And, for a
- * tailored profile that carries one, the cover letter beside each layout's CV, printed from letter.html (#151).
+ * Writes the CV a recruiter downloads: the page, printed by Chrome in the one layout the manifest prints (#144, #149,
+ * #361). And, for a tailored profile that carries one, the cover letter beside it, printed from letter.html (#151).
  *
  * One CV and one design. pdfmake composed a second one from the model, in a layout of its own, and the page
  * and the PDF drifted apart. The PDF is now the page's print stylesheet on A4, the letter its own page's, and
@@ -37,7 +38,8 @@ const projectRoot = new URL('../', import.meta.url);
 const argv = process.argv.slice(2);
 const run = await resolveRun('generate-pdfs', fileURLToPath(import.meta.url), argv, {
   readManifest: manifestReader(projectRoot),
-  around: async (printAll, published, { layouts }) => {
+  around: async (printAll, published, manifest) => {
+    const layouts = [printedLayout(manifest)];
     const list = new URL(published[0].manifestPath, projectRoot);
     const exit = await printedDownloadList(printAll, {
       read: () => readFile(list, 'utf8').catch(() => null),
@@ -66,7 +68,8 @@ const run = await resolveRun('generate-pdfs', fileURLToPath(import.meta.url), ar
 });
 if ('exit' in run) process.exit(run.exit);
 const { target } = run;
-const { layouts } = run.manifest;
+// Technical Profile, the one layout the owner kept on #231: every screen layout offers this file (#361).
+const layouts = [printedLayout(run.manifest)];
 // Lengths are counted to the profile's asOf, and the CV says so (#55). Today is only the limit: a month after
 // it gives lengths nobody can check yet.
 const today = new Date();

@@ -183,7 +183,7 @@ const identityOf = (role) => [role.title?.value, role.employer?.value, role.loca
 describe('the printed page, in the order poppler reads it', () => {
   // "Title at Company, City", as the page writes a role. Once it wraps after "at", once it does not.
   test('Impact Spotlight: every role reads "Title at Company, City" above its period', () => {
-    const cv = parse('page-print-general-en-spotlight');
+    const cv = parse('frozen-print-general-en-spotlight');
 
     expect(cv.experience.map(identityOf)).toEqual(ROLES);
     expect(cv.experience.map((role) => role.period.span)).toEqual([
@@ -198,7 +198,7 @@ describe('the printed page, in the order poppler reads it', () => {
 
   // Nerd Mode draws the period in a column of its own, which poppler reads as the line above the title.
   test('Nerd Mode: the period comes first, and every role still gets its own', () => {
-    const cv = parse('page-print-general-en-nerd');
+    const cv = parse('frozen-print-general-en-nerd');
 
     expect(cv.experience.map(identityOf)).toEqual(ROLES);
     expect(cv.experience.map((role) => role.period.raw)).toEqual([
@@ -211,38 +211,40 @@ describe('the printed page, in the order poppler reads it', () => {
   });
 
   // A role's achievements run up to the next role's header, whichever side of its period that header is.
-  test.each(['page-print-general-en-spotlight', 'page-print-general-en-nerd'])(
-    '%s: the achievements before the next header belong to the role above',
-    (fixture) => {
-      const [first, second] = parse(fixture).experience;
+  test.each([
+    'page-print-general-en-technical',
+    'frozen-print-general-en-spotlight',
+    'frozen-print-general-en-nerd'
+  ])('%s: the achievements before the next header belong to the role above', (fixture) => {
+    const [first, second] = parse(fixture).experience;
 
-      expect(first.bodyText).toContain('Earlier products, 2018–2023');
-      expect(first.bodyText).toContain('mentoring 2 developers in it;');
-      expect(first.bodyText).not.toContain('Mobile Developer at Apparound');
-      expect(first.bodyText).not.toContain('September 2015');
-      expect(second.bodyText).toContain('B2B sales-automation platform');
-      expect(second.bodyText).not.toContain('staged rollout');
-    }
-  );
+    expect(first.bodyText).toContain('Earlier products, 2018–2023');
+    expect(first.bodyText).toContain('mentoring 2 developers in it;');
+    expect(first.bodyText).not.toContain('Mobile Developer at Apparound');
+    expect(first.bodyText).not.toContain('September 2015');
+    expect(second.bodyText).toContain('B2B sales-automation platform');
+    expect(second.bodyText).not.toContain('staged rollout');
+  });
 
   // The scope a degree states after its name (#48) is drawn on the degree's line, and read as part of the degree.
-  test.each(['page-print-general-en-spotlight', 'page-print-general-en-nerd'])(
-    '%s: a wrapped degree stays one degree, and "School (period)" splits',
-    (fixture) => {
-      const cv = parse(fixture);
+  test.each([
+    'page-print-general-en-technical',
+    'frozen-print-general-en-spotlight',
+    'frozen-print-general-en-nerd'
+  ])('%s: a wrapped degree stays one degree, and "School (period)" splits', (fixture) => {
+    const cv = parse(fixture);
 
-      expect(
-        cv.education.map((entry) => [entry.degree.value, entry.school.value, entry.period])
-      ).toEqual([
-        [
-          "First Level Professional Master's Programme in Mobile Applications Development (60 ECTS)",
-          'Università degli Studi di Pisa',
-          '2014–2016'
-        ],
-        ['BSc in Computer Engineering', 'Università degli Studi di Catania', '2009']
-      ]);
-    }
-  );
+    expect(
+      cv.education.map((entry) => [entry.degree.value, entry.school.value, entry.period])
+    ).toEqual([
+      [
+        "First Level Professional Master's Programme in Mobile Applications Development (60 ECTS)",
+        'Università degli Studi di Pisa',
+        '2014–2016'
+      ],
+      ['BSc in Computer Engineering', 'Università degli Studi di Catania', '2009']
+    ]);
+  });
 
   /** A CV of a name, one role and one degree, whose school line is the one given. */
   const educationAfterARole = (schoolLine) =>
@@ -335,7 +337,11 @@ describe('the printed page, in the order poppler reads it', () => {
     ]);
   });
 
-  test.each(['page-print-general-en-spotlight', 'page-print-general-en-nerd'])(
+  test.each([
+    'page-print-general-en-technical',
+    'frozen-print-general-en-spotlight',
+    'frozen-print-general-en-nerd'
+  ])(
     '%s: "Category — items" keeps each list with its category, across wrapped lines',
     (fixture) => {
       const cv = parse(fixture);
@@ -358,7 +364,7 @@ describe('the printed page, in the order poppler reads it', () => {
 // blank lines at all, so nothing here may depend on one.
 describe('the same artefacts, in content-stream order', () => {
   test('Impact Spotlight segments with no blank line to lean on', () => {
-    const cv = parse('page-print-general-en-spotlight.raw');
+    const cv = parse('frozen-print-general-en-spotlight.raw');
 
     expect(cv.segmentation).toBe('ok');
     expect(cv.sections.map((section) => section.section)).toEqual([
@@ -378,7 +384,7 @@ describe('the same artefacts, in content-stream order', () => {
 
   // Drawn first, the period shares the title's line: "September 2015 – July 2018 Mobile Developer at …".
   test('Nerd Mode: a period that opens the title line is read as the role it opens', () => {
-    const cv = parse('page-print-general-en-nerd.raw');
+    const cv = parse('frozen-print-general-en-nerd.raw');
 
     expect(cv.segmentation).toBe('ok');
     expect(cv.experience.map(identityOf)).toEqual(ROLES);
@@ -396,7 +402,7 @@ describe('the same artefacts, in content-stream order', () => {
   // what that leaves: the first role's body comes back as the lines poppler wrote, in order, and stops at the next
   // role's header.
   test("a role's body is its own lines, up to the next role's header", () => {
-    const [first] = parse('page-print-general-en-spotlight.raw').experience;
+    const [first] = parse('frozen-print-general-en-spotlight.raw').experience;
 
     expect(first.bodyLines).toContain('from a July 2026 peak of 37.7 to 5.2 minutes.');
     expect(first.bodyLines.some((line) => line.startsWith('Earlier products, 2018–2023'))).toBe(

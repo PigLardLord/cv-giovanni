@@ -178,7 +178,7 @@ test('a recovered period reads exact though the document wrote its length after 
 });
 
 // The page's print (#147): every role, degree and skill in its own slot, in the order poppler reads it.
-describe.each(['page-print-general-en-spotlight', 'page-print-general-en-nerd'])(
+describe.each(['frozen-print-general-en-spotlight', 'frozen-print-general-en-nerd'])(
   'the page as %s prints it',
   (fixture) => {
     const diff = diffOf(fixture, { words });
@@ -230,7 +230,7 @@ describe.each(['page-print-general-en-spotlight', 'page-print-general-en-nerd'])
 // A degree is compared as the document prints it: its name, and the scope it states after the name, in the words the
 // page writes it with (#186). The scope that printed is part of what the document said, so losing it is a loss.
 describe('a degree is compared against the line the document prints', () => {
-  const print = readFileSync(`${root}tests/fixtures/ats/page-print-general-en-nerd.txt`, 'utf8');
+  const print = readFileSync(`${root}tests/fixtures/ats/frozen-print-general-en-nerd.txt`, 'utf8');
   const [pisa] = document.education;
   const diffOfText = (text, options = { words }) =>
     RecoveryDiff.diff(document, AtsTextParser.parse(text), options);
@@ -279,7 +279,7 @@ describe('a degree is compared against the line the document prints', () => {
 // is compared as the school line prints it, "School (2014 – 2016)", without the brackets `schoolLine` sets it in: the
 // parser reads them as the line's punctuation, as it reads " · ", and returns the period alone.
 describe("a degree's period is compared as the school line prints it", () => {
-  const nerd = readFileSync(`${root}tests/fixtures/ats/page-print-general-en-nerd.txt`, 'utf8');
+  const nerd = readFileSync(`${root}tests/fixtures/ats/frozen-print-general-en-nerd.txt`, 'utf8');
   const clean = readFileSync(`${root}tests/fixtures/ats/clean-english.txt`, 'utf8');
   const [pisa] = document.education;
   const diffOfText = (text, from = document) =>
@@ -337,7 +337,7 @@ describe("a degree's period is compared as the school line prints it", () => {
 // it was (#217). A recovered entry is matched to a written one by what it says.
 describe('an entry is matched to the one written by what it says, not by where it stands', () => {
   const profile = JSON.parse(readFileSync(`${root}profiles/general/en.json`, 'utf8'));
-  const nerd = readFileSync(`${root}tests/fixtures/ats/page-print-general-en-nerd.txt`, 'utf8');
+  const nerd = readFileSync(`${root}tests/fixtures/ats/frozen-print-general-en-nerd.txt`, 'utf8');
   const diffOfText = (text, from) =>
     RecoveryDiff.diff(new CvDocument(from), AtsTextParser.parse(text), { words });
 

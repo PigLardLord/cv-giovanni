@@ -124,7 +124,7 @@ describe('modules imported apart from this checkout', () => {
     // The print as it is: its second degree, "B.Sc. Computer Engineering", states no scope and reads back exactly.
     const document = new CvDocument(JSON.parse(fromDisk('profiles/general/en.json')));
     const recovered = AtsTextParser.parse(
-      fromDisk('tests/fixtures/ats/page-print-general-en-nerd.txt')
+      fromDisk('tests/fixtures/ats/frozen-print-general-en-nerd.txt')
     );
 
     expect(fromDisk('domain/EntryLines.js')).toContain(DEGREE);

@@ -14,15 +14,6 @@
 /** WCAG 1.4.8: no more than 80 characters a line. */
 export const MEASURE_LIMIT = 80;
 
-/**
- * Nerd Mode's date column on paper, in points from the page's left edge: the page's side margin, and the column's
- * width, as print.css declares them. The audit reads no CSS, so `tests/LineLength.test.js` holds them to it.
- */
-export const NERD_DATE_COLUMN = { left: 39, width: 142 };
-
-/** Less than half a point past an edge is rounding, not overflow. */
-const TOLERANCE = 0.5;
-
 const squash = (text) =>
   String(text ?? '')
     .replace(/\s+/g, ' ')
@@ -143,38 +134,4 @@ export function bboxLines(extract) {
         };
       })
     );
-}
-
-/**
- * The runs of a period that start in the date column and end past its edge.
- *
- * A line is read word by word from its start, for as long as the words so far are part of a period: poppler can set a
- * period and the role's title on one line, as it does when the two share a baseline, and only the period's own words
- * are held to the column.
- * @param {string} extract - What `pdftotext -bbox-layout` wrote
- * @param {string[]} periods - Each role's period as it prints, with its length when it has one
- * @param {{ left: number, width: number }} [column] - The date column
- * @returns {{ page: number, right: number, text: string }[]} Every overflowing run, with its right edge
- */
-export function overflowingPeriods(extract, periods, column = NERD_DATE_COLUMN) {
-  const edge = column.left + column.width;
-  const written = periods.map(squash);
-  return bboxLines(extract)
-    .filter(({ left }) => left < edge)
-    .map(({ page, words }) => {
-      let run = [];
-      for (const word of words) {
-        const next = [...run, word];
-        const text = next.map((part) => part.text).join(' ');
-        if (!written.some((period) => period.includes(text))) break;
-        run = next;
-      }
-      return { page, run };
-    })
-    .filter(({ run }) => run.length > 0 && run[run.length - 1].right > edge + TOLERANCE)
-    .map(({ page, run }) => ({
-      page,
-      right: run[run.length - 1].right,
-      text: run.map((word) => word.text).join(' ')
-    }));
 }

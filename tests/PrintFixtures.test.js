@@ -2,6 +2,7 @@
  * @jest-environment node
  */
 import { readdirSync, readFileSync } from 'node:fs';
+import { printedLayout } from '../core/ProfileResolver.js';
 import { GenerationTarget } from '../core/GenerationTarget.js';
 import { fixturePair, fixturesOf, staleFixtures } from '../scripts/lib/print-fixtures.mjs';
 
@@ -150,16 +151,14 @@ describe('the print fixtures', () => {
   });
 
   // A fixture named for no published CV and layout is held by nobody, and the audit would say nothing (the review of
-  // #317).
-  test('on disk are each named for a published CV and a layout', () => {
+  // #317). Only the layout printed is one (#361): the prints no longer made are frozen, named as such.
+  test('on disk are each named for a published CV in the layout it is printed in', () => {
     const manifest = JSON.parse(
       readFileSync(new URL('../config/cv-manifest.json', import.meta.url), 'utf8')
     );
     const named = new Set(
       GenerationTarget.published(manifest).flatMap(({ profile, locale }) =>
-        manifest.layouts.flatMap((layout) =>
-          fixturesOf({ profile, locale, layout }).map(({ name }) => name)
-        )
+        fixturesOf({ profile, locale, layout: printedLayout(manifest) }).map(({ name }) => name)
       )
     );
     const onDisk = readdirSync(new URL('../tests/fixtures/ats/', import.meta.url)).filter((name) =>

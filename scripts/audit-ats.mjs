@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { CvDocument } from '../domain/CvDocument.js';
+import { printedLayout } from '../core/ProfileResolver.js';
 import { creditWords } from '../domain/EntryLines.js';
 import { AtsTextParser } from '../core/AtsTextParser.js';
 import { RecoveryDiff } from '../core/RecoveryDiff.js';
@@ -91,7 +92,7 @@ try {
 // and the English against the German, and the English report fell from 80/80 to 63.2 for a CV nothing had
 // changed (#248). A directory beside them, such as the qa/ an older build wrote, is not read either.
 const onDisk = (path) => existsSync(new URL(path, projectRoot));
-const files = auditedFiles(target, authored, run.manifest.layouts, onDisk).map(
+const files = auditedFiles(target, authored, [printedLayout(run.manifest)], onDisk).map(
   ({ path, isCover }) => ({
     artefact: path,
     path: new URL(path, projectRoot).pathname,
