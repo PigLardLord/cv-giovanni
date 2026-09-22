@@ -7,7 +7,8 @@ import { degreeBesideSchool } from '../scripts/lib/degree-lines.mjs';
 // parser reads. A degree that states its credits writes them between the two, "Degree (60 ECTS)", so the check expects
 // exactly those words there, in the catalogue's wording and the CV's numbers, and nothing between a degree and its
 // school otherwise. The check has to be able to fail, and this is where that is proved.
-const words = { credits: '{{count}} ECTS', locale: 'en' };
+// As the page and the other audits build them, through `creditWords` (#215).
+const words = { credits: (count) => `${count} ECTS`, locale: 'en' };
 const pisa = {
   degree: "First Level Professional Master's Programme in Mobile Applications Development",
   school: 'Università degli Studi di Pisa',

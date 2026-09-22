@@ -8,8 +8,10 @@ import { fileURLToPath } from 'node:url';
 import { AtsTextParser } from '../core/AtsTextParser.js';
 import { RecoveryDiff } from '../core/RecoveryDiff.js';
 import { CvDocument } from '../domain/CvDocument.js';
+import { creditWords } from '../domain/EntryLines.js';
 import {
   applicability,
+  catalogueWords,
   fieldVerdicts,
   gradedReadings,
   GRADER,
@@ -536,6 +538,8 @@ describe("each print, graded against its own branch's lines", () => {
   // Branches whose grader was changed, imported apart from this checkout's as the step imports the base's.
   let scratch;
   let graders;
+  // A branch's `creditWords` naming its catalogue key `education.scope` (#215).
+  let renamed;
   beforeAll(async () => {
     scratch = mkdtempSync(join(tmpdir(), 'base-grader-'));
     const edited = (file, from, to) => (path) => {
@@ -555,6 +559,12 @@ describe("each print, graded against its own branch's lines", () => {
       join(scratch, 'undated')
     );
     graders = { dotted: dotted.RecoveryDiff, undated: undated.RecoveryDiff };
+    const [scope] = await importApart(
+      ['domain/EntryLines.js'],
+      edited('domain/EntryLines.js', "'cv:education.credits'", "'cv:education.scope'"),
+      join(scratch, 'scope')
+    );
+    renamed = scope.creditWords;
   });
   afterAll(() => rmSync(scratch, { recursive: true, force: true }));
 
@@ -625,6 +635,48 @@ describe("each print, graded against its own branch's lines", () => {
     expect(verdictOf(readings.baseOnBase, 'education.0.degree')).toBe('partial');
     expect(verdictOf(readings.baseOnHead, 'education.0.degree')).toBe('partial');
     expect(lostFields(readings.baseOnBase, readings.baseOnHead)).toEqual([]);
+  });
+
+  // The base's words were built with this branch's catalogue key (#215). A branch that renamed it built the base's
+  // degree line with the key's own text, graded the base's print partial, and a loss read "partial → partial". Each
+  // branch's words are built by its own `creditWords`, over its own catalogue.
+  describe('in the words of the catalogue key each branch names', () => {
+    const { credits, ...education } = catalogue.education;
+    const renamedCatalogue = { ...catalogue, education: { ...education, scope: credits } };
+    const dropped = print.replace(
+      "First Level Professional Master's Programme in Mobile Applications\nDevelopment (60 ECTS)\nUniversità degli Studi di Pisa (2014–2016)\n\n",
+      ''
+    );
+
+    test('a branch that renames the key and loses a degree is named as losing it', () => {
+      const readings = gradedReadings(
+        { base: print, head: dropped },
+        {
+          base: side({ words: catalogueWords(creditWords, catalogue, 'en') }),
+          head: side({ words: catalogueWords(renamed, renamedCatalogue, 'en') })
+        }
+      );
+
+      expect(dropped).not.toBe(print);
+      expect(verdictOf(readings.baseOnBase, 'education.0.degree')).toBe('exact');
+      expect(lostFields(readings.baseOnBase, readings.baseOnHead).map(lossLine)).toContain(
+        'education 1, degree: "First Level Professional Master\'s Programme in Mobile Applications Development (60 ECTS)" → nothing (exact → lost)'
+      );
+    });
+
+    test("a key the catalogue does not hold is refused, naming it, never read as the line's own text", () => {
+      const words = catalogueWords(renamed, catalogue, 'en');
+
+      expect(() => words.credits('60')).toThrow('the catalogue holds no cv:education.scope');
+    });
+
+    test('the key is named once, where the lines are built', () => {
+      const t = (key, { count }) => `${key} ${count}`;
+
+      expect(creditWords(t, 'de')).toEqual({ locale: 'de', credits: expect.any(Function) });
+      expect(creditWords(t, 'de').credits('60')).toBe('cv:education.credits 60');
+      expect(renamed(t, 'en').credits('60')).toBe('cv:education.scope 60');
+    });
   });
 
   test("a period this branch's school line writes otherwise is graded in those words on this print only", () => {

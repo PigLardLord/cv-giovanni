@@ -8,18 +8,19 @@
  * words, is a degree that did not reach the paper as it was written.
  */
 
+import { scopeText } from '../../domain/EntryLines.js';
+
 const escapeForRegExp = (text) => String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /**
  * @param {{ degree: string, school: string, period?: string, credits?: number }} item - One degree of the profile
- * @param {{ credits: string, locale: string }} words - The catalogue's `education.credits`, and the CV's language
+ * @param {{ credits: (count: string) => string, locale: string }} words - How the CV writes a count of credits, as
+ *   `creditWords` builds them: the scope is the one `scopeText` writes on the page (#215)
  * @returns {RegExp} What the degree, its scope, its school and its period read as, in text flattened to single spaces
  */
-export function degreeBesideSchool(item, { credits, locale }) {
-  const scope =
-    item.credits === undefined || item.credits === null
-      ? ''
-      : `\\s+${escapeForRegExp(`(${credits.replace('{{count}}', new Intl.NumberFormat(locale).format(item.credits))})`)}`;
+export function degreeBesideSchool(item, words) {
+  const written = scopeText(item, words);
+  const scope = written ? `\\s+${escapeForRegExp(`(${written})`)}` : '';
   // A degree with no period prints its school alone (#169), so nothing is asked after the school (#178).
   const period = typeof item.period === 'string' ? item.period.trim() : '';
   const when = period ? `\\s*[·(]\\s*${escapeForRegExp(period)}` : '';
