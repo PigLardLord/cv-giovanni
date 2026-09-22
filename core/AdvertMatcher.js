@@ -44,8 +44,8 @@ export class AdvertMatcher {
     let section = null;
 
     for (const written of lines) {
-      // A title's gender marker is no term, and no reason to drop the title (#314).
-      const line = AdvertLexicon.withoutGenderMarkers(written);
+      // A title's gender marker is no term, and no reason to drop the title (#314); an address is the posting's (#337).
+      const line = AdvertLexicon.withoutAddresses(AdvertLexicon.withoutGenderMarkers(written));
       const heading = AdvertLexicon.headingKind(line);
       if (heading) {
         // A neutral heading organises the advert without demanding anything, so it does not

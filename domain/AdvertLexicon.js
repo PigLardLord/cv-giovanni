@@ -632,6 +632,17 @@ export const ADVERT = {
     en: ['performance', 'stability', 'quality', 'speed', 'efficiency'],
     de: ['performance', 'leistung', 'stabilität', 'qualität', 'geschwindigkeit', 'effizienz'],
     it: ['prestazioni', 'stabilità', 'qualità', 'velocità', 'efficienza']
+  },
+
+  /**
+   * The words a street's name carries, so an address line is read as the posting's and not as a requirement:
+   * "Hauptstraße 1, 10115 Berlin" asked for nothing (#337). Each language writes the word in its own place — see
+   * `STREET_ORDER` — and each is read only beside a house number, so "the road ahead" and "via REST" stay words.
+   */
+  streets: {
+    en: ['street', 'st.', 'road', 'rd.', 'avenue', 'ave.', 'lane', 'boulevard', 'blvd.'],
+    de: ['straße', 'strasse', 'str.', 'weg', 'allee', 'platz', 'gasse', 'ufer', 'chaussee', 'damm'],
+    it: ['via', 'viale', 'piazza', 'piazzale', 'corso', 'largo', 'vicolo']
   }
 };
 
@@ -678,6 +689,42 @@ const REQUIREMENT = Object.values(ADVERT.requirementHeadings).flat().map(fold);
 const OFFER = Object.values(ADVERT.offerHeadings).flat().map(fold);
 const STRUCTURAL = Object.values(ADVERT.structuralHeadings).flat().map(fold);
 
+// Where each language writes its street word: joined to the name or after an "-er" adjective ("Hauptstraße 1",
+// "Frankfurter Str. 5"), after the name with the number first ("221B Baker Street"), or before the name with the number
+// last ("Via Roma 1"). A language without an order is an error, never a language whose streets rank.
+const STREET_ORDER = { de: 'joined', en: 'after', it: 'before' };
+const capitalised = (word) => word[0].toUpperCase() + word.slice(1);
+// A house number: "1", "12a", "12-14", "3/1" — never a year, and never the start of "2.0".
+const HOUSE = String.raw`\d{1,3}(?:\s?[a-zA-Z])?(?:\s*[-–/]\s*\d{1,3}(?:\s?[a-zA-Z])?)?(?![\p{L}\p{N}]|[.,]\d)`;
+const STREET_SHAPES = {
+  joined: (words) =>
+    String.raw`(?<![\p{L}\p{N}-])(?:\p{Lu}\p{L}*er\s+)?[\p{L}-]*(?:${words
+      .map((word) => `[${word[0]}${word[0].toUpperCase()}]${escaped(word.slice(1))}`)
+      .join('|')})\s*${HOUSE}`,
+  after: (words) =>
+    String.raw`(?<![\p{L}\p{N}])\d{1,4}[a-zA-Z]?\s+(?:\p{Lu}[\p{L}'-]*\s+){1,3}(?:${words
+      .map((word) => escaped(capitalised(word)))
+      .join('|')})(?!\p{L})`,
+  before: (words) =>
+    String.raw`(?<!\p{L})(?:${words
+      .map((word) => escaped(capitalised(word)))
+      .join(
+        '|'
+      )})(?:\s+(?:\p{Lu}[\p{L}'.]*|d[aeiu]|del|della|delle|dello|dei|degli|d'\p{Lu}\p{L}*)){1,5},?\s*${HOUSE}`
+};
+const STREETS = Object.entries(ADVERT.streets).map(([language, words]) => {
+  const shape = STREET_SHAPES[STREET_ORDER[language]];
+  if (!shape) throw new Error(`The lexicon does not say where ${language} writes its street word`);
+  return shape(words);
+});
+// A postcode and the city after it, closing its clause: "10115 Berlin", "A-1010 Wien", "60311 Frankfurt am Main",
+// "20121 Milano (MI)". Four digits only when they are not a year: "Seit 2019 Teamleiter" names no town.
+const POSTCODE_CITY = String.raw`(?<![\p{L}\p{N}.,/-])(?:(?:A|CH|D|FL|I)-\s?\d{4,5}|\d{5}|(?!(?:19|20)\d\d)\d{4})\s+\p{Lu}\p{L}+(?:-\p{L}+)*(?:\s+(?:am|an der|im|in der|ob der|bei)\s+\p{Lu}\p{L}+)?(?:\s*\(\p{Lu}[\p{L}.]*\))?(?=\s*(?:$|[,.;:)–—|]))`;
+// A British postcode, "SW1A 2AA", and an American state with its ZIP code, "CA 94105".
+const UK_POSTCODE = String.raw`(?<![\p{L}\p{N}])[A-Z]{1,2}\d[A-Z\d]?\s+\d[A-Z]{2}(?![\p{L}\p{N}])`;
+const US_ZIP = String.raw`(?<![\p{L}\p{N}])[A-Z]{2}\s+\d{5}(?:-\d{4})?(?![\p{L}\p{N}])`;
+const ADDRESS = new RegExp([...STREETS, POSTCODE_CITY, UK_POSTCODE, US_ZIP].join('|'), 'gu');
+
 const SYNONYM = new Map();
 for (const group of ADVERT.synonyms) {
   const canonical = fold(group[0]);
@@ -713,6 +760,19 @@ export class AdvertLexicon {
   static withoutGenderMarkers(line) {
     return String(line ?? '')
       .replace(GENDER_MARKER, ' ')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+  }
+
+  /**
+   * A line without the addresses it holds: "Bitte nennen Sie Ihren Eintrittstermin. Hauptstraße 1, 10115 Berlin." is
+   * its sentence. Each address becomes a comma, so the words either side of it never join into a phrase (#337).
+   * @param {string} line - One line of the advert
+   * @returns {string} The line, its addresses taken out
+   */
+  static withoutAddresses(line) {
+    return String(line ?? '')
+      .replace(ADDRESS, ',')
       .replace(/\s{2,}/g, ' ')
       .trim();
   }

@@ -218,6 +218,7 @@ describe('a German advert', () => {
     'Anforderungen:',
     '- Erfahrung mit SwiftUI und Barrierefreiheit',
     '- Testautomatisierung und Qualitätssicherung',
+    '- Apps für Großkunden',
     '',
     'Bitte nennen Sie Ihren frühestmöglichen Eintrittstermin. Hauptstraße 1, 10115 Berlin.'
   ].join('\n');
@@ -227,11 +228,18 @@ describe('a German advert', () => {
     const words = terms.flatMap((term) => term.split(' '));
 
     expect(words).toEqual(
-      expect.arrayContaining(['Qualitätssicherung', 'frühestmöglichen', 'Hauptstraße'])
+      expect.arrayContaining(['Qualitätssicherung', 'frühestmöglichen', 'Großkunden'])
     );
-    for (const fragment of ['fr', 'hestm', 'glichen', 'Hauptstra', 'Qualit', 'tssicherung']) {
+    for (const fragment of ['fr', 'hestm', 'glichen', 'Gro', 'kunden', 'Qualit', 'tssicherung']) {
       expect(words).not.toContain(fragment);
     }
+  });
+
+  // #337: the address line ranked "10115 Berlin" first and "Hauptstraße 1" second.
+  test('ranks no postcode and no street', () => {
+    const terms = AdvertMatcher.extractTerms(advert, 60).terms.map(({ term }) => term);
+
+    expect(terms.filter((term) => /\d|straße/iu.test(term))).toEqual([]);
   });
 
   test('a word in a script without ASCII letters is a word, and a number is not', () => {

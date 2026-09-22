@@ -14,7 +14,8 @@ describe('the lexicon is multilingual by construction', () => {
       'structuralHeadings',
       'plainWords',
       'dimensions',
-      'genderMarkers'
+      'genderMarkers',
+      'streets'
     ]) {
       expect(Object.keys(ADVERT[group]).sort()).toEqual(languages);
     }
@@ -239,5 +240,51 @@ describe('the furniture of a posting, read whole', () => {
     'Benefits: gym, lunch'
   ])('a short line of furniture, or a phrase of it, is furniture: "%s"', (line) => {
     expect(AdvertLexicon.isBoilerplate(line)).toBe(true);
+  });
+});
+
+// An advert's address line ranked as its first requirement: "Hauptstraße 1" and "10115 Berlin" are tokens like any
+// other (#337). A street beside its house number, and a postcode with the city after it, are the posting's.
+describe('an address', () => {
+  const left = (line) =>
+    AdvertLexicon.withoutAddresses(line)
+      .replace(/[\s,.;]+/g, ' ')
+      .trim();
+
+  test.each([
+    ['Hauptstraße 1, 10115 Berlin.', ''],
+    ['Karl-Marx-Straße 12a', ''],
+    ['Frankfurter Str. 5', ''],
+    ['Rosenweg 3, 60311 Frankfurt am Main', ''],
+    ['Kurfürstendamm 21, 10719 Berlin-Charlottenburg', ''],
+    ['A-1010 Wien', ''],
+    ['CH-8001 Zürich', ''],
+    ['Via Roma 1, 20121 Milano (MI)', ''],
+    ['Piazza del Duomo 3', ''],
+    ["Piazza d'Azeglio 5", ''],
+    ['221B Baker Street', ''],
+    ['London SW1A 2AA', 'London'],
+    ['1 Market St., San Francisco, CA 94105', 'San Francisco'],
+    [
+      'Bitte nennen Sie Ihren frühestmöglichen Eintrittstermin. Hauptstraße 1, 10115 Berlin.',
+      'Bitte nennen Sie Ihren frühestmöglichen Eintrittstermin'
+    ]
+  ])('"%s" leaves "%s"', (line, rest) => {
+    expect(left(line)).toBe(rest);
+  });
+
+  test.each([
+    'Swift 6 und SwiftUI',
+    'iOS 17 or later',
+    'Seit 2019 Teamleiter',
+    'Roadmap 2026 Planung',
+    'Apps mit über 50000 Nutzern täglich',
+    'Marktplatz 2.0 entwickeln',
+    'Integration via REST APIs',
+    'Monitoring 24/7',
+    'The road ahead',
+    'Clean Architecture in 3 Teams'
+  ])('"%s" holds no address', (line) => {
+    expect(AdvertLexicon.withoutAddresses(line)).toBe(line);
   });
 });
