@@ -178,59 +178,59 @@ test('a recovered period reads exact though the document wrote its length after 
 });
 
 // The page's print (#147): every role, degree and skill in its own slot, in the order poppler reads it.
-describe.each(['frozen-print-general-en-spotlight', 'frozen-print-general-en-nerd'])(
-  'the page as %s prints it',
-  (fixture) => {
-    const diff = diffOf(fixture, { words });
+describe.each(['page-print-general-en-technical'])('the page as %s prints it', (fixture) => {
+  const diff = diffOf(fixture, { words });
 
-    test('every role keeps its title, employer and period', () => {
-      expect(
-        diff.experience.map(({ title, employer, period, tripleAdjacent }) => ({
-          title,
-          employer,
-          period,
-          tripleAdjacent
-        }))
-      ).toEqual(
-        document.experience.map(() => ({
-          title: 'exact',
-          employer: 'exact',
-          period: 'exact',
-          tripleAdjacent: true
-        }))
-      );
-    });
+  test('every role keeps its title, employer and period', () => {
+    expect(
+      diff.experience.map(({ title, employer, period, tripleAdjacent }) => ({
+        title,
+        employer,
+        period,
+        tripleAdjacent
+      }))
+    ).toEqual(
+      document.experience.map(() => ({
+        title: 'exact',
+        employer: 'exact',
+        period: 'exact',
+        tripleAdjacent: true
+      }))
+    );
+  });
 
-    // A degree that states its credits prints them after its name, "… Development (60 ECTS)" (#48). It is compared as
-    // the document prints it, so a parser that returns that line lost nothing the document said (#186). Its period
-    // prints in brackets after the school, and is graded as a role's is (#200).
-    test('every degree keeps its school and its period, and one that states its credits reads exact', () => {
-      expect(diff.education).toEqual(
-        document.education.map(() => ({
-          degree: 'exact',
-          school: 'exact',
-          period: 'exact',
-          adjacent: true
-        }))
-      );
-    });
+  // A degree that states its credits prints them after its name, "… Development (60 ECTS)" (#48). It is compared as
+  // the document prints it, so a parser that returns that line lost nothing the document said (#186). Its period
+  // prints in brackets after the school, and is graded as a role's is (#200).
+  test('every degree keeps its school and its period, and one that states its credits reads exact', () => {
+    expect(diff.education).toEqual(
+      document.education.map(() => ({
+        degree: 'exact',
+        school: 'exact',
+        period: 'exact',
+        adjacent: true
+      }))
+    );
+  });
 
-    test('every skill stays with its own category', () => {
-      expect(diff.skills.every((group) => group.category === 'exact' && group.attached)).toBe(true);
-      expect(diff.unexpected).toEqual({ skillCategories: [], roles: 0 });
-    });
+  test('every skill stays with its own category', () => {
+    expect(diff.skills.every((group) => group.category === 'exact' && group.attached)).toBe(true);
+    expect(diff.unexpected).toEqual({ skillCategories: [], roles: 0 });
+  });
 
-    // A certification prints its issuer and year after its name (#169), and is compared as it prints.
-    test('every certification comes back as its line prints', () => {
-      expect(diff.certifications).toEqual(document.certifications.map(() => ({ name: 'exact' })));
-    });
-  }
-);
+  // A certification prints its issuer and year after its name (#169), and is compared as it prints.
+  test('every certification comes back as its line prints', () => {
+    expect(diff.certifications).toEqual(document.certifications.map(() => ({ name: 'exact' })));
+  });
+});
 
 // A degree is compared as the document prints it: its name, and the scope it states after the name, in the words the
 // page writes it with (#186). The scope that printed is part of what the document said, so losing it is a loss.
 describe('a degree is compared against the line the document prints', () => {
-  const print = readFileSync(`${root}tests/fixtures/ats/frozen-print-general-en-nerd.txt`, 'utf8');
+  const print = readFileSync(
+    `${root}tests/fixtures/ats/page-print-general-en-technical.txt`,
+    'utf8'
+  );
   const [pisa] = document.education;
   const diffOfText = (text, options = { words }) =>
     RecoveryDiff.diff(document, AtsTextParser.parse(text), options);
@@ -279,16 +279,19 @@ describe('a degree is compared against the line the document prints', () => {
 // is compared as the school line prints it, "School (2014 – 2016)", without the brackets `schoolLine` sets it in: the
 // parser reads them as the line's punctuation, as it reads " · ", and returns the period alone.
 describe("a degree's period is compared as the school line prints it", () => {
-  const nerd = readFileSync(`${root}tests/fixtures/ats/frozen-print-general-en-nerd.txt`, 'utf8');
+  const technical = readFileSync(
+    `${root}tests/fixtures/ats/page-print-general-en-technical.txt`,
+    'utf8'
+  );
   const clean = readFileSync(`${root}tests/fixtures/ats/clean-english.txt`, 'utf8');
   const [pisa] = document.education;
   const diffOfText = (text, from = document) =>
     RecoveryDiff.diff(from, AtsTextParser.parse(text), { words });
 
   test('printed in brackets and recovered without them, it lost nothing', () => {
-    const diff = diffOfText(nerd);
+    const diff = diffOfText(technical);
 
-    expect(nerd).toContain(`${pisa.school} (${pisa.period})`);
+    expect(technical).toContain(`${pisa.school} (${pisa.period})`);
     expect(diff.education.map((degree) => degree.period)).toEqual(['exact', 'exact']);
     expect(diff.evidence['education.0.period']).toEqual({
       written: pisa.period,
@@ -310,7 +313,7 @@ describe("a degree's period is compared as the school line prints it", () => {
   });
 
   test('a period recovered as other dates is wrong', () => {
-    const diff = diffOfText(nerd.replace(`(${pisa.period})`, '(2015 – 2017)'));
+    const diff = diffOfText(technical.replace(`(${pisa.period})`, '(2015 – 2017)'));
 
     expect(diff.education[0].period).toBe('wrong');
     expect(diff.evidence['education.0.period'].recovered).toBe('2015 – 2017');
@@ -337,7 +340,10 @@ describe("a degree's period is compared as the school line prints it", () => {
 // it was (#217). A recovered entry is matched to a written one by what it says.
 describe('an entry is matched to the one written by what it says, not by where it stands', () => {
   const profile = JSON.parse(readFileSync(`${root}profiles/general/en.json`, 'utf8'));
-  const nerd = readFileSync(`${root}tests/fixtures/ats/frozen-print-general-en-nerd.txt`, 'utf8');
+  const technical = readFileSync(
+    `${root}tests/fixtures/ats/page-print-general-en-technical.txt`,
+    'utf8'
+  );
   const diffOfText = (text, from) =>
     RecoveryDiff.diff(new CvDocument(from), AtsTextParser.parse(text), { words });
 
@@ -349,18 +355,18 @@ describe('an entry is matched to the one written by what it says, not by where i
     };
     const three = { ...profile, education: [phd, ...profile.education] };
     const whole = { degree: 'exact', school: 'exact', period: 'exact', adjacent: true };
-    const printed = nerd.replace(
+    const printed = technical.replace(
       'Education\n',
       `Education\n${phd.degree}\n${phd.school} (${phd.period})\n\n`
     );
 
     test('three degrees printed come back whole', () => {
-      expect(printed).not.toBe(nerd);
+      expect(printed).not.toBe(technical);
       expect(diffOfText(printed, three).education).toEqual([whole, whole, whole]);
     });
 
     test('a parse that drops the first of three loses that one, and the other two come back whole', () => {
-      const diff = diffOfText(nerd, three);
+      const diff = diffOfText(technical, three);
 
       expect(diff.education).toEqual([
         { degree: 'lost', school: 'lost', period: 'lost', adjacent: false },
@@ -378,13 +384,13 @@ describe('an entry is matched to the one written by what it says, not by where i
     // none written is one nobody wrote, whatever year it prints, and the degree that year belongs to is lost (the code
     // review of #222).
     test('a degree that shares only its period with a written one matches none, and that one is lost', () => {
-      const culinary = nerd.replace(
+      const culinary = technical.replace(
         'BSc in Computer Engineering\nUniversità degli Studi di Catania (2009)',
         'Diploma in Culinary Arts\nScuola Alberghiera di Roma (2009)'
       );
       const diff = diffOfText(culinary, profile);
 
-      expect(culinary).not.toBe(nerd);
+      expect(culinary).not.toBe(technical);
       expect(diff.education).toEqual([
         whole,
         { degree: 'lost', school: 'lost', period: 'lost', adjacent: false }
@@ -398,9 +404,9 @@ describe('an entry is matched to the one written by what it says, not by where i
       const pisa =
         "First Level Professional Master's Programme in Mobile Applications\nDevelopment (60 ECTS)\nUniversità degli Studi di Pisa (2014–2016)";
       const catania = 'BSc in Computer Engineering\nUniversità degli Studi di Catania (2009)';
-      const reordered = nerd.replace(`${pisa}\n\n${catania}`, `${catania}\n\n${pisa}`);
+      const reordered = technical.replace(`${pisa}\n\n${catania}`, `${catania}\n\n${pisa}`);
 
-      expect(reordered).not.toBe(nerd);
+      expect(reordered).not.toBe(technical);
       expect(diffOfText(reordered, profile).education).toEqual([whole, whole]);
     });
   });
@@ -413,14 +419,15 @@ describe('an entry is matched to the one written by what it says, not by where i
       tripleAdjacent: true,
       highlights: 'exact'
     };
-    // The first role's block as the print writes it: its period, its header and its achievements.
-    const cortado = nerd.slice(
-      nerd.indexOf('August 2018 – November 2026'),
-      nerd.indexOf('September 2015 – July 2018')
+    // The first role's block as the print writes it: its title, the employer's line with its period, and its
+    // achievements (#240).
+    const cortado = technical.slice(
+      technical.indexOf('iOS Developer\nCortado Mobile Solutions'),
+      technical.indexOf('Mobile Developer\nApparound')
     );
 
     test('a parse that drops the first of three loses that one, and the other two come back whole', () => {
-      const diff = diffOfText(nerd.replace(cortado, ''), profile);
+      const diff = diffOfText(technical.replace(cortado, ''), profile);
       const [first] = profile.relevant_experience;
 
       expect(diff.experience).toEqual([
@@ -454,10 +461,12 @@ describe('an entry is matched to the one written by what it says, not by where i
 
     // The order is judged where it was lost, in the order the roles came back, and costs the chronology alone.
     test('roles printed in another order come back whole, and break the chronology', () => {
-      const reordered = nerd.replace(cortado, '').replace('Wikitude.\n', `Wikitude.\n\n${cortado}`);
+      const reordered = technical
+        .replace(cortado, '')
+        .replace('Wikitude.\n', `Wikitude.\n\n${cortado}`);
       const diff = diffOfText(reordered, profile);
 
-      expect(reordered).not.toBe(nerd);
+      expect(reordered).not.toBe(technical);
       expect(diff.experience).toEqual([whole, whole, whole, whole]);
       expect(diff.roleOrderMonotonic).toBe(false);
     });
@@ -465,15 +474,15 @@ describe('an entry is matched to the one written by what it says, not by where i
     // A role whose title, employer and dates match nothing written is not the first role graded wrong: it is a role
     // nobody wrote, and the one it displaced is lost, though the document holds no more roles than came back.
     test('a role that says nothing of any written one is a role nobody wrote, and the one it displaced is lost', () => {
-      const invented = nerd
+      const invented = technical
         .replace('August 2018 – November 2026', 'January 2019 – March 2020')
         .replace(
-          'iOS Developer at Cortado Mobile Solutions, Berlin (remote)',
-          'Head Chef at Trattoria Da Mario, Rome, Italy'
+          'iOS Developer\nCortado Mobile Solutions · Berlin (remote)',
+          'Head Chef\nTrattoria Da Mario · Rome, Italy'
         );
       const diff = diffOfText(invented, profile);
 
-      expect(invented).not.toBe(nerd);
+      expect(invented).not.toBe(technical);
       expect(diff.experience[0]).toEqual(
         expect.objectContaining({ title: 'lost', employer: 'lost', period: 'lost' })
       );
@@ -486,13 +495,13 @@ describe('an entry is matched to the one written by what it says, not by where i
     // fields: matched on its dates, it read the written role's period and achievements as recovered, and was not
     // counted as a role nobody wrote.
     test('a role that shares only its period with a written one matches none, and that one is lost', () => {
-      const chef = nerd.replace(
-        'iOS Developer at Cortado Mobile Solutions, Berlin (remote)',
-        'Head Chef at Trattoria Da Mario, Rome, Italy'
+      const chef = technical.replace(
+        'iOS Developer\nCortado Mobile Solutions · Berlin (remote)',
+        'Head Chef\nTrattoria Da Mario · Rome, Italy'
       );
       const diff = diffOfText(chef, profile);
 
-      expect(chef).not.toBe(nerd);
+      expect(chef).not.toBe(technical);
       expect(diff.experience).toEqual([
         {
           title: 'lost',
@@ -531,7 +540,7 @@ describe('an entry is matched to the one written by what it says, not by where i
 
     test('a parse that drops the first of three loses that one, and the other two come back whole', () => {
       const three = { ...profile, certifications: [scrum, ...profile.certifications] };
-      const diff = diffOfText(nerd, three);
+      const diff = diffOfText(technical, three);
 
       expect(diff.certifications).toEqual([{ name: 'lost' }, { name: 'exact' }, { name: 'exact' }]);
       expect(RecoveryDiff.losses(diff)).toEqual([
@@ -545,9 +554,9 @@ describe('an entry is matched to the one written by what it says, not by where i
     });
 
     test('certifications printed in another order come back whole', () => {
-      const reordered = nerd.replace(`${android}\n${ios}`, `${ios}\n${android}`);
+      const reordered = technical.replace(`${android}\n${ios}`, `${ios}\n${android}`);
 
-      expect(reordered).not.toBe(nerd);
+      expect(reordered).not.toBe(technical);
       expect(diffOfText(reordered, profile).certifications).toEqual([
         { name: 'exact' },
         { name: 'exact' }
@@ -559,7 +568,7 @@ describe('an entry is matched to the one written by what it says, not by where i
     const whole = { name: 'exact', level: 'exact' };
 
     test('a parse that drops the first of three loses that one, and the other two come back whole', () => {
-      const diff = diffOfText(nerd.replace('Italian: native\n', ''), profile);
+      const diff = diffOfText(technical.replace('Italian: native\n', ''), profile);
 
       expect(diff.spokenLanguages).toEqual([{ name: 'lost', level: 'lost' }, whole, whole]);
       expect(diff.evidence['spokenLanguages.0.name']).toEqual({
@@ -571,9 +580,9 @@ describe('an entry is matched to the one written by what it says, not by where i
     test('languages printed in another order come back whole', () => {
       const italian = 'Italian: native\n';
       const english = 'English: C1 (CEFR), working language since 2018\n';
-      const reordered = nerd.replace(`${italian}${english}`, `${english}${italian}`);
+      const reordered = technical.replace(`${italian}${english}`, `${english}${italian}`);
 
-      expect(reordered).not.toBe(nerd);
+      expect(reordered).not.toBe(technical);
       expect(diffOfText(reordered, profile).spokenLanguages).toEqual([whole, whole, whole]);
     });
   });
@@ -586,7 +595,7 @@ describe('an entry is matched to the one written by what it says, not by where i
         ...profile,
         skills: [...profile.skills, { category: 'iOS', items: [{ name: 'Objective-C' }] }]
       };
-      const diff = diffOfText(nerd, twice);
+      const diff = diffOfText(technical, twice);
 
       expect(diff.skills.map((group) => group.category)).toEqual([
         'exact',

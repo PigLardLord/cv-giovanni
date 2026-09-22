@@ -154,7 +154,7 @@ describe('a field short of recovered is quoted as written and as recovered', () 
   test('a certification cut short is named, and said to cost nothing', () => {
     const [android] = document.certifications;
     const printed = `${android.name} – ${android.issuer} (${android.year})`;
-    const text = fixture('frozen-print-general-en-nerd');
+    const text = fixture('page-print-general-en-technical');
     const diff = diffOf(text.replace(printed, android.name));
 
     expect(text).toContain(printed);
@@ -207,7 +207,7 @@ describe('a field short of recovered is quoted as written and as recovered', () 
     });
     const diff = RecoveryDiff.diff(
       three,
-      AtsTextParser.parse(fixture('frozen-print-general-en-nerd'))
+      AtsTextParser.parse(fixture('page-print-general-en-technical'))
     );
     const listed = section(diff);
 
@@ -256,11 +256,11 @@ describe("the table's Fidelity column reads every field the fidelity band scores
 // one nobody wrote, so what came back stays in the report: a role nobody wrote costs, as it did; a degree, a language
 // or a certification costs nothing.
 describe('what came back that matches nothing written is quoted as nobody wrote it', () => {
-  const invented = fixture('frozen-print-general-en-nerd')
+  const invented = fixture('page-print-general-en-technical')
     .replace('August 2018 – November 2026', 'January 2019 – March 2020')
     .replace(
-      'iOS Developer at Cortado Mobile Solutions, Berlin (remote)',
-      'Head Chef at Trattoria Da Mario, Rome, Italy'
+      'iOS Developer\nCortado Mobile Solutions · Berlin (remote)',
+      'Head Chef\nTrattoria Da Mario · Rome, Italy'
     )
     .replace(
       'BSc in Computer Engineering\nUniversità degli Studi di Catania (2009)',
@@ -275,7 +275,7 @@ describe('what came back that matches nothing written is quoted as nobody wrote 
   const listed = section(diff);
 
   test('each is listed with what came back', () => {
-    expect(invented).not.toBe(fixture('frozen-print-general-en-nerd'));
+    expect(invented).not.toBe(fixture('page-print-general-en-technical'));
     expect(listed).toContain(
       '- a role nobody wrote: "Head Chef", "Trattoria Da Mario", "January 2019 – March 2020"'
     );
