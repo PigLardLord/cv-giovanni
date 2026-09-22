@@ -1276,6 +1276,22 @@ describe('a tailored CV translated into German', () => {
       new Set(['names "KI-Agenten", which its source does not'])
     );
   });
+
+  // #292: German capitalises every noun, so a technology a German advert names in a plain capital read as any noun.
+  test('a technology the lexicon knows, named by a German advert and not the full CV, fails', () => {
+    const failures = translate(
+      (cv) => {
+        cv.relevant_experience[0].highlights[1] =
+          'Testlaufzeit von 37,7 auf 5,2 Minuten gesenkt, mit Flutter und Bitrise.';
+      },
+      { advert: 'Anforderungen:\n- Flutter und Bitrise' }
+    );
+
+    expect(reasonsAt(failures, 'relevant_experience[0].highlights[1]').sort()).toEqual([
+      'says "Bitrise", which its source does not',
+      'says "Flutter", which its source does not'
+    ]);
+  });
 });
 
 // Across languages (#306): a German term of the advert is held in an English tailoring through its English forms.
@@ -1346,5 +1362,63 @@ describe('every profile in the repository, tailored to itself', () => {
         sources: itself(source)
       })
     ).toEqual([]);
+  });
+});
+
+// A technology in neither the advert nor the full CV passed when it was written in lower case, or opened a sentence, or
+// stood in a German translation, whose capitals name nothing (#292). A technology the lexicon knows is held to the
+// source however it is written, in either language.
+describe('a technology the lexicon knows', () => {
+  test.each([
+    [
+      'in lower case',
+      'Cut the test suite from 37.7 to 5.2 minutes by moving to graphql.',
+      'GraphQL'
+    ],
+    [
+      'opening a sentence',
+      'Fastlane shipped the releases. Cut the test suite from 37.7 to 5.2 minutes.',
+      'fastlane'
+    ]
+  ])('%s, and in neither the source nor the advert, fails', (_, text, term) => {
+    const failures = check((cv) => (cv.relevant_experience[0].highlights[1] = text));
+
+    expect(reasonsAt(failures, 'relevant_experience[0].highlights[1]')).toContain(
+      `says "${term}", which its source does not`
+    );
+  });
+
+  test('its source names it, and it passes', () => {
+    const source = JSON.parse(JSON.stringify(SOURCE));
+    source.relevant_experience[0].highlights[2] =
+      'Shipped App Store releases every two weeks with fastlane.';
+    const tailored = JSON.parse(JSON.stringify(source));
+    tailored.relevant_experience[0].highlights[2] =
+      'Fastlane shipped App Store releases every two weeks.';
+
+    expect(
+      ProvenanceCheck.failures({ source, tailored, sources: itself(source), terms: [], advert: '' })
+    ).toEqual([]);
+  });
+
+  // The review of #360: "flutter" is an English word too, and a truthful rewording was refused as the framework.
+  test('a technology that is an English word too is read from its capital in English: "the flutter"', () => {
+    const failures = check(
+      (cv) =>
+        (cv.relevant_experience[0].highlights[1] =
+          'Cut the test suite from 37.7 to 5.2 minutes, and the flutter during fast scrolling.')
+    );
+
+    expect(reasonsAt(failures, 'relevant_experience[0].highlights[1]')).toEqual([]);
+  });
+
+  test('an ordinary word that also names one is no technology: "swift", "combine", "react"', () => {
+    const failures = check(
+      (cv) =>
+        (cv.relevant_experience[0].summary =
+          'Owned the iOS client in a team of 2, and helped it react swiftly to combine the two flows.')
+    );
+
+    expect(reasonsAt(failures, 'relevant_experience[0].summary')).toEqual([]);
   });
 });
