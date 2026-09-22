@@ -15,7 +15,8 @@ describe('the lexicon is multilingual by construction', () => {
       'plainWords',
       'dimensions',
       'genderMarkers',
-      'streets'
+      'streets',
+      'instructions'
     ]) {
       expect(Object.keys(ADVERT[group]).sort()).toEqual(languages);
     }
@@ -330,21 +331,57 @@ describe('a German form spelled out', () => {
 // A German advert's closing request — "Bitte nennen Sie Ihren frühestmöglichen Eintrittstermin" — ranked as three
 // requirements: the list held "ihr" and "ihre" but none of their inflections, nor "bitte" (#351).
 describe('an instruction to the applicant', () => {
-  test.each(['Ihren', 'ihrem', 'Ihrer', 'deinen', 'unserem', 'unserer', 'bitte', 'please'])(
-    '"%s" is a stopword',
-    (word) => {
-      expect(AdvertLexicon.isStopword(word)).toBe(true);
-    }
-  );
+  test.each([
+    'Ihren',
+    'ihrem',
+    'Ihrer',
+    'deinen',
+    'unserem',
+    'unserer',
+    'bitte',
+    'sowie',
+    'please'
+  ])('"%s" is a stopword', (word) => {
+    expect(AdvertLexicon.isStopword(word)).toBe(true);
+  });
+
+  // Taken out as words, never as the line: an instruction shares its sentence with what the job asks, and the review
+  // of #355 found "Please state your experience with SwiftUI … and your earliest start date" dropped SwiftUI whole.
+  const left = (line) =>
+    AdvertLexicon.withoutInstructions(line)
+      .replace(/[\s,.;]+/g, ' ')
+      .trim();
 
   test.each([
-    'Bitte nennen Sie Ihren frühestmöglichen Eintrittstermin.',
-    'Bitte teilen Sie uns Ihre Gehaltsvorstellung mit.',
-    'Please state your earliest start date and salary expectations.',
-    'Please indicate your notice period.',
-    'Si prega di indicare la data di disponibilità.'
-  ])('"%s" is furniture', (line) => {
-    expect(AdvertLexicon.isBoilerplate(line)).toBe(true);
+    ['Bitte nennen Sie Ihren frühestmöglichen Eintrittstermin.', 'Ihren'],
+    ['Bitte teilen Sie uns Ihre Gehaltsvorstellung mit.', 'Ihre mit'],
+    // The genitive, and the phrasing the tailoring's own tests hold as the German ask (the review of #355).
+    [
+      'Bitte unter Angabe Ihrer Gehaltsvorstellung und des frühestmöglichen Eintrittstermins.',
+      'Bitte Ihrer und des'
+    ],
+    ['Bitte mit Gehaltsvorstellung und Eintrittstermin.', 'Bitte mit und'],
+    ['Please state your earliest start date and salary expectations.', 'your and'],
+    ['Please indicate your notice period.', 'your'],
+    ['Si prega di indicare la data di disponibilità.', 'la'],
+    [
+      'Please state your experience with SwiftUI state management and your earliest start date.',
+      'your experience with SwiftUI state management and your'
+    ],
+    [
+      'Si prega di indicare la Sua esperienza con Swift e la data di disponibilità.',
+      'la Sua esperienza con Swift e la'
+    ]
+  ])('"%s" leaves "%s"', (line, rest) => {
+    expect(left(line)).toBe(rest);
+  });
+
+  test.each([
+    'Kündigungsfristen im Arbeitsrecht digital abbilden',
+    'Gehaltsvorstellungsrahmen im HR-Tool',
+    'Eintrittstermin-Angabe im Bewerbungsportal'
+  ])('"%s" holds no instruction: a word of one is matched whole, never inside a word', (line) => {
+    expect(AdvertLexicon.withoutInstructions(line)).toBe(line);
   });
 
   test.each([

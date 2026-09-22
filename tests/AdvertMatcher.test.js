@@ -251,6 +251,21 @@ describe('a German advert', () => {
     expect(terms.filter((term) => /bitte|nennen|ihren|eintrittstermin/iu.test(term))).toEqual([]);
   });
 
+  // The review of #355: a requirement in the same sentence as the instruction stays a requirement.
+  test('ranks what the job asks beside an instruction, in its sentence', () => {
+    const terms = AdvertMatcher.extractTerms(
+      [
+        'Requirements:',
+        '- Please state your notice period, your earliest possible start date and your experience with GraphQL and Node.js in your application.'
+      ].join('\n'),
+      60
+    ).terms.map(({ term }) => term);
+    const words = terms.flatMap((term) => term.split(' '));
+
+    expect(words).toEqual(expect.arrayContaining(['GraphQL', 'Node.js']));
+    expect(terms.filter((term) => /notice|start date|please/iu.test(term))).toEqual([]);
+  });
+
   // The review of #352: a figure and its noun, or a job beside a number, are no address.
   test('keeps a figure and its noun, and a job beside a number', () => {
     const terms = AdvertMatcher.extractTerms(
