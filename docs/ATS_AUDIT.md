@@ -63,7 +63,7 @@ Regenerate with `npm run audit:ats`.
 
 1 artefact, 1 distinct stream.
 
-- `4a4e1359fdce` — generated/giovanni-trovato-general-en-technical.pdf
+- `b1e0e675f144` — generated/giovanni-trovato-general-en-technical.pdf
 
 
 A layout-aware read recovers the same structure everywhere, so no column is being serialised.

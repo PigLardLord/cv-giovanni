@@ -53,7 +53,7 @@ const words = wordsOf(catalogue);
 const read = (text) =>
   fieldVerdicts(RecoveryDiff.diff(document, AtsTextParser.parse(text), { words }));
 // The print as it is, and as #179 first drew it: the scope after the school's period, not after the degree's name.
-const print = readFileSync(`${root}tests/fixtures/ats/frozen-print-general-en-nerd.txt`, 'utf8');
+const print = readFileSync(`${root}tests/fixtures/ats/page-print-general-en-technical.txt`, 'utf8');
 const firstPlacement = print.replace(
   'Development (60 ECTS)\nUniversità degli Studi di Pisa (2014–2016)',
   'Development\nUniversità degli Studi di Pisa (2014–2016) · 60 ECTS'

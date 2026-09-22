@@ -40,10 +40,10 @@ Mobile Developer
 Apparound · Pisa, Italy · September 2015 – July 2018 (2 years, 11 months)
 
 B2B sales-automation platform for enterprise field sales teams.
-Built offline-first iOS and Android features that kept field sales teams
-working without a connection.
-Created a reusable UI component library and led the mobile clients' UI/UX
-redesign, cutting duplicate work on new screens.
+Built offline-first Android features that kept field sales teams working
+without a connection.
+Created a reusable UI component library for the Android client, cutting
+duplicate work on new screens, and worked on its UI/UX redesign.
 
 Mobile Developer Intern
 Marte 5 · Livorno, Italy · May 2015 – August 2015 (4 months)
