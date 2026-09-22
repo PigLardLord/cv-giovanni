@@ -547,6 +547,51 @@ describe('a title over its employer, place and period on one line', () => {
     expect(experience[0].period.raw).toBe('August 2018 – present');
   });
 
+  // The review of #358: an achievement that closes on a date after a separator became a role, and took the next line
+  // of the real role's body. The shape is the title opening its paragraph, then the employer's line.
+  test.each([
+    'Shipped v2 · May 2021',
+    'Released v3 · 03/2021',
+    'Mentored 3 juniors · since 2022',
+    'Mentorte Junior-Entwickler · seit 2020',
+    'Led the migration · 2019 – 2021'
+  ])('an achievement closing on "%s" is no role', (achievement) => {
+    const { experience } = cv([
+      'iOS Developer at Acme, Berlin',
+      'August 2018 – November 2026',
+      achievement,
+      'Cut the test suite in half.'
+    ]);
+
+    expect(experience).toHaveLength(1);
+    expect(experience[0].bodyLines).toEqual([achievement, 'Cut the test suite in half.']);
+  });
+
+  test('a line above the section’s first role does not turn the section around', () => {
+    const { experience } = cv([
+      'Gave a talk · May 2021',
+      'Senior iOS Developer at Acme, Berlin',
+      'August 2018 – November 2026',
+      'Built the MDM client.'
+    ]);
+
+    expect(experience.map(identityOf)).toContainEqual(['Senior iOS Developer', 'Acme', 'Berlin']);
+  });
+
+  test("a role's last achievement is never the next role's title", () => {
+    const { experience } = cv([
+      'Mobile Developer at Beta Apps, Pisa',
+      'September 2015 – July 2018',
+      'Shipped the offline mode.',
+      'Cut crash rate in half.',
+      'Acme Mobile GmbH · Berlin (remote) · August 2018 – November 2026',
+      'Built the MDM client.'
+    ]);
+
+    expect(experience.map((role) => role.title?.value)).not.toContain('Cut crash rate in half.');
+    expect(experience[0].bodyLines).toContain('Cut crash rate in half.');
+  });
+
   // An achievement that closes on a year after a separator is not a role: a single year states when, not how long.
   test('an achievement closing on a year is no role', () => {
     const { experience } = cv([

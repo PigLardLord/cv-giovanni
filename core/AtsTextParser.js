@@ -257,10 +257,13 @@ export class AtsTextParser {
     const entries = block.filter((entry) => entry.text);
     const anchors = entries.flatMap((entry, index) => {
       const whole = DateRange.parse(entry.text);
-      if (whole) return [{ index, period: whole, opens: null }];
+      if (whole) return [{ index, period: whole, opens: null, closes: null }];
       const opening = AtsTextParser.openingPeriod(entry.text);
       if (opening) return [{ index, period: opening.period, opens: opening.rest, closes: null }];
-      const closing = AtsTextParser.closingPeriod(entry.text);
+      // Only in the shape the page writes it: under a title that opens its paragraph. Anywhere else a line closing on a
+      // date is an achievement that says when (the review of #358).
+      const closing =
+        AtsTextParser.titleOpensAbove(entries, index) && AtsTextParser.closingPeriod(entry.text);
       return closing
         ? [{ index, period: closing.period, opens: null, closes: closing.before }]
         : [];
@@ -382,9 +385,20 @@ export class AtsTextParser {
   }
 
   /**
+   * Whether the line above a line opens its paragraph as a role's title does: next to it, first of its paragraph — the
+   * section's first line, or the first after a blank — and not closing like a sentence. A role's last achievement sits
+   * in its paragraph and ends on a full stop, and is never the next role's title (the review of #358).
+   */
+  static titleOpensAbove(entries, index) {
+    const above = entries[index - 1];
+    if (!above || above.line !== entries[index].line - 1) return false;
+    const opens = index - 1 === 0 || entries[index - 2].line < above.line - 1;
+    return opens && !/[.;:!?]$/.test(above.text.trim());
+  }
+
+  /**
    * A role's header when its period closes the employer's line: the title on the line just above, and "Employer · City"
-   * before the period (#240). The title is read only from the line next to it, and no higher than the role before: with
-   * no line there, the employer and the period still bind, and the title is refused rather than guessed.
+   * before the period (#240). The title is read only from the line next to it, and no higher than the role before.
    */
   static headerBeside(entries, anchor, floor) {
     const at = anchor.index;
@@ -474,8 +488,9 @@ export class AtsTextParser {
 
   /**
    * A period that closes a line after a separator, the employer and the place before it: "Acme GmbH ·
-   * Berlin (remote) · August 2018 – November 2026", as the role's second line under its title (#240). A single year is
-   * no period here: "Released the tablet app · 2021" says when, not how long, and is an achievement.
+   * Berlin (remote) · August 2018 – November 2026", as the role's second line under its title (#240). A single point
+   * is no period here — "Released the tablet app · 2021", "Shipped v2 · May 2021" say when, not how long — and a line
+   * whose first part closes like a sentence is prose.
    * @param {string} text - One line
    * @returns {{period: DateRange, before: string}|null} The period and what the line says before it
    */
@@ -485,13 +500,12 @@ export class AtsTextParser {
     if (!last) return null;
     const before = value.slice(0, last.index).trim();
     const period = DateRange.parse(value.slice(last.index + last[0].length));
-    if (!before || !period) return null;
-    const oneYear =
+    if (!before || !period || /[.;:!?]$/.test(before)) return null;
+    const onePoint =
       period.end !== 'present' &&
-      period.start.month === null &&
-      period.end.month === null &&
-      period.start.year === period.end.year;
-    return oneYear ? null : { period, before };
+      period.start.year === period.end.year &&
+      period.start.month === period.end.month;
+    return onePoint ? null : { period, before };
   }
 
   /** Blank-line-separated groups of non-empty lines. */
