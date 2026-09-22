@@ -314,3 +314,15 @@ describe('an address', () => {
     }
   );
 });
+
+// A German word written without its umlaut — "ae", "oe", "ue" — did not fold to the umlauted one, so the table's German
+// forms missed a writer without the key (#330).
+describe('a German form spelled out', () => {
+  test.each([
+    ['Qualitaetssicherung', 'Qualitätssicherung'],
+    ['Benutzeroberflaeche', 'UI'],
+    ['Qualitaetssicherung', 'quality assurance']
+  ])('"%s" is the same term as "%s"', (spelled, written) => {
+    expect(AdvertLexicon.areSynonyms(spelled, written) || spelled === written).toBe(true);
+  });
+});

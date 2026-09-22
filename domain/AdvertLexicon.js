@@ -740,10 +740,30 @@ const ADDRESS = new RegExp(
   'gu'
 );
 
+/**
+ * A form as it folds, and as a writer without the letter writes it: "Qualitätssicherung" folds to "qualitatssicherung",
+ * and is also written "Qualitaetssicherung", which folding never reaches (#330).
+ */
+const spellings = (form) => [
+  ...new Set([
+    fold(form),
+    fold(
+      form
+        .replace(/ä/g, 'ae')
+        .replace(/ö/g, 'oe')
+        .replace(/ü/g, 'ue')
+        .replace(/Ä/g, 'Ae')
+        .replace(/Ö/g, 'Oe')
+        .replace(/Ü/g, 'Ue')
+    )
+  ])
+];
+
 const SYNONYM = new Map();
 for (const group of ADVERT.synonyms) {
   const canonical = fold(group[0]);
-  for (const form of group) SYNONYM.set(fold(form), canonical);
+  for (const form of group)
+    for (const spelling of spellings(form)) SYNONYM.set(spelling, canonical);
 }
 
 export class AdvertLexicon {
@@ -842,7 +862,7 @@ export class AdvertLexicon {
   static formsOf(term) {
     const canonical = AdvertLexicon.canonical(term);
     const group = ADVERT.synonyms.find((entry) => fold(entry[0]) === canonical);
-    return group ? group.map(fold) : [fold(term)];
+    return group ? group.flatMap(spellings) : [fold(term)];
   }
 
   /** Whether two terms mean the same thing through the table rather than by spelling. */

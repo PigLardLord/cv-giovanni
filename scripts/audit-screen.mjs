@@ -15,7 +15,8 @@ import {
   columnOverflow,
   lineBreaks,
   pageWidth,
-  renderedGlyphs
+  renderedGlyphs,
+  wordSplits
 } from './lib/line-breaks.mjs';
 import { RECORD_LAYOUT_SHIFTS, layoutShift } from './lib/layout-shift.mjs';
 import { downloadReach } from './lib/download-reach.mjs';
@@ -115,6 +116,21 @@ if (!browser) {
 }
 
 /** Selects the CV from its first element to its last, the way a reader drags across it, and reads it. */
+/**
+ * What may never break inside a word on screen: the CV's names — a role's header, a degree, a school, a certification,
+ * the name, the headline, the location — and every token of Nerd Mode's editor (#259).
+ */
+const NAMED = [
+  '.job-header',
+  '.edu-degree',
+  '.edu-school',
+  '#certifications strong',
+  '#name',
+  '#title',
+  '#location',
+  '.source-view .tok'
+].join(', ');
+
 const selection = (start, end) => `(() => {
   const first = document.querySelector(${JSON.stringify(start)});
   const last = document.querySelector(${JSON.stringify(end)});
@@ -367,7 +383,7 @@ try {
       const copy = screenCopy(copied, profile, { skillsLabel: labels.skills });
       // Where the lines of the same stretch of the page broke (#180): no separator at either end of one, and no
       // period split across two. A period's width counts the syntax Nerd Mode draws flush against it (#219).
-      const drawn = await chrome.evaluate(renderedGlyphs(start, end));
+      const drawn = await chrome.evaluate(renderedGlyphs(start, end, NAMED));
       if (drawn === null) throw new Error(`${layout} has no ${start} or no ${end}`);
       const breaks = lineBreaks(drawn.glyphs, profile, drawn.syntax);
       // The same glyphs against the edges of their columns, and the page against its viewport (#198): text held
@@ -376,6 +392,22 @@ try {
       const overflow = columnOverflow(drawn, await chrome.evaluate(pageWidth));
       // No row the editor wraps a line onto opens with syntax that closes the row above it, a lone `",` (#219).
       const closing = closingSyntax(drawn);
+      // No name or label breaks inside a word, where an automatic hyphen would have drawn one no text shows (#259):
+      // the CV's names, Nerd Mode's tokens, and the toolbar's links.
+      const toolbar = await chrome.evaluate(
+        renderedGlyphs(
+          '.layout-switcher',
+          '[data-download-pdf]',
+          '.layout-switcher a, [data-download-pdf]'
+        )
+      );
+      // Each reading on its own: the two number their elements from 0, and must never be read as one line of text.
+      const [inPage, inToolbar] = [wordSplits(drawn.glyphs), wordSplits(toolbar?.glyphs ?? [])];
+      const splitWords = [...inPage.findings.splitWords, ...inToolbar.findings.splitWords];
+      const split = {
+        checks: { wordsWhole: splitWords.length === 0 },
+        findings: { splitWords }
+      };
 
       // The Download link (#101): measured as the page loaded, reached with Tab the way a keyboard user reaches
       // it, scrolled past where a layout pins it, and loaded again with no PDF to offer.
@@ -465,6 +497,7 @@ try {
         ...breaks.checks,
         ...overflow.checks,
         ...closing.checks,
+        ...split.checks,
         holdsStill: shift.holdsStill,
         ...reach.checks,
         ...forced.checks,
@@ -476,6 +509,7 @@ try {
         ...breaks.findings,
         ...overflow.findings,
         ...closing.findings,
+        ...split.findings,
         movedWhileLoading: shift.holdsStill ? [] : shift.moved,
         ...reach.findings,
         ...forced.findings,
@@ -555,6 +589,13 @@ const report = [
   'its own. A line of the file may open with one. A failure names the syntax, the characters before it on',
   'its row, and the line of text it closes. The quotes and the comma drawn flush against a period count',
   'toward how wide it is, since the editor holds them to it.',
+  '',
+  'Since #259 no name or label breaks inside a word: the name, the role line, the location, each role',
+  "and degree heading, each school, each certification's name, each token of Nerd Mode's file and each",
+  "control of the toolbar. An automatic hyphen is drawn at a break and never written into the page's",
+  'text, so what shows it is two characters of one word, letters, digits or its apostrophe, on two lines',
+  "of one element. A break at a space, or after a compound's own hyphen, is whole; running prose may",
+  'hyphenate. A failure names the word, split where it broke.',
   '',
   '## The Download PDF link',
   '',
