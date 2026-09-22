@@ -1394,6 +1394,19 @@ body[data-layout='technical'] .hero-name {
       box-shadow: 8px 8px 0 var(--e-amber);
     }
   }
+
+  /* On the narrowest phones a role's title steps down to the body's size, so its longest word fits its line whole:
+     at 320px the title has 172px, and "Systemadministrator" takes 184px at 1.12rem, 164px at 1rem. Wider than 359px
+     the line holds it at full size (#348). */
+  @media (max-width: 359px) {
+    body[data-layout='spotlight'] .job-title {
+      font-size: 1rem;
+    }
+
+    body[data-layout='spotlight'] .job-entry:first-child .job-title {
+      font-size: 1.07rem;
+    }
+  }
 }
 
 /* =============================================================================
