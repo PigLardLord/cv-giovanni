@@ -47,6 +47,7 @@ export const ADVERT = {
       'had',
       'you',
       'your',
+      'please',
       'we',
       'our',
       'us',
@@ -221,12 +222,28 @@ export const ADVERT = {
       'du',
       'dein',
       'deine',
+      // The possessives as a sentence inflects them, and the word that asks: "Bitte nennen Sie Ihren
+      // Eintrittstermin" ranked "Ihren …" and "Bitte" as requirements (#351).
+      'deinen',
+      'deinem',
+      'deiner',
+      'deines',
       'sie',
       'ihr',
       'ihre',
+      'ihren',
+      'ihrem',
+      'ihrer',
+      'ihres',
       'wir',
       'unser',
       'unsere',
+      'unseren',
+      'unserem',
+      'unserer',
+      'unseres',
+      'bitte',
+      'sowie',
       'uns',
       'es',
       'dies',
@@ -316,10 +333,19 @@ export const ADVERT = {
       'tu',
       'tuo',
       'tua',
+      'tuoi',
+      'tue',
+      'suo',
+      'sua',
+      'suoi',
+      'sue',
       'lei',
       'noi',
       'nostro',
       'nostra',
+      'nostri',
+      'nostre',
+      'favore',
       'ci',
       'questo',
       'questa',
@@ -635,6 +661,50 @@ export const ADVERT = {
   },
 
   /**
+   * What a posting asks of the applicant rather than of the job: "Bitte nennen Sie Ihren frühestmöglichen
+   * Eintrittstermin" ranked as three requirements (#351). Taken out of the line as words, never the line with them: an
+   * advert writes "Please state your experience with SwiftUI and your earliest start date", and SwiftUI is the job's
+   * (the review of #355).
+   */
+  instructions: {
+    en: [
+      'please state',
+      'please indicate',
+      'please let us know',
+      'earliest start date',
+      'earliest possible start date',
+      'salary expectation',
+      'salary expectations',
+      'notice period'
+    ],
+    de: [
+      'bitte nennen sie',
+      'bitte nenne',
+      'bitte teilen sie uns',
+      'bitte teile uns',
+      'bitte geben sie',
+      'bitte gib',
+      'unter angabe',
+      'eintrittstermin',
+      'eintrittstermins',
+      'frühestmöglichen eintrittstermin',
+      'frühestmöglichen eintrittstermins',
+      'frühestmöglicher eintrittstermin',
+      'gehaltsvorstellung',
+      'gehaltsvorstellungen',
+      'kündigungsfrist'
+    ],
+    it: [
+      'si prega di indicare',
+      'data di disponibilità',
+      'aspettative economiche',
+      'aspettative retributive',
+      'ral attuale',
+      'preavviso'
+    ]
+  },
+
+  /**
    * The words a street's name carries, so an address line is read as the posting's and not as a requirement:
    * "Hauptstraße 1, 10115 Berlin" asked for nothing (#337). Each language writes the word in its own place — see
    * `STREET_ORDER` — and each is read only beside a house number, so "the road ahead" and "via REST" stay words.
@@ -759,6 +829,23 @@ const spellings = (form) => [
   ])
 ];
 
+// Each instruction as whole words, longest first, the spaces between them any run of spaces: "earliest possible start
+// date" before "start date", and never inside a word — "Kündigungsfristen", "Eintrittstermin-Angabe" (#351).
+const INSTRUCTION = new RegExp(
+  Object.values(ADVERT.instructions)
+    .flat()
+    .sort((a, b) => b.length - a.length)
+    .map(
+      (entry) =>
+        String.raw`(?<![\p{L}\p{N}])${entry
+          .split(' ')
+          .map(escaped)
+          .join(String.raw`\s+`)}(?![\p{L}\p{N}-])`
+    )
+    .join('|'),
+  'giu'
+);
+
 const SYNONYM = new Map();
 for (const group of ADVERT.synonyms) {
   const canonical = fold(group[0]);
@@ -808,6 +895,20 @@ export class AdvertLexicon {
   static withoutAddresses(line) {
     return String(line ?? '')
       .replace(ADDRESS, ',')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+  }
+
+  /**
+   * A line without what it asks of the applicant: "Please state your experience with SwiftUI and your earliest start
+   * date" is "your experience with SwiftUI and your". Each instruction becomes a comma, so the words either side of it
+   * never join into a phrase (#351, the review of #355).
+   * @param {string} line - One line of the advert
+   * @returns {string} The line, its instructions taken out
+   */
+  static withoutInstructions(line) {
+    return String(line ?? '')
+      .replace(INSTRUCTION, ',')
       .replace(/\s{2,}/g, ' ')
       .trim();
   }

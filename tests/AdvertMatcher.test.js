@@ -219,8 +219,10 @@ describe('a German advert', () => {
     '- Erfahrung mit SwiftUI und Barrierefreiheit',
     '- Testautomatisierung und Qualitätssicherung',
     '- Apps für Großkunden',
+    '- Flüssige Übergänge zwischen Bildschirmen',
     '',
-    'Bitte nennen Sie Ihren frühestmöglichen Eintrittstermin. Hauptstraße 1, 10115 Berlin.'
+    'Bitte nennen Sie Ihren frühestmöglichen Eintrittstermin.',
+    'Hauptstraße 1, 10115 Berlin'
   ].join('\n');
 
   test('is read in whole words, umlauts and ß included, and yields no fragment of one', () => {
@@ -228,9 +230,9 @@ describe('a German advert', () => {
     const words = terms.flatMap((term) => term.split(' '));
 
     expect(words).toEqual(
-      expect.arrayContaining(['Qualitätssicherung', 'frühestmöglichen', 'Großkunden'])
+      expect.arrayContaining(['Qualitätssicherung', 'Übergänge', 'Großkunden'])
     );
-    for (const fragment of ['fr', 'hestm', 'glichen', 'Gro', 'kunden', 'Qualit', 'tssicherung']) {
+    for (const fragment of ['berg', 'nge', 'Gro', 'kunden', 'Qualit', 'tssicherung']) {
       expect(words).not.toContain(fragment);
     }
   });
@@ -240,6 +242,28 @@ describe('a German advert', () => {
     const terms = AdvertMatcher.extractTerms(advert, 60).terms.map(({ term }) => term);
 
     expect(terms.filter((term) => /\d|straße/iu.test(term))).toEqual([]);
+  });
+
+  // #351: the closing request ranked "Ihren frühestmöglichen Eintrittstermin", "Bitte" and "nennen" as requirements.
+  test('ranks nothing of its instruction to the applicant', () => {
+    const terms = AdvertMatcher.extractTerms(advert, 60).terms.map(({ term }) => term);
+
+    expect(terms.filter((term) => /bitte|nennen|ihren|eintrittstermin/iu.test(term))).toEqual([]);
+  });
+
+  // The review of #355: a requirement in the same sentence as the instruction stays a requirement.
+  test('ranks what the job asks beside an instruction, in its sentence', () => {
+    const terms = AdvertMatcher.extractTerms(
+      [
+        'Requirements:',
+        '- Please state your notice period, your earliest possible start date and your experience with GraphQL and Node.js in your application.'
+      ].join('\n'),
+      60
+    ).terms.map(({ term }) => term);
+    const words = terms.flatMap((term) => term.split(' '));
+
+    expect(words).toEqual(expect.arrayContaining(['GraphQL', 'Node.js']));
+    expect(terms.filter((term) => /notice|start date|please/iu.test(term))).toEqual([]);
   });
 
   // The review of #352: a figure and its noun, or a job beside a number, are no address.
