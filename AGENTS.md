@@ -629,6 +629,13 @@ Since #230 the print sets its own section order, and the tree does not follow it
 from the markup, so a screen reader meets Core Technologies where the page prints the roles. The text layer
 does follow the printed order, in both of the orders a parser reads, which is what the audits hold.
 
+Since #240 a role's printed header is the title over `Employer · Place · Dates`, and the dots are
+punctuation the stylesheet draws. Chrome writes them into the text layer and not into the tree: the
+`H4` holds the title, the employer and the place with nothing between them, and the screen's "at"
+and comma, which the tree did carry, are not printed. Whether the screen writes the dots too is
+#369's. And the `Strong` Chrome tags emphasis with has no RoleMap, so a poppler-based reader drops
+it with its text, Selected Impact's figures among it (#370).
+
 pdfmake, which composed the PDF before, wrote the tagged flag over an empty tree, and the project
 refused to set it: a flag over nothing tells a screen reader structure exists, and the reader stops
 looking. Chrome's tree is not nothing, but its headings and lists are only as good as the page's

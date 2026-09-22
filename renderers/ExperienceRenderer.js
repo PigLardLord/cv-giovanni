@@ -27,12 +27,22 @@ export class ExperienceRenderer extends BaseRenderer {
 
     // Every string from the data is text (#157), and the header reads "Title at Company, City", without the comma when
     // the role names no city (#169). It is a heading one level below its section's, so a screen reader moves from role
-    // to role, on the page and in the printed PDF's structure tree (#265).
+    // to role, on the page and in the printed PDF's structure tree (#265). Each field is an element and each word
+    // between them a joint: the print sets the title on a line of its own and "Company · City · Dates" under it, which
+    // the screen's words do not say (#240).
+    const pieces = roleHeader(job, at).map((piece) =>
+      typeof piece === 'string' ? { field: 'joint', text: piece } : piece
+    );
     entry.appendChild(
       this.appendPieces(
         root,
         this.createElement(root, 'h4', 'job-header'),
-        this.fieldPieces(root, roleHeader(job, at), { title: 'job-title', company: 'job-company' })
+        this.fieldPieces(root, pieces, {
+          title: 'job-title',
+          company: 'job-company',
+          location: 'job-location',
+          joint: 'job-joint'
+        })
       )
     );
     entry.appendChild(

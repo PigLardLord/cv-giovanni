@@ -7,7 +7,7 @@ Layouts: 1
 
 | Layout | Pages | Score | Worst side margin | Room left |
 |---|---:|---:|---:|---|
-| technical | 2 | 28/28 | 33.5mm | p1 25.5pt · p2 188.5pt |
+| technical | 2 | 28/28 | 33.5mm | p1 13.5pt ⚠ · p2 190.8pt |
 
 Room left is the space between each page's lowest line and its 33pt bottom margin. A page
 with less than one 15.4pt line of running text free is marked ⚠: on the last page the
@@ -15,6 +15,8 @@ next line has nowhere to go; on a page before it, the next line moves the block 
 whole to the next page. It is a warning, never a failure, since the page count is the gate.
 
 Every CV print is a tagged PDF (`pdfinfo`: `Tagged: yes`): Chrome wrote a structure tree. A tree is not accessibility, and no screen reader has read it (AGENTS.md).
+
+⚠ Tight page before the last: technical p1 (13.5pt) — the next line added moves the block at its foot to the next page.
 
 The ATS fixtures `page-print-general-en-technical.txt`, `page-print-general-en-technical.raw.txt` in `tests/fixtures/ats/` are this print, word for word and line for line as `pdftotext` and `pdftotext -raw` extract it, allowing for the spaces poppler infers.
 
