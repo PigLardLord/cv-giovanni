@@ -293,6 +293,8 @@ export class SourceRenderer extends BaseRenderer {
         ? this.createAddress(root, token.href, token.text)
         : this.createElement(root, token.element || 'span');
     element.classList.add('tok', `tok-${token.kind}`);
+    // The name a heading is announced by, where the layout gives one: a role's title as "title at employer" (#332).
+    if (token.label) element.setAttribute('aria-label', token.label);
     element.textContent = '';
     // A separator in a value stays with the words either side of it: the editor wrapped "EU citizen ·" (#180).
     if (!token.parts) return this.appendPieces(root, element, holdSeparators(root, token.text));

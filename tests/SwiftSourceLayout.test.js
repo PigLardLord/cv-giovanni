@@ -22,7 +22,8 @@ const labels = {
   'cv:sections.education': 'Education',
   'cv:sections.languages': 'Languages',
   'cv:sections.interests': 'Interests',
-  'cv:education.credits': '{{count}} ECTS'
+  'cv:education.credits': '{{count}} ECTS',
+  'cv:experience.at': 'at'
 };
 const t = (key, options = {}) =>
   (labels[key] ?? key)
@@ -615,6 +616,20 @@ test('gives a role its length after its period', () => {
     '            period: "August 2018 – Present",\n            duration: "8 years, 2 months",'
   );
   expect(source).toContain('            period: "2015",\n            summary: "Built AR apps."');
+});
+
+// The editor's heading for a role was its title alone, where the page's names the employer: two roles of one title
+// were one heading to a screen reader (#332).
+test('names each role heading as the page does: title, employer, place', () => {
+  const headings = composingTheModel(new SwiftSourceLayout())
+    .compose({ ...profile, asOf: '2026-09' }, { t })
+    .lines.flatMap((line) => line.tokens)
+    .filter((token) => token.element === 'h3');
+
+  expect(headings.map(({ text, label }) => [text, label])).toEqual([
+    ['Mobile Engineer', 'Mobile Engineer at Acme, Berlin (remote)'],
+    ['Intern', 'Intern at Marte 5, Livorno']
+  ]);
 });
 
 // A narrow editor wrapped a role's dates as "August 2018 –" / "Present" at 320px (#180). A period is whole, which the
