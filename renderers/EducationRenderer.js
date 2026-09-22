@@ -1,5 +1,5 @@
 import { BaseRenderer } from './BaseRenderer.js';
-import { degreeLine, schoolLine } from '../domain/EntryLines.js';
+import { creditWords, degreeLine, schoolLine } from '../domain/EntryLines.js';
 
 export class EducationRenderer extends BaseRenderer {
   constructor(i18n = null) {
@@ -46,11 +46,10 @@ export class EducationRenderer extends BaseRenderer {
    * @returns {{ credits: (count: string) => string, locale: string }} The words, as `degreeLine` takes them
    */
   creditWords() {
-    return {
-      locale: this.i18n?.language || 'en',
-      credits: (count) =>
-        this.i18n ? this.i18n.t('education.credits', { ns: 'cv', count }) : `${count} ECTS`
-    };
+    const locale = this.i18n?.language || 'en';
+    return this.i18n
+      ? creditWords((key, values) => this.i18n.t(key, values), locale)
+      : { locale, credits: (count) => `${count} ECTS` };
   }
 
   validate(data) {
