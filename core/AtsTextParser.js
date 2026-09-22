@@ -8,6 +8,25 @@ const URL = /(?:https?:\/\/)?(?:www\.)?(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s·|]*)
 const SEPARATORS = /\s*[·|•]\s*/;
 /** The most words a role's title runs to where no blank line sets it apart: an achievement runs longer (#240). */
 const TITLE_WORDS = 6;
+/** A word written as a name's: opening on a capital or a digit, or holding a capital, as "iOS" does (#240). */
+const NAME_WORD = /^[\p{Lu}\p{N}]|\p{Lu}/u;
+/** The small words a title may hold in lower case, in the CV's languages: "Head of Mobile", "Leiter für Apps". */
+const CONNECTORS = new Set([
+  'of',
+  'and',
+  'for',
+  'in',
+  'the',
+  '&',
+  '-',
+  '–',
+  'und',
+  'für',
+  'der',
+  'di',
+  'e',
+  'per'
+]);
 const YEAR = String.raw`(?:19|20)\d{2}`;
 const SHORT_YEAR = String.raw`(?:${YEAR}|\d{2})`;
 // An academic term DateRange has no notation for: "WS 2014/15 – SS 2016", "Wintersemester 2014", "Fall 2014" (#187).
@@ -264,8 +283,8 @@ export class AtsTextParser {
       if (opening) return [{ index, period: opening.period, opens: opening.rest, closes: null }];
       // Only in the shape the page writes it: under a title that opens its paragraph. Anywhere else a line closing on a
       // date is an achievement that says when (the review of #358).
-      const closing =
-        AtsTextParser.titleOpensAbove(entries, index) && AtsTextParser.closingPeriod(entry.text);
+      const period = AtsTextParser.closingPeriod(entry.text);
+      const closing = period && AtsTextParser.titleOpensAbove(entries, index, period) && period;
       return closing
         ? [{ index, period: closing.period, opens: null, closes: closing.before }]
         : [];
@@ -387,22 +406,34 @@ export class AtsTextParser {
   }
 
   /**
-   * Whether the line above a line opens a role as its title does: next to it, not closing like a sentence, and first of
-   * its paragraph — the section's first line, or the first after a blank — or a short line after one that ends a
-   * sentence. Poppler sets no blank line between a role's last achievement and the next role's title, which stand 9pt
-   * apart on the paper (the print of #240). A role's last achievement ends on a full stop and is never the next role's
-   * title, and a long line after a sentence is an achievement written without its stop (the review of #358).
+   * Whether the line above a line closing on its period opens a role as its title does: next to it, not closing like a
+   * sentence, and first of its paragraph — the section's first line, or the first after a blank.
+   *
+   * Or, where no blank line sets it apart, as the print of #240 reads: poppler sets none between a role's last
+   * achievement and the next role's title, which stand 9pt apart on the paper. There the title needs what a header has
+   * and a bullet lacks: it follows a line that ends a sentence, runs to six words, is written as a name, and the line
+   * under it names an employer and a place before its period. "Mentoring juniors" over "Team of 3 · 2019 – 2021" is a
+   * bullet and its neighbour, not a role (the review of #366); a role's last achievement ends on its full stop and is
+   * never a title (the review of #358).
+   * @param {{ text: string, line: number }[]} entries - The section's lines
+   * @param {number} index - The line closing on a period
+   * @param {{ before: string }} closing - What that line says before its period
+   * @returns {boolean} Whether the line above is the role's title
    */
-  static titleOpensAbove(entries, index) {
+  static titleOpensAbove(entries, index, closing) {
     const above = entries[index - 1];
     if (!above || above.line !== entries[index].line - 1) return false;
     const title = above.text.trim();
     if (/[.;:!?]$/.test(title)) return false;
     const before = entries[index - 2];
-    const opens = !before || before.line < above.line - 1;
-    const afterASentence =
-      /[.!?]$/.test(before?.text.trim() ?? '') && title.split(/\s+/).length <= TITLE_WORDS;
-    return opens || afterASentence;
+    if (!before || before.line < above.line - 1) return true;
+    const words = title.split(/\s+/);
+    return (
+      /[.!?]$/.test(before.text.trim()) &&
+      words.length <= TITLE_WORDS &&
+      words.every((word) => NAME_WORD.test(word) || CONNECTORS.has(word.toLowerCase())) &&
+      closing.before.split(SEPARATORS).filter((part) => part.trim()).length >= 2
+    );
   }
 
   /**
