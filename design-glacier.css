@@ -38,9 +38,9 @@
   --border-light: #f1f1f3;
 }
 
-/* One masthead for all three layouts: ink, with the signal arriving as a band
-   rather than as a tint of the background. The old gradients were three
-   different corporate blues and greens doing the same job three ways. */
+/* The masthead's base: ink, with the signal arriving as a band rather than as a
+   tint of the background. On screen Technical Profile's skin, below, lays its
+   blue gradient over it (#362). */
 body[data-layout='technical'] .hero-section {
   background: var(--ink);
   border-bottom: 3px solid var(--signal-bright);
