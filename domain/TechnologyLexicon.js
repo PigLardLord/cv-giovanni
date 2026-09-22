@@ -34,9 +34,7 @@ export const TECHNOLOGIES = Object.freeze([
   'RxSwift',
   'RxJava',
   'Jetpack Compose',
-  'Espresso',
   'Gradle',
-  'Flutter',
   'React Native',
   'Xamarin',
   // Delivery
@@ -67,3 +65,11 @@ export const TECHNOLOGIES = Object.freeze([
   'TensorFlow',
   'PyTorch'
 ]);
+
+/**
+ * Technologies whose names are English words too: "UI flutter during fast scrolling" is a wobble, not the framework (the
+ * review of #360). In English the capital tells them apart, and the name reading has it; in a translation, whose nouns
+ * are all capitalised, it does not, and German has no noun "Flutter". So these are held to the source in a translation
+ * only. "Espresso" is left out altogether: a coffee in every language here.
+ */
+export const ALSO_ENGLISH_WORDS = Object.freeze(['Flutter']);

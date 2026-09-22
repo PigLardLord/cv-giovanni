@@ -1287,9 +1287,9 @@ describe('a tailored CV translated into German', () => {
       { advert: 'Anforderungen:\n- Flutter und Bitrise' }
     );
 
-    expect(reasonsAt(failures, 'relevant_experience[0].highlights[1]')).toEqual([
-      'says "Flutter", which its source does not',
-      'says "Bitrise", which its source does not'
+    expect(reasonsAt(failures, 'relevant_experience[0].highlights[1]').sort()).toEqual([
+      'says "Bitrise", which its source does not',
+      'says "Flutter", which its source does not'
     ]);
   });
 });
@@ -1399,6 +1399,17 @@ describe('a technology the lexicon knows', () => {
     expect(
       ProvenanceCheck.failures({ source, tailored, sources: itself(source), terms: [], advert: '' })
     ).toEqual([]);
+  });
+
+  // The review of #360: "flutter" is an English word too, and a truthful rewording was refused as the framework.
+  test('a technology that is an English word too is read from its capital in English: "the flutter"', () => {
+    const failures = check(
+      (cv) =>
+        (cv.relevant_experience[0].highlights[1] =
+          'Cut the test suite from 37.7 to 5.2 minutes, and the flutter during fast scrolling.')
+    );
+
+    expect(reasonsAt(failures, 'relevant_experience[0].highlights[1]')).toEqual([]);
   });
 
   test('an ordinary word that also names one is no technology: "swift", "combine", "react"', () => {
