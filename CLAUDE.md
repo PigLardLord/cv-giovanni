@@ -74,7 +74,8 @@ from `letter.html` (#151). pdfmake composed both until then, and was removed in 
   repository (#22).
 - `scripts/` — generation, the audits, and the no-store development server, which also answers the local
   app's API at `/api/` (#21). Each route passes its request to one service in `core/` (`ProfileStore`,
-  `Applications`), and `tests/LocalApi.test.js` fails when a route holds logic of its own.
+  `Applications`), and `tests/LocalApi.test.js` fails when a route holds logic of its own. `docs/LOCAL_API.md`
+  is the API's reference, and `tests/LocalApiIsDocumented.test.js` fails when it and the routes disagree.
 - `editor.html` and `editor/` — the local app's editor (#23): the general profile as a form, built from
   `core/ProfileShape.js` by `core/ProfileForm.js`, beside the CV it renders. The page decides nothing; it is
   not published with the site, and `tests/EditorStaysLocal.test.js` holds the deploy to that.

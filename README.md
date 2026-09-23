@@ -136,7 +136,8 @@ letter. A tailored CV leaves the machine only as an attached PDF.
 
 `npm run serve` also answers the local app's API, the first step away from driving the pipeline from a shell. Each
 endpoint hands its request to one service in `core/` and answers with what that service returns, so the browser and
-the command line run the same code:
+the command line run the same code. [`docs/LOCAL_API.md`](docs/LOCAL_API.md) is the reference: every request, answer
+and status code, the files a job writes, how it is built, and what to do when it fails.
 
 | Endpoint                                 | What it does                                                                                   |
 | ---------------------------------------- | ---------------------------------------------------------------------------------------------- |
